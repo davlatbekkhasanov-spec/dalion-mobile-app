@@ -4,7 +4,13 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const homeRoutes = require('./src/routes/home.routes');
+const homeRoutes = require('./src/routes/home.routes.js');
+
+app.use(express.static(__dirname));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend.html'));
+});
 
 app.use(express.static(__dirname));
 
