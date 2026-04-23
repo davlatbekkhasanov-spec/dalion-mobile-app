@@ -1,0 +1,24 @@
+{
+  "name": "dalion-mobile-app",
+  "version": "1.0.0",
+  "description": "DALION mobile commerce app (Flutter + Node.js backend)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davlatbekkhasanov-spec/dalion-mobile-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/davlatbekkhasanov-spec/dalion-mobile-app/issues"
+  },
+  "homepage": "https://github.com/davlatbekkhasanov-spec/dalion-mobile-app#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
