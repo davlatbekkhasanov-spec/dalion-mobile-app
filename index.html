@@ -49,219 +49,261 @@
     .home-screen {
       position: absolute;
       inset: 0;
-      transition: opacity 620ms ease, transform 620ms ease, visibility 620ms ease;
+      transition: opacity 760ms ease, transform 760ms ease, visibility 760ms ease;
     }
 
     .intro-screen {
       z-index: 4;
-      padding: 24px 20px 28px;
-      color: #e7f8ff;
-      background:
-        radial-gradient(circle at 20% 18%, rgba(82, 160, 255, 0.24) 0%, transparent 30%),
-        radial-gradient(circle at 78% 74%, rgba(57, 206, 144, 0.25) 0%, transparent 36%),
-        linear-gradient(155deg, #04162f 0%, #08264f 42%, #0d3857 100%);
       overflow: hidden;
       display: flex;
-      flex-direction: column;
+      align-items: center;
       justify-content: center;
+      color: #e8f6ff;
+      background:
+        radial-gradient(circle at 20% 12%, rgba(56, 141, 255, 0.2) 0%, transparent 28%),
+        radial-gradient(circle at 82% 84%, rgba(72, 231, 168, 0.24) 0%, transparent 36%),
+        radial-gradient(circle at 50% 54%, rgba(12, 71, 123, 0.24) 0%, transparent 47%),
+        linear-gradient(155deg, #020711 0%, #05172f 38%, #0a2941 68%, #051016 100%);
       isolation: isolate;
     }
 
-    .intro-screen::before,
-    .intro-screen::after {
-      content: "";
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(36px);
-      z-index: -1;
-      animation: pulseAura 7s ease-in-out infinite alternate;
-    }
-
-    .intro-screen::before {
-      width: 240px;
-      height: 240px;
-      left: -64px;
-      top: -58px;
-      background: rgba(74, 138, 247, 0.34);
-    }
-
-    .intro-screen::after {
-      width: 220px;
-      height: 220px;
-      right: -70px;
-      bottom: -48px;
-      background: rgba(68, 220, 152, 0.31);
-      animation-delay: 1.4s;
-    }
-
-    .particle-field {
+    .cosmic-layer,
+    .energy-layer,
+    .sparkle-layer {
       position: absolute;
       inset: 0;
       pointer-events: none;
       overflow: hidden;
     }
 
-    .particle {
+    .cosmic-nebula,
+    .cosmic-nebula::before,
+    .cosmic-nebula::after {
       position: absolute;
-      width: 7px;
-      height: 7px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(190, 242, 255, 0.95) 0%, rgba(190, 242, 255, 0.12) 72%);
-      box-shadow: 0 0 12px rgba(135, 215, 255, 0.6);
-      opacity: 0;
-      animation: floatParticle linear infinite;
+      filter: blur(44px);
+      content: "";
+      animation: nebulaBreath 8.4s ease-in-out infinite alternate;
     }
 
-    .p1 { left: 14%; top: 78%; animation-duration: 9s; animation-delay: 0.2s; }
-    .p2 { left: 82%; top: 68%; animation-duration: 10.8s; animation-delay: 0.9s; }
-    .p3 { left: 25%; top: 92%; animation-duration: 8.2s; animation-delay: 1.4s; }
-    .p4 { left: 66%; top: 86%; animation-duration: 11.2s; animation-delay: 0.4s; }
-    .p5 { left: 51%; top: 95%; animation-duration: 9.6s; animation-delay: 1.2s; }
-    .p6 { left: 7%; top: 84%; animation-duration: 10.1s; animation-delay: 2.1s; }
-    .p7 { left: 92%; top: 88%; animation-duration: 8.8s; animation-delay: 2.6s; }
+    .cosmic-nebula {
+      width: 260px;
+      height: 260px;
+      left: -74px;
+      top: -70px;
+      background: rgba(67, 126, 255, 0.24);
+    }
 
-    .ray {
+    .cosmic-nebula::before {
+      width: 180px;
+      height: 180px;
+      right: -312px;
+      top: 420px;
+      background: rgba(58, 215, 154, 0.24);
+      animation-delay: 1.6s;
+    }
+
+    .cosmic-nebula::after {
+      width: 150px;
+      height: 150px;
+      left: 252px;
+      top: 140px;
+      background: rgba(90, 164, 255, 0.2);
+      animation-delay: 2.3s;
+    }
+
+    .stars {
       position: absolute;
-      inset: auto;
-      width: 220px;
-      height: 2px;
-      background: linear-gradient(90deg, transparent 0%, rgba(150, 237, 206, 0.8) 50%, transparent 100%);
-      filter: blur(0.5px);
-      opacity: 0.6;
-      transform-origin: center;
-      animation: raySweep 5.2s ease-in-out infinite;
+      inset: 0;
+      overflow: hidden;
     }
 
-    .ray.r1 { top: 27%; left: -58px; transform: rotate(-12deg); }
-    .ray.r2 { top: 58%; right: -70px; transform: rotate(22deg); animation-delay: 1.6s; }
+    .star {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.98) 0%, rgba(181, 223, 255, 0.65) 60%, rgba(181, 223, 255, 0) 100%);
+      box-shadow: 0 0 10px rgba(145, 210, 255, 0.65);
+      animation: twinkle var(--dur, 4s) ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
+      opacity: 0.45;
+    }
+
+    .energy-wave {
+      position: absolute;
+      width: 240px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, rgba(122, 246, 201, 0.84) 45%, rgba(137, 199, 255, 0.86) 55%, transparent 100%);
+      filter: blur(0.5px);
+      opacity: 0.75;
+      animation: waveMove 6.8s ease-in-out infinite;
+    }
+
+    .wave-1 { top: 22%; left: -75px; transform: rotate(-13deg); }
+    .wave-2 { top: 54%; right: -84px; transform: rotate(16deg); animation-delay: 1.8s; }
+    .wave-3 { top: 74%; left: -88px; transform: rotate(8deg); animation-delay: 3.2s; }
+
+    .spark {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(219, 247, 255, 1) 0%, rgba(144, 236, 194, 0.42) 68%, rgba(144, 236, 194, 0) 100%);
+      box-shadow: 0 0 14px rgba(144, 236, 194, 0.78);
+      opacity: 0;
+      animation: sparkleRise linear infinite;
+    }
+
+    .s1 { left: 8%; top: 89%; animation-duration: 8.4s; animation-delay: 0.5s; }
+    .s2 { left: 26%; top: 96%; animation-duration: 7.3s; animation-delay: 1.4s; }
+    .s3 { left: 49%; top: 91%; animation-duration: 9.1s; animation-delay: 2.1s; }
+    .s4 { left: 69%; top: 93%; animation-duration: 8.7s; animation-delay: 0.8s; }
+    .s5 { left: 87%; top: 96%; animation-duration: 7.8s; animation-delay: 2.6s; }
 
     .intro-content {
+      position: relative;
+      z-index: 3;
+      width: 100%;
+      padding: 24px 20px 26px;
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      position: relative;
-      z-index: 2;
+      justify-content: center;
+      min-height: 100%;
     }
 
-    .globe-wrap {
+    .globe-stage {
       position: relative;
-      width: 228px;
-      height: 228px;
+      width: 236px;
+      height: 236px;
       margin-bottom: 18px;
       display: grid;
       place-items: center;
-      filter: drop-shadow(0 18px 28px rgba(13, 126, 225, 0.28));
+      filter: drop-shadow(0 24px 40px rgba(13, 77, 145, 0.45));
     }
 
-    .globe-aura {
+    .aura-core {
       position: absolute;
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(82, 232, 180, 0.28) 0%, rgba(82, 232, 180, 0.08) 46%, transparent 72%);
-      animation: breathe 4.2s ease-in-out infinite;
+      background: radial-gradient(circle, rgba(84, 248, 192, 0.22) 0%, rgba(90, 181, 255, 0.16) 50%, rgba(84, 248, 192, 0) 74%);
+      animation: pulseCore 4.6s ease-in-out infinite;
     }
 
-    .orbit,
-    .orbit-2 {
+    .ring {
       position: absolute;
       border-radius: 50%;
-      border: 1px solid rgba(177, 229, 255, 0.32);
-      width: 216px;
-      height: 216px;
-      animation: spin 14s linear infinite;
+      border: 1px solid rgba(184, 231, 255, 0.36);
+      box-shadow: 0 0 14px rgba(95, 178, 255, 0.18);
+      animation: spinSlow linear infinite;
     }
 
-    .orbit-2 {
-      width: 174px;
-      height: 174px;
-      border-color: rgba(124, 230, 177, 0.34);
-      transform: rotateX(66deg);
+    .ring.r1 {
+      width: 224px;
+      height: 224px;
+      animation-duration: 16s;
+    }
+
+    .ring.r2 {
+      width: 194px;
+      height: 194px;
+      border-color: rgba(134, 233, 188, 0.38);
+      transform: rotateX(70deg);
+      animation-duration: 11.2s;
       animation-direction: reverse;
-      animation-duration: 10s;
     }
 
-    .globe {
-      width: 146px;
-      height: 146px;
-      border-radius: 50%;
+    .ring.r3 {
+      width: 166px;
+      height: 166px;
+      border-color: rgba(154, 205, 255, 0.34);
+      transform: rotateY(72deg);
+      animation-duration: 9.4s;
+    }
+
+    .planet {
       position: relative;
-      background:
-        radial-gradient(circle at 28% 26%, rgba(228, 247, 255, 0.95) 0%, rgba(141, 199, 255, 0.76) 32%, rgba(22, 84, 164, 0.98) 80%),
-        linear-gradient(160deg, #2057b6 0%, #0a8d82 100%);
-      box-shadow:
-        inset -16px -24px 36px rgba(0, 20, 46, 0.48),
-        inset 8px 12px 22px rgba(180, 229, 255, 0.32),
-        0 0 35px rgba(83, 168, 255, 0.42);
+      width: 148px;
+      height: 148px;
+      border-radius: 50%;
       overflow: hidden;
-      animation: tilt 7.8s ease-in-out infinite;
+      background:
+        radial-gradient(circle at 30% 26%, rgba(248, 253, 255, 0.96) 0%, rgba(168, 215, 255, 0.72) 32%, rgba(30, 89, 180, 0.96) 82%),
+        linear-gradient(160deg, #2062c4 0%, #0f8d80 100%);
+      box-shadow:
+        inset -14px -22px 34px rgba(0, 22, 48, 0.55),
+        inset 8px 13px 24px rgba(194, 235, 255, 0.28),
+        0 0 36px rgba(109, 194, 255, 0.48);
+      animation: planetDrift 8.4s ease-in-out infinite;
     }
 
-    .globe::before,
-    .globe::after {
+    .planet::before,
+    .planet::after {
       content: "";
       position: absolute;
       inset: 0;
       border-radius: 50%;
     }
 
-    .globe::before {
+    .planet::before {
       background:
         repeating-linear-gradient(
-          105deg,
+          104deg,
           transparent 0,
           transparent 10px,
-          rgba(156, 228, 204, 0.3) 10px,
-          rgba(156, 228, 204, 0.3) 13px
+          rgba(162, 238, 207, 0.34) 10px,
+          rgba(162, 238, 207, 0.34) 14px
         );
       transform: translateX(-34%);
-      animation: globeFlow 6.2s linear infinite;
+      animation: currentFlow 6.2s linear infinite;
       mix-blend-mode: screen;
     }
 
-    .globe::after {
-      background: radial-gradient(circle at 72% 24%, rgba(255, 255, 255, 0.7) 0%, transparent 28%);
+    .planet::after {
+      background: radial-gradient(circle at 70% 22%, rgba(255, 255, 255, 0.76) 0%, transparent 30%);
     }
 
-    .brand-block,
-    .sub-block,
-    .controls {
+    .text-reveal,
+    .subtitle-reveal,
+    .controls,
+    .note {
       opacity: 0;
       transform: translateY(14px);
       animation-fill-mode: forwards;
-      animation-timing-function: cubic-bezier(0.21, 0.76, 0.26, 1);
+      animation-timing-function: cubic-bezier(0.22, 0.74, 0.27, 1);
     }
 
-    .brand-block {
-      animation-name: revealText;
-      animation-duration: 700ms;
-      animation-delay: 720ms;
+    .text-reveal {
+      animation-name: reveal;
+      animation-duration: 780ms;
+      animation-delay: 760ms;
     }
 
-    .brand-block h1 {
-      font-size: 34px;
+    .text-reveal h1 {
+      font-size: 35px;
+      font-weight: 800;
       letter-spacing: 0.3px;
-      margin-bottom: 6px;
-      text-shadow: 0 0 20px rgba(102, 187, 255, 0.38);
+      margin-bottom: 5px;
+      text-shadow: 0 0 24px rgba(107, 190, 255, 0.42);
     }
 
-    .brand-block h2 {
-      font-size: 24px;
+    .text-reveal h2 {
+      font-size: 25px;
       font-weight: 700;
-      color: #d9f0ff;
       letter-spacing: 0.2px;
+      color: #d8efff;
     }
 
-    .sub-block {
-      max-width: 285px;
+    .subtitle-reveal {
       margin-top: 12px;
-      color: rgba(224, 244, 255, 0.86);
-      line-height: 1.45;
+      max-width: 290px;
+      color: rgba(225, 244, 255, 0.9);
       font-size: 14px;
-      animation-name: revealText;
-      animation-duration: 700ms;
-      animation-delay: 1250ms;
+      line-height: 1.5;
+      animation-name: reveal;
+      animation-duration: 760ms;
+      animation-delay: 1260ms;
     }
 
     .controls {
@@ -270,9 +312,9 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      animation-name: revealText;
-      animation-duration: 720ms;
-      animation-delay: 1850ms;
+      animation-name: reveal;
+      animation-duration: 760ms;
+      animation-delay: 1840ms;
     }
 
     .btn {
@@ -285,25 +327,35 @@
 
     .btn-primary {
       color: #0f3a80;
-      background: linear-gradient(120deg, #f0f8ff 0%, #e2fff4 100%);
-      box-shadow: 0 15px 28px rgba(7, 29, 67, 0.34);
+      background: linear-gradient(120deg, #f1f9ff 0%, #e6fff3 100%);
+      box-shadow: 0 16px 28px rgba(6, 27, 64, 0.35);
     }
 
     .btn-secondary {
       color: #eff8ff;
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(178, 233, 255, 0.35);
-      backdrop-filter: blur(2px);
+      background: rgba(255, 255, 255, 0.11);
+      border: 1px solid rgba(176, 233, 255, 0.4);
+      backdrop-filter: blur(3px);
     }
 
     .register-link {
-      color: rgba(213, 240, 255, 0.88);
+      color: rgba(213, 240, 255, 0.9);
       font-size: 13px;
       text-align: center;
       text-decoration: underline;
       text-underline-offset: 4px;
       margin-top: 3px;
       display: block;
+    }
+
+    .note {
+      margin-top: 16px;
+      font-size: 12px;
+      letter-spacing: 0.3px;
+      color: rgba(212, 239, 255, 0.82);
+      animation-name: reveal;
+      animation-duration: 760ms;
+      animation-delay: 2200ms;
     }
 
     .intro-screen.hide {
@@ -316,7 +368,7 @@
     .home-screen {
       opacity: 0;
       visibility: hidden;
-      transform: translateY(14px);
+      transform: translateY(16px);
       z-index: 1;
     }
 
@@ -530,83 +582,98 @@
       box-shadow: inset 0 0 0 1px #d4e1fb;
     }
 
-    @keyframes spin {
+    @keyframes spinSlow {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
     }
 
-    @keyframes globeFlow {
+    @keyframes currentFlow {
       from { transform: translateX(-34%); }
       to { transform: translateX(34%); }
     }
 
-    @keyframes tilt {
-      0%, 100% { transform: rotateY(-13deg) rotateX(7deg); }
-      50% { transform: rotateY(13deg) rotateX(-5deg); }
+    @keyframes planetDrift {
+      0%, 100% { transform: rotateY(-12deg) rotateX(6deg); }
+      50% { transform: rotateY(12deg) rotateX(-4deg); }
     }
 
-    @keyframes floatParticle {
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.25; transform: scale(0.75); }
+      50% { opacity: 0.95; transform: scale(1.08); }
+    }
+
+    @keyframes waveMove {
+      0%, 100% { opacity: 0.06; transform: translateX(0) rotate(-12deg); }
+      50% { opacity: 0.82; transform: translateX(42px) rotate(-12deg); }
+    }
+
+    @keyframes sparkleRise {
       0% { transform: translateY(0) scale(0.5); opacity: 0; }
-      18% { opacity: 0.8; }
-      100% { transform: translateY(-390px) scale(1.16); opacity: 0; }
+      18% { opacity: 0.85; }
+      100% { transform: translateY(-396px) scale(1.2); opacity: 0; }
     }
 
-    @keyframes pulseAura {
-      from { transform: scale(0.9); opacity: 0.5; }
-      to { transform: scale(1.15); opacity: 0.9; }
+    @keyframes pulseCore {
+      0%, 100% { transform: scale(0.92); opacity: 0.55; }
+      50% { transform: scale(1.1); opacity: 0.9; }
     }
 
-    @keyframes breathe {
-      0%, 100% { transform: scale(0.92); opacity: 0.56; }
-      50% { transform: scale(1.09); opacity: 0.9; }
+    @keyframes nebulaBreath {
+      from { transform: scale(0.92); opacity: 0.5; }
+      to { transform: scale(1.18); opacity: 0.9; }
     }
 
-    @keyframes revealText {
+    @keyframes reveal {
       from { opacity: 0; transform: translateY(14px); }
       to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes raySweep {
-      0%, 100% { opacity: 0.1; transform: translateX(0) rotate(-10deg); }
-      50% { opacity: 0.75; transform: translateX(40px) rotate(-10deg); }
     }
   </style>
 </head>
 <body>
   <main class="phone-shell" aria-label="GlobusMarket mobile preview">
-    <section class="intro-screen" id="introScreen" aria-label="Cinematic intro screen">
-      <div class="particle-field" aria-hidden="true">
-        <div class="particle p1"></div>
-        <div class="particle p2"></div>
-        <div class="particle p3"></div>
-        <div class="particle p4"></div>
-        <div class="particle p5"></div>
-        <div class="particle p6"></div>
-        <div class="particle p7"></div>
-        <div class="ray r1"></div>
-        <div class="ray r2"></div>
+    <section class="intro-screen" id="introScreen" aria-label="Cinematic space intro">
+      <div class="cosmic-layer" aria-hidden="true">
+        <div class="cosmic-nebula"></div>
+        <div class="stars" id="stars"></div>
+      </div>
+
+      <div class="energy-layer" aria-hidden="true">
+        <div class="energy-wave wave-1"></div>
+        <div class="energy-wave wave-2"></div>
+        <div class="energy-wave wave-3"></div>
+      </div>
+
+      <div class="sparkle-layer" aria-hidden="true">
+        <span class="spark s1"></span>
+        <span class="spark s2"></span>
+        <span class="spark s3"></span>
+        <span class="spark s4"></span>
+        <span class="spark s5"></span>
       </div>
 
       <div class="intro-content">
-        <div class="globe-wrap" aria-hidden="true">
-          <div class="globe-aura"></div>
-          <div class="orbit"></div>
-          <div class="orbit-2"></div>
-          <div class="globe"></div>
+        <div class="globe-stage" aria-hidden="true">
+          <div class="aura-core"></div>
+          <div class="ring r1"></div>
+          <div class="ring r2"></div>
+          <div class="ring r3"></div>
+          <div class="planet"></div>
         </div>
 
-        <div class="brand-block">
+        <div class="text-reveal">
           <h1>GlobusMarket</h1>
           <h2>Хуш келибсиз</h2>
         </div>
 
-        <p class="sub-block">Тез, қулай ва ишончли харид</p>
+        <p class="subtitle-reveal">Тез, қулай ва ишончли харид</p>
 
         <div class="controls">
           <button class="btn btn-primary" id="continueBtn">Davom etish</button>
           <button class="btn btn-secondary">Kirish</button>
           <a href="#" class="register-link">Ro'yxatdan o'tish</a>
         </div>
+
+        <p class="note">Yetkazib berish 30 daqiqadan</p>
       </div>
     </section>
 
@@ -711,6 +778,20 @@
     const continueBtn = document.getElementById("continueBtn");
     const introScreen = document.getElementById("introScreen");
     const homeScreen = document.getElementById("homeScreen");
+    const starsContainer = document.getElementById("stars");
+
+    for (let i = 0; i < 55; i += 1) {
+      const star = document.createElement("span");
+      star.className = "star";
+      const size = (Math.random() * 2.4 + 1).toFixed(2);
+      star.style.width = `${size}px`;
+      star.style.height = `${size}px`;
+      star.style.left = `${Math.random() * 100}%`;
+      star.style.top = `${Math.random() * 100}%`;
+      star.style.setProperty("--dur", `${(Math.random() * 4 + 3).toFixed(2)}s`);
+      star.style.setProperty("--delay", `${(Math.random() * 4).toFixed(2)}s`);
+      starsContainer.appendChild(star);
+    }
 
     continueBtn.addEventListener("click", () => {
       introScreen.classList.add("hide");
