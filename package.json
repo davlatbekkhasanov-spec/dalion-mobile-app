@@ -1,0 +1,12 @@
+{
+  "name": "dalion-mobile-app",
+  "version": "1.0.0",
+  "description": "DALION mobile commerce app (GlobusMarket preview + Node.js backend)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

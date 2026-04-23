@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GlobusMarket</title>
+  <style>
+    * { box-sizing: border-box; font-family: Arial, sans-serif; }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #eef7ff 0%, #f7fffb 100%);
+      color: #0f172a;
+    }
+    .phone {
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 40px rgba(15, 23, 42, 0.08);
+      padding-bottom: 90px;
+    }
+    .top {
+      padding: 20px 16px 10px;
+      background: linear-gradient(135deg, #2563eb 0%, #38bdf8 55%, #86efac 100%);
+      color: white;
+      border-bottom-left-radius: 24px;
+      border-bottom-right-radius: 24px;
+    }
+    .brand { font-size: 30px; font-weight: 800; margin-bottom: 6px; }
+    .muted { font-size: 14px; opacity: 0.95; }
+    .search {
+      margin-top: 14px;
+      background: rgba(255,255,255,0.92);
+      color: #64748b;
+      padding: 14px 16px;
+      border-radius: 16px;
+      font-size: 16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+    }
+    .content { padding: 16px; }
+    .banner {
+      margin-top: -6px;
+      background: linear-gradient(135deg, #2563eb 0%, #22c55e 100%);
+      color: white;
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 10px 24px rgba(37,99,235,0.18);
+    }
+    .banner h3 { margin: 0 0 6px; font-size: 24px; }
+    h2 { margin: 22px 0 12px; font-size: 18px; }
+    .chips { display: flex; gap: 10px; flex-wrap: wrap; }
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: #e9efff;
+      color: #1d4ed8;
+      font-size: 14px;
+      border: 1px solid #dbeafe;
+    }
+    .chip.active {
+      background: #dcfce7;
+      color: #15803d;
+      border-color: #bbf7d0;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .card {
+      background: rgba(255,255,255,0.95);
+      border-radius: 20px;
+      padding: 12px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      border: 1px solid rgba(226,232,240,0.9);
+    }
+    .img {
+      height: 110px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #eff6ff, #f8fafc);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      margin-bottom: 10px;
+    }
+    .title { font-size: 16px; font-weight: 700; margin-bottom: 6px; min-height: 38px; }
+    .sub { color: #64748b; font-size: 13px; margin-bottom: 6px; }
+    .stock { color: #16a34a; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    .price { font-size: 19px; font-weight: 800; margin-bottom: 10px; }
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: 14px;
+      padding: 11px 12px;
+      background: linear-gradient(135deg, #2563eb, #22c55e);
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .bottom {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 430px;
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0 14px;
+    }
+    .nav { text-align: center; color: #64748b; font-size: 12px; }
+    .nav.active { color: #2563eb; font-weight: 700; }
+    .nav span { display: block; font-size: 20px; margin-bottom: 4px; }
+    .api-box {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 18px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+    }
+    .api-box code { display: block; margin-top: 6px; color: #0f172a; }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <div class="top">
+      <div class="brand">GlobusMarket</div>
+      <div class="muted">📍 Yunusobod, Toshkent</div>
+      <div class="search">🔎 Mahsulot qidirish...</div>
+    </div>
+
+    <div class="content">
+      <div class="banner">
+        <h3>Tez yetkazib berish</h3>
+        <div>30 daqiqa ichida buyurtma bering</div>
+      </div>
+
+      <h2>Kategoriyalar</h2>
+      <div class="chips">
+        <div class="chip active">Ichimliklar</div>
+        <div class="chip">Shirinliklar</div>
+        <div class="chip">Sut mahsulotlari</div>
+        <div class="chip">Boshqa</div>
+      </div>
+
+      <h2>Mashhur mahsulotlar</h2>
+      <div class="grid">
+        <div class="card">
+          <div class="img">🥤</div>
+          <div class="title">Coca Cola 1L</div>
+          <div class="sub">Ichimliklar</div>
+          <div class="stock">Mavjud</div>
+          <div class="price">14 000 so'm</div>
+          <button class="btn">Savatga qo'shish</button>
+        </div>
+
+        <div class="card">
+          <div class="img">🥤</div>
+          <div class="title">Pepsi 1L</div>
+          <div class="sub">Ichimliklar</div>
+          <div class="stock">Mavjud</div>
+          <div class="price">13 000 so'm</div>
+          <button class="btn">Savatga qo'shish</button>
+        </div>
+
+        <div class="card">
+          <div class="img">🍫</div>
+          <div class="title">Chocolate Bar</div>
+          <div class="sub">Shirinliklar</div>
+          <div class="stock">Mavjud</div>
+          <div class="price">9 000 so'm</div>
+          <button class="btn">Savatga qo'shish</button>
+        </div>
+
+        <div class="card">
+          <div class="img">🧀</div>
+          <div class="title">Cheese Pack</div>
+          <div class="sub">Sut mahsulotlari</div>
+          <div class="stock">Mavjud</div>
+          <div class="price">22 000 so'm</div>
+          <button class="btn">Savatga qo'shish</button>
+        </div>
+      </div>
+
+      <div class="api-box">
+        <strong>API test</strong>
+        <code>GET /api/v1/home</code>
+      </div>
+    </div>
+
+    <div class="bottom">
+      <div class="nav active"><span>🏠</span>Home</div>
+      <div class="nav"><span>🔎</span>Search</div>
+      <div class="nav"><span>🛒</span>Cart</div>
+      <div class="nav"><span>💳</span>Checkout</div>
+    </div>
+  </div>
+</body>
+</html>
