@@ -6,14 +6,10 @@
   <title>GlobusMarket</title>
   <style>
     :root {
-      --bg: #e8eefb;
-      --surface: #f8fbff;
       --surface-strong: #ffffff;
       --ink: #10213f;
       --muted: #6d7f9f;
       --primary: #164a9d;
-      --primary-soft: #2f63bc;
-      --accent: #58c598;
       --accent-soft: #e8fbf1;
       --border: #d9e2f2;
       --shadow: 0 16px 36px rgba(16, 33, 63, 0.12);
@@ -48,6 +44,201 @@
       box-shadow: 0 24px 55px rgba(14, 31, 66, 0.23);
       overflow: hidden;
       position: relative;
+    }
+
+    .entry-screen,
+    .home-screen {
+      position: absolute;
+      inset: 0;
+      transition: opacity 420ms ease, transform 420ms ease, visibility 420ms ease;
+    }
+
+    .entry-screen {
+      z-index: 2;
+      padding: 22px 18px 28px;
+      color: #fff;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(113, 221, 177, 0.35) 0%, transparent 34%),
+        radial-gradient(circle at 88% 18%, rgba(120, 187, 255, 0.28) 0%, transparent 32%),
+        linear-gradient(155deg, #0c3275 0%, #1b55aa 50%, #2e8f97 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    .entry-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(0.98);
+      pointer-events: none;
+    }
+
+    .entry-brand h1 {
+      font-size: 31px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      margin-bottom: 6px;
+    }
+
+    .entry-brand p {
+      font-size: 13px;
+      opacity: 0.88;
+    }
+
+    .visual-area {
+      margin: 10px 0 12px;
+      height: 280px;
+      border-radius: 28px;
+      background: linear-gradient(170deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.08) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(6px);
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 20px 34px rgba(8, 28, 67, 0.2);
+    }
+
+    .shape,
+    .shape::before,
+    .shape::after {
+      position: absolute;
+      border-radius: 50%;
+      content: "";
+    }
+
+    .shape {
+      width: 170px;
+      height: 170px;
+      left: -34px;
+      top: -32px;
+      background: rgba(144, 239, 201, 0.22);
+    }
+
+    .shape::before {
+      width: 122px;
+      height: 122px;
+      right: -172px;
+      top: 46px;
+      background: rgba(167, 209, 255, 0.2);
+    }
+
+    .shape::after {
+      width: 74px;
+      height: 74px;
+      left: 214px;
+      top: 184px;
+      background: rgba(168, 255, 224, 0.35);
+    }
+
+    .cart-illustration {
+      position: absolute;
+      width: 214px;
+      height: 134px;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .cart-box {
+      position: absolute;
+      inset: 8px 28px 26px;
+      border-radius: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.74);
+      background: linear-gradient(150deg, rgba(255, 255, 255, 0.22) 0%, rgba(116, 202, 177, 0.21) 100%);
+    }
+
+    .cart-handle {
+      position: absolute;
+      top: -7px;
+      left: 58px;
+      width: 98px;
+      height: 48px;
+      border: 3px solid rgba(255, 255, 255, 0.76);
+      border-bottom: none;
+      border-radius: 28px 28px 0 0;
+    }
+
+    .wheel {
+      position: absolute;
+      bottom: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(230, 247, 255, 0.96);
+      box-shadow: inset 0 -5px 8px rgba(18, 71, 133, 0.28);
+    }
+
+    .wheel.left { left: 54px; }
+    .wheel.right { right: 54px; }
+
+    .entry-copy h2 {
+      font-size: 31px;
+      margin-bottom: 8px;
+      letter-spacing: 0.2px;
+    }
+
+    .entry-copy p {
+      color: rgba(241, 248, 255, 0.9);
+      line-height: 1.45;
+      font-size: 14px;
+      max-width: 90%;
+      margin-bottom: 17px;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 14px;
+      padding: 13px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      color: #103979;
+      background: linear-gradient(140deg, #eef6ff 0%, #e0fff3 100%);
+      box-shadow: 0 12px 20px rgba(12, 44, 89, 0.25);
+    }
+
+    .btn-secondary {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.34);
+    }
+
+    .register-link {
+      color: rgba(235, 248, 255, 0.92);
+      font-size: 13px;
+      text-align: center;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      margin-top: 3px;
+      display: block;
+    }
+
+    .bottom-note {
+      margin-top: 14px;
+      font-size: 12px;
+      text-align: center;
+      color: rgba(237, 249, 255, 0.87);
+      letter-spacing: 0.2px;
+    }
+
+    .home-screen {
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(12px);
+    }
+
+    .home-screen.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
     }
 
     .screen {
@@ -256,103 +447,142 @@
 </head>
 <body>
   <main class="phone-shell" aria-label="GlobusMarket mobile preview">
-    <div class="screen">
-      <header class="header">
-        <h1 class="brand">GlobusMarket</h1>
-        <p class="location">Yunusobod, Toshkent</p>
-      </header>
-
-      <div class="search" aria-label="search">
-        <span>🔎</span>
-        <span>Маҳсулот қидириш...</span>
+    <section class="entry-screen" id="entryScreen" aria-label="Welcome screen">
+      <div class="entry-brand">
+        <h1>GlobusMarket</h1>
+        <p>Тез, қулай ва ишончли харид</p>
       </div>
 
-      <section class="promo" aria-label="promotion">
-        <h2>Тез етказиб бериш</h2>
-        <p>30 дақиқа ичида буюртма беринг</p>
-      </section>
-
-      <section aria-label="categories">
-        <h2 class="section-title">Категориялар</h2>
-        <div class="chips">
-          <div class="chip active">Ichimliklar</div>
-          <div class="chip">Shirinliklar</div>
-          <div class="chip">Sut mahsulotlari</div>
-          <div class="chip">Mevalar</div>
-          <div class="chip">Go'sht</div>
+      <div class="visual-area" aria-hidden="true">
+        <div class="shape"></div>
+        <div class="cart-illustration">
+          <div class="cart-handle"></div>
+          <div class="cart-box"></div>
+          <div class="wheel left"></div>
+          <div class="wheel right"></div>
         </div>
-      </section>
+      </div>
 
-      <section aria-label="popular products">
-        <h2 class="section-title">Машҳур маҳсулотлар</h2>
-        <div class="product-grid">
-          <article class="card">
-            <div class="image-placeholder">CC</div>
-            <h3 class="product-title">Coca Cola 1L</h3>
-            <p class="category">Ichimliklar</p>
-            <p class="price">14 000 so'm</p>
-            <p class="availability">Mavjud</p>
-            <button class="add-btn">Savatga qo'shish</button>
-          </article>
+      <div class="entry-copy">
+        <h2>Хуш келибсиз</h2>
+        <p>Керакли маҳсулотларни тез топинг ва осон буюртма беринг</p>
 
-          <article class="card">
-            <div class="image-placeholder">P</div>
-            <h3 class="product-title">Pepsi 1L</h3>
-            <p class="category">Ichimliklar</p>
-            <p class="price">13 000 so'm</p>
-            <p class="availability">Mavjud</p>
-            <button class="add-btn">Savatga qo'shish</button>
-          </article>
-
-          <article class="card">
-            <div class="image-placeholder">Ch</div>
-            <h3 class="product-title">Chocolate Bar</h3>
-            <p class="category">Shirinliklar</p>
-            <p class="price">9 000 so'm</p>
-            <p class="availability">Mavjud</p>
-            <button class="add-btn">Savatga qo'shish</button>
-          </article>
-
-          <article class="card">
-            <div class="image-placeholder">S</div>
-            <h3 class="product-title">Sut 1L</h3>
-            <p class="category">Sut mahsulotlari</p>
-            <p class="price">11 000 so'm</p>
-            <p class="availability">Mavjud</p>
-            <button class="add-btn">Savatga qo'shish</button>
-          </article>
-
-          <article class="card">
-            <div class="image-placeholder">Ol</div>
-            <h3 class="product-title">Olma 1kg</h3>
-            <p class="category">Mevalar</p>
-            <p class="price">18 000 so'm</p>
-            <p class="availability">Mavjud</p>
-            <button class="add-btn">Savatga qo'shish</button>
-          </article>
-
-          <article class="card">
-            <div class="image-placeholder">Tf</div>
-            <h3 class="product-title">Tovuq filesi</h3>
-            <p class="category">Go'sht</p>
-            <p class="price">42 000 so'm</p>
-            <p class="availability">Mavjud</p>
-            <button class="add-btn">Savatga qo'shish</button>
-          </article>
+        <div class="actions">
+          <button class="btn btn-primary" id="continueBtn">Davom etish</button>
+          <button class="btn btn-secondary">Kirish</button>
+          <a href="#" class="register-link">Ro'yxatdan o'tish</a>
         </div>
-      </section>
-    </div>
 
-    <nav class="bottom-nav" aria-label="Bottom navigation">
-      <div class="nav-item active"><span>⌂</span>Home</div>
-      <div class="nav-item"><span>⌕</span>Search</div>
-      <div class="nav-item"><span>🛒</span>Cart</div>
-      <div class="nav-item"><span>◯</span>Profile</div>
-    </nav>
+        <p class="bottom-note">Yetkazib berish 30 daqiqadan</p>
+      </div>
+    </section>
+
+    <section class="home-screen" id="homeScreen">
+      <div class="screen">
+        <header class="header">
+          <h1 class="brand">GlobusMarket</h1>
+          <p class="location">Yunusobod, Toshkent</p>
+        </header>
+
+        <div class="search" aria-label="search">
+          <span>🔎</span>
+          <span>Маҳсулот қидириш...</span>
+        </div>
+
+        <section class="promo" aria-label="promotion">
+          <h2>Тез етказиб бериш</h2>
+          <p>30 дақиқа ичида буюртма беринг</p>
+        </section>
+
+        <section aria-label="categories">
+          <h2 class="section-title">Категориялар</h2>
+          <div class="chips">
+            <div class="chip active">Ichimliklar</div>
+            <div class="chip">Shirinliklar</div>
+            <div class="chip">Sut mahsulotlari</div>
+            <div class="chip">Mevalar</div>
+            <div class="chip">Go'sht</div>
+          </div>
+        </section>
+
+        <section aria-label="popular products">
+          <h2 class="section-title">Машҳур маҳсулотлар</h2>
+          <div class="product-grid">
+            <article class="card">
+              <div class="image-placeholder">CC</div>
+              <h3 class="product-title">Coca Cola 1L</h3>
+              <p class="category">Ichimliklar</p>
+              <p class="price">14 000 so'm</p>
+              <p class="availability">Mavjud</p>
+              <button class="add-btn">Savatga qo'shish</button>
+            </article>
+
+            <article class="card">
+              <div class="image-placeholder">P</div>
+              <h3 class="product-title">Pepsi 1L</h3>
+              <p class="category">Ichimliklar</p>
+              <p class="price">13 000 so'm</p>
+              <p class="availability">Mavjud</p>
+              <button class="add-btn">Savatga qo'shish</button>
+            </article>
+
+            <article class="card">
+              <div class="image-placeholder">Ch</div>
+              <h3 class="product-title">Chocolate Bar</h3>
+              <p class="category">Shirinliklar</p>
+              <p class="price">9 000 so'm</p>
+              <p class="availability">Mavjud</p>
+              <button class="add-btn">Savatga qo'shish</button>
+            </article>
+
+            <article class="card">
+              <div class="image-placeholder">S</div>
+              <h3 class="product-title">Sut 1L</h3>
+              <p class="category">Sut mahsulotlari</p>
+              <p class="price">11 000 so'm</p>
+              <p class="availability">Mavjud</p>
+              <button class="add-btn">Savatga qo'shish</button>
+            </article>
+
+            <article class="card">
+              <div class="image-placeholder">Ol</div>
+              <h3 class="product-title">Olma 1kg</h3>
+              <p class="category">Mevalar</p>
+              <p class="price">18 000 so'm</p>
+              <p class="availability">Mavjud</p>
+              <button class="add-btn">Savatga qo'shish</button>
+            </article>
+
+            <article class="card">
+              <div class="image-placeholder">Tf</div>
+              <h3 class="product-title">Tovuq filesi</h3>
+              <p class="category">Go'sht</p>
+              <p class="price">42 000 so'm</p>
+              <p class="availability">Mavjud</p>
+              <button class="add-btn">Savatga qo'shish</button>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <nav class="bottom-nav" aria-label="Bottom navigation">
+        <div class="nav-item active"><span>⌂</span>Home</div>
+        <div class="nav-item"><span>⌕</span>Search</div>
+        <div class="nav-item"><span>🛒</span>Cart</div>
+        <div class="nav-item"><span>◯</span>Profile</div>
+      </nav>
+    </section>
   </main>
 
   <script>
-    // Static preview screen; interactive logic will be added with backend integration later.
+    const continueBtn = document.getElementById("continueBtn");
+    const entryScreen = document.getElementById("entryScreen");
+    const homeScreen = document.getElementById("homeScreen");
+
+    continueBtn.addEventListener("click", () => {
+      entryScreen.classList.add("hidden");
+      homeScreen.classList.add("visible");
+    });
   </script>
 </body>
 </html>
