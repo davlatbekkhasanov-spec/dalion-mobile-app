@@ -486,63 +486,129 @@
     }
 
     .card {
-      background: var(--surface-strong);
-      border-radius: 18px;
-      border: 1px solid #e1e8f5;
-      box-shadow: var(--shadow);
+      background: linear-gradient(165deg, rgba(7, 29, 63, 0.74) 0%, rgba(9, 40, 60, 0.66) 100%);
+      border-radius: 20px;
+      border: 1px solid rgba(136, 219, 255, 0.24);
+      box-shadow:
+        inset 0 1px 0 rgba(193, 239, 255, 0.17),
+        0 12px 28px rgba(8, 18, 36, 0.45),
+        0 0 20px rgba(48, 177, 255, 0.16),
+        0 0 22px rgba(82, 240, 181, 0.12);
       padding: 11px;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      transition: transform 0.22s ease, box-shadow 0.22s ease;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      width: 72px;
+      height: 72px;
+      right: -30px;
+      top: -26px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(94, 233, 181, 0.35) 0%, rgba(94, 233, 181, 0) 72%);
+      pointer-events: none;
+    }
+
+    .card:active {
+      transform: translateY(1px) scale(0.985);
+      box-shadow:
+        inset 0 1px 0 rgba(193, 239, 255, 0.17),
+        0 8px 18px rgba(8, 18, 36, 0.48),
+        0 0 14px rgba(48, 177, 255, 0.14),
+        0 0 16px rgba(82, 240, 181, 0.1);
     }
 
     .image-placeholder {
-      height: 95px;
+      height: 98px;
       border-radius: 14px;
-      border: 1px solid #dce4f3;
-      background: linear-gradient(180deg, #eef4ff 0%, #f8fcff 50%, #ecf8f1 100%);
+      border: 1px solid rgba(213, 223, 238, 0.92);
+      background: #ffffff;
       display: grid;
       place-items: center;
-      margin-bottom: 9px;
-      color: #5884c6;
-      font-size: 26px;
-      font-weight: 700;
+      margin-bottom: 10px;
+      box-shadow: 0 10px 18px rgba(8, 18, 36, 0.22);
+      overflow: hidden;
+      padding: 8px;
+    }
+
+    .product-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 10px;
+      display: block;
     }
 
     .product-title {
       font-size: 14px;
       font-weight: 700;
       line-height: 1.25;
-      margin-bottom: 3px;
+      margin-bottom: 4px;
       min-height: 34px;
+      color: #f3f9ff;
+      padding-right: 34px;
     }
 
     .category {
       font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 5px;
+      color: rgba(205, 222, 244, 0.86);
+      margin-bottom: 6px;
     }
 
     .price {
       font-size: 16px;
       font-weight: 800;
-      margin-bottom: 3px;
-      color: #15376d;
+      margin-bottom: 4px;
+      color: #67ffb8;
+      text-shadow: 0 0 12px rgba(99, 255, 185, 0.42);
     }
 
     .availability {
-      color: #1f9664;
+      color: #72fbc3;
       font-size: 12px;
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 9px;
+      opacity: 0.95;
     }
 
     .add-btn {
       width: 100%;
       border: none;
       border-radius: 12px;
-      background: linear-gradient(135deg, #1f5ab4 0%, #48b88b 100%);
-      color: #fff;
+      background: linear-gradient(135deg, rgba(28, 105, 196, 0.82) 0%, rgba(44, 165, 122, 0.88) 100%);
+      color: #e8fbff;
       font-size: 12px;
       font-weight: 700;
       padding: 9px 10px;
+      box-shadow: inset 0 0 0 1px rgba(176, 243, 227, 0.2);
+    }
+
+    .add-fab {
+      position: absolute;
+      top: 114px;
+      right: 10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(140deg, #25ecae 0%, #2f8eff 100%);
+      color: #f4fbff;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 0 2px rgba(12, 29, 56, 0.9), 0 0 12px rgba(57, 237, 175, 0.7), 0 0 16px rgba(48, 147, 255, 0.52);
+      transition: transform 0.2s ease;
+    }
+
+    .add-fab:active {
+      transform: scale(0.92);
     }
 
     .bottom-nav {
@@ -709,7 +775,10 @@
           <h2 class="section-title">Машҳур маҳсулотлар</h2>
           <div class="product-grid">
             <article class="card">
-              <div class="image-placeholder">CC</div>
+              <div class="image-placeholder">
+                <img class="product-image" alt="Coca Cola 1L" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='160'%3E%3Crect width='100%25' height='100%25' rx='16' fill='white'/%3E%3Ctext x='50%25' y='42%25' text-anchor='middle' fill='%2318356f' font-size='24' font-family='Arial' font-weight='700'%3EDALION%3C/text%3E%3Ctext x='50%25' y='64%25' text-anchor='middle' fill='%23ea4335' font-size='20' font-family='Arial'%3ECoca Cola 1L%3C/text%3E%3C/svg%3E" />
+              </div>
+              <button class="add-fab" aria-label="Add Coca Cola">+</button>
               <h3 class="product-title">Coca Cola 1L</h3>
               <p class="category">Ichimliklar</p>
               <p class="price">14 000 so'm</p>
@@ -718,7 +787,10 @@
             </article>
 
             <article class="card">
-              <div class="image-placeholder">P</div>
+              <div class="image-placeholder">
+                <img class="product-image" alt="Pepsi 1L" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='160'%3E%3Crect width='100%25' height='100%25' rx='16' fill='white'/%3E%3Ctext x='50%25' y='42%25' text-anchor='middle' fill='%2318356f' font-size='24' font-family='Arial' font-weight='700'%3EDALION%3C/text%3E%3Ctext x='50%25' y='64%25' text-anchor='middle' fill='%231d4ed8' font-size='20' font-family='Arial'%3EPepsi 1L%3C/text%3E%3C/svg%3E" />
+              </div>
+              <button class="add-fab" aria-label="Add Pepsi">+</button>
               <h3 class="product-title">Pepsi 1L</h3>
               <p class="category">Ichimliklar</p>
               <p class="price">13 000 so'm</p>
@@ -727,7 +799,10 @@
             </article>
 
             <article class="card">
-              <div class="image-placeholder">Ch</div>
+              <div class="image-placeholder">
+                <img class="product-image" alt="Chocolate Bar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='160'%3E%3Crect width='100%25' height='100%25' rx='16' fill='white'/%3E%3Ctext x='50%25' y='42%25' text-anchor='middle' fill='%2318356f' font-size='24' font-family='Arial' font-weight='700'%3EDALION%3C/text%3E%3Ctext x='50%25' y='64%25' text-anchor='middle' fill='%238b5e34' font-size='20' font-family='Arial'%3EChocolate Bar%3C/text%3E%3C/svg%3E" />
+              </div>
+              <button class="add-fab" aria-label="Add Chocolate Bar">+</button>
               <h3 class="product-title">Chocolate Bar</h3>
               <p class="category">Shirinliklar</p>
               <p class="price">9 000 so'm</p>
@@ -736,7 +811,10 @@
             </article>
 
             <article class="card">
-              <div class="image-placeholder">S</div>
+              <div class="image-placeholder">
+                <img class="product-image" alt="Sut 1L" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='160'%3E%3Crect width='100%25' height='100%25' rx='16' fill='white'/%3E%3Ctext x='50%25' y='42%25' text-anchor='middle' fill='%2318356f' font-size='24' font-family='Arial' font-weight='700'%3EDALION%3C/text%3E%3Ctext x='50%25' y='64%25' text-anchor='middle' fill='%235b9bd5' font-size='20' font-family='Arial'%3ESut 1L%3C/text%3E%3C/svg%3E" />
+              </div>
+              <button class="add-fab" aria-label="Add Sut">+</button>
               <h3 class="product-title">Sut 1L</h3>
               <p class="category">Sut mahsulotlari</p>
               <p class="price">11 000 so'm</p>
@@ -745,7 +823,10 @@
             </article>
 
             <article class="card">
-              <div class="image-placeholder">Ol</div>
+              <div class="image-placeholder">
+                <img class="product-image" alt="Olma 1kg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='160'%3E%3Crect width='100%25' height='100%25' rx='16' fill='white'/%3E%3Ctext x='50%25' y='42%25' text-anchor='middle' fill='%2318356f' font-size='24' font-family='Arial' font-weight='700'%3EDALION%3C/text%3E%3Ctext x='50%25' y='64%25' text-anchor='middle' fill='%2316a34a' font-size='20' font-family='Arial'%3EOlma 1kg%3C/text%3E%3C/svg%3E" />
+              </div>
+              <button class="add-fab" aria-label="Add Olma">+</button>
               <h3 class="product-title">Olma 1kg</h3>
               <p class="category">Mevalar</p>
               <p class="price">18 000 so'm</p>
@@ -754,7 +835,10 @@
             </article>
 
             <article class="card">
-              <div class="image-placeholder">Tf</div>
+              <div class="image-placeholder">
+                <img class="product-image" alt="Tovuq filesi" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='160'%3E%3Crect width='100%25' height='100%25' rx='16' fill='white'/%3E%3Ctext x='50%25' y='42%25' text-anchor='middle' fill='%2318356f' font-size='24' font-family='Arial' font-weight='700'%3EDALION%3C/text%3E%3Ctext x='50%25' y='64%25' text-anchor='middle' fill='%23b35f27' font-size='20' font-family='Arial'%3ETovuq filesi%3C/text%3E%3C/svg%3E" />
+              </div>
+              <button class="add-fab" aria-label="Add Tovuq filesi">+</button>
               <h3 class="product-title">Tovuq filesi</h3>
               <p class="category">Go'sht</p>
               <p class="price">42 000 so'm</p>
