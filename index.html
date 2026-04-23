@@ -5,200 +5,354 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GlobusMarket</title>
   <style>
-    * { box-sizing: border-box; font-family: Arial, sans-serif; }
-    body {
+    :root {
+      --bg: #e8eefb;
+      --surface: #f8fbff;
+      --surface-strong: #ffffff;
+      --ink: #10213f;
+      --muted: #6d7f9f;
+      --primary: #164a9d;
+      --primary-soft: #2f63bc;
+      --accent: #58c598;
+      --accent-soft: #e8fbf1;
+      --border: #d9e2f2;
+      --shadow: 0 16px 36px rgba(16, 33, 63, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
       margin: 0;
-      background: linear-gradient(180deg, #eef7ff 0%, #f7fffb 100%);
-      color: #0f172a;
+      padding: 0;
+      font-family: "Inter", "Segoe UI", Arial, sans-serif;
     }
-    .phone {
-      max-width: 430px;
-      margin: 0 auto;
+
+    body {
       min-height: 100vh;
-      background: rgba(255,255,255,0.88);
-      backdrop-filter: blur(12px);
-      box-shadow: 0 10px 40px rgba(15, 23, 42, 0.08);
-      padding-bottom: 90px;
-    }
-    .top {
-      padding: 20px 16px 10px;
-      background: linear-gradient(135deg, #2563eb 0%, #38bdf8 55%, #86efac 100%);
-      color: white;
-      border-bottom-left-radius: 24px;
-      border-bottom-right-radius: 24px;
-    }
-    .brand { font-size: 30px; font-weight: 800; margin-bottom: 6px; }
-    .muted { font-size: 14px; opacity: 0.95; }
-    .search {
-      margin-top: 14px;
-      background: rgba(255,255,255,0.92);
-      color: #64748b;
-      padding: 14px 16px;
-      border-radius: 16px;
-      font-size: 16px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
-    }
-    .content { padding: 16px; }
-    .banner {
-      margin-top: -6px;
-      background: linear-gradient(135deg, #2563eb 0%, #22c55e 100%);
-      color: white;
-      border-radius: 20px;
-      padding: 16px;
-      box-shadow: 0 10px 24px rgba(37,99,235,0.18);
-    }
-    .banner h3 { margin: 0 0 6px; font-size: 24px; }
-    h2 { margin: 22px 0 12px; font-size: 18px; }
-    .chips { display: flex; gap: 10px; flex-wrap: wrap; }
-    .chip {
-      padding: 10px 14px;
-      border-radius: 999px;
-      background: #e9efff;
-      color: #1d4ed8;
-      font-size: 14px;
-      border: 1px solid #dbeafe;
-    }
-    .chip.active {
-      background: #dcfce7;
-      color: #15803d;
-      border-color: #bbf7d0;
-    }
-    .grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      place-items: center;
+      background:
+        radial-gradient(circle at 12% 10%, #f5f8ff 0%, transparent 30%),
+        radial-gradient(circle at 88% 92%, #e7f8ee 0%, transparent 28%),
+        linear-gradient(180deg, #dde7fb 0%, #ebf6f0 100%);
+      color: var(--ink);
+      padding: 18px;
     }
-    .card {
-      background: rgba(255,255,255,0.95);
-      border-radius: 20px;
-      padding: 12px;
-      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-      border: 1px solid rgba(226,232,240,0.9);
+
+    .phone-shell {
+      width: 100%;
+      max-width: 410px;
+      height: min(880px, calc(100vh - 24px));
+      border-radius: 34px;
+      background: linear-gradient(180deg, #f7fbff 0%, #f4f9ff 50%, #f7fcf8 100%);
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      box-shadow: 0 24px 55px rgba(14, 31, 66, 0.23);
+      overflow: hidden;
+      position: relative;
     }
-    .img {
-      height: 110px;
+
+    .screen {
+      height: 100%;
+      overflow-y: auto;
+      padding: 20px 16px 98px;
+      scrollbar-width: none;
+    }
+
+    .screen::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+
+    .header {
+      background: linear-gradient(145deg, #0f3f8f 0%, #1955ae 58%, #2c8a87 100%);
+      border-radius: 24px;
+      color: #fff;
+      padding: 18px 16px;
+      box-shadow: 0 14px 30px rgba(20, 67, 142, 0.34);
+      margin-bottom: 14px;
+    }
+
+    .brand {
+      font-size: 29px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      line-height: 1.1;
+    }
+
+    .location {
+      margin-top: 6px;
+      font-size: 13px;
+      opacity: 0.94;
+      letter-spacing: 0.2px;
+    }
+
+    .search {
+      margin-bottom: 14px;
+      background: var(--surface-strong);
       border-radius: 16px;
-      background: linear-gradient(180deg, #eff6ff, #f8fafc);
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 18px rgba(16, 33, 63, 0.08);
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 34px;
-      margin-bottom: 10px;
-    }
-    .title { font-size: 16px; font-weight: 700; margin-bottom: 6px; min-height: 38px; }
-    .sub { color: #64748b; font-size: 13px; margin-bottom: 6px; }
-    .stock { color: #16a34a; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
-    .price { font-size: 19px; font-weight: 800; margin-bottom: 10px; }
-    .btn {
-      width: 100%;
-      border: none;
-      border-radius: 14px;
-      padding: 11px 12px;
-      background: linear-gradient(135deg, #2563eb, #22c55e);
-      color: white;
+      gap: 10px;
+      padding: 13px 14px;
+      color: var(--muted);
       font-size: 14px;
+    }
+
+    .promo {
+      border-radius: 20px;
+      background: linear-gradient(130deg, #133f8c 0%, #2d65be 52%, #67cda2 100%);
+      color: #fff;
+      padding: 18px 16px;
+      box-shadow: 0 14px 28px rgba(18, 64, 137, 0.3);
+      margin-bottom: 18px;
+    }
+
+    .promo h2 {
+      font-size: 23px;
+      font-weight: 800;
+      margin-bottom: 5px;
+      line-height: 1.2;
+    }
+
+    .promo p {
+      font-size: 14px;
+      opacity: 0.95;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-bottom: 20px;
+    }
+
+    .chip {
+      border: 1px solid #dbe4f6;
+      border-radius: 999px;
+      padding: 9px 13px;
+      font-size: 13px;
+      color: #33507f;
+      background: #f2f6ff;
+      font-weight: 600;
+    }
+
+    .chip.active {
+      color: #0f5f40;
+      background: var(--accent-soft);
+      border-color: #bfead5;
+      box-shadow: 0 8px 16px rgba(88, 197, 152, 0.22);
+    }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--surface-strong);
+      border-radius: 18px;
+      border: 1px solid #e1e8f5;
+      box-shadow: var(--shadow);
+      padding: 11px;
+    }
+
+    .image-placeholder {
+      height: 95px;
+      border-radius: 14px;
+      border: 1px solid #dce4f3;
+      background: linear-gradient(180deg, #eef4ff 0%, #f8fcff 50%, #ecf8f1 100%);
+      display: grid;
+      place-items: center;
+      margin-bottom: 9px;
+      color: #5884c6;
+      font-size: 26px;
       font-weight: 700;
     }
-    .bottom {
-      position: fixed;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
+
+    .product-title {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.25;
+      margin-bottom: 3px;
+      min-height: 34px;
+    }
+
+    .category {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .price {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 3px;
+      color: #15376d;
+    }
+
+    .availability {
+      color: #1f9664;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .add-btn {
       width: 100%;
-      max-width: 430px;
-      background: rgba(255,255,255,0.96);
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1f5ab4 0%, #48b88b 100%);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 9px 10px;
+    }
+
+    .bottom-nav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 78px;
+      padding: 9px 12px 12px;
+      border-top: 1px solid #dce5f3;
+      background: rgba(255, 255, 255, 0.94);
       backdrop-filter: blur(12px);
-      border-top: 1px solid #e2e8f0;
-      display: flex;
-      justify-content: space-around;
-      padding: 10px 0 14px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
     }
-    .nav { text-align: center; color: #64748b; font-size: 12px; }
-    .nav.active { color: #2563eb; font-weight: 700; }
-    .nav span { display: block; font-size: 20px; margin-bottom: 4px; }
-    .api-box {
-      margin-top: 18px;
-      padding: 14px;
-      border-radius: 18px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+
+    .nav-item {
+      border-radius: 14px;
+      text-align: center;
+      color: #6b7c9b;
+      font-size: 11px;
+      font-weight: 600;
+      display: grid;
+      align-content: center;
+      gap: 3px;
     }
-    .api-box code { display: block; margin-top: 6px; color: #0f172a; }
+
+    .nav-item span {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .nav-item.active {
+      color: #123f8f;
+      background: #e9f0ff;
+      box-shadow: inset 0 0 0 1px #d4e1fb;
+    }
   </style>
 </head>
 <body>
-  <div class="phone">
-    <div class="top">
-      <div class="brand">GlobusMarket</div>
-      <div class="muted">📍 Yunusobod, Toshkent</div>
-      <div class="search">🔎 Mahsulot qidirish...</div>
+  <main class="phone-shell" aria-label="GlobusMarket mobile preview">
+    <div class="screen">
+      <header class="header">
+        <h1 class="brand">GlobusMarket</h1>
+        <p class="location">Yunusobod, Toshkent</p>
+      </header>
+
+      <div class="search" aria-label="search">
+        <span>🔎</span>
+        <span>Маҳсулот қидириш...</span>
+      </div>
+
+      <section class="promo" aria-label="promotion">
+        <h2>Тез етказиб бериш</h2>
+        <p>30 дақиқа ичида буюртма беринг</p>
+      </section>
+
+      <section aria-label="categories">
+        <h2 class="section-title">Категориялар</h2>
+        <div class="chips">
+          <div class="chip active">Ichimliklar</div>
+          <div class="chip">Shirinliklar</div>
+          <div class="chip">Sut mahsulotlari</div>
+          <div class="chip">Mevalar</div>
+          <div class="chip">Go'sht</div>
+        </div>
+      </section>
+
+      <section aria-label="popular products">
+        <h2 class="section-title">Машҳур маҳсулотлар</h2>
+        <div class="product-grid">
+          <article class="card">
+            <div class="image-placeholder">CC</div>
+            <h3 class="product-title">Coca Cola 1L</h3>
+            <p class="category">Ichimliklar</p>
+            <p class="price">14 000 so'm</p>
+            <p class="availability">Mavjud</p>
+            <button class="add-btn">Savatga qo'shish</button>
+          </article>
+
+          <article class="card">
+            <div class="image-placeholder">P</div>
+            <h3 class="product-title">Pepsi 1L</h3>
+            <p class="category">Ichimliklar</p>
+            <p class="price">13 000 so'm</p>
+            <p class="availability">Mavjud</p>
+            <button class="add-btn">Savatga qo'shish</button>
+          </article>
+
+          <article class="card">
+            <div class="image-placeholder">Ch</div>
+            <h3 class="product-title">Chocolate Bar</h3>
+            <p class="category">Shirinliklar</p>
+            <p class="price">9 000 so'm</p>
+            <p class="availability">Mavjud</p>
+            <button class="add-btn">Savatga qo'shish</button>
+          </article>
+
+          <article class="card">
+            <div class="image-placeholder">S</div>
+            <h3 class="product-title">Sut 1L</h3>
+            <p class="category">Sut mahsulotlari</p>
+            <p class="price">11 000 so'm</p>
+            <p class="availability">Mavjud</p>
+            <button class="add-btn">Savatga qo'shish</button>
+          </article>
+
+          <article class="card">
+            <div class="image-placeholder">Ol</div>
+            <h3 class="product-title">Olma 1kg</h3>
+            <p class="category">Mevalar</p>
+            <p class="price">18 000 so'm</p>
+            <p class="availability">Mavjud</p>
+            <button class="add-btn">Savatga qo'shish</button>
+          </article>
+
+          <article class="card">
+            <div class="image-placeholder">Tf</div>
+            <h3 class="product-title">Tovuq filesi</h3>
+            <p class="category">Go'sht</p>
+            <p class="price">42 000 so'm</p>
+            <p class="availability">Mavjud</p>
+            <button class="add-btn">Savatga qo'shish</button>
+          </article>
+        </div>
+      </section>
     </div>
 
-    <div class="content">
-      <div class="banner">
-        <h3>Tez yetkazib berish</h3>
-        <div>30 daqiqa ichida buyurtma bering</div>
-      </div>
+    <nav class="bottom-nav" aria-label="Bottom navigation">
+      <div class="nav-item active"><span>⌂</span>Home</div>
+      <div class="nav-item"><span>⌕</span>Search</div>
+      <div class="nav-item"><span>🛒</span>Cart</div>
+      <div class="nav-item"><span>◯</span>Profile</div>
+    </nav>
+  </main>
 
-      <h2>Kategoriyalar</h2>
-      <div class="chips">
-        <div class="chip active">Ichimliklar</div>
-        <div class="chip">Shirinliklar</div>
-        <div class="chip">Sut mahsulotlari</div>
-        <div class="chip">Boshqa</div>
-      </div>
-
-      <h2>Mashhur mahsulotlar</h2>
-      <div class="grid">
-        <div class="card">
-          <div class="img">🥤</div>
-          <div class="title">Coca Cola 1L</div>
-          <div class="sub">Ichimliklar</div>
-          <div class="stock">Mavjud</div>
-          <div class="price">14 000 so'm</div>
-          <button class="btn">Savatga qo'shish</button>
-        </div>
-
-        <div class="card">
-          <div class="img">🥤</div>
-          <div class="title">Pepsi 1L</div>
-          <div class="sub">Ichimliklar</div>
-          <div class="stock">Mavjud</div>
-          <div class="price">13 000 so'm</div>
-          <button class="btn">Savatga qo'shish</button>
-        </div>
-
-        <div class="card">
-          <div class="img">🍫</div>
-          <div class="title">Chocolate Bar</div>
-          <div class="sub">Shirinliklar</div>
-          <div class="stock">Mavjud</div>
-          <div class="price">9 000 so'm</div>
-          <button class="btn">Savatga qo'shish</button>
-        </div>
-
-        <div class="card">
-          <div class="img">🧀</div>
-          <div class="title">Cheese Pack</div>
-          <div class="sub">Sut mahsulotlari</div>
-          <div class="stock">Mavjud</div>
-          <div class="price">22 000 so'm</div>
-          <button class="btn">Savatga qo'shish</button>
-        </div>
-      </div>
-
-      <div class="api-box">
-        <strong>API test</strong>
-        <code>GET /api/v1/home</code>
-      </div>
-    </div>
-
-    <div class="bottom">
-      <div class="nav active"><span>🏠</span>Home</div>
-      <div class="nav"><span>🔎</span>Search</div>
-      <div class="nav"><span>🛒</span>Cart</div>
-      <div class="nav"><span>💳</span>Checkout</div>
-    </div>
-  </div>
+  <script>
+    // Static preview screen; interactive logic will be added with backend integration later.
+  </script>
 </body>
 </html>
