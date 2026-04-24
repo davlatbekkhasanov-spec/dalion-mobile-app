@@ -1,7 +1,7 @@
 const products = [
-  { id: 'coca', name: 'Coca Cola 1L', category: 'Ichimliklar', price: 12000, oldPrice: 13400, image: '' },
-  { id: 'pepsi', name: 'Pepsi 1L', category: 'Ichimliklar', price: 12000, oldPrice: 13400, image: '' },
-  { id: 'rich', name: 'Rich Apelsin 1L', category: 'Ichimliklar', price: 18000, oldPrice: 20000, image: '' }
+  { id: 'coca', sku: 'DAL-COCA-1L', name: 'Coca Cola 1L', category: 'Ichimliklar', price: 12000, oldPrice: 13400, stock: 100, image: '' },
+  { id: 'pepsi', sku: 'DAL-PEPSI-1L', name: 'Pepsi 1L', category: 'Ichimliklar', price: 12000, oldPrice: 13400, stock: 100, image: '' },
+  { id: 'rich', sku: 'DAL-RICH-ORANGE-1L', name: 'Rich Apelsin 1L', category: 'Ichimliklar', price: 18000, oldPrice: 20000, stock: 100, image: '' }
 ];
 
 const cart = new Map();
@@ -75,6 +75,35 @@ function createOrder({ paymentMethod = 'Naqd', location = 'Yunusobod, Toshkent',
   return { data: order };
 }
 
+function upsertProducts(items = []) {
+  const touched = [];
+
+  for (const raw of items) {
+    if (!raw || !raw.id) continue;
+    const index = products.findIndex((p) => p.id === raw.id);
+    const normalized = {
+      id: raw.id,
+      sku: raw.sku || '',
+      name: raw.name || 'Nomsiz mahsulot',
+      category: raw.category || 'Boshqa',
+      price: Number(raw.price) || 0,
+      oldPrice: Number(raw.oldPrice) || Number(raw.price) || 0,
+      stock: Number(raw.stock ?? 0),
+      image: raw.image || ''
+    };
+
+    if (index === -1) {
+      products.push(normalized);
+      touched.push(normalized.id);
+    } else {
+      products[index] = { ...products[index], ...normalized };
+      touched.push(products[index].id);
+    }
+  }
+
+  return touched;
+}
+
 module.exports = {
   listProducts,
   getProductById,
@@ -82,5 +111,6 @@ module.exports = {
   setCartItem,
   clearCart,
   createOrder,
+  upsertProducts,
   orders
 };
