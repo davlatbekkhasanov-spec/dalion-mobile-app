@@ -37,3 +37,17 @@ curl -X POST "https://<your-domain>/api/v1/integrations/excel/import/products-xl
 
 - If token header missing/invalid: `403` JSON error
 - If server token not configured: `500` JSON error
+
+## Admin Panel
+
+- URL: `/admin`
+- Token is entered in admin page and stored in browser `localStorage` for admin API requests.
+- Public customer app `/` does not expose admin controls.
+
+### Admin APIs (token protected)
+
+- `GET/POST/PUT/DELETE /api/v1/admin/banners`
+- `GET/POST/PUT/DELETE /api/v1/admin/promotions`
+- `GET/PUT /api/v1/admin/home-settings`
+- `GET/PUT /api/v1/admin/categories`
+- `GET/PUT /api/v1/admin/products`
