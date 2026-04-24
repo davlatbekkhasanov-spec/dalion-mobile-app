@@ -121,12 +121,86 @@ function parseDrawingImages(files) {
   return rowImages;
 }
 
+const WHITE_THRESHOLD = 240;
+
+function isNearWhitePixel(r, g, b, a) {
+  if (a <= 16) return true;
+  return r >= WHITE_THRESHOLD && g >= WHITE_THRESHOLD && b >= WHITE_THRESHOLD;
+}
+
+async function detectObjectBoundingBox(imageBuffer) {
+  const { data, info } = await sharp(imageBuffer)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const { width, height, channels } = info;
+  let left = width;
+  let top = height;
+  let right = -1;
+  let bottom = -1;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const idx = (y * width + x) * channels;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      const a = data[idx + 3];
+      if (!isNearWhitePixel(r, g, b, a)) {
+        if (x < left) left = x;
+        if (y < top) top = y;
+        if (x > right) right = x;
+        if (y > bottom) bottom = y;
+      }
+    }
+  }
+
+  if (right < left || bottom < top) return null;
+  return {
+    left,
+    top,
+    width: right - left + 1,
+    height: bottom - top + 1,
+    imageWidth: width,
+    imageHeight: height
+  };
+}
+
 async function processAndSaveProductImage({ inputBuffer, outputPath }) {
   const warnings = [];
   try {
-    await sharp(inputBuffer)
-      .rotate()
-      .trim(12)
+    const normalizedBuffer = await sharp(inputBuffer).rotate().png().toBuffer();
+    const box = await detectObjectBoundingBox(normalizedBuffer);
+
+    if (!box) {
+      warnings.push('object_not_found: using fallback contain');
+      await sharp(normalizedBuffer)
+        .resize(600, 600, {
+          fit: 'contain',
+          position: 'centre',
+          background: { r: 255, g: 255, b: 255, alpha: 1 }
+        })
+        .png({ compressionLevel: 9, adaptiveFiltering: true })
+        .toFile(outputPath);
+      return { processed: false, warnings };
+    }
+
+    const padding = Math.round(Math.max(box.width, box.height) * 0.12);
+    const cropLeft = Math.max(0, box.left - padding);
+    const cropTop = Math.max(0, box.top - padding);
+    const cropRight = Math.min(box.imageWidth, box.left + box.width + padding);
+    const cropBottom = Math.min(box.imageHeight, box.top + box.height + padding);
+    const cropWidth = Math.max(1, cropRight - cropLeft);
+    const cropHeight = Math.max(1, cropBottom - cropTop);
+
+    await sharp(normalizedBuffer)
+      .extract({
+        left: cropLeft,
+        top: cropTop,
+        width: cropWidth,
+        height: cropHeight
+      })
       .resize(600, 600, {
         fit: 'contain',
         position: 'centre',
@@ -134,9 +208,10 @@ async function processAndSaveProductImage({ inputBuffer, outputPath }) {
       })
       .png({ compressionLevel: 9, adaptiveFiltering: true })
       .toFile(outputPath);
+
     return { processed: true, warnings };
-  } catch (trimError) {
-    warnings.push(`trim_failed: ${trimError.message}`);
+  } catch (processingError) {
+    warnings.push(`processing_failed: ${processingError.message}`);
     try {
       await sharp(inputBuffer)
         .rotate()
