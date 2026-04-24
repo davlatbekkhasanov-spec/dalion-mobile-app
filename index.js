@@ -14,7 +14,7 @@ app.use(express.static(__dirname));
 
 // Frontend preview
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // API routes
