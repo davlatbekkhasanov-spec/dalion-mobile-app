@@ -936,13 +936,8 @@ Oq fonli foto</div>
   </main>
 
   <script>
-    const products = [
-      { id: 'coca', name: 'Coca Cola 1L', category: 'Ichimliklar', price: 12000, oldPrice: 13400 },
-      { id: 'pepsi', name: 'Pepsi 1L', category: 'Ichimliklar', price: 12000, oldPrice: 13400 },
-      { id: 'rich', name: 'Rich Apelsin 1L', category: 'Ichimliklar', price: 18000, oldPrice: 20000 }
-    ];
-
-    const cart = {};
+    let products = [];
+    let cart = {};
     let currentView = 'homeView';
     let selectedPayment = 'Naqd';
     let activeModalProductId = null;
@@ -973,7 +968,34 @@ Oq fonli foto</div>
     const modalAddBtn = document.getElementById('modalAddBtn');
 
     function money(v) {
-      return `${v.toLocaleString('ru-RU')} so'm`;
+      return `${Number(v || 0).toLocaleString('ru-RU')} so'm`;
+    }
+
+    async function api(path, options = {}) {
+      const res = await fetch(`/api/v1${path}`, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Server xatosi');
+      }
+      return data;
+    }
+
+    async function loadProducts(search = '') {
+      const query = search ? `?search=${encodeURIComponent(search)}` : '';
+      const data = await api(`/products${query}`);
+      products = data.products || [];
+    }
+
+    async function loadCart() {
+      const summary = await api('/cart');
+      cart = {};
+      (summary.items || []).forEach((item) => {
+        cart[item.id] = item.quantity;
+      });
+      return summary;
     }
 
     function qtyOf(id) {
@@ -995,9 +1017,13 @@ Oq fonli foto</div>
       return products.reduce((sum, p) => sum + qtyOf(p.id) * p.price, 0);
     }
 
-    function setQty(id, value, showAddToast = false) {
-      cart[id] = Math.max(0, value);
-      if (cart[id] === 0) delete cart[id];
+    async function setQty(id, value, showAddToast = false) {
+      const quantity = Math.max(0, Number(value) || 0);
+      await api('/cart/items', {
+        method: 'PUT',
+        body: JSON.stringify({ productId: id, quantity })
+      });
+      await loadCart();
       if (showAddToast) showToast("Savatga qo'shildi");
       renderAll();
     }
@@ -1014,7 +1040,8 @@ Oq fonli foto</div>
     function productCardTemplate(p) {
       return `
         <article class="product" data-open-product="${p.id}">
-          <div class="image-box">DALION\nOq fonli foto</div>
+          <div class="image-box">DALION
+Oq fonli foto</div>
           <h5>${p.name}</h5>
           <p class="meta">${p.category}</p>
           <p class="price">${money(p.price)}</p>
@@ -1128,10 +1155,19 @@ Oq fonli foto</div>
       bottomNav.classList.toggle('hidden', viewId === 'checkoutView' || viewId === 'successView');
     }
 
-    continueBtn.addEventListener('click', () => {
+    async function initializeAppData() {
+      try {
+        await Promise.all([loadProducts(), loadCart()]);
+        renderAll();
+      } catch (error) {
+        showToast(error.message || 'Maʼlumotni yuklashda xatolik');
+      }
+    }
+
+    continueBtn.addEventListener('click', async () => {
       phone.classList.add('show-app');
       setView('homeView');
-      renderAll();
+      await initializeAppData();
     });
 
     document.getElementById('openSearchBtn').addEventListener('click', () => {
@@ -1148,7 +1184,7 @@ Oq fonli foto</div>
       if (tab.dataset.view === 'searchView') searchInput.focus();
     });
 
-    document.body.addEventListener('click', (e) => {
+    document.body.addEventListener('click', async (e) => {
       const toastTrigger = e.target.closest('[data-toast]');
       if (toastTrigger) {
         e.preventDefault();
@@ -1158,17 +1194,22 @@ Oq fonli foto</div>
       const plus = e.target.closest('.qty-plus');
       const minus = e.target.closest('.qty-minus');
 
-      if (plus) {
-        e.stopPropagation();
-        const id = plus.dataset.id;
-        setQty(id, qtyOf(id) + 1, true);
-        return;
-      }
+      try {
+        if (plus) {
+          e.stopPropagation();
+          const id = plus.dataset.id;
+          await setQty(id, qtyOf(id) + 1, true);
+          return;
+        }
 
-      if (minus) {
-        e.stopPropagation();
-        const id = minus.dataset.id;
-        setQty(id, qtyOf(id) - 1, false);
+        if (minus) {
+          e.stopPropagation();
+          const id = minus.dataset.id;
+          await setQty(id, qtyOf(id) - 1, false);
+          return;
+        }
+      } catch (error) {
+        showToast(error.message || 'Xatolik yuz berdi');
         return;
       }
 
@@ -1183,14 +1224,18 @@ Oq fonli foto</div>
       if (e.target === modalOverlay) closeProductModal();
     });
 
-    modalAddBtn.addEventListener('click', () => {
+    modalAddBtn.addEventListener('click', async () => {
       if (!activeModalProductId) return;
-      setQty(activeModalProductId, qtyOf(activeModalProductId) + 1, true);
+      try {
+        await setQty(activeModalProductId, qtyOf(activeModalProductId) + 1, true);
+      } catch (error) {
+        showToast(error.message || 'Xatolik yuz berdi');
+      }
     });
 
     document.getElementById('orderBtn').addEventListener('click', () => {
       if (totalQty() === 0) {
-        showToast('Savat bo\'sh');
+        showToast("Savat bo'sh");
         return;
       }
       setView('checkoutView');
@@ -1204,22 +1249,38 @@ Oq fonli foto</div>
       });
     });
 
-    document.getElementById('confirmOrderBtn').addEventListener('click', () => {
+    document.getElementById('confirmOrderBtn').addEventListener('click', async () => {
       if (totalQty() === 0) {
-        showToast('Savat bo\'sh');
+        showToast("Savat bo'sh");
         return;
       }
-      setView('successView');
+
+      try {
+        await api('/orders', {
+          method: 'POST',
+          body: JSON.stringify({
+            paymentMethod: selectedPayment,
+            location: 'Yunusobod, Toshkent',
+            deliveryTime: '30 daqiqa',
+            deliveryPrice: 12000
+          })
+        });
+
+        cart = {};
+        renderAll();
+        setView('successView');
+      } catch (error) {
+        showToast(error.message || 'Buyurtmani yuborishda xatolik');
+      }
     });
 
-    document.getElementById('backHomeBtn').addEventListener('click', () => {
-      Object.keys(cart).forEach((k) => delete cart[k]);
-      renderAll();
+    document.getElementById('backHomeBtn').addEventListener('click', async () => {
+      await initializeAppData();
       setView('homeView');
       showToast('Buyurtma yakunlandi');
     });
 
-    renderAll();
+    initializeAppData();
   </script>
 </body>
 </html>
