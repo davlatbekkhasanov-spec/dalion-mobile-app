@@ -724,7 +724,37 @@
       place-items: center;
     }
 
-    @media (max-width: 375px) {
+    
+
+    .toast {
+      position: absolute;
+      left: 50%;
+      bottom: 74px;
+      transform: translateX(-50%) translateY(10px);
+      background: linear-gradient(180deg, rgba(16, 39, 64, 0.96), rgba(10, 23, 39, 0.98));
+      border: 1px solid rgba(111, 161, 222, 0.35);
+      color: #e8fff4;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 220ms ease, transform 220ms ease;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.42), 0 0 14px rgba(67, 245, 143, 0.2);
+      z-index: 11;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .mini.hidden {
+      display: none;
+    }
+@media (max-width: 375px) {
       .brand-title { font-size: 29px; }
       .hero { min-height: 250px; }
       .hero-glow { width: 170px; height: 170px; }
@@ -815,7 +845,7 @@
           <h5>Coca Cola 1L</h5>
           <p class="price">12 000 so'm</p>
           <p class="old">13 400 so'm</p>
-          <button class="plus" aria-label="Add Coca Cola">+</button>
+          <button class="plus product-add" aria-label="Add Coca Cola">+</button>
         </article>
 
         <article class="product">
@@ -823,7 +853,7 @@
           <h5>Pepsi 1L</h5>
           <p class="price">12 000 so'm</p>
           <p class="old">13 400 so'm</p>
-          <button class="plus" aria-label="Add Pepsi">+</button>
+          <button class="plus product-add" aria-label="Add Pepsi">+</button>
         </article>
 
         <article class="product">
@@ -831,7 +861,7 @@
           <h5>Rich Apelsin 1L</h5>
           <p class="price">18 000 so'm</p>
           <p class="old">20 000 so'm</p>
-          <button class="plus" aria-label="Add Rich">+</button>
+          <button class="plus product-add" aria-label="Add Rich">+</button>
         </article>
       </section>
 
@@ -847,18 +877,49 @@
     <nav class="bottom" aria-label="Bottom navigation">
       <div class="tab active"><b>⌂</b>Home</div>
       <div class="tab"><b>⌕</b>Search</div>
-      <div class="tab"><b>▣</b>Cart<span class="mini">2</span></div>
+      <div class="tab" id="cartTab"><b>▣</b>Cart<span class="mini" id="cartBadge">0</span></div>
       <div class="tab"><b>◌</b>Profile</div>
     </nav>
+
+    <div class="toast" id="cartToast">Savatga qo'shildi</div>
   </main>
 
   <script>
     const phone = document.getElementById('phone');
     const continueBtn = document.getElementById('continueBtn');
+    const cartBadge = document.getElementById('cartBadge');
+    const cartToast = document.getElementById('cartToast');
+    const addButtons = document.querySelectorAll('.product-add');
+
+    let cartCount = 0;
+    let toastTimer;
+
+    const updateCartBadge = () => {
+      cartBadge.textContent = cartCount;
+      cartBadge.classList.toggle('hidden', cartCount === 0);
+    };
+
+    const showToast = () => {
+      cartToast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        cartToast.classList.remove('show');
+      }, 1500);
+    };
 
     continueBtn.addEventListener('click', () => {
       phone.classList.add('show-home');
     });
+
+    addButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        cartCount += 1;
+        updateCartBadge();
+        showToast();
+      });
+    });
+
+    updateCartBadge();
   </script>
 </body>
 </html>
