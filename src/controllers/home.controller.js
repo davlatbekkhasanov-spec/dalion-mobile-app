@@ -1,3 +1,5 @@
+const store = require('../data/store.js');
+
 exports.getHome = (req, res) => {
   res.json({
     banners: [
@@ -13,15 +15,11 @@ exports.getHome = (req, res) => {
       { id: 'cat_3', name: 'Sut mahsulotlari' },
       { id: 'cat_4', name: 'Boshqa' }
     ],
-    popular_products: [
-      { id: '1', name: 'Coca Cola 1L', price: 14000, image: '', category_id: 'cat_1' },
-      { id: '2', name: 'Pepsi 1L', price: 13000, image: '', category_id: 'cat_1' },
-      { id: '3', name: 'Chocolate Bar', price: 9000, image: '', category_id: 'cat_2' }
-    ],
+    popular_products: store.listProducts().slice(0, 3),
     delivery_info: {
-      base_km: 3,
-      base_price: 12000,
-      price_per_km: 2500
+      location: 'Yunusobod, Toshkent',
+      time: '30 daqiqa',
+      price: 12000
     }
   });
 };
