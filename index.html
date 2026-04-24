@@ -453,7 +453,7 @@
 
     .products-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 9px;
       margin-bottom: 16px;
     }
@@ -476,7 +476,7 @@
     }
 
     .image-box {
-      height: 84px;
+      height: 132px;
       border-radius: 12px;
       background: linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%);
       border: 1px solid #dbe7f8;
@@ -486,10 +486,31 @@
       display: grid;
       place-items: center;
       text-align: center;
-      padding: 6px;
+      padding: 2px;
       margin-bottom: 8px;
       white-space: pre-line;
     }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .category-card {
+      border-radius: 14px;
+      border: 1px solid rgba(128, 157, 209, 0.28);
+      background: linear-gradient(170deg, rgba(20, 34, 59, 0.95), rgba(10, 19, 35, 0.95));
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .category-card b { font-size: 14px; }
+    .category-card small { color: #9ab3d8; font-size: 11px; }
 
     .product h5 { font-size: 12px; margin-bottom: 3px; color: #eaf4ff; line-height: 1.25; }
     .meta { font-size: 10px; color: #8fb0d8; margin-bottom: 4px; }
@@ -757,7 +778,7 @@
       cursor: pointer;
     }
 
-    .modal-image { height: 130px; margin: 10px 0; }
+    .modal-image { height: 150px; margin: 10px 0; }
 
     @keyframes drift {
       from { transform: translateY(0) rotate(0deg); }
@@ -855,6 +876,8 @@
       <section class="view" id="searchView">
         <h2 class="title">Katalog</h2>
         <input class="search" id="searchInput" placeholder="Mahsulot nomini yozing..." />
+        <button class="btn btn-secondary" id="categoryBackBtn" style="display:none; margin-bottom:10px; padding:10px 12px;">← Kategoriyalarga qaytish</button>
+        <section class="category-grid" id="categoryResults"></section>
         <section class="products-grid" id="searchResults"></section>
         <div class="empty" id="searchEmpty" style="display:none;">Hech narsa topilmadi. Boshqa so'z kiriting.</div>
       </section>
@@ -941,6 +964,7 @@ Oq fonli foto</div>
     let currentView = 'homeView';
     let selectedPayment = 'Naqd';
     let activeModalProductId = null;
+    let selectedCategory = null;
 
     const phone = document.getElementById('phone');
     const continueBtn = document.getElementById('continueBtn');
@@ -949,6 +973,8 @@ Oq fonli foto</div>
     const searchResults = document.getElementById('searchResults');
     const searchInput = document.getElementById('searchInput');
     const searchEmpty = document.getElementById('searchEmpty');
+    const categoryResults = document.getElementById('categoryResults');
+    const categoryBackBtn = document.getElementById('categoryBackBtn');
     const cartItems = document.getElementById('cartItems');
     const cartEmpty = document.getElementById('cartEmpty');
     const cartSummary = document.getElementById('cartSummary');
@@ -1038,6 +1064,7 @@ Oq fonli foto</div>
     }
 
     function productCardTemplate(p) {
+      const categoryName = normalizedCategoryName(p.category);
       const imageHtml = p.image_url
         ? `<img src="${p.image_url}" alt="${p.name}" style="max-width:100%;max-height:100%;object-fit:contain;" />`
         : `DALION
@@ -1046,7 +1073,7 @@ Oq fonli foto`;
         <article class="product" data-open-product="${p.id}">
           <div class="image-box">${imageHtml}</div>
           <h5>${p.name}</h5>
-          <p class="meta">${p.category}</p>
+          <p class="meta">${categoryName}</p>
           <p class="price">${money(p.price)}</p>
           <p class="meta">Ostatka: ${p.stock ?? 0}</p>
           <p class="old-price">${money(p.oldPrice)}</p>
@@ -1059,11 +1086,51 @@ Oq fonli foto`;
       homeProducts.innerHTML = products.map(productCardTemplate).join('');
     }
 
+    function normalizedCategoryName(categoryName) {
+      return String(categoryName || '').trim() || 'Boshqa';
+    }
+
     function renderSearch() {
       const query = searchInput.value.trim().toLowerCase();
-      const filtered = products.filter((p) => p.name.toLowerCase().includes(query));
-      searchResults.innerHTML = filtered.map(productCardTemplate).join('');
-      searchEmpty.style.display = filtered.length ? 'none' : 'block';
+
+      const byCategory = selectedCategory
+        ? products.filter((p) => normalizedCategoryName(p.category) === selectedCategory)
+        : products;
+      const filteredProducts = byCategory.filter((p) => p.name.toLowerCase().includes(query));
+
+      if (!selectedCategory && !query) {
+        const categoryMap = new Map();
+        products.forEach((p) => {
+          const categoryName = normalizedCategoryName(p.category);
+          const current = categoryMap.get(categoryName) || 0;
+          categoryMap.set(categoryName, current + 1);
+        });
+        const categoryCards = [...categoryMap.entries()]
+          .sort((a, b) => a[0].localeCompare(b[0], 'uz'))
+          .map(([name, count]) => `
+          <article class="category-card" data-category="${name}">
+            <div>📁</div>
+            <b>${name}</b>
+            <small>${count} ta mahsulot</small>
+          </article>
+          `).join('');
+        categoryResults.innerHTML = categoryCards;
+        categoryResults.style.display = categoryCards ? 'grid' : 'none';
+        categoryBackBtn.style.display = 'none';
+        searchResults.innerHTML = '';
+        searchEmpty.style.display = categoryCards ? 'none' : 'block';
+        return;
+      }
+
+      categoryResults.style.display = 'none';
+      categoryResults.innerHTML = '';
+      categoryBackBtn.style.display = selectedCategory ? 'inline-flex' : 'none';
+      searchResults.innerHTML = filteredProducts
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name, 'uz'))
+        .map(productCardTemplate)
+        .join('');
+      searchEmpty.style.display = filteredProducts.length ? 'none' : 'block';
     }
 
     function renderCart() {
@@ -1126,7 +1193,7 @@ Oq fonli foto`;
       const p = products.find((x) => x.id === activeModalProductId);
       if (!p) return;
       modalName.textContent = p.name;
-      modalCategory.textContent = p.category;
+      modalCategory.textContent = normalizedCategoryName(p.category);
       modalPrice.textContent = money(p.price);
       modalOldPrice.textContent = money(p.oldPrice);
       const modalImageBox = document.querySelector('.modal-image');
@@ -1181,16 +1248,29 @@ Oq fonli foto`;
 
     document.getElementById('openSearchBtn').addEventListener('click', () => {
       setView('searchView');
+      selectedCategory = null;
+      searchInput.value = '';
+      renderSearch();
       searchInput.focus();
     });
 
     searchInput.addEventListener('input', renderSearch);
+    categoryBackBtn.addEventListener('click', () => {
+      selectedCategory = null;
+      searchInput.value = '';
+      renderSearch();
+    });
 
     bottomNav.addEventListener('click', (e) => {
       const tab = e.target.closest('.tab');
       if (!tab) return;
       setView(tab.dataset.view);
-      if (tab.dataset.view === 'searchView') searchInput.focus();
+      if (tab.dataset.view === 'searchView') {
+        selectedCategory = null;
+        searchInput.value = '';
+        renderSearch();
+        searchInput.focus();
+      }
     });
 
     document.body.addEventListener('click', async (e) => {
@@ -1225,6 +1305,14 @@ Oq fonli foto`;
       const card = e.target.closest('[data-open-product]');
       if (card && !e.target.closest('.qty')) {
         openProductModal(card.dataset.openProduct);
+        return;
+      }
+
+      const categoryCard = e.target.closest('[data-category]');
+      if (categoryCard) {
+        selectedCategory = categoryCard.dataset.category;
+        searchInput.value = '';
+        renderSearch();
       }
     });
 
