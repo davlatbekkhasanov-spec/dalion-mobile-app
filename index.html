@@ -1038,13 +1038,17 @@ Oq fonli foto</div>
     }
 
     function productCardTemplate(p) {
+      const imageHtml = p.image_url
+        ? `<img src="${p.image_url}" alt="${p.name}" style="max-width:100%;max-height:100%;object-fit:contain;" />`
+        : `DALION
+Oq fonli foto`;
       return `
         <article class="product" data-open-product="${p.id}">
-          <div class="image-box">DALION
-Oq fonli foto</div>
+          <div class="image-box">${imageHtml}</div>
           <h5>${p.name}</h5>
           <p class="meta">${p.category}</p>
           <p class="price">${money(p.price)}</p>
+          <p class="meta">Ostatka: ${p.stock ?? 0}</p>
           <p class="old-price">${money(p.oldPrice)}</p>
           <div class="qty" data-qty-wrap="${p.id}">${makeQtyControls(p.id)}</div>
         </article>
@@ -1125,6 +1129,11 @@ Oq fonli foto</div>
       modalCategory.textContent = p.category;
       modalPrice.textContent = money(p.price);
       modalOldPrice.textContent = money(p.oldPrice);
+      const modalImageBox = document.querySelector('.modal-image');
+      modalImageBox.innerHTML = p.image_url
+        ? `<img src="${p.image_url}" alt="${p.name}" style="max-width:100%;max-height:100%;object-fit:contain;" />`
+        : `DALION
+Oq fonli foto`;
       modalQty.innerHTML = makeQtyControls(p.id);
     }
 

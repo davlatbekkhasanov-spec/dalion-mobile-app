@@ -11,6 +11,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Static files from project root
 app.use(express.static(__dirname));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Frontend preview
 app.get('/', (req, res) => {

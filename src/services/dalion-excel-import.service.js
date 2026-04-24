@@ -83,46 +83,38 @@ function parseRelationships(xml = '') {
   return map;
 }
 
-function resolvePath(base, relative) {
-  const parts = base.split('/').slice(0, -1);
-  for (const seg of relative.split('/')) {
-    if (!seg || seg === '.') continue;
-    if (seg === '..') parts.pop();
-    else parts.push(seg);
-  }
-  return parts.join('/');
+function parseNumber(raw) {
+  const cleaned = String(raw || '')
+    .replace(/\u00A0/g, ' ')
+    .replace(/\s+/g, '')
+    .replace(',', '.')
+    .trim();
+  const n = Number(cleaned || '0');
+  return Number.isFinite(n) ? n : NaN;
 }
 
-function parseRowImages(files, sheetXmlPath) {
-  const sheetXml = files[sheetXmlPath]?.toString('utf8') || '';
-  const drawingRid = (sheetXml.match(/<(?:\w+:)?drawing[^>]*r:id="([^"]+)"/) || [])[1];
-  if (!drawingRid) return new Map();
-
-  const sheetRelsPath = `${sheetXmlPath.replace('/sheet1.xml', '')}/_rels/sheet1.xml.rels`;
-  const sheetRels = parseRelationships(files[sheetRelsPath]?.toString('utf8') || '');
-  const drawingTarget = sheetRels[drawingRid];
-  if (!drawingTarget) return new Map();
-
-  const drawingXmlPath = resolvePath(sheetXmlPath, drawingTarget);
-  const drawingRelsPath = `${drawingXmlPath.replace(/\/[^/]+$/, '')}/_rels/${drawingXmlPath.split('/').pop()}.rels`;
-  const drawingXml = files[drawingXmlPath]?.toString('utf8') || '';
-  const drawingRels = parseRelationships(files[drawingRelsPath]?.toString('utf8') || '');
-
+function parseDrawingImages(files) {
+  const drawingXml = (files['xl/drawings/drawing1.xml'] || Buffer.from('')).toString('utf8');
+  const drawingRelsXml = (files['xl/drawings/_rels/drawing1.xml.rels'] || Buffer.from('')).toString('utf8');
+  const drawingRels = parseRelationships(drawingRelsXml);
   const rowImages = new Map();
-  const anchors = drawingXml.match(/<(?:\w+:)?(?:twoCellAnchor|oneCellAnchor)[\s\S]*?<\/(?:\w+:)?(?:twoCellAnchor|oneCellAnchor)>/g) || [];
 
-  for (const a of anchors) {
-    const row = Number((a.match(/<(?:\w+:)?row>(\d+)<\/(?:\w+:)?row>/) || [])[1]);
-    const embed = (a.match(/r:embed="([^"]+)"/) || [])[1];
-    if (!Number.isFinite(row) || !embed) continue;
+  const anchors = drawingXml.match(/<(?:\w+:)?twoCellAnchor[\s\S]*?<\/(?:\w+:)?twoCellAnchor>/g) || [];
+  for (const anchor of anchors) {
+    const fromBlock = (anchor.match(/<(?:\w+:)?from>([\s\S]*?)<\/(?:\w+:)?from>/) || [])[1] || '';
+    const row0 = Number((fromBlock.match(/<(?:\w+:)?row>(\d+)<\/(?:\w+:)?row>/) || [])[1]);
+    const col0 = Number((fromBlock.match(/<(?:\w+:)?col>(\d+)<\/(?:\w+:)?col>/) || [])[1]);
+    const embed = (anchor.match(/<(?:\w+:)?blip[^>]*r:embed="([^"]+)"/) || [])[1];
+    if (!Number.isFinite(row0) || !Number.isFinite(col0) || !embed) continue;
 
-    const mediaTarget = drawingRels[embed];
-    if (!mediaTarget) continue;
-    const mediaPath = resolvePath(drawingXmlPath, mediaTarget);
+    const target = drawingRels[embed];
+    if (!target) continue;
+    const mediaPath = `xl/media/${target.split('/').pop()}`;
     const buffer = files[mediaPath];
     if (!buffer) continue;
 
-    rowImages.set(row + 1, buffer);
+    // Excel row is 1-based, drawing row is 0-based.
+    rowImages.set(row0 + 1, { col: col0, buffer });
   }
 
   return rowImages;
@@ -140,17 +132,19 @@ function importProductsFromXlsxBuffer(buffer) {
   const headersByName = {};
   for (const [idx, val] of headers.entries()) headersByName[val] = idx;
 
-  const required = ['Код', 'Номенклатура', 'Штук', 'Цена'];
+  const required = ['Код', 'Номенклатура', 'Файл картинки', 'Штук', 'Цена'];
   const missing = required.filter((h) => !headersByName[h]);
   if (missing.length) throw new Error(`Excel header missing: ${missing.join(', ')}`);
 
-  const rowImages = parseRowImages(files, sheetXmlPath);
+  const rowImages = parseDrawingImages(files);
   fs.mkdirSync(PRODUCTS_UPLOAD_DIR, { recursive: true });
 
   let currentCategory = 'Boshqa';
   const upsertRows = [];
   const errors = [];
   let skipped = 0;
+  let imageExtracted = 0;
+  let imageMissing = 0;
 
   const sortedRows = [...rows.keys()].filter((n) => n >= 2).sort((a, b) => a - b);
 
@@ -172,8 +166,8 @@ function importProductsFromXlsxBuffer(buffer) {
       continue;
     }
 
-    const stock = Number((row.get(headersByName['Штук']) || '0').replace(',', '.'));
-    const price = Number((row.get(headersByName['Цена']) || '0').replace(',', '.'));
+    const stock = parseNumber(row.get(headersByName['Штук']) || '0');
+    const price = parseNumber(row.get(headersByName['Цена']) || '0');
     if (Number.isNaN(price) || price <= 0) {
       skipped += 1;
       errors.push({ row: rowNo, code: codeRaw, message: 'Цена noto\'g\'ri' });
@@ -182,15 +176,19 @@ function importProductsFromXlsxBuffer(buffer) {
 
     const safeCode = sanitizeCode(codeRaw);
     let imageUrl = null;
-    if (rowImages.has(rowNo)) {
+    const rowImage = rowImages.get(rowNo);
+    if (rowImage && rowImage.col === 2) {
       try {
-        fs.writeFileSync(path.join(PRODUCTS_UPLOAD_DIR, `${safeCode}.png`), rowImages.get(rowNo));
+        fs.writeFileSync(path.join(PRODUCTS_UPLOAD_DIR, `${safeCode}.png`), rowImage.buffer);
         imageUrl = `/uploads/products/${safeCode}.png`;
+        imageExtracted += 1;
       } catch (e) {
         errors.push({ row: rowNo, code: codeRaw, message: 'Image save warning: ' + e.message });
+        imageMissing += 1;
       }
     } else {
       errors.push({ row: rowNo, code: codeRaw, message: 'Image warning: anchor/image not found' });
+      imageMissing += 1;
     }
 
     upsertRows.push({
@@ -215,6 +213,8 @@ function importProductsFromXlsxBuffer(buffer) {
   return {
     imported: upsertRows.length,
     skipped,
+    imageExtracted,
+    imageMissing,
     errors
   };
 }
