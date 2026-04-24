@@ -6,25 +6,24 @@
   <title>GlobusMarket</title>
   <style>
     :root {
-      --bg-0: #03050d;
-      --bg-1: #071325;
-      --bg-2: #0c1c34;
-      --card: rgba(12, 20, 36, 0.92);
-      --glass: rgba(20, 31, 54, 0.62);
-      --text: #ebf4ff;
-      --muted: #91a4c6;
-      --line: rgba(145, 178, 230, 0.25);
-      --green: #25f48f;
-      --cyan: #27d5ff;
-      --blue: #4f7dff;
-      --shadow: 0 18px 42px rgba(0, 0, 0, 0.55);
+      --bg: #020711;
+      --bg2: #041326;
+      --card: #0c1a2b;
+      --card2: #0b1625;
+      --line: rgba(128, 165, 220, 0.24);
+      --text: #e8f2ff;
+      --muted: #8fa3c7;
+      --green: #43ff8f;
+      --green2: #11d769;
+      --cyan: #28d7ff;
+      --shadow: 0 22px 45px rgba(0, 0, 0, 0.5);
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: "Inter", "Segoe UI", Arial, sans-serif;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
 
@@ -33,238 +32,300 @@
       display: grid;
       place-items: center;
       background:
-        radial-gradient(circle at 12% 8%, rgba(79, 125, 255, 0.2), transparent 32%),
-        radial-gradient(circle at 86% 86%, rgba(37, 244, 143, 0.14), transparent 34%),
-        linear-gradient(160deg, #02040a 0%, #060c18 45%, #03050d 100%);
+        radial-gradient(circle at 8% 90%, rgba(23, 255, 129, 0.12), transparent 40%),
+        radial-gradient(circle at 93% 8%, rgba(40, 215, 255, 0.12), transparent 36%),
+        linear-gradient(170deg, #02050c 0%, #050b15 50%, #03060f 100%);
       color: var(--text);
       padding: 16px;
     }
 
     .phone {
       width: 100%;
-      max-width: 412px;
-      height: min(892px, calc(100vh - 20px));
-      border-radius: 36px;
-      border: 1px solid rgba(132, 162, 220, 0.25);
+      max-width: 395px;
+      height: min(860px, calc(100vh - 24px));
+      border-radius: 34px;
+      border: 1px solid rgba(136, 167, 221, 0.28);
+      background: #040b17;
       overflow: hidden;
       position: relative;
-      background: linear-gradient(180deg, #030812 0%, #070f1f 40%, #040914 100%);
-      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(158, 185, 255, 0.22);
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.66), inset 0 1px 0 rgba(175, 200, 255, 0.26);
+      isolation: isolate;
     }
 
     .screen {
       position: absolute;
       inset: 0;
-      transition: opacity 700ms ease, transform 700ms ease, visibility 700ms ease;
+      transition: opacity 640ms ease, transform 640ms ease, visibility 640ms ease;
     }
 
-    /* INTRO */
     .intro {
-      z-index: 5;
+      z-index: 4;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 28px 18px 22px;
       overflow: hidden;
       background:
-        radial-gradient(circle at 50% 30%, rgba(76, 106, 255, 0.2), transparent 40%),
-        radial-gradient(circle at 50% 80%, rgba(18, 244, 148, 0.15), transparent 45%),
-        linear-gradient(170deg, #01030a 0%, #061025 42%, #03060f 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+        radial-gradient(130% 80% at 55% 23%, rgba(34, 134, 255, 0.17), transparent 52%),
+        radial-gradient(120% 70% at 65% 72%, rgba(67, 255, 143, 0.11), transparent 56%),
+        linear-gradient(180deg, #030610 0%, #031022 48%, #020a17 100%);
     }
 
-    .stars,
-    .stars::before,
-    .stars::after {
+    .intro::before,
+    .intro::after {
       content: "";
       position: absolute;
-      inset: -35%;
-      background-image:
-        radial-gradient(2px 2px at 15% 22%, rgba(255, 255, 255, 0.95), transparent 55%),
-        radial-gradient(1.6px 1.6px at 80% 30%, rgba(158, 203, 255, 0.95), transparent 58%),
-        radial-gradient(1.2px 1.2px at 70% 72%, rgba(194, 237, 255, 0.9), transparent 55%),
-        radial-gradient(1.4px 1.4px at 35% 64%, rgba(172, 227, 255, 0.95), transparent 58%),
-        radial-gradient(1.8px 1.8px at 56% 42%, rgba(212, 241, 255, 0.92), transparent 60%);
-      animation: drift 28s linear infinite;
-      opacity: 0.7;
+      inset: -40%;
       pointer-events: none;
+      background-image:
+        radial-gradient(2px 2px at 20% 15%, rgba(255, 255, 255, 0.92), transparent 56%),
+        radial-gradient(1.5px 1.5px at 80% 14%, rgba(207, 241, 255, 0.95), transparent 60%),
+        radial-gradient(1.8px 1.8px at 60% 42%, rgba(191, 227, 255, 0.92), transparent 55%),
+        radial-gradient(1.4px 1.4px at 12% 63%, rgba(189, 229, 255, 0.9), transparent 58%),
+        radial-gradient(1.6px 1.6px at 90% 76%, rgba(196, 231, 255, 0.9), transparent 55%),
+        radial-gradient(1.2px 1.2px at 40% 82%, rgba(201, 240, 255, 0.86), transparent 58%);
+      animation: starDrift 36s linear infinite;
+      opacity: 0.62;
     }
 
-    .stars::before { animation-duration: 38s; transform: scale(1.08) rotate(8deg); opacity: 0.5; }
-    .stars::after { animation-duration: 20s; transform: scale(0.88) rotate(-6deg); opacity: 0.34; }
+    .intro::after {
+      animation-duration: 26s;
+      transform: rotate(8deg) scale(0.92);
+      opacity: 0.38;
+    }
+
+    .shooting {
+      position: absolute;
+      width: 110px;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(133, 198, 255, 0), rgba(133, 198, 255, 0.85), rgba(133, 198, 255, 0));
+      filter: blur(0.2px);
+      transform: rotate(-30deg);
+      opacity: 0.8;
+    }
+
+    .shooting.s1 { top: 120px; left: -20px; animation: meteor 7.5s linear infinite; }
+    .shooting.s2 { top: 240px; right: -30px; animation: meteor 8.5s linear infinite 1.3s; }
 
     .intro-inner {
-      position: relative;
-      z-index: 2;
       width: 100%;
-      max-width: 356px;
-      padding: 20px 18px 28px;
-      text-align: center;
+      max-width: 350px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14px;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+      height: 100%;
     }
 
-    .globe-wrap {
-      width: 258px;
-      height: 258px;
+    .status {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: #d7e7ff;
+      opacity: 0.95;
+      font-weight: 600;
+      margin-bottom: 18px;
+    }
+
+    .status-icons { letter-spacing: 2px; font-size: 11px; }
+
+    .mini-logo {
+      width: 70px;
+      height: 54px;
+      margin-top: 8px;
+      position: relative;
+    }
+
+    .mini-logo::before {
+      content: "";
+      position: absolute;
+      inset: 9px 18px;
+      border: 2px solid rgba(66, 204, 255, 0.95);
+      border-radius: 50%;
+      box-shadow: 0 0 14px rgba(50, 191, 255, 0.45);
+    }
+
+    .mini-logo::after {
+      content: "";
+      position: absolute;
+      width: 48px;
+      height: 19px;
+      left: 10px;
+      top: 17px;
+      border: 3px solid rgba(80, 255, 146, 0.95);
+      border-radius: 50%;
+      transform: rotate(-18deg);
+      box-shadow: 0 0 14px rgba(80, 255, 146, 0.52);
+    }
+
+    .brand {
+      margin-top: 6px;
+      font-weight: 800;
+      font-size: 44px;
+      line-height: 1;
+      letter-spacing: -1.2px;
+      background: linear-gradient(90deg, #f4fbff 0%, #d5faff 32%, #51ff9f 64%, #95f3ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 26px rgba(65, 198, 255, 0.3);
+    }
+
+    .brand-sub {
+      margin-top: 6px;
+      font-size: 17px;
+      color: #b5c6e6;
+    }
+
+    .planet-wrap {
+      margin-top: auto;
+      margin-bottom: 16px;
+      width: 350px;
+      height: 350px;
+      max-width: 96%;
       position: relative;
       display: grid;
       place-items: center;
-      margin-bottom: 8px;
-      filter: drop-shadow(0 24px 45px rgba(35, 113, 255, 0.35));
+      filter: drop-shadow(0 24px 50px rgba(20, 103, 255, 0.35));
     }
 
-    .globe-aura {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(79, 125, 255, 0.25) 0%, rgba(37, 244, 143, 0.2) 35%, rgba(37, 244, 143, 0) 68%);
-      animation: pulse 4.5s ease-in-out infinite;
-    }
-
-    .globe {
-      width: 176px;
-      height: 176px;
+    .planet {
+      width: 230px;
+      height: 230px;
       border-radius: 50%;
       position: relative;
       overflow: hidden;
       background:
-        radial-gradient(circle at 30% 25%, rgba(225, 246, 255, 0.95) 0%, rgba(118, 203, 255, 0.8) 25%, rgba(35, 87, 172, 0.95) 68%),
-        linear-gradient(150deg, #1f56b6 0%, #0d3f8f 45%, #0a263f 100%);
+        radial-gradient(120px 130px at 40% 24%, rgba(180, 224, 255, 0.95), rgba(74, 152, 244, 0.88) 32%, rgba(17, 60, 135, 0.96) 72%),
+        linear-gradient(160deg, #1a62cb 0%, #14489f 40%, #0b2f66 78%, #091b3b 100%);
       box-shadow:
-        inset -20px -25px 36px rgba(1, 10, 26, 0.7),
-        inset 12px 14px 28px rgba(178, 232, 255, 0.32),
-        0 0 35px rgba(59, 132, 255, 0.45);
-      animation: globeFloat 8s ease-in-out infinite;
+        inset -34px -24px 50px rgba(2, 12, 34, 0.78),
+        inset 16px 13px 26px rgba(194, 232, 255, 0.34),
+        0 0 26px rgba(52, 150, 255, 0.45);
     }
 
-    .globe::before {
+    .planet::before {
       content: "";
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(48px 38px at 26% 56%, rgba(102, 215, 170, 0.66), transparent 75%),
-        radial-gradient(64px 44px at 62% 42%, rgba(90, 210, 150, 0.52), transparent 78%),
-        radial-gradient(46px 30px at 64% 70%, rgba(74, 185, 131, 0.48), transparent 77%),
-        radial-gradient(42px 28px at 42% 28%, rgba(65, 168, 118, 0.44), transparent 75%);
+        radial-gradient(64px 34px at 30% 62%, rgba(104, 202, 144, 0.7), transparent 74%),
+        radial-gradient(62px 36px at 62% 38%, rgba(84, 182, 130, 0.62), transparent 76%),
+        radial-gradient(34px 24px at 71% 68%, rgba(84, 177, 130, 0.6), transparent 70%),
+        radial-gradient(34px 22px at 50% 28%, rgba(79, 172, 126, 0.5), transparent 72%);
       mix-blend-mode: screen;
     }
 
-    .globe::after {
+    .planet::after {
       content: "";
       position: absolute;
-      width: 180%;
-      height: 180%;
-      top: -44%;
-      left: -72%;
-      background: linear-gradient(100deg, transparent 42%, rgba(228, 250, 255, 0.28) 50%, transparent 58%);
-      transform: rotate(12deg);
-      animation: shine 5.6s ease-in-out infinite;
+      width: 190%;
+      height: 190%;
+      top: -55%;
+      left: -80%;
+      background: linear-gradient(96deg, transparent 43%, rgba(222, 245, 255, 0.34) 50%, transparent 58%);
+      transform: rotate(10deg);
+      animation: sheen 6s ease-in-out infinite;
     }
 
-    .orbit {
+    .ring,
+    .ring2 {
       position: absolute;
-      width: 226px;
-      height: 118px;
-      border: 3px solid rgba(37, 244, 143, 0.93);
       border-radius: 50%;
-      transform: rotate(-17deg);
-      box-shadow: 0 0 24px rgba(37, 244, 143, 0.58), inset 0 0 18px rgba(37, 244, 143, 0.18);
-      animation: orbitTurn 8.4s linear infinite;
+      border: 3px solid rgba(74, 255, 154, 0.9);
+      box-shadow: 0 0 24px rgba(74, 255, 154, 0.7), inset 0 0 18px rgba(74, 255, 154, 0.24);
     }
 
-    .orbit::after {
-      content: "";
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      right: 30px;
-      top: -6px;
-      background: radial-gradient(circle, #ecfff6 0%, #6cffbb 55%, rgba(108, 255, 187, 0.2) 100%);
-      box-shadow: 0 0 16px rgba(108, 255, 187, 0.8);
+    .ring {
+      width: 328px;
+      height: 132px;
+      transform: rotate(-20deg);
+      animation: ringRotate 10s linear infinite;
     }
 
-    .brand {
-      font-size: 34px;
+    .ring2 {
+      width: 300px;
+      height: 104px;
+      transform: rotate(-20deg) translateY(18px);
+      opacity: 0.55;
+      border-color: rgba(31, 220, 255, 0.75);
+      box-shadow: 0 0 22px rgba(31, 220, 255, 0.5);
+      animation: ringRotate 14s linear infinite reverse;
+    }
+
+    .intro-title {
+      font-size: 45px;
       font-weight: 800;
-      letter-spacing: 0.4px;
-      background: linear-gradient(90deg, #f4fbff 0%, #adfcdb 55%, #7ae7ff 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 28px rgba(89, 191, 255, 0.24);
+      letter-spacing: -0.8px;
+      margin-top: -6px;
+      text-shadow: 0 10px 22px rgba(0, 0, 0, 0.54);
     }
 
-    .headline {
-      font-size: 40px;
-      line-height: 1.03;
-      font-weight: 800;
-      margin-top: 2px;
-      text-shadow: 0 12px 30px rgba(0, 0, 0, 0.46);
+    .intro-small {
+      margin-top: 7px;
+      color: #b4c8ea;
+      font-size: 30px;
     }
 
-    .subtitle {
-      color: #b3c6e6;
-      font-size: 14px;
-      line-height: 1.5;
-      max-width: 300px;
-      margin-bottom: 8px;
-    }
-
-    .btn {
+    .cta,
+    .ghost {
       width: 100%;
-      border: 0;
       border-radius: 16px;
-      padding: 15px 16px;
-      font-size: 16px;
+      border: 0;
+      font-size: 29px;
       font-weight: 700;
+      padding: 17px 16px;
       cursor: pointer;
-      transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+      transition: transform 180ms ease, box-shadow 220ms ease;
     }
 
-    .btn:active { transform: scale(0.985); }
-
-    .btn-primary {
-      color: #042418;
-      background: linear-gradient(95deg, #1fff8f 0%, #2ce5ff 100%);
-      box-shadow: 0 14px 24px rgba(17, 244, 154, 0.34), inset 0 0 0 1px rgba(225, 255, 242, 0.7);
+    .cta {
+      margin-top: 20px;
+      color: #eafff5;
+      background: linear-gradient(90deg, #42ff8f 0%, #1ed87a 25%, #1db8ff 100%);
+      box-shadow: 0 15px 34px rgba(38, 232, 142, 0.35), inset 0 0 0 1px rgba(224, 255, 241, 0.7);
     }
 
-    .btn-secondary {
-      color: #d9e8ff;
-      background: linear-gradient(180deg, rgba(34, 50, 83, 0.55) 0%, rgba(17, 27, 45, 0.7) 100%);
-      border: 1px solid rgba(154, 186, 240, 0.28);
-      backdrop-filter: blur(7px);
-      box-shadow: inset 0 1px 0 rgba(200, 223, 255, 0.16);
+    .ghost {
+      margin-top: 11px;
+      background: linear-gradient(180deg, rgba(22, 38, 65, 0.72), rgba(10, 21, 38, 0.92));
+      border: 1px solid rgba(146, 177, 228, 0.3);
+      color: #cfe0ff;
     }
 
     .register {
-      font-size: 14px;
-      color: #9ec3ff;
+      margin-top: 12px;
+      color: #49f796;
       text-decoration: none;
-      margin-top: 2px;
+      font-size: 25px;
+      font-weight: 600;
     }
 
-    .register span {
-      color: #5fffb6;
-      text-decoration: underline;
-      text-underline-offset: 2px;
+    .deliver-note {
+      margin-top: auto;
+      padding-bottom: 6px;
+      color: #89a3c8;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    /* HOME */
     .home {
+      z-index: 2;
       opacity: 0;
       visibility: hidden;
-      transform: translateY(20px) scale(0.985);
-      z-index: 2;
-      background:
-        radial-gradient(circle at 8% -5%, rgba(49, 99, 255, 0.18), transparent 32%),
-        radial-gradient(circle at 95% 30%, rgba(37, 244, 143, 0.11), transparent 40%),
-        linear-gradient(180deg, #030711 0%, #061226 52%, #040b16 100%);
-      padding: 14px 14px 112px;
+      transform: translateY(28px) scale(0.985);
+      padding: 15px 13px 95px;
       overflow-y: auto;
       scrollbar-width: none;
+      background:
+        radial-gradient(80% 40% at 92% 2%, rgba(67, 255, 143, 0.12), transparent 58%),
+        radial-gradient(70% 30% at 6% 18%, rgba(38, 162, 255, 0.14), transparent 50%),
+        linear-gradient(180deg, #030913 0%, #041122 55%, #030c18 100%);
     }
 
     .home::-webkit-scrollbar { display: none; }
@@ -272,7 +333,7 @@
     .phone.show-home .intro {
       opacity: 0;
       visibility: hidden;
-      transform: scale(1.04);
+      transform: scale(1.05);
       pointer-events: none;
     }
 
@@ -282,298 +343,441 @@
       transform: translateY(0) scale(1);
     }
 
-    .top {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      align-items: start;
-      gap: 10px;
-      margin-bottom: 12px;
+    .home-top-time {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #d9e8ff;
+      font-weight: 600;
+      margin: 2px 4px 10px;
     }
 
-    .logo-row {
+    .row {
       display: flex;
       align-items: center;
-      gap: 11px;
-      margin-bottom: 6px;
+      justify-content: space-between;
+      gap: 8px;
     }
 
-    .logo-mark {
-      width: 38px;
-      height: 38px;
-      border-radius: 12px;
-      background:
-        radial-gradient(circle at 30% 28%, #7ad8ff 0%, #2e65ff 52%, #112648 100%);
-      border: 1px solid rgba(169, 199, 255, 0.28);
-      box-shadow: inset 0 0 24px rgba(70, 181, 255, 0.42), 0 12px 18px rgba(0, 0, 0, 0.34);
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .logo-chip {
+      width: 29px;
+      height: 29px;
+      border-radius: 10px;
+      background: linear-gradient(165deg, #0f2342, #0a1a30);
+      border: 1px solid rgba(130, 175, 226, 0.35);
       position: relative;
+      box-shadow: inset 0 1px 0 rgba(205, 230, 255, 0.2);
     }
 
-    .logo-mark::after {
+    .logo-chip::before {
       content: "";
       position: absolute;
-      width: 30px;
-      height: 10px;
-      border: 2px solid #2bff9b;
+      inset: 7px;
+      border: 1.8px solid #36d3ff;
       border-radius: 50%;
-      top: 12px;
-      left: 2px;
-      transform: rotate(-18deg);
-      box-shadow: 0 0 10px rgba(43, 255, 155, 0.55);
     }
 
-    .name {
-      font-size: 21px;
+    .logo-chip::after {
+      content: "";
+      position: absolute;
+      width: 22px;
+      height: 9px;
+      top: 11px;
+      left: 2px;
+      border: 2px solid #43ff8f;
+      border-radius: 50%;
+      transform: rotate(-18deg);
+      box-shadow: 0 0 9px rgba(67, 255, 143, 0.6);
+    }
+
+    .brand-name {
+      font-size: 27px;
       font-weight: 800;
-      letter-spacing: 0.2px;
+      letter-spacing: -0.4px;
+      background: linear-gradient(90deg, #f7fbff 0%, #e8f6ff 42%, #5dffad 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     .location {
-      color: var(--muted);
-      font-size: 13px;
+      margin-top: 6px;
+      color: #c1d2ee;
+      font-size: 18px;
       display: flex;
       align-items: center;
       gap: 6px;
     }
 
-    .bell {
-      width: 44px;
-      height: 44px;
-      border-radius: 14px;
+    .location small { font-size: 14px; opacity: 0.9; }
+
+    .notif {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
       border: 1px solid var(--line);
-      background: rgba(18, 31, 56, 0.74);
+      background: rgba(13, 28, 51, 0.82);
       display: grid;
       place-items: center;
       position: relative;
-      box-shadow: inset 0 1px 0 rgba(188, 213, 255, 0.18);
-      font-size: 19px;
+      font-size: 16px;
+      box-shadow: inset 0 1px 0 rgba(194, 217, 255, 0.16);
     }
 
-    .badge {
+    .notif::after {
+      content: "3";
       position: absolute;
-      top: 5px;
-      right: 5px;
-      min-width: 16px;
-      height: 16px;
+      top: -4px;
+      right: -3px;
+      width: 15px;
+      height: 15px;
       border-radius: 50%;
-      background: linear-gradient(180deg, #2bff9d 0%, #13c6ff 100%);
-      color: #042e1f;
-      font-size: 11px;
-      font-weight: 800;
+      background: linear-gradient(180deg, #59ff9f, #17d774);
+      color: #06331f;
       display: grid;
       place-items: center;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .search-wrap {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 9px;
     }
 
     .search {
+      border-radius: 14px;
+      border: 1px solid rgba(129, 165, 223, 0.28);
+      background: linear-gradient(180deg, rgba(19, 35, 61, 0.76), rgba(12, 24, 42, 0.9));
+      color: #98afcf;
+      font-size: 12px;
+      padding: 11px 12px;
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 12px 14px;
-      border-radius: 15px;
-      border: 1px solid rgba(133, 161, 207, 0.27);
-      background: linear-gradient(180deg, rgba(28, 43, 72, 0.6), rgba(15, 25, 41, 0.78));
-      box-shadow: inset 0 1px 0 rgba(206, 225, 255, 0.12);
-      margin-bottom: 14px;
-      color: #90a8cc;
-      font-size: 14px;
+      gap: 8px;
+      box-shadow: inset 0 1px 0 rgba(202, 224, 255, 0.12);
+    }
+
+    .filter {
+      width: 42px;
+      border-radius: 14px;
+      border: 1px solid rgba(112, 160, 220, 0.3);
+      background: linear-gradient(180deg, rgba(21, 37, 63, 0.9), rgba(10, 19, 33, 0.96));
+      color: #5efeac;
+      display: grid;
+      place-items: center;
+      font-size: 15px;
     }
 
     .promo {
-      border-radius: 18px;
-      padding: 16px;
-      border: 1px solid rgba(110, 157, 222, 0.28);
+      margin-top: 13px;
+      border-radius: 16px;
+      border: 1px solid rgba(96, 160, 211, 0.3);
       background:
-        linear-gradient(130deg, rgba(24, 49, 88, 0.86) 0%, rgba(16, 36, 64, 0.96) 55%, rgba(8, 25, 42, 0.98) 100%);
+        radial-gradient(140px 90px at 85% 40%, rgba(70, 255, 146, 0.4), transparent 78%),
+        linear-gradient(135deg, #0b2338 0%, #082236 40%, #0b1829 100%);
       box-shadow: var(--shadow);
       display: grid;
-      grid-template-columns: 1fr 92px;
-      gap: 10px;
-      margin-bottom: 16px;
+      grid-template-columns: 1fr 130px;
+      gap: 6px;
+      padding: 13px 12px;
       position: relative;
       overflow: hidden;
     }
 
-    .promo::after {
-      content: "";
-      position: absolute;
-      width: 140px;
-      height: 140px;
-      right: -44px;
-      top: -40px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(39, 213, 255, 0.26) 0%, rgba(39, 213, 255, 0) 72%);
-    }
-
     .promo h3 {
-      font-size: 16px;
-      margin-bottom: 4px;
+      font-size: 17px;
+      line-height: 1.12;
+      margin-bottom: 7px;
+      font-weight: 800;
     }
 
     .promo p {
-      color: #abc2e5;
       font-size: 12px;
-      line-height: 1.45;
+      color: #b4caea;
+      line-height: 1.35;
+      max-width: 164px;
       margin-bottom: 8px;
     }
 
-    .promo span {
+    .promo .btn-mini {
+      font-size: 11px;
+      font-weight: 700;
+      color: #dffef0;
       display: inline-flex;
       align-items: center;
-      gap: 7px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #6effbc;
+      gap: 6px;
+      border: 1px solid rgba(88, 248, 156, 0.42);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: rgba(14, 45, 40, 0.5);
+      width: fit-content;
     }
 
-    .truck {
-      align-self: center;
-      justify-self: end;
-      width: 84px;
-      height: 84px;
-      border-radius: 18px;
-      border: 1px solid rgba(132, 184, 255, 0.26);
-      background: linear-gradient(180deg, rgba(31, 54, 89, 0.92), rgba(13, 27, 50, 0.92));
+    .scooter {
+      align-self: stretch;
+      border-radius: 14px;
+      position: relative;
+      background: radial-gradient(circle at 50% 50%, rgba(76, 255, 146, 0.4), rgba(76, 255, 146, 0) 70%);
+    }
+
+    .scooter .bike {
+      position: absolute;
+      right: 8px;
+      bottom: 24px;
+      width: 90px;
+      height: 42px;
+      border-radius: 14px;
+      background: linear-gradient(150deg, #2a3342, #131b27);
+      box-shadow: 0 10px 16px rgba(0, 0, 0, 0.5);
+    }
+
+    .bike::before,
+    .bike::after {
+      content: "";
+      position: absolute;
+      bottom: -13px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #a9ffcf, #16cf71 60%, #083922 100%);
+      box-shadow: 0 0 8px rgba(81, 255, 157, 0.7);
+    }
+
+    .bike::before { left: 10px; }
+    .bike::after { right: 8px; }
+
+    .badge30 {
+      position: absolute;
+      right: 2px;
+      bottom: 4px;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: 2px solid rgba(111, 255, 177, 0.8);
+      background: rgba(8, 40, 34, 0.7);
+      color: #d9ffea;
       display: grid;
       place-items: center;
-      font-size: 38px;
-      box-shadow: inset 0 1px 0 rgba(198, 222, 255, 0.18);
+      font-weight: 800;
+      font-size: 20px;
+      line-height: 0.9;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(73, 255, 156, 0.5);
     }
 
-    .section-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin: 4px 2px 10px;
-    }
-
-    .section-head h4 {
-      font-size: 16px;
-      font-weight: 700;
-    }
-
-    .section-head a {
-      text-decoration: none;
-      color: #67fdb9;
-      font-size: 12px;
-      font-weight: 700;
-    }
+    .badge30 span { font-size: 9px; opacity: 0.95; }
 
     .cats {
+      margin-top: 11px;
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 8px;
-      margin-bottom: 16px;
+      gap: 7px;
     }
 
     .cat {
-      border-radius: 14px;
-      border: 1px solid rgba(128, 157, 209, 0.26);
-      background: linear-gradient(170deg, rgba(24, 38, 64, 0.95), rgba(11, 20, 36, 0.95));
-      box-shadow: inset 0 1px 0 rgba(190, 216, 255, 0.12);
-      aspect-ratio: 1 / 1;
+      border-radius: 12px;
+      border: 1px solid rgba(112, 155, 214, 0.28);
+      background: linear-gradient(175deg, #111f35, #0a1525);
+      aspect-ratio: 1/1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 7px;
-      font-size: 10px;
-      color: #b4c8e9;
+      gap: 6px;
+      font-size: 9px;
+      color: #ccdbf2;
       text-align: center;
-      padding: 6px 2px;
+      box-shadow: inset 0 1px 0 rgba(190, 214, 255, 0.12);
+      padding: 4px;
     }
 
-    .cat i {
+    .cat b {
+      font-size: 17px;
+      line-height: 1;
       width: 30px;
       height: 30px;
       border-radius: 10px;
       display: grid;
       place-items: center;
-      color: #dffff2;
-      font-style: normal;
-      font-size: 16px;
-      background: linear-gradient(150deg, rgba(37, 244, 143, 0.24), rgba(39, 213, 255, 0.22));
-      box-shadow: 0 0 14px rgba(37, 244, 143, 0.34);
-      border: 1px solid rgba(119, 232, 189, 0.35);
+      background: linear-gradient(160deg, rgba(86, 255, 163, 0.24), rgba(40, 215, 255, 0.22));
+      border: 1px solid rgba(126, 236, 190, 0.35);
+      box-shadow: 0 0 14px rgba(86, 255, 163, 0.34);
     }
+
+    .head {
+      margin: 15px 1px 9px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .head h4 { font-size: 20px; font-weight: 800; }
+    .head a { color: #55f79f; text-decoration: none; font-size: 15px; font-weight: 700; }
 
     .products {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 9px;
-      margin-bottom: 16px;
+      gap: 8px;
     }
 
     .product {
-      border-radius: 15px;
-      border: 1px solid rgba(127, 158, 213, 0.26);
-      background: linear-gradient(180deg, rgba(18, 31, 54, 0.97), rgba(10, 19, 34, 0.96));
-      padding: 8px;
+      border-radius: 14px;
+      border: 1px solid rgba(120, 160, 218, 0.28);
+      background: linear-gradient(180deg, #101f35 0%, #0a1626 100%);
       box-shadow: var(--shadow);
+      padding: 7px;
+      position: relative;
     }
 
-    .image-box {
-      height: 84px;
-      border-radius: 12px;
-      background: linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%);
-      border: 1px solid #dbe7f8;
-      color: #6178a0;
-      font-size: 11px;
-      font-weight: 700;
+    .prod-photo {
+      height: 90px;
+      border-radius: 11px;
+      background: linear-gradient(180deg, #fff, #f2f7ff);
+      border: 1px solid #dce6f3;
+      position: relative;
+      margin-bottom: 7px;
       display: grid;
       place-items: center;
-      text-align: center;
-      padding: 6px;
-      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    .bottle {
+      width: 26px;
+      height: 66px;
+      border-radius: 8px 8px 10px 10px;
+      position: relative;
+      box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.2), 0 6px 8px rgba(0, 0, 0, 0.28);
+    }
+
+    .bottle::before {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 10px;
+      border-radius: 3px 3px 0 0;
+      left: 6px;
+      top: -8px;
+      background: #c51d26;
+    }
+
+    .cola { background: linear-gradient(180deg, #48140e, #1c0908); }
+    .pepsi { background: linear-gradient(180deg, #1f2a5c, #0f1230); }
+
+    .carton {
+      width: 36px;
+      height: 64px;
+      border-radius: 6px;
+      background: linear-gradient(180deg, #1c4f9d, #0f2f62);
+      position: relative;
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.24);
+    }
+
+    .carton::before {
+      content: "R";
+      position: absolute;
+      color: #fff;
+      font-size: 24px;
+      font-weight: 900;
+      left: 11px;
+      top: 18px;
+      opacity: 0.95;
+    }
+
+    .discount {
+      position: absolute;
+      left: 6px;
+      top: 6px;
+      background: linear-gradient(180deg, #62ffad, #27d97a);
+      color: #074126;
+      font-size: 8px;
+      font-weight: 800;
+      border-radius: 999px;
+      padding: 2px 5px;
     }
 
     .product h5 {
-      font-size: 12px;
-      margin-bottom: 4px;
-      color: #eaf4ff;
-      line-height: 1.25;
+      font-size: 11px;
+      color: #ecf5ff;
+      min-height: 30px;
+      line-height: 1.24;
     }
 
     .price {
-      font-size: 12px;
-      color: #69ffbd;
-      font-weight: 700;
+      margin-top: 3px;
+      color: #e6f0ff;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .old {
+      margin-top: 2px;
+      color: #8ea6cc;
+      font-size: 9px;
+      text-decoration: line-through;
+    }
+
+    .cart-btn {
+      position: absolute;
+      right: 6px;
+      bottom: 6px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #5cffaa, #22d874);
+      color: #053a22;
+      font-size: 11px;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      box-shadow: 0 0 9px rgba(92, 255, 170, 0.55);
     }
 
     .bonus {
-      border-radius: 16px;
-      border: 1px solid rgba(106, 159, 230, 0.26);
-      padding: 14px;
+      margin-top: 13px;
+      border-radius: 15px;
+      border: 1px solid rgba(101, 160, 217, 0.28);
       background:
-        linear-gradient(120deg, rgba(16, 33, 58, 0.95) 0%, rgba(23, 46, 82, 0.92) 55%, rgba(10, 24, 44, 0.95) 100%);
+        radial-gradient(110px 65px at 86% 50%, rgba(82, 255, 166, 0.34), transparent 70%),
+        linear-gradient(130deg, #12311e 0%, #0f2520 34%, #0d1f2f 100%);
       box-shadow: var(--shadow);
+      padding: 12px;
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: 1fr 74px;
+      gap: 8px;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
     }
 
-    .bonus h5 {
-      font-size: 15px;
-      margin-bottom: 4px;
+    .bonus h5 { font-size: 34px; font-weight: 800; }
+    .bonus p { margin-top: 4px; color: #b6cbe9; font-size: 18px; }
+
+    .gift {
+      width: 66px;
+      height: 66px;
+      border-radius: 16px;
+      position: relative;
+      background: radial-gradient(circle at 30% 30%, #8cffc8, #1fdf77 68%, #0d6f41 100%);
+      box-shadow: 0 0 22px rgba(93, 255, 170, 0.52);
     }
 
-    .bonus p {
-      color: #acc4e8;
-      font-size: 12px;
-      line-height: 1.35;
+    .gift::before,
+    .gift::after {
+      content: "";
+      position: absolute;
+      background: rgba(7, 78, 45, 0.65);
+      border-radius: 4px;
     }
 
-    .coin {
-      width: 58px;
-      height: 58px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      font-size: 24px;
-      background: radial-gradient(circle at 35% 26%, #f3fffb 0%, #5cffbc 42%, #1e8e75 100%);
-      color: #08342b;
-      box-shadow: 0 0 16px rgba(88, 255, 190, 0.45);
-    }
+    .gift::before { width: 9px; height: 66px; left: 28px; top: 0; }
+    .gift::after { width: 66px; height: 9px; left: 0; top: 29px; }
 
     .bottom {
       position: absolute;
@@ -581,170 +785,212 @@
       right: 0;
       bottom: 0;
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      padding: 10px 14px 16px;
-      border-top: 1px solid rgba(130, 160, 210, 0.3);
-      background: linear-gradient(180deg, rgba(8, 15, 28, 0.96), rgba(4, 10, 20, 0.98));
-      backdrop-filter: blur(8px);
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-top: 1px solid rgba(122, 161, 220, 0.3);
+      background: linear-gradient(180deg, rgba(10, 19, 34, 0.94), rgba(5, 12, 22, 0.98));
+      padding: 10px 8px 12px;
+      backdrop-filter: blur(9px);
     }
 
     .tab {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 5px;
-      color: #8fa6ca;
+      text-align: center;
+      color: #91a8cc;
       font-size: 10px;
       font-weight: 600;
+      position: relative;
     }
 
     .tab b {
-      width: 34px;
-      height: 34px;
-      border-radius: 12px;
       display: grid;
       place-items: center;
-      font-size: 16px;
-      border: 1px solid rgba(114, 142, 189, 0.28);
-      background: rgba(18, 30, 50, 0.86);
+      width: 31px;
+      height: 31px;
+      margin: 0 auto 4px;
+      border-radius: 10px;
+      border: 1px solid rgba(112, 151, 210, 0.28);
+      background: rgba(17, 31, 54, 0.84);
+      font-size: 15px;
       font-weight: 500;
     }
 
-    .tab.active {
-      color: #dffaf0;
-    }
-
+    .tab.active { color: #dffef0; }
     .tab.active b {
-      background: linear-gradient(150deg, rgba(31, 255, 145, 0.34), rgba(39, 213, 255, 0.25));
-      border-color: rgba(90, 244, 173, 0.52);
-      box-shadow: 0 0 14px rgba(52, 249, 162, 0.34);
+      background: linear-gradient(150deg, rgba(73, 255, 157, 0.36), rgba(40, 215, 255, 0.26));
+      border-color: rgba(95, 248, 176, 0.55);
+      box-shadow: 0 0 12px rgba(95, 248, 176, 0.4);
     }
 
-    @keyframes drift {
+    .tab .mini-badge {
+      position: absolute;
+      top: -2px;
+      right: 26%;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #5bffae, #1cd775);
+      color: #053721;
+      font-size: 9px;
+      font-weight: 800;
+      display: grid;
+      place-items: center;
+    }
+
+    button:active { transform: scale(0.988); }
+
+    @media (max-width: 390px) {
+      .brand { font-size: 40px; }
+      .intro-title { font-size: 40px; }
+      .intro-small { font-size: 26px; }
+      .cta, .ghost { font-size: 26px; }
+      .register { font-size: 22px; }
+      .deliver-note { font-size: 18px; }
+      .bonus h5 { font-size: 30px; }
+      .bonus p { font-size: 16px; }
+    }
+
+    @keyframes starDrift {
       from { transform: translateY(0) rotate(0deg); }
-      to { transform: translateY(-50px) rotate(12deg); }
+      to { transform: translateY(-55px) rotate(8deg); }
     }
 
-    @keyframes pulse {
-      0%, 100% { transform: scale(0.94); opacity: 0.45; }
-      50% { transform: scale(1.08); opacity: 0.9; }
+    @keyframes meteor {
+      0% { transform: translateX(0) translateY(0) rotate(-30deg); opacity: 0; }
+      12% { opacity: 0.85; }
+      100% { transform: translateX(360px) translateY(120px) rotate(-30deg); opacity: 0; }
     }
 
-    @keyframes globeFloat {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
+    @keyframes ringRotate {
+      from { transform: rotate(-20deg); }
+      to { transform: rotate(340deg); }
     }
 
-    @keyframes shine {
-      0%, 100% { transform: translateX(0) rotate(12deg); opacity: 0.3; }
-      50% { transform: translateX(36px) rotate(12deg); opacity: 0.6; }
-    }
-
-    @keyframes orbitTurn {
-      from { transform: rotate(-17deg); }
-      to { transform: rotate(343deg); }
+    @keyframes sheen {
+      0%, 100% { transform: translateX(0) rotate(10deg); opacity: 0.34; }
+      50% { transform: translateX(34px) rotate(10deg); opacity: 0.62; }
     }
   </style>
 </head>
 <body>
   <main class="phone" id="phone">
     <section class="screen intro" id="introScreen">
-      <div class="stars"></div>
+      <span class="shooting s1" aria-hidden="true"></span>
+      <span class="shooting s2" aria-hidden="true"></span>
+
       <div class="intro-inner">
-        <div class="globe-wrap">
-          <div class="globe-aura"></div>
-          <div class="orbit"></div>
-          <div class="globe"></div>
+        <div class="status">
+          <span>9:41</span>
+          <span class="status-icons">◖◗ ▰</span>
         </div>
 
+        <div class="mini-logo" aria-hidden="true"></div>
         <h1 class="brand">GlobusMarket</h1>
-        <h2 class="headline">Хуш келибсиз!</h2>
-        <p class="subtitle">Дунёча танлов, тез етказиб бериш ва премиум харид тажрибаси энди бир жойда.</p>
+        <p class="brand-sub">Тез, қулай ва ишончли харид</p>
 
-        <button class="btn btn-primary" id="continueBtn">Davom etish</button>
-        <button class="btn btn-secondary">Kirish</button>
-        <a href="#" class="register">Аккаунтингиз йўқми? <span>Ro'yxatdan o'tish</span></a>
+        <div class="planet-wrap" aria-hidden="true">
+          <div class="ring"></div>
+          <div class="ring2"></div>
+          <div class="planet"></div>
+        </div>
+
+        <h2 class="intro-title">Хуш келибсиз!</h2>
+        <p class="intro-small">Энг яхшиси сиз учун</p>
+
+        <button class="cta" id="continueBtn">Davom etish →</button>
+        <button class="ghost">Kirish</button>
+        <a href="#" class="register">Ro'yxatdan o'tish</a>
+
+        <p class="deliver-note">⏱ Yetkazib berish 30 daqiqadan</p>
       </div>
     </section>
 
     <section class="screen home" id="homeScreen">
-      <header class="top">
-        <div>
-          <div class="logo-row">
-            <span class="logo-mark" aria-hidden="true"></span>
-            <h1 class="name">GlobusMarket</h1>
-          </div>
-          <p class="location">📍 Тошкент, Чилонзор тумани</p>
-        </div>
-        <button class="bell" aria-label="Bildirishnomalar">
-          🔔
-          <span class="badge">3</span>
-        </button>
-      </header>
+      <div class="home-top-time">
+        <span>9:41</span>
+        <span>◖◗ ▰</span>
+      </div>
 
-      <div class="search">🔎&nbsp; Маҳсулот, бренд ёки тоифани қидиринг</div>
+      <div class="row">
+        <div>
+          <div class="brand-row">
+            <span class="logo-chip" aria-hidden="true"></span>
+            <h2 class="brand-name">GlobusMarket</h2>
+          </div>
+          <p class="location">📍 Yunusobod, Toshkent <small>▾</small></p>
+        </div>
+        <button class="notif" aria-label="Bildirishnomalar">🔔</button>
+      </div>
+
+      <div class="search-wrap">
+        <div class="search">🔍 Maxsulot qidirish...</div>
+        <div class="filter">☰</div>
+      </div>
 
       <section class="promo">
         <div>
-          <h3>Экспресс етказиб бериш</h3>
-          <p>DALION маҳсулотлари 30 дақиқада эшигингизгача. Премиум логистика хизмати.</p>
-          <span>⚡ Бугун бепул доставка</span>
+          <h3>Тез етказиб бериш</h3>
+          <p>30 дақиқа ичида буюртма беринг</p>
+          <span class="btn-mini">Batafsil →</span>
         </div>
-        <div class="truck">🚚</div>
+        <div class="scooter" aria-hidden="true">
+          <div class="bike"></div>
+          <div class="badge30">30<br><span>daqiqa</span></div>
+        </div>
       </section>
 
-      <div class="section-head">
-        <h4>Категориялар</h4>
-        <a href="#">Барчаси</a>
-      </div>
       <section class="cats">
-        <article class="cat"><i>🥤</i>Ичимлик</article>
-        <article class="cat"><i>🍪</i>Снек</article>
-        <article class="cat"><i>🧴</i>Гигиена</article>
-        <article class="cat"><i>🥛</i>Сут</article>
-        <article class="cat"><i>🍫</i>Ширинлик</article>
+        <article class="cat"><b>🥤</b>Ichimliklar</article>
+        <article class="cat"><b>🍬</b>Shirinliklar</article>
+        <article class="cat"><b>🥛</b>Sut mahsulotlari</article>
+        <article class="cat"><b>🍏</b>Mevalar</article>
+        <article class="cat"><b>🥩</b>Go'sht</article>
       </section>
 
-      <div class="section-head">
-        <h4>Оммабоп маҳсулотлар</h4>
-        <a href="#">Кўпроқ</a>
+      <div class="head">
+        <h4>Mashhur mahsulotlar</h4>
+        <a href="#">Barchasi ›</a>
       </div>
+
       <section class="products">
         <article class="product">
-          <div class="image-box">DALION
-Оқ фонли фото</div>
-          <h5>DALION Premium Tea</h5>
-          <p class="price">39 900 сўм</p>
+          <div class="discount">-10%</div>
+          <div class="prod-photo"><div class="bottle cola"></div></div>
+          <h5>Coca Cola 1L</h5>
+          <div class="price">12 000 so'm</div>
+          <div class="old">13 400 so'm</div>
+          <span class="cart-btn">🛒</span>
         </article>
+
         <article class="product">
-          <div class="image-box">DALION
-Оқ фонли фото</div>
-          <h5>DALION Coffee Gold</h5>
-          <p class="price">54 000 сўм</p>
+          <div class="prod-photo"><div class="bottle pepsi"></div></div>
+          <h5>Pepsi 1L</h5>
+          <div class="price">12 000 so'm</div>
+          <div class="old">13 400 so'm</div>
+          <span class="cart-btn">🛒</span>
         </article>
+
         <article class="product">
-          <div class="image-box">DALION
-Оқ фонли фото</div>
-          <h5>DALION Cookies Box</h5>
-          <p class="price">27 500 сўм</p>
+          <div class="prod-photo"><div class="carton"></div></div>
+          <h5>Rich Apelsin 1L</h5>
+          <div class="price">18 000 so'm</div>
+          <div class="old">20 000 so'm</div>
+          <span class="cart-btn">🛒</span>
         </article>
       </section>
 
       <section class="bonus">
         <div>
-          <h5>Бонус балллар ×2</h5>
-          <p>Янги ҳафта акцияси: ҳар бир харид учун икки баравар Globus бонус.</p>
+          <h5>GlobusBonus</h5>
+          <p>Har xarid uchun bonuslar yig'ing</p>
         </div>
-        <div class="coin">★</div>
+        <div class="gift" aria-hidden="true"></div>
       </section>
     </section>
 
-    <nav class="bottom" aria-label="Pastki menyu">
-      <div class="tab active"><b>⌂</b>Бош саҳифа</div>
-      <div class="tab"><b>◫</b>Каталог</div>
-      <div class="tab"><b>🛒</b>Сават</div>
-      <div class="tab"><b>☻</b>Профиль</div>
+    <nav class="bottom" aria-label="Pastki navigatsiya">
+      <div class="tab active"><b>⌂</b>Home</div>
+      <div class="tab"><b>⌕</b>Search</div>
+      <div class="tab"><b>🛒</b>Cart <span class="mini-badge">2</span></div>
+      <div class="tab"><b>◌</b>Profile</div>
     </nav>
   </main>
 
