@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const sharp = require('sharp');
 const { unzipBuffer } = require('./xlsx-zip-reader.js');
 const store = require('../data/store.js');
 
@@ -120,7 +121,42 @@ function parseDrawingImages(files) {
   return rowImages;
 }
 
-function importProductsFromXlsxBuffer(buffer) {
+async function processAndSaveProductImage({ inputBuffer, outputPath }) {
+  const warnings = [];
+  try {
+    await sharp(inputBuffer)
+      .rotate()
+      .trim(12)
+      .resize(600, 600, {
+        fit: 'contain',
+        position: 'centre',
+        background: { r: 255, g: 255, b: 255, alpha: 1 }
+      })
+      .png({ compressionLevel: 9, adaptiveFiltering: true })
+      .toFile(outputPath);
+    return { processed: true, warnings };
+  } catch (trimError) {
+    warnings.push(`trim_failed: ${trimError.message}`);
+    try {
+      await sharp(inputBuffer)
+        .rotate()
+        .resize(600, 600, {
+          fit: 'contain',
+          position: 'centre',
+          background: { r: 255, g: 255, b: 255, alpha: 1 }
+        })
+        .png({ compressionLevel: 9, adaptiveFiltering: true })
+        .toFile(outputPath);
+      return { processed: false, warnings };
+    } catch (fallbackError) {
+      warnings.push(`fallback_failed: ${fallbackError.message}`);
+      fs.writeFileSync(outputPath, inputBuffer);
+      return { processed: false, warnings };
+    }
+  }
+}
+
+async function importProductsFromXlsxBuffer(buffer) {
   const files = unzipBuffer(buffer);
   const sharedStrings = parseSharedStrings((files['xl/sharedStrings.xml'] || Buffer.from('')).toString('utf8'));
   const sheetXmlPath = 'xl/worksheets/sheet1.xml';
@@ -144,7 +180,9 @@ function importProductsFromXlsxBuffer(buffer) {
   const errors = [];
   let skipped = 0;
   let imageExtracted = 0;
+  let imageProcessed = 0;
   let imageMissing = 0;
+  const imageProcessingWarnings = [];
 
   const sortedRows = [...rows.keys()].filter((n) => n >= 2).sort((a, b) => a - b);
 
@@ -179,7 +217,25 @@ function importProductsFromXlsxBuffer(buffer) {
     const rowImage = rowImages.get(rowNo);
     if (rowImage && rowImage.col === 2) {
       try {
-        fs.writeFileSync(path.join(PRODUCTS_UPLOAD_DIR, `${safeCode}.png`), rowImage.buffer);
+        const outputPath = path.join(PRODUCTS_UPLOAD_DIR, `${safeCode}.png`);
+        const processingResult = await processAndSaveProductImage({
+          inputBuffer: rowImage.buffer,
+          outputPath
+        });
+        if (processingResult.processed) imageProcessed += 1;
+        if (processingResult.warnings.length) {
+          const warning = {
+            row: rowNo,
+            code: codeRaw,
+            message: processingResult.warnings.join('; ')
+          };
+          imageProcessingWarnings.push(warning);
+          errors.push({
+            row: rowNo,
+            code: codeRaw,
+            message: `Image processing warning: ${warning.message}`
+          });
+        }
         imageUrl = `/uploads/products/${safeCode}.png`;
         imageExtracted += 1;
       } catch (e) {
@@ -214,6 +270,8 @@ function importProductsFromXlsxBuffer(buffer) {
     imported: upsertRows.length,
     skipped,
     imageExtracted,
+    imageProcessed,
+    imageProcessingWarnings,
     imageMissing,
     errors
   };
