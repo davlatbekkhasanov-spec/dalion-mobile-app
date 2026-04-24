@@ -89,7 +89,8 @@ function upsertProducts(items = []) {
       price: Number(raw.price) || 0,
       oldPrice: Number(raw.oldPrice) || Number(raw.price) || 0,
       stock: Number(raw.stock ?? 0),
-      image: raw.image || ''
+      image: raw.image || raw.image_url || '',
+      image_url: raw.image_url || raw.image || ''
     };
 
     if (index === -1) {

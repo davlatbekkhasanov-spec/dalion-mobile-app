@@ -1,6 +1,7 @@
 const store = require('../data/store.js');
 const dalionService = require('../services/dalion.service.js');
 const excelService = require('../services/excel.service.js');
+const xlsxImportService = require('../services/xlsx-import.service.js');
 
 exports.getIntegrationStatus = (req, res) => {
   res.json({
@@ -53,4 +54,17 @@ exports.importProductsExcel = (req, res) => {
   const csv = String(req.body?.csv || '');
   const result = excelService.importProductsCSV(csv);
   res.json({ ok: true, ...result });
+};
+
+exports.importProductsXlsx = async (req, res) => {
+  try {
+    if (!req.file?.buffer) {
+      return res.status(400).json({ ok: false, message: 'xlsx file is required (multipart/form-data, field: file)' });
+    }
+
+    const result = await xlsxImportService.importProductsFromXlsxBuffer(req.file.buffer);
+    return res.json({ ok: true, ...result });
+  } catch (error) {
+    return res.status(400).json({ ok: false, message: error.message || 'XLSX import failed' });
+  }
 };
