@@ -123,7 +123,8 @@ function parseDrawingImages(files) {
 
 const WHITE_THRESHOLD = 240;
 const OUTPUT_CANVAS_SIZE = 800;
-const MAX_UPSCALE_FACTOR = 2;
+const MAX_UPSCALE_FACTOR = 4;
+const TARGET_OBJECT_SIDE = 620;
 
 function isNearWhitePixel(r, g, b, a) {
   if (a <= 16) return true;
@@ -169,13 +170,17 @@ async function detectObjectBoundingBox(imageBuffer) {
   };
 }
 
-function getLimitedScale(width, height, maxWidth, maxHeight, maxUpscale = MAX_UPSCALE_FACTOR) {
-  const fitScale = Math.min(maxWidth / width, maxHeight / height);
-  return Math.min(fitScale, maxUpscale);
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }
 
-async function renderToCenteredCanvas(inputBuffer, sourceWidth, sourceHeight, outputPath) {
-  const scale = getLimitedScale(sourceWidth, sourceHeight, OUTPUT_CANVAS_SIZE, OUTPUT_CANVAS_SIZE);
+async function renderToCenteredCanvas(inputBuffer, sourceWidth, sourceHeight, outputPath, requestedScale = 1) {
+  const fitScale = Math.min(OUTPUT_CANVAS_SIZE / sourceWidth, OUTPUT_CANVAS_SIZE / sourceHeight);
+  let scale = clamp(requestedScale, 1, MAX_UPSCALE_FACTOR);
+  if (sourceWidth * scale > OUTPUT_CANVAS_SIZE || sourceHeight * scale > OUTPUT_CANVAS_SIZE) {
+    scale = fitScale;
+  }
+  if (scale <= 0) scale = fitScale;
   const targetWidth = Math.max(1, Math.round(sourceWidth * scale));
   const targetHeight = Math.max(1, Math.round(sourceHeight * scale));
 
@@ -203,6 +208,8 @@ async function renderToCenteredCanvas(inputBuffer, sourceWidth, sourceHeight, ou
     .composite([{ input: resized, left, top }])
     .png({ compressionLevel: 9, effort: 10, palette: false })
     .toFile(outputPath);
+
+  return { upscaled: scale > 1.01 };
 }
 
 async function processAndSaveProductImage({ inputBuffer, outputPath }) {
@@ -214,8 +221,14 @@ async function processAndSaveProductImage({ inputBuffer, outputPath }) {
     if (!box) {
       warnings.push('object_not_found: using fallback contain');
       const meta = await sharp(normalizedBuffer).metadata();
-      await renderToCenteredCanvas(normalizedBuffer, meta.width || OUTPUT_CANVAS_SIZE, meta.height || OUTPUT_CANVAS_SIZE, outputPath);
-      return { processed: false, warnings };
+      const baseWidth = meta.width || OUTPUT_CANVAS_SIZE;
+      const baseHeight = meta.height || OUTPUT_CANVAS_SIZE;
+      const scale = clamp(TARGET_OBJECT_SIDE / Math.max(baseWidth, baseHeight), 1, MAX_UPSCALE_FACTOR);
+      const render = await renderToCenteredCanvas(normalizedBuffer, baseWidth, baseHeight, outputPath, scale);
+      if (render.upscaled && Math.max(baseWidth, baseHeight) < 300) {
+        warnings.push('low source image resolution, upscaled');
+      }
+      return { processed: false, warnings, upscaled: render.upscaled };
     }
 
     const padding = Math.round(Math.max(box.width, box.height) * 0.12);
@@ -225,6 +238,8 @@ async function processAndSaveProductImage({ inputBuffer, outputPath }) {
     const cropBottom = Math.min(box.imageHeight, box.top + box.height + padding);
     const cropWidth = Math.max(1, cropRight - cropLeft);
     const cropHeight = Math.max(1, cropBottom - cropTop);
+    const objectMaxSide = Math.max(box.width, box.height);
+    const scaleFactor = clamp(TARGET_OBJECT_SIDE / Math.max(1, objectMaxSide), 1, MAX_UPSCALE_FACTOR);
 
     const cropped = await sharp(normalizedBuffer)
       .extract({
@@ -236,25 +251,40 @@ async function processAndSaveProductImage({ inputBuffer, outputPath }) {
       .png({ compressionLevel: 9, effort: 10, palette: false })
       .toBuffer();
 
-    await renderToCenteredCanvas(cropped, cropWidth, cropHeight, outputPath);
+    const render = await sharp(cropped)
+      .sharpen(0.45, 1, 2)
+      .png({ compressionLevel: 9, effort: 10, palette: false })
+      .toBuffer();
 
-    return { processed: true, warnings };
+    const canvasResult = await renderToCenteredCanvas(render, cropWidth, cropHeight, outputPath, scaleFactor);
+    if (canvasResult.upscaled && objectMaxSide < 300) {
+      warnings.push('low source image resolution, upscaled');
+    }
+
+    return { processed: true, warnings, upscaled: canvasResult.upscaled };
   } catch (processingError) {
     warnings.push(`processing_failed: ${processingError.message}`);
     try {
       const normalizedFallback = await sharp(inputBuffer).rotate().png().toBuffer();
       const meta = await sharp(normalizedFallback).metadata();
-      await renderToCenteredCanvas(
+      const baseWidth = meta.width || OUTPUT_CANVAS_SIZE;
+      const baseHeight = meta.height || OUTPUT_CANVAS_SIZE;
+      const scale = clamp(TARGET_OBJECT_SIDE / Math.max(baseWidth, baseHeight), 1, MAX_UPSCALE_FACTOR);
+      const fallbackRender = await renderToCenteredCanvas(
         normalizedFallback,
-        meta.width || OUTPUT_CANVAS_SIZE,
-        meta.height || OUTPUT_CANVAS_SIZE,
-        outputPath
+        baseWidth,
+        baseHeight,
+        outputPath,
+        scale
       );
-      return { processed: false, warnings };
+      if (fallbackRender.upscaled && Math.max(baseWidth, baseHeight) < 300) {
+        warnings.push('low source image resolution, upscaled');
+      }
+      return { processed: false, warnings, upscaled: fallbackRender.upscaled };
     } catch (fallbackError) {
       warnings.push(`fallback_failed: ${fallbackError.message}`);
       fs.writeFileSync(outputPath, inputBuffer);
-      return { processed: false, warnings };
+      return { processed: false, warnings, upscaled: false };
     }
   }
 }
@@ -284,6 +314,7 @@ async function importProductsFromXlsxBuffer(buffer) {
   let skipped = 0;
   let imageExtracted = 0;
   let imageProcessed = 0;
+  let imageUpscaled = 0;
   let imageMissing = 0;
   const imageProcessingWarnings = [];
 
@@ -326,6 +357,7 @@ async function importProductsFromXlsxBuffer(buffer) {
           outputPath
         });
         if (processingResult.processed) imageProcessed += 1;
+        if (processingResult.upscaled) imageUpscaled += 1;
         if (processingResult.warnings.length) {
           const warning = {
             row: rowNo,
@@ -374,6 +406,7 @@ async function importProductsFromXlsxBuffer(buffer) {
     skipped,
     imageExtracted,
     imageProcessed,
+    imageUpscaled,
     imageProcessingWarnings,
     imageMissing,
     errors
