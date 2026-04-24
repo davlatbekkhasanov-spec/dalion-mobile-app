@@ -122,6 +122,8 @@ function parseDrawingImages(files) {
 }
 
 const WHITE_THRESHOLD = 240;
+const OUTPUT_CANVAS_SIZE = 800;
+const MAX_UPSCALE_FACTOR = 2;
 
 function isNearWhitePixel(r, g, b, a) {
   if (a <= 16) return true;
@@ -167,6 +169,42 @@ async function detectObjectBoundingBox(imageBuffer) {
   };
 }
 
+function getLimitedScale(width, height, maxWidth, maxHeight, maxUpscale = MAX_UPSCALE_FACTOR) {
+  const fitScale = Math.min(maxWidth / width, maxHeight / height);
+  return Math.min(fitScale, maxUpscale);
+}
+
+async function renderToCenteredCanvas(inputBuffer, sourceWidth, sourceHeight, outputPath) {
+  const scale = getLimitedScale(sourceWidth, sourceHeight, OUTPUT_CANVAS_SIZE, OUTPUT_CANVAS_SIZE);
+  const targetWidth = Math.max(1, Math.round(sourceWidth * scale));
+  const targetHeight = Math.max(1, Math.round(sourceHeight * scale));
+
+  const resized = await sharp(inputBuffer)
+    .resize(targetWidth, targetHeight, {
+      fit: 'contain',
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
+      kernel: sharp.kernel.lanczos3,
+      withoutEnlargement: false
+    })
+    .png({ compressionLevel: 9, effort: 10, palette: false })
+    .toBuffer();
+
+  const left = Math.floor((OUTPUT_CANVAS_SIZE - targetWidth) / 2);
+  const top = Math.floor((OUTPUT_CANVAS_SIZE - targetHeight) / 2);
+
+  await sharp({
+    create: {
+      width: OUTPUT_CANVAS_SIZE,
+      height: OUTPUT_CANVAS_SIZE,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 1 }
+    }
+  })
+    .composite([{ input: resized, left, top }])
+    .png({ compressionLevel: 9, effort: 10, palette: false })
+    .toFile(outputPath);
+}
+
 async function processAndSaveProductImage({ inputBuffer, outputPath }) {
   const warnings = [];
   try {
@@ -175,14 +213,8 @@ async function processAndSaveProductImage({ inputBuffer, outputPath }) {
 
     if (!box) {
       warnings.push('object_not_found: using fallback contain');
-      await sharp(normalizedBuffer)
-        .resize(600, 600, {
-          fit: 'contain',
-          position: 'centre',
-          background: { r: 255, g: 255, b: 255, alpha: 1 }
-        })
-        .png({ compressionLevel: 9, adaptiveFiltering: true })
-        .toFile(outputPath);
+      const meta = await sharp(normalizedBuffer).metadata();
+      await renderToCenteredCanvas(normalizedBuffer, meta.width || OUTPUT_CANVAS_SIZE, meta.height || OUTPUT_CANVAS_SIZE, outputPath);
       return { processed: false, warnings };
     }
 
@@ -194,34 +226,30 @@ async function processAndSaveProductImage({ inputBuffer, outputPath }) {
     const cropWidth = Math.max(1, cropRight - cropLeft);
     const cropHeight = Math.max(1, cropBottom - cropTop);
 
-    await sharp(normalizedBuffer)
+    const cropped = await sharp(normalizedBuffer)
       .extract({
         left: cropLeft,
         top: cropTop,
         width: cropWidth,
         height: cropHeight
       })
-      .resize(600, 600, {
-        fit: 'contain',
-        position: 'centre',
-        background: { r: 255, g: 255, b: 255, alpha: 1 }
-      })
-      .png({ compressionLevel: 9, adaptiveFiltering: true })
-      .toFile(outputPath);
+      .png({ compressionLevel: 9, effort: 10, palette: false })
+      .toBuffer();
+
+    await renderToCenteredCanvas(cropped, cropWidth, cropHeight, outputPath);
 
     return { processed: true, warnings };
   } catch (processingError) {
     warnings.push(`processing_failed: ${processingError.message}`);
     try {
-      await sharp(inputBuffer)
-        .rotate()
-        .resize(600, 600, {
-          fit: 'contain',
-          position: 'centre',
-          background: { r: 255, g: 255, b: 255, alpha: 1 }
-        })
-        .png({ compressionLevel: 9, adaptiveFiltering: true })
-        .toFile(outputPath);
+      const normalizedFallback = await sharp(inputBuffer).rotate().png().toBuffer();
+      const meta = await sharp(normalizedFallback).metadata();
+      await renderToCenteredCanvas(
+        normalizedFallback,
+        meta.width || OUTPUT_CANVAS_SIZE,
+        meta.height || OUTPUT_CANVAS_SIZE,
+        outputPath
+      );
       return { processed: false, warnings };
     } catch (fallbackError) {
       warnings.push(`fallback_failed: ${fallbackError.message}`);

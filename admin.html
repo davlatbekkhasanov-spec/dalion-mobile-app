@@ -25,6 +25,18 @@
     .muted{color:var(--muted);font-size:13px}
     .toast{position:fixed;bottom:18px;right:18px;background:#07172d;border:1px solid var(--line);padding:10px 12px;border-radius:10px;opacity:0;transition:.2s}
     .toast.show{opacity:1}
+    .progress-wrap{margin-top:10px;display:none}
+    .progress-wrap.show{display:block}
+    .progress-track{height:10px;border-radius:999px;background:#0a1730;border:1px solid var(--line);overflow:hidden}
+    .progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#2aff9b,#28d8ff);transition:width .2s ease}
+    .progress-text{font-size:13px;color:var(--muted);margin-top:6px}
+    .progress-wrap.error .progress-bar{background:linear-gradient(90deg,#ff6f91,#ff3b3b)}
+    .import-summary{margin-top:10px;border:1px solid var(--line);border-radius:10px;background:#0a162b;padding:10px;display:none}
+    .import-summary.show{display:block}
+    .import-summary h4{margin:0 0 8px}
+    .import-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .metric{padding:8px;border:1px solid var(--line);border-radius:8px;background:#0c1a33}
+    .metric b{font-size:18px;display:block}
   </style>
 </head>
 <body>
@@ -44,6 +56,11 @@
       <h3>Excel Import</h3>
       <input type="file" id="xlsxFile" accept=".xlsx" />
       <button id="importBtn" class="primary">Import XLSX</button>
+      <div id="importProgressWrap" class="progress-wrap">
+        <div class="progress-track"><div id="importProgressBar" class="progress-bar"></div></div>
+        <div id="importProgressText" class="progress-text">Yuklanmoqda... 0%</div>
+      </div>
+      <div id="importSummary" class="import-summary"></div>
       <pre id="importResult" class="muted"></pre>
     </section>
 
@@ -129,18 +146,81 @@
     tokenInput.value = getToken();
     document.getElementById('saveTokenBtn').onclick=()=>{localStorage.setItem(tokenKey, tokenInput.value.trim());showToast('Token saqlandi')};
 
+    function progressLabel(percent){
+      if(percent >= 100) return 'Yakunlanmoqda... 100%';
+      if(percent >= 75) return 'Yuklanmoqda... 75%';
+      if(percent >= 50) return 'Yuklanmoqda... 50%';
+      if(percent >= 25) return 'Yuklanmoqda... 25%';
+      return 'Yuklanmoqda... 0%';
+    }
+
+    function setImportProgress(percent, isError=false){
+      const wrap = document.getElementById('importProgressWrap');
+      const bar = document.getElementById('importProgressBar');
+      const text = document.getElementById('importProgressText');
+      wrap.classList.add('show');
+      wrap.classList.toggle('error', Boolean(isError));
+      const safe = Math.max(0, Math.min(100, Math.round(percent)));
+      bar.style.width = `${safe}%`;
+      text.textContent = progressLabel(safe);
+      if(isError) text.textContent = `Import xatolik: ${safe}%`;
+    }
+
+    function renderImportSummary(data){
+      const summary = document.getElementById('importSummary');
+      summary.innerHTML = `
+        <h4>Import yakuni</h4>
+        <div class="import-grid">
+          <div class="metric"><span class="muted">Imported</span><b>${data.imported ?? 0}</b></div>
+          <div class="metric"><span class="muted">Skipped</span><b>${data.skipped ?? 0}</b></div>
+          <div class="metric"><span class="muted">Image extracted</span><b>${data.imageExtracted ?? 0}</b></div>
+          <div class="metric"><span class="muted">Image processed</span><b>${data.imageProcessed ?? 0}</b></div>
+          <div class="metric"><span class="muted">Image missing</span><b>${data.imageMissing ?? 0}</b></div>
+        </div>
+      `;
+      summary.classList.add('show');
+    }
+
     document.getElementById('importBtn').onclick = async () => {
       const file = document.getElementById('xlsxFile').files[0];
       if(!file) return showToast('Fayl tanlang');
       const fd = new FormData(); fd.append('file', file);
+      const resultEl = document.getElementById('importResult');
+      const summaryEl = document.getElementById('importSummary');
+      resultEl.textContent = '';
+      summaryEl.classList.remove('show');
       const btn = document.getElementById('importBtn'); btn.disabled=true; btn.textContent='Import...';
+      setImportProgress(0);
       try{
-        const res = await fetch('/api/v1/integrations/excel/import/products-xlsx',{method:'POST',headers:{'x-admin-token':getToken()},body:fd});
-        const data = await res.json();
-        if(!res.ok) throw new Error(data.message || 'Import error');
-        document.getElementById('importResult').textContent = JSON.stringify(data, null, 2);
+        const data = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', '/api/v1/integrations/excel/import/products-xlsx');
+          xhr.setRequestHeader('x-admin-token', getToken());
+
+          xhr.upload.onprogress = (e) => {
+            if (!e.lengthComputable) return;
+            const percent = Math.min(95, (e.loaded / e.total) * 100);
+            setImportProgress(percent);
+          };
+
+          xhr.onload = () => {
+            setImportProgress(100);
+            let parsed = {};
+            try { parsed = JSON.parse(xhr.responseText || '{}'); } catch (err) {}
+            if (xhr.status >= 200 && xhr.status < 300) resolve(parsed);
+            else reject(new Error(parsed.message || 'Import error'));
+          };
+          xhr.onerror = () => reject(new Error('Network error'));
+          xhr.send(fd);
+        });
+
+        resultEl.textContent = JSON.stringify(data, null, 2);
+        renderImportSummary(data);
         showToast('Import muvaffaqiyatli');
-      }catch(e){showToast(e.message)}finally{btn.disabled=false;btn.textContent='Import XLSX'}
+      }catch(e){
+        setImportProgress(100, true);
+        showToast(e.message);
+      }finally{btn.disabled=false;btn.textContent='Import XLSX'}
     };
 
     async function loadBanners(){
