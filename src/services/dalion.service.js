@@ -3,13 +3,18 @@ const store = require('../data/store.js');
 function mapFrom1CDalionTrend(item = {}) {
   return {
     id: String(item.id || item.guid || item.code || '').trim(),
+    code: String(item.code || item.article || item.id || ''),
     sku: String(item.sku || item.article || item.code || ''),
     name: String(item.name || item.title || 'Nomsiz mahsulot'),
     category: String(item.category || item.group || 'Boshqa'),
     price: Number(item.price || item.salePrice || 0),
     oldPrice: Number(item.oldPrice || item.basePrice || item.price || 0),
     stock: Number(item.stock || item.balance || 0),
-    image: String(item.image || '')
+    image: String(item.image || ''),
+    image_url: String(item.image_url || item.image || ''),
+    source: 'dalion',
+    updated_at: new Date().toISOString(),
+    active: item.active !== false
   };
 }
 

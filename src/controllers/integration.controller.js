@@ -1,7 +1,7 @@
 const store = require('../data/store.js');
 const dalionService = require('../services/dalion.service.js');
 const excelService = require('../services/excel.service.js');
-const xlsxImportService = require('../services/xlsx-import.service.js');
+const xlsxImportService = require('../services/dalion-excel-import.service.js');
 
 exports.getIntegrationStatus = (req, res) => {
   res.json({

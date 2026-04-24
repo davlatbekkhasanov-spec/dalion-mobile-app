@@ -1,7 +1,7 @@
 const products = [
-  { id: 'coca', sku: 'DAL-COCA-1L', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 12000, oldPrice: 13400, stock: 100, image: '', image_url: '', active: true },
-  { id: 'pepsi', sku: 'DAL-PEPSI-1L', name: 'Pepsi 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 12000, oldPrice: 13400, stock: 100, image: '', image_url: '', active: true },
-  { id: 'rich', sku: 'DAL-RICH-ORANGE-1L', name: 'Rich Apelsin 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 18000, oldPrice: 20000, stock: 100, image: '', image_url: '', active: true }
+  { id: 'coca', code: 'DAL-COCA-1L', sku: 'DAL-COCA-1L', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 12000, oldPrice: 13400, stock: 100, image: '', image_url: '', source: 'seed', updated_at: new Date().toISOString(), active: true },
+  { id: 'pepsi', code: 'DAL-PEPSI-1L', sku: 'DAL-PEPSI-1L', name: 'Pepsi 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 12000, oldPrice: 13400, stock: 100, image: '', image_url: '', source: 'seed', updated_at: new Date().toISOString(), active: true },
+  { id: 'rich', code: 'DAL-RICH-ORANGE-1L', sku: 'DAL-RICH-ORANGE-1L', name: 'Rich Apelsin 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 18000, oldPrice: 20000, stock: 100, image: '', image_url: '', source: 'seed', updated_at: new Date().toISOString(), active: true }
 ];
 
 const categories = [
@@ -227,6 +227,7 @@ function upsertProducts(items = []) {
 
     const normalized = {
       id: raw.id,
+      code: raw.code || raw.sku || raw.id,
       sku: raw.sku || raw.id,
       name: raw.name || 'Nomsiz mahsulot',
       categoryId: raw.categoryId || categoryRef.id,
@@ -236,6 +237,8 @@ function upsertProducts(items = []) {
       stock: Number(raw.stock ?? 0),
       image: raw.image || raw.image_url || '',
       image_url: raw.image_url || raw.image || '',
+      source: raw.source || 'excel',
+      updated_at: raw.updated_at || new Date().toISOString(),
       active: raw.active !== false
     };
 

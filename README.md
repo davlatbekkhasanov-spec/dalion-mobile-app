@@ -7,6 +7,7 @@ Endpoint:
 `POST /api/v1/integrations/excel/import/products-xlsx`
 
 This endpoint is protected with admin token header.
+XLSX parsing runs in Node.js runtime (no python dependency).
 
 ### 1) Configure token in Railway
 
