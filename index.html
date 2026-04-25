@@ -515,23 +515,35 @@
 
     .category-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+      grid-template-columns: 1fr;
+      gap: 8px;
       margin-bottom: 12px;
     }
 
     .category-card {
-      border-radius: 14px;
+      border-radius: 12px;
       border: 1px solid rgba(128, 157, 209, 0.28);
-      background: linear-gradient(170deg, rgba(20, 34, 59, 0.95), rgba(10, 19, 35, 0.95));
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+      background: linear-gradient(170deg, rgba(20, 34, 59, 0.82), rgba(10, 19, 35, 0.82));
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: 38px 1fr auto;
+      align-items: center;
+      gap: 10px;
       cursor: pointer;
+      min-height: 56px;
     }
 
-    .category-card b { font-size: 14px; }
+    .category-card .icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: rgba(39, 213, 255, 0.12);
+      border: 1px solid rgba(96, 240, 178, 0.28);
+      box-shadow: 0 0 10px rgba(39, 213, 255, 0.2) inset;
+    }
+    .category-card b { font-size: 14px; display:block; }
     .category-card small { color: #9ab3d8; font-size: 11px; }
 
     .product h5 { font-size: 12px; margin-bottom: 3px; color: #eaf4ff; line-height: 1.25; }
@@ -901,9 +913,10 @@
 
       <section class="view" id="searchView">
         <h2 class="title">Katalog</h2>
-        <input class="search" id="searchInput" placeholder="Mahsulot nomini yozing..." />
-        <button class="btn btn-secondary" id="categoryBackBtn" style="display:none; margin-bottom:10px; padding:10px 12px;">← Kategoriyalarga qaytish</button>
+        <input class="search" id="searchInput" placeholder="Mahsulotlar va turkumlar qidirish" />
+        <button class="btn btn-secondary" id="categoryBackBtn" style="display:none; margin-bottom:10px; padding:10px 12px;">← Katalog</button>
         <section class="category-grid" id="categoryResults"></section>
+        <p class="muted" id="catalogProductResultsTitle" style="display:none; margin-bottom:8px;"></p>
         <section class="products-grid" id="searchResults"></section>
         <button class="btn btn-secondary" id="loadMoreBtn" style="display:none; width:100%;">Yana ko'rsatish</button>
         <div class="empty" id="searchEmpty" style="display:none;">Hech narsa topilmadi. Boshqa so'z kiriting.</div>
@@ -992,10 +1005,12 @@ Oq fonli foto</div>
     let selectedPayment = 'Naqd';
     let activeModalProductId = null;
     let selectedCategory = null;
+    let catalogMode = 'categories';
     let productsPage = 1;
     const productsLimit = 40;
     let productsHasMore = false;
     let productsLoading = false;
+    let cartItemsSnapshot = [];
 
     const phone = document.getElementById('phone');
     const continueBtn = document.getElementById('continueBtn');
@@ -1015,6 +1030,7 @@ Oq fonli foto</div>
     const checkoutItems = document.getElementById('checkoutItems');
     const checkoutTotal = document.getElementById('checkoutTotal');
     const loadMoreBtn = document.getElementById('loadMoreBtn');
+    const catalogProductResultsTitle = document.getElementById('catalogProductResultsTitle');
 
     const modalOverlay = document.getElementById('productModalOverlay');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -1048,7 +1064,7 @@ Oq fonli foto</div>
         if (reset) productsPage = 1;
         const params = new URLSearchParams({ page: String(productsPage), limit: String(productsLimit) });
         const data = await api(`/products?${params.toString()}`);
-        const incoming = data.items || data.products || [];
+        const incoming = (data.items || data.products || []).filter((p) => p.active !== false);
         products = reset ? incoming : products.concat(incoming);
         productsHasMore = Boolean(data.hasMore);
         loadMoreBtn.style.display = productsHasMore ? 'block' : 'none';
@@ -1060,6 +1076,7 @@ Oq fonli foto</div>
     async function loadCart() {
       const summary = await api('/cart');
       cart = {};
+      cartItemsSnapshot = summary.items || [];
       (summary.items || []).forEach((item) => {
         cart[item.id] = item.quantity;
       });
@@ -1082,11 +1099,17 @@ Oq fonli foto</div>
     }
 
     function totalPrice() {
-      return products.reduce((sum, p) => sum + qtyOf(p.id) * p.price, 0);
+      return cartItemsSnapshot.reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
     }
 
     async function setQty(id, value, showAddToast = false) {
-      const quantity = Math.max(0, Number(value) || 0);
+      const p = products.find((x) => x.id === id);
+      const stockLimit = Number(p?.stock ?? 0);
+      if (stockLimit <= 0 && Number(value) > 0) {
+        showToast("Omborda yo'q");
+        return;
+      }
+      const quantity = Math.max(0, Math.min(Number(value) || 0, stockLimit));
       await api('/cart/items', {
         method: 'PUT',
         body: JSON.stringify({ productId: id, quantity })
@@ -1097,16 +1120,21 @@ Oq fonli foto</div>
     }
 
     function makeQtyControls(id) {
+      const p = products.find((x) => x.id === id);
+      const stock = Number(p?.stock ?? 0);
       const q = qtyOf(id);
+      const plusDisabled = stock <= 0 || q >= stock ? 'disabled' : '';
       return `
         <button class="qty-minus" data-id="${id}">−</button>
         <span>${q}</span>
-        <button class="qty-plus" data-id="${id}">+</button>
+        <button class="qty-plus" data-id="${id}" ${plusDisabled}>+</button>
       `;
     }
 
     function productCardTemplate(p) {
       const categoryName = normalizedCategoryName(p.category);
+      const stock = Number(p.stock ?? 0);
+      const priceText = Number(p.price) > 0 ? money(p.price) : 'Narx aniqlanmoqda';
       const imageHtml = p.image_url
         ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />`
         : `DALION
@@ -1116,8 +1144,8 @@ Oq fonli foto`;
           <div class="image-box">${imageHtml}</div>
           <h5>${p.name}</h5>
           <p class="meta">${categoryName}</p>
-          <p class="price">${money(p.price)}</p>
-          <p class="meta">Ostatka: ${p.stock ?? 0}</p>
+          <p class="price">${priceText}</p>
+          <p class="meta">${stock > 0 ? `Ostatka: ${stock}` : "Omborda yo'q"}</p>
           <p class="old-price">${money(p.oldPrice)}</p>
           <div class="qty" data-qty-wrap="${p.id}">${makeQtyControls(p.id)}</div>
         </article>
@@ -1132,52 +1160,61 @@ Oq fonli foto`;
       return String(categoryName || '').trim() || 'Boshqa';
     }
 
+    function getCategoryIcon(name) {
+      const n = String(name || '').toLowerCase();
+      if (n.includes('ichim')) return '🥤';
+      if (n.includes('shirin')) return '🍬';
+      if (n.includes('sut')) return '🥛';
+      if (n.includes("go'sht") || n.includes('gosht')) return '🥩';
+      if (n.includes('meva')) return '🍏';
+      if (n.includes('kantsely') || n.includes('канц') || n.includes('альбом') || n.includes('блокнот') || n.includes('азбук')) return '📚';
+      if (n.includes('gigien')) return '🧴';
+      return '📦';
+    }
+
+    function getCategoryEntries() {
+      const categoryMap = new Map();
+      products.forEach((p) => {
+        const categoryName = normalizedCategoryName(p.category);
+        categoryMap.set(categoryName, (categoryMap.get(categoryName) || 0) + 1);
+      });
+      return [...categoryMap.entries()].sort((a, b) => a[0].localeCompare(b[0], 'uz'));
+    }
+
     function renderSearch() {
       const query = searchInput.value.trim().toLowerCase();
-
-      const byCategory = selectedCategory
-        ? products.filter((p) => normalizedCategoryName(p.category) === selectedCategory)
-        : products;
-      const filteredProducts = byCategory.filter((p) => p.name.toLowerCase().includes(query));
-
-      if (!selectedCategory && !query) {
-        const categoryMap = new Map();
-        products.forEach((p) => {
-          const categoryName = normalizedCategoryName(p.category);
-          const current = categoryMap.get(categoryName) || 0;
-          categoryMap.set(categoryName, current + 1);
-        });
-        const categoryCards = [...categoryMap.entries()]
-          .sort((a, b) => a[0].localeCompare(b[0], 'uz'))
-          .map(([name, count]) => `
+      if (catalogMode === 'categories') {
+        const categories = getCategoryEntries().filter(([name]) => name.toLowerCase().includes(query));
+        categoryResults.innerHTML = categories.map(([name, count]) => `
           <article class="category-card" data-category="${name}">
-            <div>📁</div>
-            <b>${name}</b>
-            <small>${count} ta mahsulot</small>
+            <span class="icon">${getCategoryIcon(name)}</span>
+            <div><b>${name}</b><small>${count} ta mahsulot</small></div>
+            <span>›</span>
           </article>
-          `).join('');
-        categoryResults.innerHTML = categoryCards;
-        categoryResults.style.display = categoryCards ? 'grid' : 'none';
+        `).join('');
+        categoryResults.style.display = 'grid';
         categoryBackBtn.style.display = 'none';
-        searchResults.innerHTML = '';
-        searchEmpty.style.display = categoryCards ? 'none' : 'block';
+        const byProduct = products.filter((p) => p.name.toLowerCase().includes(query));
+        catalogProductResultsTitle.style.display = query ? 'block' : 'none';
+        catalogProductResultsTitle.textContent = query ? "Mahsulotlar bo'yicha natijalar" : '';
+        searchResults.innerHTML = query ? byProduct.slice(0, 12).map(productCardTemplate).join('') : '';
+        searchEmpty.style.display = (!categories.length && !byProduct.length) ? 'block' : 'none';
         return;
       }
 
+      const byCategory = products.filter((p) => normalizedCategoryName(p.category) === selectedCategory);
+      const filteredProducts = byCategory.filter((p) => p.name.toLowerCase().includes(query));
       categoryResults.style.display = 'none';
       categoryResults.innerHTML = '';
-      categoryBackBtn.style.display = selectedCategory ? 'inline-flex' : 'none';
-      searchResults.innerHTML = filteredProducts
-        .slice()
-        .sort((a, b) => a.name.localeCompare(b.name, 'uz'))
-        .map(productCardTemplate)
-        .join('');
+      categoryBackBtn.style.display = 'inline-flex';
+      catalogProductResultsTitle.style.display = 'block';
+      catalogProductResultsTitle.textContent = selectedCategory || 'Katalog';
+      searchResults.innerHTML = filteredProducts.map(productCardTemplate).join('');
       searchEmpty.style.display = filteredProducts.length ? 'none' : 'block';
     }
 
     function renderCart() {
-      const selected = products.filter((p) => qtyOf(p.id) > 0);
-      if (!selected.length) {
+      if (!cartItemsSnapshot.length) {
         cartItems.innerHTML = '';
         cartEmpty.style.display = 'block';
         cartSummary.style.display = 'none';
@@ -1186,18 +1223,17 @@ Oq fonli foto`;
 
       cartEmpty.style.display = 'none';
       cartSummary.style.display = 'block';
-      cartItems.innerHTML = selected.map((p) => {
-        const qty = qtyOf(p.id);
-        const subtotal = qty * p.price;
+      cartItems.innerHTML = cartItemsSnapshot.map((item) => {
+        const imageHtml = item.image_url ? `<img src="${item.image_url}" alt="${item.name}" loading="lazy" decoding="async" style="width:42px;height:42px;border-radius:10px;object-fit:contain;background:#fff;" />` : '';
         return `
           <article class="list-card">
             <div class="list-row" style="margin-bottom:6px;">
-              <strong>${p.name}</strong>
-              <span class="muted">${money(p.price)}</span>
+              <div style="display:flex;align-items:center;gap:8px;">${imageHtml}<strong>${item.name}</strong></div>
+              <span class="muted">${money(item.price)}</span>
             </div>
             <div class="list-row">
-              <div class="qty" data-qty-wrap="${p.id}" style="width:110px; margin:0;">${makeQtyControls(p.id)}</div>
-              <strong>${money(subtotal)}</strong>
+              <div class="qty" data-qty-wrap="${item.id}" style="width:110px; margin:0;">${makeQtyControls(item.id)}</div>
+              <strong>${money(item.subtotal)}</strong>
             </div>
           </article>
         `;
@@ -1291,6 +1327,7 @@ Oq fonli foto`;
     document.getElementById('openSearchBtn').addEventListener('click', () => {
       setView('searchView');
       selectedCategory = null;
+      catalogMode = 'categories';
       searchInput.value = '';
       renderSearch();
       searchInput.focus();
@@ -1305,6 +1342,7 @@ Oq fonli foto`;
     });
     categoryBackBtn.addEventListener('click', () => {
       selectedCategory = null;
+      catalogMode = 'categories';
       searchInput.value = '';
       renderSearch();
     });
@@ -1315,10 +1353,15 @@ Oq fonli foto`;
       setView(tab.dataset.view);
       if (tab.dataset.view === 'searchView') {
         selectedCategory = null;
+        catalogMode = 'categories';
         searchInput.value = '';
         renderSearch();
         searchInput.focus();
       }
+    });
+
+    document.querySelector('.bell')?.addEventListener('click', () => {
+      showToast("Yangi bildirishnomalar tez orada qo'shiladi");
     });
 
     document.body.addEventListener('click', async (e) => {
@@ -1335,6 +1378,16 @@ Oq fonli foto`;
         if (plus) {
           e.stopPropagation();
           const id = plus.dataset.id;
+          const p = products.find((x) => x.id === id);
+          const stock = Number(p?.stock ?? 0);
+          if (stock <= 0) {
+            showToast("Omborda yo'q");
+            return;
+          }
+          if (qtyOf(id) >= stock) {
+            showToast('Maksimal qoldiqga yetdi');
+            return;
+          }
           await setQty(id, qtyOf(id) + 1, true);
           return;
         }
@@ -1359,6 +1412,7 @@ Oq fonli foto`;
       const categoryCard = e.target.closest('[data-category]');
       if (categoryCard) {
         selectedCategory = categoryCard.dataset.category;
+        catalogMode = 'category';
         searchInput.value = '';
         renderSearch();
       }

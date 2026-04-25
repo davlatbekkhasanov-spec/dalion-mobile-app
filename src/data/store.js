@@ -169,6 +169,7 @@ function getCartItems() {
       id: item.product.id,
       name: item.product.name,
       category: item.product.category,
+      image_url: item.product.image_url || item.product.image || '',
       price: item.product.price,
       oldPrice: item.product.oldPrice,
       quantity: item.quantity,
