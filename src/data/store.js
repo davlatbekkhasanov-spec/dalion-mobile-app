@@ -25,8 +25,15 @@ const promotions = [
 ];
 
 let homeSettings = {
+  brandName: 'GlobusMarket',
+  locationText: '📍 Тошкент, Чилонзор тумани',
+  searchPlaceholder: '🔎 Маҳсулот, бренд ёки тоифани қидиринг',
   heroTitle: 'GlobusMarket',
   heroSubtitle: 'Qulay va tez xarid tajribasi',
+  heroBadgeText: '⚡ Бугун бепул доставка',
+  bonusTitle: 'Бонус балллар ×2',
+  bonusSubtitle: 'Янги ҳафта акцияси: ҳар бир харид учун икки баравар Globus бонус.',
+  deliveryTimeText: '30 daqiqa',
   deliveryText: '30 daqiqada yetkazib berish',
   backgroundImageUrl: '',
   accentColor: '#25f48f'
@@ -189,6 +196,7 @@ function createPromotion(payload = {}) {
     title: payload.title || 'Yangi promo',
     description: payload.description || '',
     discount_text: payload.discount_text || '',
+    image_url: payload.image_url || '',
     active: payload.active !== false
   };
   promotions.push(promo);
@@ -287,7 +295,8 @@ function getCartSummary() {
 function setCartItem(productId, quantity) {
   const product = getProductById(productId);
   if (!product) return { error: 'Product not found' };
-  const qty = Math.max(0, Number(quantity) || 0);
+  const maxStock = Math.max(0, Number(product.stock || 0));
+  const qty = Math.max(0, Math.min(Number(quantity) || 0, maxStock));
   if (qty === 0) cart.delete(productId);
   else cart.set(productId, qty);
   return { data: getCartSummary() };
@@ -300,6 +309,17 @@ function clearCart() {
 function createOrder({ paymentMethod = 'Naqd', location = 'Yunusobod, Toshkent', deliveryTime = '30 daqiqa', deliveryPrice = 12000 } = {}) {
   const summary = getCartSummary();
   if (summary.totalQty === 0) return { error: 'Cart is empty' };
+
+  // validate stock before order creation
+  for (const item of summary.items) {
+    const p = getProductById(item.id);
+    if (!p) return { error: `Product not found: ${item.id}` };
+    const available = Number(p.stock || 0);
+    const needed = Number(item.quantity || 0);
+    if (needed > available) {
+      return { error: `${p.name} uchun qoldiq yetarli emas (${available} ta)` };
+    }
+  }
 
   const order = {
     id: `ord_${Date.now()}`,
@@ -318,6 +338,8 @@ function createOrder({ paymentMethod = 'Naqd', location = 'Yunusobod, Toshkent',
     const p = getProductById(item.id);
     if (!p) continue;
     p.orderCount = Number(p.orderCount || 0) + Number(item.quantity || 0);
+    p.stock = Math.max(0, Number(p.stock || 0) - Number(item.quantity || 0));
+    p.updated_at = new Date().toISOString();
   }
 
   orders.push(order);

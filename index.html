@@ -414,6 +414,23 @@
     .section-head { display: flex; justify-content: space-between; margin: 4px 2px 10px; }
     .section-head h4 { font-size: 16px; }
     .section-head a { text-decoration: none; color: #67fdb9; font-size: 12px; font-weight: 700; }
+    .home-scroll {
+      display: flex;
+      overflow-x: auto;
+      gap: 10px;
+      padding-bottom: 6px;
+      margin-bottom: 16px;
+      scroll-behavior: smooth;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .home-scroll::-webkit-scrollbar { display: none; }
+    .home-scroll .promo,
+    .home-scroll .bonus {
+      flex: 0 0 88%;
+      margin-bottom: 0;
+    }
+    .cats::-webkit-scrollbar { display: none; }
 
     .cats {
       display: flex;
@@ -887,23 +904,19 @@
           <div>
             <div class="logo-row">
               <span class="logo-mark" aria-hidden="true"></span>
-              <h1 class="name">GlobusMarket</h1>
+              <h1 class="name" id="homeBrandName">GlobusMarket</h1>
             </div>
-            <p class="location">📍 Тошкент, Чилонзор тумани</p>
+            <p class="location" id="homeLocation">📍 Тошкент, Чилонзор тумани</p>
           </div>
           <button class="bell" aria-label="Bildirishnomalar">🔔<span class="badge">3</span></button>
         </header>
 
         <button class="search" id="openSearchBtn">🔎&nbsp; Маҳсулот, бренд ёки тоифани қидиринг</button>
 
-        <section class="promo">
-          <div>
-            <h3>Экспресс етказиб бериш</h3>
-            <p>DALION маҳсулотлари 30 дақиқада эшигингизгача. Премиум логистика хизмати.</p>
-            <span>⚡ Бугун бепул доставка</span>
-          </div>
-          <div class="truck">🚚</div>
-        </section>
+        <div class="section-head">
+          <h4 id="bannerSectionTitle">Bannerlar</h4>
+        </div>
+        <section class="home-scroll" id="bannerCarousel"></section>
 
         <div class="section-head">
           <h4>Категориялар</h4>
@@ -917,13 +930,10 @@
         </div>
         <section class="products-grid" id="homeProducts"></section>
 
-        <section class="bonus">
-          <div>
-            <h5>Бонус балллар ×2</h5>
-            <p>Янги ҳафта акцияси: ҳар бир харид учун икки баравар Globus бонус.</p>
-          </div>
-          <div class="coin">★</div>
-        </section>
+        <div class="section-head">
+          <h4 id="promoSectionTitle">Aksiyalar</h4>
+        </div>
+        <section class="home-scroll" id="promoCarousel"></section>
       </section>
 
       <section class="view" id="searchView">
@@ -962,9 +972,9 @@
         <div id="checkoutItems"></div>
         <div class="list-card">
           <h4 style="margin-bottom:8px;">Yetkazib berish</h4>
-          <p class="muted">Manzil: Yunusobod, Toshkent</p>
-          <p class="muted">Vaqt: 30 daqiqa</p>
-          <p class="muted">Narx: 12 000 so'm</p>
+          <p class="muted" id="checkoutLocation">Manzil: Yunusobod, Toshkent</p>
+          <p class="muted" id="checkoutTime">Vaqt: 30 daqiqa</p>
+          <p class="muted" id="checkoutPrice">Narx: 12 000 so'm</p>
         </div>
         <div class="list-card">
           <h4 style="margin-bottom:8px;">To'lov turi</h4>
@@ -1026,6 +1036,7 @@ Oq fonli foto</div>
     let productsHasMore = false;
     let productsLoading = false;
     let cartItemsSnapshot = [];
+    let homePayload = null;
 
     const phone = document.getElementById('phone');
     const continueBtn = document.getElementById('continueBtn');
@@ -1046,6 +1057,14 @@ Oq fonli foto</div>
     const checkoutTotal = document.getElementById('checkoutTotal');
     const catalogProductResultsTitle = document.getElementById('catalogProductResultsTitle');
     const homeCategories = document.getElementById('homeCategories');
+    const homeBrandName = document.getElementById('homeBrandName');
+    const homeLocation = document.getElementById('homeLocation');
+    const openSearchBtn = document.getElementById('openSearchBtn');
+    const bannerCarousel = document.getElementById('bannerCarousel');
+    const promoCarousel = document.getElementById('promoCarousel');
+    const checkoutLocation = document.getElementById('checkoutLocation');
+    const checkoutTime = document.getElementById('checkoutTime');
+    const checkoutPrice = document.getElementById('checkoutPrice');
 
     const modalOverlay = document.getElementById('productModalOverlay');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -1092,6 +1111,69 @@ Oq fonli foto</div>
       } finally {
         productsLoading = false;
       }
+    }
+
+    async function loadHomePayload() {
+      homePayload = await api('/home');
+      const settings = homePayload?.home_settings || {};
+      const banners = homePayload?.banners || [];
+      const promotions = homePayload?.promotions || [];
+      const delivery = homePayload?.delivery_info || {};
+
+      homeBrandName.textContent = settings.brandName || settings.heroTitle || 'GlobusMarket';
+      homeLocation.textContent = settings.locationText || '📍 Тошкент, Чилонзор тумани';
+      openSearchBtn.textContent = settings.searchPlaceholder || '🔎 Маҳсулот, бренд ёки тоифани қидиринг';
+
+      const fallbackBanner = {
+        title: settings.heroTitle || 'Экспресс етказиб бериш',
+        subtitle: settings.heroSubtitle || settings.deliveryText || 'DALION маҳсулотлари 30 дақиқада эшигингизгача.',
+        badge: settings.heroBadgeText || '⚡ Бугун бепул доставка',
+        image_url: settings.backgroundImageUrl || ''
+      };
+      const bannerItems = banners.length ? banners : [fallbackBanner];
+      bannerCarousel.innerHTML = bannerItems.map((b) => `
+        <article class="promo">
+          <div>
+            <h3>${b.title || fallbackBanner.title}</h3>
+            <p>${b.subtitle || fallbackBanner.subtitle}</p>
+            <span>${b.badge || settings.heroBadgeText || fallbackBanner.badge}</span>
+          </div>
+          <div class="truck">${b.image_url ? `<img src="${b.image_url}" alt="${b.title || 'banner'}" style="width:100%;height:100%;object-fit:cover;border-radius:16px;" />` : '🚚'}</div>
+        </article>
+      `).join('');
+
+      const fallbackPromo = {
+        title: settings.bonusTitle || 'Бонус балллар ×2',
+        description: settings.bonusSubtitle || 'Янги ҳафта акцияси',
+        image_url: ''
+      };
+      const promoItems = promotions.length ? promotions : [fallbackPromo];
+      promoCarousel.innerHTML = promoItems.map((p) => `
+        <article class="bonus">
+          <div>
+            <h5>${p.title || fallbackPromo.title}</h5>
+            <p>${p.description || p.discount_text || fallbackPromo.description}</p>
+          </div>
+          <div class="coin">${p.image_url ? `<img src="${p.image_url}" alt="${p.title || 'promo'}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />` : '★'}</div>
+        </article>
+      `).join('');
+
+      const bg = String(settings.backgroundImageUrl || '').trim();
+      const accent = String(settings.accentColor || '').trim();
+      if (bg) {
+        document.getElementById('homeView').style.backgroundImage = `linear-gradient(180deg, rgba(9, 19, 36, 0.85), rgba(6, 14, 28, 0.92)), url('${bg}')`;
+        document.getElementById('homeView').style.backgroundSize = 'cover';
+      } else {
+        document.getElementById('homeView').style.backgroundImage = '';
+      }
+      if (accent) {
+        document.querySelectorAll('.full-btn, .qty button, .pay-btn.active').forEach((el) => {
+          el.style.borderColor = accent;
+        });
+      }
+      checkoutLocation.textContent = `Manzil: ${delivery.location || 'Yunusobod, Toshkent'}`;
+      checkoutTime.textContent = `Vaqt: ${settings.deliveryTimeText || delivery.time || '30 daqiqa'}`;
+      checkoutPrice.textContent = `Narx: ${money(delivery.price || 12000)}`;
     }
 
     async function loadCart() {
@@ -1368,7 +1450,7 @@ Oq fonli foto`;
 
     async function initializeAppData() {
       try {
-        await Promise.all([loadProducts({ reset: true }), loadCart()]);
+        await Promise.all([loadHomePayload(), loadProducts({ reset: true }), loadCart()]);
         renderAll();
       } catch (error) {
         showToast(error.message || 'Maʼlumotni yuklashda xatolik');
@@ -1543,12 +1625,13 @@ Oq fonli foto`;
           method: 'POST',
           body: JSON.stringify({
             paymentMethod: selectedPayment,
-            location: 'Yunusobod, Toshkent',
-            deliveryTime: '30 daqiqa',
-            deliveryPrice: 12000
+            location: homePayload?.delivery_info?.location || 'Yunusobod, Toshkent',
+            deliveryTime: homePayload?.delivery_info?.time || '30 daqiqa',
+            deliveryPrice: homePayload?.delivery_info?.price || 12000
           })
         });
 
+        await Promise.all([loadProducts({ reset: true }), loadCart()]);
         cart = {};
         renderAll();
         setView('successView');

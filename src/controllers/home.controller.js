@@ -1,6 +1,7 @@
 const store = require('../data/store.js');
 
 exports.getHome = (req, res) => {
+  const settings = store.getHomeSettings();
   const mainCategories = store.getCategories({ activeOnly: true });
   const activeProducts = store.listProducts('', { activeOnly: true });
   const popularProducts = activeProducts
@@ -19,12 +20,15 @@ exports.getHome = (req, res) => {
   res.json({
     banners: store.getBanners({ activeOnly: true }),
     promotions: store.getPromotions({ activeOnly: true }),
-    home_settings: store.getHomeSettings(),
+    home_settings: settings,
+    settings,
     main_categories: mainCategories,
+    categories: mainCategories,
     popular_products: popularProducts,
+    popularProducts,
     delivery_info: {
-      location: 'Yunusobod, Toshkent',
-      time: '30 daqiqa',
+      location: settings.locationText || 'Yunusobod, Toshkent',
+      time: settings.deliveryTimeText || '30 daqiqa',
       price: 12000
     }
   });

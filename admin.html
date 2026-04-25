@@ -103,6 +103,7 @@
         <input id="promoTitle" placeholder="title" />
         <input id="promoDiscount" placeholder="discount_text" />
         <input id="promoDesc" placeholder="description" />
+        <input id="promoImage" placeholder="image_url" />
         <select id="promoActive"><option value="true">active true</option><option value="false">active false</option></select>
       </div>
       <button id="addPromoBtn" class="primary">Add promo</button>
@@ -112,8 +113,15 @@
     <section class="panel card" id="home-settings-panel">
       <h3 id="homeSettingsTitle">Home Settings</h3>
       <div class="grid">
+        <input id="brandName" placeholder="Brand name" />
+        <input id="locationText" placeholder="Location text" />
+        <input id="searchPlaceholder" placeholder="Search placeholder" />
         <input id="heroTitle" placeholder="Hero title" />
         <input id="heroSubtitle" placeholder="Hero subtitle" />
+        <input id="heroBadgeText" placeholder="Hero badge text" />
+        <input id="bonusTitle" placeholder="Bonus title" />
+        <input id="bonusSubtitle" placeholder="Bonus subtitle" />
+        <input id="deliveryTimeText" placeholder="Delivery time text" />
         <input id="deliveryText" placeholder="Delivery text" />
         <input id="bgUrl" placeholder="Background image URL" />
         <input id="accentColor" placeholder="Accent color" />
@@ -485,6 +493,7 @@
             <input data-role="title" value="${p.title || ''}" placeholder="title" />
             <input data-role="discount_text" value="${p.discount_text || ''}" placeholder="discount_text" />
             <input data-role="description" value="${p.description || ''}" placeholder="description" />
+            <input data-role="image_url" value="${p.image_url || ''}" placeholder="image_url" />
             <label><input data-role="active" type="checkbox" ${p.active ? 'checked' : ''} /> ${t('active')}</label>
             <button data-id="${p.id}" data-act="save">${t('save')}</button>
             <button data-id="${p.id}" data-act="toggle">${t('toggle')}</button>
@@ -498,9 +507,9 @@
       const btn = e.currentTarget;
       try{
         setBtnLoading(btn, true);
-        await api('/admin/promotions',{method:'POST',body:JSON.stringify({title:promoTitle.value,description:promoDesc.value,discount_text:promoDiscount.value,active:promoActive.value==='true'})});
+        await api('/admin/promotions',{method:'POST',body:JSON.stringify({title:promoTitle.value,description:promoDesc.value,discount_text:promoDiscount.value,image_url:promoImage.value,active:promoActive.value==='true'})});
         showToast(t('saveOk'));
-        promoTitle.value='';promoDiscount.value='';promoDesc.value='';promoActive.value='true';
+        promoTitle.value='';promoDiscount.value='';promoDesc.value='';promoImage.value='';promoActive.value='true';
         await loadPromotions();
       }catch(err){showToast(err.message||t('loadError'))}
       finally{setBtnLoading(btn, false, t('add'))}
@@ -523,6 +532,7 @@
             title: row.querySelector('[data-role=title]').value,
             discount_text: row.querySelector('[data-role=discount_text]').value,
             description: row.querySelector('[data-role=description]').value,
+            image_url: row.querySelector('[data-role=image_url]').value,
             active: row.querySelector('[data-role=active]').checked
           })});
         }
@@ -534,13 +544,37 @@
 
     async function loadHomeSettings(){
       const {homeSettings}=await api('/admin/home-settings');
-      heroTitle.value=homeSettings.heroTitle||'';heroSubtitle.value=homeSettings.heroSubtitle||'';deliveryText.value=homeSettings.deliveryText||'';bgUrl.value=homeSettings.backgroundImageUrl||'';accentColor.value=homeSettings.accentColor||'';
+      brandName.value=homeSettings.brandName||'';
+      locationText.value=homeSettings.locationText||'';
+      searchPlaceholder.value=homeSettings.searchPlaceholder||'';
+      heroTitle.value=homeSettings.heroTitle||'';
+      heroSubtitle.value=homeSettings.heroSubtitle||'';
+      heroBadgeText.value=homeSettings.heroBadgeText||'';
+      bonusTitle.value=homeSettings.bonusTitle||'';
+      bonusSubtitle.value=homeSettings.bonusSubtitle||'';
+      deliveryTimeText.value=homeSettings.deliveryTimeText||'';
+      deliveryText.value=homeSettings.deliveryText||'';
+      bgUrl.value=homeSettings.backgroundImageUrl||'';
+      accentColor.value=homeSettings.accentColor||'';
     }
     document.getElementById('saveHomeBtn').onclick=async(e)=>{
       const btn = e.currentTarget;
       try{
         setBtnLoading(btn, true, t('save'));
-        await api('/admin/home-settings',{method:'PUT',body:JSON.stringify({heroTitle:heroTitle.value,heroSubtitle:heroSubtitle.value,deliveryText:deliveryText.value,backgroundImageUrl:bgUrl.value,accentColor:accentColor.value})});
+        await api('/admin/home-settings',{method:'PUT',body:JSON.stringify({
+          brandName: brandName.value,
+          locationText: locationText.value,
+          searchPlaceholder: searchPlaceholder.value,
+          heroTitle: heroTitle.value,
+          heroSubtitle: heroSubtitle.value,
+          heroBadgeText: heroBadgeText.value,
+          bonusTitle: bonusTitle.value,
+          bonusSubtitle: bonusSubtitle.value,
+          deliveryTimeText: deliveryTimeText.value,
+          deliveryText: deliveryText.value,
+          backgroundImageUrl:bgUrl.value,
+          accentColor:accentColor.value
+        })});
         showToast(t('saveOk'));
       }catch(err){showToast(err.message||t('loadError'))}
       finally{setBtnLoading(btn, false, t('save'))}
