@@ -416,13 +416,16 @@
     .section-head a { text-decoration: none; color: #67fdb9; font-size: 12px; font-weight: 700; }
 
     .cats {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      display: flex;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      padding-bottom: 4px;
       gap: 8px;
       margin-bottom: 16px;
     }
 
     .cat {
+      min-width: 76px;
       border-radius: 14px;
       border: 1px solid rgba(128, 157, 209, 0.26);
       background: linear-gradient(170deg, rgba(24, 38, 64, 0.95), rgba(11, 20, 36, 0.95));
@@ -436,6 +439,7 @@
       color: #b4c8e9;
       text-align: center;
       padding: 6px 2px;
+      flex: 0 0 auto;
     }
 
     .cat i {
@@ -886,19 +890,13 @@
 
         <div class="section-head">
           <h4>Категориялар</h4>
-          <a href="#">Барчаси</a>
+          <a href="#" id="homeAllCategoriesLink">Барчаси</a>
         </div>
-        <section class="cats">
-          <article class="cat"><i>🥤</i>Ичимлик</article>
-          <article class="cat"><i>🍪</i>Снек</article>
-          <article class="cat"><i>🧴</i>Гигиена</article>
-          <article class="cat"><i>🥛</i>Сут</article>
-          <article class="cat"><i>🍫</i>Ширинлик</article>
-        </section>
+        <section class="cats" id="homeCategories"></section>
 
         <div class="section-head">
           <h4>Оммабоп маҳсулотлар</h4>
-          <a href="#">Кўпроқ</a>
+          <a href="#" id="homeMoreProductsLink">Кўпроқ</a>
         </div>
         <section class="products-grid" id="homeProducts"></section>
 
@@ -918,7 +916,6 @@
         <section class="category-grid" id="categoryResults"></section>
         <p class="muted" id="catalogProductResultsTitle" style="display:none; margin-bottom:8px;"></p>
         <section class="products-grid" id="searchResults"></section>
-        <button class="btn btn-secondary" id="loadMoreBtn" style="display:none; width:100%;">Yana ko'rsatish</button>
         <div class="empty" id="searchEmpty" style="display:none;">Hech narsa topilmadi. Boshqa so'z kiriting.</div>
       </section>
 
@@ -1029,8 +1026,8 @@ Oq fonli foto</div>
     const bottomNav = document.getElementById('bottomNav');
     const checkoutItems = document.getElementById('checkoutItems');
     const checkoutTotal = document.getElementById('checkoutTotal');
-    const loadMoreBtn = document.getElementById('loadMoreBtn');
     const catalogProductResultsTitle = document.getElementById('catalogProductResultsTitle');
+    const homeCategories = document.getElementById('homeCategories');
 
     const modalOverlay = document.getElementById('productModalOverlay');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -1062,12 +1059,18 @@ Oq fonli foto</div>
       productsLoading = true;
       try {
         if (reset) productsPage = 1;
-        const params = new URLSearchParams({ page: String(productsPage), limit: String(productsLimit) });
-        const data = await api(`/products?${params.toString()}`);
-        const incoming = (data.items || data.products || []).filter((p) => p.active !== false);
-        products = reset ? incoming : products.concat(incoming);
-        productsHasMore = Boolean(data.hasMore);
-        loadMoreBtn.style.display = productsHasMore ? 'block' : 'none';
+        const collected = [];
+        let page = productsPage;
+        while (true) {
+          const params = new URLSearchParams({ page: String(page), limit: String(productsLimit) });
+          const data = await api(`/products?${params.toString()}`);
+          const incoming = (data.items || data.products || []).filter((p) => p.active !== false);
+          collected.push(...incoming);
+          if (!data.hasMore) break;
+          page += 1;
+        }
+        products = reset ? collected : products.concat(collected);
+        productsHasMore = false;
       } finally {
         productsLoading = false;
       }
@@ -1153,7 +1156,19 @@ Oq fonli foto`;
     }
 
     function renderHome() {
-      homeProducts.innerHTML = products.slice(0, 8).map(productCardTemplate).join('');
+      const popular = products
+        .slice()
+        .sort((a, b) => {
+          const byOrders = Number(b.orderCount || 0) - Number(a.orderCount || 0);
+          if (byOrders !== 0) return byOrders;
+          const byStock = Number(b.stock || 0) - Number(a.stock || 0);
+          if (byStock !== 0) return byStock;
+          const byPrice = Number(b.price || 0) - Number(a.price || 0);
+          if (byPrice !== 0) return byPrice;
+          return String(a.name || '').localeCompare(String(b.name || ''), 'uz');
+        })
+        .slice(0, 8);
+      homeProducts.innerHTML = popular.map(productCardTemplate).join('');
     }
 
     function normalizedCategoryName(categoryName) {
@@ -1167,7 +1182,13 @@ Oq fonli foto`;
       if (n.includes('sut')) return '🥛';
       if (n.includes("go'sht") || n.includes('gosht')) return '🥩';
       if (n.includes('meva')) return '🍏';
-      if (n.includes('kantsely') || n.includes('канц') || n.includes('альбом') || n.includes('блокнот') || n.includes('азбук')) return '📚';
+      if (n.includes('блокнот') || n.includes('daftar') || n.includes('тетрад')) return '📒';
+      if (n.includes('альбом') || n.includes('rasm') || n.includes('рисов')) return '🎨';
+      if (n.includes('азбук') || n.includes('kitob') || n.includes('книга')) return '📚';
+      if (n.includes('kantsely') || n.includes('канц') || n.includes('karandash') || n.includes('ручка')) return '✏️';
+      if (n.includes('доск')) return '🧱';
+      if (n.includes('игр')) return '🎲';
+      if (n.includes('калькулятор')) return '🧮';
       if (n.includes('gigien')) return '🧴';
       return '📦';
     }
@@ -1179,6 +1200,15 @@ Oq fonli foto`;
         categoryMap.set(categoryName, (categoryMap.get(categoryName) || 0) + 1);
       });
       return [...categoryMap.entries()].sort((a, b) => a[0].localeCompare(b[0], 'uz'));
+    }
+
+    function renderHomeCategories() {
+      const entries = getCategoryEntries();
+      homeCategories.innerHTML = entries.map(([name]) => `
+        <article class="cat" data-home-category="${name}">
+          <i>${getCategoryIcon(name)}</i>${name}
+        </article>
+      `).join('');
     }
 
     function renderSearch() {
@@ -1283,6 +1313,7 @@ Oq fonli foto`;
     }
 
     function renderAll() {
+      renderHomeCategories();
       renderHome();
       renderSearch();
       renderCart();
@@ -1334,12 +1365,6 @@ Oq fonli foto`;
     });
 
     searchInput.addEventListener('input', renderSearch);
-    loadMoreBtn.addEventListener('click', async () => {
-      if (!productsHasMore) return;
-      productsPage += 1;
-      await loadProducts();
-      renderAll();
-    });
     categoryBackBtn.addEventListener('click', () => {
       selectedCategory = null;
       catalogMode = 'categories';
@@ -1362,6 +1387,22 @@ Oq fonli foto`;
 
     document.querySelector('.bell')?.addEventListener('click', () => {
       showToast("Yangi bildirishnomalar tez orada qo'shiladi");
+    });
+    document.getElementById('homeAllCategoriesLink')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      setView('searchView');
+      catalogMode = 'categories';
+      selectedCategory = null;
+      searchInput.value = '';
+      renderSearch();
+    });
+    document.getElementById('homeMoreProductsLink')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      setView('searchView');
+      catalogMode = 'categories';
+      selectedCategory = null;
+      searchInput.value = '';
+      renderSearch();
     });
 
     document.body.addEventListener('click', async (e) => {
@@ -1413,6 +1454,16 @@ Oq fonli foto`;
       if (categoryCard) {
         selectedCategory = categoryCard.dataset.category;
         catalogMode = 'category';
+        searchInput.value = '';
+        renderSearch();
+        return;
+      }
+
+      const homeCategoryCard = e.target.closest('[data-home-category]');
+      if (homeCategoryCard) {
+        selectedCategory = homeCategoryCard.dataset.homeCategory;
+        catalogMode = 'category';
+        setView('searchView');
         searchInput.value = '';
         renderSearch();
       }

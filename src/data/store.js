@@ -1,7 +1,7 @@
 const products = [
-  { id: 'coca', code: 'DAL-COCA-1L', sku: 'DAL-COCA-1L', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 12000, oldPrice: 13400, stock: 100, image: '', image_url: '', source: 'seed', updated_at: new Date().toISOString(), active: true },
-  { id: 'pepsi', code: 'DAL-PEPSI-1L', sku: 'DAL-PEPSI-1L', name: 'Pepsi 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 12000, oldPrice: 13400, stock: 100, image: '', image_url: '', source: 'seed', updated_at: new Date().toISOString(), active: true },
-  { id: 'rich', code: 'DAL-RICH-ORANGE-1L', sku: 'DAL-RICH-ORANGE-1L', name: 'Rich Apelsin 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 18000, oldPrice: 20000, stock: 100, image: '', image_url: '', source: 'seed', updated_at: new Date().toISOString(), active: true }
+  { id: 'coca', code: 'DAL-COCA-1L', sku: 'DAL-COCA-1L', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 12000, oldPrice: 13400, stock: 100, image: '', image_url: '', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
+  { id: 'pepsi', code: 'DAL-PEPSI-1L', sku: 'DAL-PEPSI-1L', name: 'Pepsi 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 12000, oldPrice: 13400, stock: 100, image: '', image_url: '', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
+  { id: 'rich', code: 'DAL-RICH-ORANGE-1L', sku: 'DAL-RICH-ORANGE-1L', name: 'Rich Apelsin 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 18000, oldPrice: 20000, stock: 100, image: '', image_url: '', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 }
 ];
 
 const categories = [
@@ -214,6 +214,12 @@ function createOrder({ paymentMethod = 'Naqd', location = 'Yunusobod, Toshkent',
     total: summary.subtotal + deliveryPrice
   };
 
+  for (const item of summary.items) {
+    const p = getProductById(item.id);
+    if (!p) continue;
+    p.orderCount = Number(p.orderCount || 0) + Number(item.quantity || 0);
+  }
+
   orders.push(order);
   clearCart();
 
@@ -242,7 +248,8 @@ function upsertProducts(items = []) {
       image_url: raw.image_url || raw.image || '',
       source: raw.source || 'excel',
       updated_at: raw.updated_at || new Date().toISOString(),
-      active: raw.active !== false
+      active: raw.active !== false,
+      orderCount: Number(raw.orderCount ?? 0)
     };
 
     if (i === -1) {
