@@ -58,8 +58,14 @@ curl -X POST "https://<your-domain>/api/v1/integrations/excel/import/products-xl
 - `POST /api/v1/admin/orders/:id/cancel`
 - `GET /api/v1/admin/orders/:id/picklist`
 - `POST /api/v1/admin/orders/:id/send-to-tsd`
+- `GET /api/v1/admin/orders/:id/qr`
 - `GET /api/v1/orders/:orderNumber/status`
 - `GET /api/v1/orders/display` (public read-only display feed)
+- `POST /api/v1/integrations/datamobile/orders/:id/send`
+- `POST /api/v1/integrations/dalion/orders/:id/picked`
+- `GET /api/v1/courier/:token`
+- `POST /api/v1/courier/:token/accept`
+- `POST /api/v1/courier/:token/deliver`
 
 Order dashboard display page:
 

@@ -74,3 +74,16 @@ exports.importProductsXlsx = async (req, res) => {
     return res.status(400).json({ ok: false, message: error.message || 'XLSX import failed' });
   }
 };
+
+exports.sendOrderToDataMobile = (req, res) => {
+  const out = store.sendOrderToTsd(req.params.id);
+  if (!out) return res.status(404).json({ ok: false, message: 'Order not found' });
+  // TODO: connect real Data Mobile API call here.
+  return res.json({ ok: true, message: "Order TSD queue ga qo‘shildi", order: out.order });
+};
+
+exports.markDalionOrderPicked = (req, res) => {
+  const order = store.markDalionPicked(req.params.id);
+  if (!order) return res.status(404).json({ ok: false, message: 'Order not found' });
+  return res.json({ ok: true, order });
+};

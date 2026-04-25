@@ -64,19 +64,12 @@
     const tokenKey = 'admin_import_token';
     const statuses = [
       ['new', 'Yangi'],
-      ['picking', 'Terilmoqda'],
-      ['picked', 'Yig‘ildi'],
-      ['waiting_courier', 'Kurier kutmoqda'],
-      ['out_for_delivery', 'Yetkazilmoqda'],
-      ['delivered', 'Yetkazildi']
+      ['sent_to_tsd', 'TSD ga yuborildi'],
+      ['waiting_courier', 'Kurier kutyapti'],
+      ['out_for_delivery', 'Kurierda'],
+      ['delivered', 'Yetkazildi'],
+      ['cancelled', 'Bekor qilingan']
     ];
-    const nextAction = {
-      new: ['Terishni boshlash', 'picking'],
-      picking: ['Terib bo‘ldim', 'picked'],
-      picked: ['Kurierni kutyapti', 'waiting_courier'],
-      waiting_courier: ['Kurierga berildi', 'out_for_delivery'],
-      out_for_delivery: ['Yetkazildi', 'delivered']
-    };
     let orders = [];
     let activeOrder = null;
 
@@ -107,7 +100,7 @@
                 <div class="muted">${o.customerName || 'Mehmon'}</div>
                 <div class="muted">${o.customerAddress || o.location || '-'}</div>
                 <div class="row"><span>${(o.items||[]).length} item</span><strong>${Number(o.total||0).toLocaleString('ru-RU')} so'm</strong></div>
-                <div class="muted">Status: ${o.status}</div>
+                <div class="muted">Status: ${o.status} | tsd: ${o.tsdStatus || '-'}</div>
                 <div class="muted">${fmt(o.created_at)}</div>
               </article>
             `).join('')}
@@ -133,17 +126,55 @@
       `).join('');
 
       const actions = [];
-      if (nextAction[order.status]) {
-        actions.push(`<button class="primary" data-next="${nextAction[order.status][1]}">${nextAction[order.status][0]}</button>`);
+      if (order.status === 'new') {
+        actions.push(`<button class="primary" data-tsd="1">${order.tsdStatus === 'queued' ? 'TSD ga yuborilgan' : 'TSD ga yuborish'}</button>`);
       }
-      if (order.status === 'picking' || order.status === 'picked') {
-        actions.push(`<button data-tsd="1">${order.tsdStatus === 'queued' ? 'TSD ga yuborilgan' : 'TSD ga yuborish'}</button>`);
+      if (order.status === 'sent_to_tsd') {
+        actions.push('<button disabled>TSD ga yuborilgan</button>');
+        actions.push('<button data-next="waiting_courier">Terib bo‘lindi</button>');
+      }
+      if (order.status === 'waiting_courier') {
+        actions.push('<button data-print="1">Chek chiqarish</button>');
+        actions.push('<button data-qr="1">QR ko‘rsatish</button>');
       }
       if (order.status !== 'delivered' && order.status !== 'cancelled') {
         actions.push('<button class="full" data-cancel="1">Bekor qilish</button>');
       }
+      if (order.status === 'out_for_delivery') {
+        actions.push(`<button disabled class="full">Kurierda: ${order.courierName || '-'} ${order.courierPhone || ''}</button>`);
+      }
+      if (order.status === 'delivered') {
+        actions.push('<button disabled class="full">Yetkazildi</button>');
+      }
       document.getElementById('mActions').innerHTML = actions.join('');
       document.getElementById('modalOverlay').classList.add('show');
+    }
+
+    async function printReceipt(order) {
+      const qr = await api(`/admin/orders/${order.id}/qr`);
+      const w = window.open('', '_blank', 'width=420,height=700');
+      const rows = (order.items || []).map((it)=>`<tr><td>${it.name||''}</td><td>${it.quantity||0}</td><td>${Number(it.price||0).toLocaleString('ru-RU')}</td><td>${Number(it.subtotal||0).toLocaleString('ru-RU')}</td></tr>`).join('');
+      w.document.write(`
+        <html><head><title>Chek</title><style>
+          body{font-family:Arial;font-size:12px;width:280px;margin:0 auto}
+          table{width:100%;border-collapse:collapse}td{padding:2px 0;border-bottom:1px dashed #ccc}
+        </style></head><body>
+        <h3>GlobusMarket</h3>
+        <div>Order: ${order.orderNumber}</div>
+        <div>Sana: ${new Date().toLocaleString('ru-RU')}</div>
+        <div>Mijoz: ${order.customerName||'-'}</div>
+        <div>Tel: ${order.customerPhone||'-'}</div>
+        <div>Manzil: ${order.customerAddress||order.location||'-'}</div>
+        <table><tr><td><b>Nomi</b></td><td><b>Soni</b></td><td><b>Narx</b></td><td><b>Sum</b></td></tr>${rows}</table>
+        <h4>Jami: ${Number(order.total||0).toLocaleString('ru-RU')} so'm</h4>
+        <div>Status: ${order.status}</div>
+        <div>Courier URL: ${qr.courierUrl}</div>
+        <div style="word-break:break-all;">QR: ${qr.qrUrl}</div>
+        </body></html>
+      `);
+      w.document.close();
+      w.focus();
+      w.print();
     }
 
     async function refresh() {
@@ -206,6 +237,11 @@
           await api(`/admin/orders/${activeOrder.id}/cancel`, { method: 'POST' });
         } else if (btn.dataset.tsd) {
           await api(`/admin/orders/${activeOrder.id}/send-to-tsd`, { method: 'POST' });
+        } else if (btn.dataset.qr) {
+          const qr = await api(`/admin/orders/${activeOrder.id}/qr`);
+          alert(`Courier URL: ${qr.courierUrl}`);
+        } else if (btn.dataset.print) {
+          await printReceipt(activeOrder);
         }
         await refresh();
       } catch (err) {

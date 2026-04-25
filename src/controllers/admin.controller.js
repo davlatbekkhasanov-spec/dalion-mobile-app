@@ -141,3 +141,15 @@ exports.sendOrderToTsd = (req, res) => {
   if (!out) return res.status(404).json({ message: 'Order not found' });
   return res.json(out);
 };
+
+exports.getOrderQr = (req, res) => {
+  const order = store.getOrderById(req.params.id);
+  if (!order) return res.status(404).json({ message: 'Order not found' });
+  const base = `${req.protocol}://${req.get('host')}`;
+  const courierUrl = `${base}/courier/${order.courierToken}`;
+  return res.json({
+    qrUrl: courierUrl,
+    courierUrl,
+    token: order.courierToken
+  });
+};

@@ -4,6 +4,7 @@ const homeController = require('../controllers/home.controller.js');
 const productController = require('../controllers/product.controller.js');
 const cartController = require('../controllers/cart.controller.js');
 const orderController = require('../controllers/order.controller.js');
+const courierController = require('../controllers/courier.controller.js');
 const integrationController = require('../controllers/integration.controller.js');
 const adminController = require('../controllers/admin.controller.js');
 const { parseMultipartSingleFile } = require('../middlewares/upload.middleware.js');
@@ -21,6 +22,9 @@ router.delete('/cart', cartController.clearCart);
 router.post('/orders', orderController.createOrder);
 router.get('/orders/:orderNumber/status', orderController.getOrderStatus);
 router.get('/orders/display', orderController.getOrdersDisplay);
+router.get('/courier/:token', courierController.getCourierOrder);
+router.post('/courier/:token/accept', courierController.acceptCourierOrder);
+router.post('/courier/:token/deliver', courierController.deliverCourierOrder);
 
 router.get('/integrations/status', integrationController.getIntegrationStatus);
 router.post('/integrations/1c/import', integrationController.importFrom1C);
@@ -28,6 +32,8 @@ router.get('/integrations/1c/export', integrationController.exportTo1C);
 router.get('/integrations/excel/template', integrationController.getExcelTemplate);
 router.get('/integrations/excel/export/products', integrationController.exportProductsExcel);
 router.post('/integrations/excel/import/products', integrationController.importProductsExcel);
+router.post('/integrations/datamobile/orders/:id/send', requireAdminImportToken, integrationController.sendOrderToDataMobile);
+router.post('/integrations/dalion/orders/:id/picked', integrationController.markDalionOrderPicked);
 router.post(
   '/integrations/excel/import/products-xlsx',
   requireAdminImportToken,
@@ -62,5 +68,6 @@ router.put('/admin/orders/:id/status', requireAdminImportToken, adminController.
 router.post('/admin/orders/:id/cancel', requireAdminImportToken, adminController.cancelOrder);
 router.get('/admin/orders/:id/picklist', requireAdminImportToken, adminController.getOrderPicklist);
 router.post('/admin/orders/:id/send-to-tsd', requireAdminImportToken, adminController.sendOrderToTsd);
+router.get('/admin/orders/:id/qr', requireAdminImportToken, adminController.getOrderQr);
 
 module.exports = router;

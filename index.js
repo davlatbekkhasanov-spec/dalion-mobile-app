@@ -33,6 +33,10 @@ app.get('/orders', (req, res) => {
   res.redirect('/admin');
 });
 
+app.get('/courier/:token', (req, res) => {
+  res.sendFile(path.join(__dirname, 'courier.html'));
+});
+
 // API routes
 app.use('/api/v1', homeRoutes);
 

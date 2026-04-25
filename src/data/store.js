@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'store.json');
 
@@ -359,6 +360,19 @@ function createOrder({
     created_at: now,
     updated_at: now,
     status: 'new',
+    sentToTsdAt: null,
+    tsdStatus: '',
+    dalionPicked: false,
+    pickedAt: null,
+    waitingCourierAt: null,
+    courierToken: crypto.randomBytes(24).toString('hex'),
+    courierTokenUsed: false,
+    courierName: '',
+    courierPhone: '',
+    courierAcceptedAt: null,
+    courierDeliveredAt: null,
+    deliveredAt: null,
+    cancelledAt: null,
     paymentMethod,
     location: location || '',
     deliveryTime: deliveryTime || '',
@@ -402,12 +416,15 @@ function applyStatusTimestamps(order, status) {
   const now = new Date().toISOString();
   if (status === 'picking' && !order.pickerStartedAt) order.pickerStartedAt = now;
   if (status === 'picked' && !order.pickedAt) order.pickedAt = now;
+  if (status === 'sent_to_tsd' && !order.sentToTsdAt) order.sentToTsdAt = now;
+  if (status === 'waiting_courier' && !order.waitingCourierAt) order.waitingCourierAt = now;
   if (status === 'waiting_courier' && !order.courierWaitingAt) order.courierWaitingAt = now;
   if (status === 'delivered' && !order.deliveredAt) order.deliveredAt = now;
+  if (status === 'cancelled' && !order.cancelledAt) order.cancelledAt = now;
 }
 
 function updateOrderStatus(id, status) {
-  const allowed = new Set(['new', 'picking', 'picked', 'waiting_courier', 'out_for_delivery', 'delivered', 'cancelled']);
+  const allowed = new Set(['new', 'picking', 'picked', 'sent_to_tsd', 'waiting_courier', 'out_for_delivery', 'delivered', 'cancelled']);
   if (!allowed.has(status)) return null;
   const order = getOrderById(id);
   if (!order) return null;
@@ -441,12 +458,56 @@ function getOrderPicklist(id) {
 function sendOrderToTsd(id) {
   const order = getOrderById(id);
   if (!order) return null;
+  order.status = 'sent_to_tsd';
   order.tsdStatus = 'queued';
   order.tsdQueuedAt = new Date().toISOString();
+  order.sentToTsdAt = order.sentToTsdAt || order.tsdQueuedAt;
   order.updated_at = new Date().toISOString();
   // TODO: Data Mobile API integration should be connected here.
   persistState();
   return { ok: true, message: "Order TSD queue ga qo‘shildi", order };
+}
+
+function markDalionPicked(id) {
+  const order = getOrderById(id);
+  if (!order) return null;
+  order.status = 'waiting_courier';
+  order.dalionPicked = true;
+  order.pickedAt = new Date().toISOString();
+  order.waitingCourierAt = order.pickedAt;
+  order.updated_at = new Date().toISOString();
+  persistState();
+  return order;
+}
+
+function getOrderByCourierToken(token) {
+  return orders.find((o) => o.courierToken === token) || null;
+}
+
+function courierAccept(token, { courierName = '', courierPhone = '' } = {}) {
+  const order = getOrderByCourierToken(token);
+  if (!order) return { error: 'Invalid token' };
+  if (order.courierTokenUsed) return { error: 'Bu QR kod allaqachon ishlatilgan' };
+  order.status = 'out_for_delivery';
+  order.courierName = String(courierName || order.courierName || '').trim();
+  order.courierPhone = String(courierPhone || order.courierPhone || '').trim();
+  order.courierAcceptedAt = new Date().toISOString();
+  order.updated_at = order.courierAcceptedAt;
+  persistState();
+  return { order };
+}
+
+function courierDeliver(token) {
+  const order = getOrderByCourierToken(token);
+  if (!order) return { error: 'Invalid token' };
+  if (order.courierTokenUsed) return { error: 'Bu QR kod allaqachon ishlatilgan' };
+  order.status = 'delivered';
+  order.deliveredAt = new Date().toISOString();
+  order.courierDeliveredAt = order.deliveredAt;
+  order.courierTokenUsed = true;
+  order.updated_at = order.deliveredAt;
+  persistState();
+  return { order };
 }
 
 function upsertProducts(items = []) {
@@ -546,5 +607,9 @@ module.exports = {
   cancelOrder,
   getOrderPicklist,
   sendOrderToTsd,
+  markDalionPicked,
+  getOrderByCourierToken,
+  courierAccept,
+  courierDeliver,
   orders
 };
