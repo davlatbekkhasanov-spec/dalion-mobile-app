@@ -175,7 +175,14 @@
         importDone: 'Yakunlanmoqda... 100%',
         importProgress: 'Yuklanmoqda...',
         uploadedProcessing: 'Fayl yuklandi, rasmlar qayta ishlanmoqda...',
-        productsSearch: 'Search products'
+        productsSearch: 'Mahsulot qidirish',
+        add: "Qo'shish",
+        delete: "O'chirish",
+        saveOk: 'Saqlandi',
+        loadError: 'Yuklashda xatolik',
+        saving: 'Saqlanmoqda...',
+        toggle: 'Holatini almashtirish',
+        productsCount: 'Mahsulotlar soni'
       },
       ru: {
         pageTitle: 'Админ панель',
@@ -213,7 +220,14 @@
         importDone: 'Завершение... 100%',
         importProgress: 'Загрузка...',
         uploadedProcessing: 'Файл загружен, обработка изображений...',
-        productsSearch: 'Поиск товаров'
+        productsSearch: 'Поиск товаров',
+        add: 'Добавить',
+        delete: 'Удалить',
+        saveOk: 'Сохранено',
+        loadError: 'Ошибка загрузки',
+        saving: 'Сохранение...',
+        toggle: 'Переключить статус',
+        productsCount: 'Количество товаров'
       }
     };
     const langKey = 'admin_lang';
@@ -226,6 +240,16 @@
     function t(key){ return (i18n[lang] || i18n.uz)[key] || key; }
     function showToast(text){toast.textContent=text;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.classList.remove('show'),1400)}
     function getToken(){return localStorage.getItem(tokenKey)||''}
+    function setBtnLoading(btn, loading, labelWhenIdle) {
+      if (!btn) return;
+      btn.disabled = Boolean(loading);
+      if (loading) {
+        btn.dataset.prevLabel = btn.textContent;
+        btn.textContent = t('saving');
+      } else {
+        btn.textContent = labelWhenIdle || btn.dataset.prevLabel || btn.textContent;
+      }
+    }
 
     async function api(path, options={}){
       const token = getToken();
@@ -263,6 +287,8 @@
       document.getElementById('newImportBtn').textContent = t.newImport;
       document.getElementById('reloadStoreBtn').textContent = t.reloadStore;
       document.getElementById('productsSearch').placeholder = t.productsSearch;
+      document.getElementById('addBannerBtn').textContent = t.add;
+      document.getElementById('addPromoBtn').textContent = t.add;
       document.querySelectorAll('#tabs .tab').forEach((btn) => {
         const key = btn.dataset.labelKey;
         if (key === 'excel') btn.textContent = t.excel;
@@ -388,24 +414,137 @@
     async function loadBanners(){
       const {banners}=await api('/admin/banners');
       const wrap=document.getElementById('bannersList');wrap.innerHTML='';
-      banners.forEach(b=>{const d=document.createElement('div');d.className='item';d.innerHTML=`<b>${b.title}</b><div class="muted">${b.subtitle||''} | active: ${b.active}</div><div class="row"><button data-id="${b.id}" data-act="toggle">Toggle</button><button data-id="${b.id}" data-act="del">Delete</button></div>`;wrap.appendChild(d);});
+      banners.forEach(b=>{
+        const d=document.createElement('div');
+        d.className='item';
+        d.innerHTML=`
+          <div class="row">
+            <input data-role="title" value="${b.title || ''}" placeholder="title" />
+            <input data-role="subtitle" value="${b.subtitle || ''}" placeholder="subtitle" />
+            <input data-role="image_url" value="${b.image_url || ''}" placeholder="image_url" />
+            <label><input data-role="active" type="checkbox" ${b.active ? 'checked' : ''} /> ${t('active')}</label>
+            <button data-id="${b.id}" data-act="save">${t('save')}</button>
+            <button data-id="${b.id}" data-act="toggle">${t('toggle')}</button>
+            <button data-id="${b.id}" data-act="del">${t('delete')}</button>
+          </div>
+        `;
+        wrap.appendChild(d);
+      });
     }
-    document.getElementById('addBannerBtn').onclick=async()=>{await api('/admin/banners',{method:'POST',body:JSON.stringify({title:bannerTitle.value,subtitle:bannerSubtitle.value,image_url:bannerImage.value,active:bannerActive.value==='true'})});showToast('Saved');loadBanners();};
-    document.getElementById('bannersList').onclick=async(e)=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.id;if(b.dataset.act==='del') await api('/admin/banners/'+id,{method:'DELETE'});else{const list=(await api('/admin/banners')).banners;const x=list.find(i=>i.id===id);await api('/admin/banners/'+id,{method:'PUT',body:JSON.stringify({active:!x.active})});}loadBanners();};
+    document.getElementById('addBannerBtn').onclick=async(e)=>{
+      const btn = e.currentTarget;
+      try {
+        setBtnLoading(btn, true);
+        await api('/admin/banners',{method:'POST',body:JSON.stringify({title:bannerTitle.value,subtitle:bannerSubtitle.value,image_url:bannerImage.value,active:bannerActive.value==='true'})});
+        showToast(t('saveOk'));
+        bannerTitle.value='';bannerSubtitle.value='';bannerImage.value='';bannerActive.value='true';
+        await loadBanners();
+      } catch (err) {
+        showToast(err.message || t('loadError'));
+      } finally {
+        setBtnLoading(btn, false, t('add'));
+      }
+    };
+    document.getElementById('bannersList').onclick=async(e)=>{
+      const b=e.target.closest('button');if(!b)return;
+      const id=b.dataset.id;
+      const row=b.closest('.item');
+      try{
+        if(b.dataset.act==='del'){
+          setBtnLoading(b, true, t('delete'));
+          await api('/admin/banners/'+id,{method:'DELETE'});
+          showToast(t('saveOk'));
+        }else if(b.dataset.act==='toggle'){
+          setBtnLoading(b, true, t('toggle'));
+          const checked = row.querySelector('[data-role=active]').checked;
+          await api('/admin/banners/'+id,{method:'PUT',body:JSON.stringify({active:!checked})});
+          showToast(t('saveOk'));
+        }else{
+          setBtnLoading(b, true, t('save'));
+          await api('/admin/banners/'+id,{method:'PUT',body:JSON.stringify({
+            title: row.querySelector('[data-role=title]').value,
+            subtitle: row.querySelector('[data-role=subtitle]').value,
+            image_url: row.querySelector('[data-role=image_url]').value,
+            active: row.querySelector('[data-role=active]').checked
+          })});
+          showToast(t('saveOk'));
+        }
+        await loadBanners();
+      }catch(err){showToast(err.message||t('loadError'))}
+      finally{setBtnLoading(b, false)}
+    };
 
     async function loadPromotions(){
       const {promotions}=await api('/admin/promotions');
       const wrap=document.getElementById('promotionsList');wrap.innerHTML='';
-      promotions.forEach(p=>{const d=document.createElement('div');d.className='item';d.innerHTML=`<b>${p.title}</b><div class="muted">${p.discount_text||''} | active: ${p.active}</div><div class="row"><button data-id="${p.id}" data-act="toggle">Toggle</button><button data-id="${p.id}" data-act="del">Delete</button></div>`;wrap.appendChild(d);});
+      promotions.forEach(p=>{
+        const d=document.createElement('div');
+        d.className='item';
+        d.innerHTML=`
+          <div class="row">
+            <input data-role="title" value="${p.title || ''}" placeholder="title" />
+            <input data-role="discount_text" value="${p.discount_text || ''}" placeholder="discount_text" />
+            <input data-role="description" value="${p.description || ''}" placeholder="description" />
+            <label><input data-role="active" type="checkbox" ${p.active ? 'checked' : ''} /> ${t('active')}</label>
+            <button data-id="${p.id}" data-act="save">${t('save')}</button>
+            <button data-id="${p.id}" data-act="toggle">${t('toggle')}</button>
+            <button data-id="${p.id}" data-act="del">${t('delete')}</button>
+          </div>
+        `;
+        wrap.appendChild(d);
+      });
     }
-    document.getElementById('addPromoBtn').onclick=async()=>{await api('/admin/promotions',{method:'POST',body:JSON.stringify({title:promoTitle.value,description:promoDesc.value,discount_text:promoDiscount.value,active:promoActive.value==='true'})});showToast('Saved');loadPromotions();};
-    document.getElementById('promotionsList').onclick=async(e)=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.id;if(b.dataset.act==='del') await api('/admin/promotions/'+id,{method:'DELETE'});else{const list=(await api('/admin/promotions')).promotions;const x=list.find(i=>i.id===id);await api('/admin/promotions/'+id,{method:'PUT',body:JSON.stringify({active:!x.active})});}loadPromotions();};
+    document.getElementById('addPromoBtn').onclick=async(e)=>{
+      const btn = e.currentTarget;
+      try{
+        setBtnLoading(btn, true);
+        await api('/admin/promotions',{method:'POST',body:JSON.stringify({title:promoTitle.value,description:promoDesc.value,discount_text:promoDiscount.value,active:promoActive.value==='true'})});
+        showToast(t('saveOk'));
+        promoTitle.value='';promoDiscount.value='';promoDesc.value='';promoActive.value='true';
+        await loadPromotions();
+      }catch(err){showToast(err.message||t('loadError'))}
+      finally{setBtnLoading(btn, false, t('add'))}
+    };
+    document.getElementById('promotionsList').onclick=async(e)=>{
+      const b=e.target.closest('button');if(!b)return;
+      const id=b.dataset.id;
+      const row=b.closest('.item');
+      try{
+        if(b.dataset.act==='del'){
+          setBtnLoading(b, true, t('delete'));
+          await api('/admin/promotions/'+id,{method:'DELETE'});
+        }else if(b.dataset.act==='toggle'){
+          setBtnLoading(b, true, t('toggle'));
+          const checked = row.querySelector('[data-role=active]').checked;
+          await api('/admin/promotions/'+id,{method:'PUT',body:JSON.stringify({active:!checked})});
+        }else{
+          setBtnLoading(b, true, t('save'));
+          await api('/admin/promotions/'+id,{method:'PUT',body:JSON.stringify({
+            title: row.querySelector('[data-role=title]').value,
+            discount_text: row.querySelector('[data-role=discount_text]').value,
+            description: row.querySelector('[data-role=description]').value,
+            active: row.querySelector('[data-role=active]').checked
+          })});
+        }
+        showToast(t('saveOk'));
+        await loadPromotions();
+      }catch(err){showToast(err.message||t('loadError'))}
+      finally{setBtnLoading(b, false)}
+    };
 
     async function loadHomeSettings(){
       const {homeSettings}=await api('/admin/home-settings');
       heroTitle.value=homeSettings.heroTitle||'';heroSubtitle.value=homeSettings.heroSubtitle||'';deliveryText.value=homeSettings.deliveryText||'';bgUrl.value=homeSettings.backgroundImageUrl||'';accentColor.value=homeSettings.accentColor||'';
     }
-    document.getElementById('saveHomeBtn').onclick=async()=>{await api('/admin/home-settings',{method:'PUT',body:JSON.stringify({heroTitle:heroTitle.value,heroSubtitle:heroSubtitle.value,deliveryText:deliveryText.value,backgroundImageUrl:bgUrl.value,accentColor:accentColor.value})});showToast('Saved');};
+    document.getElementById('saveHomeBtn').onclick=async(e)=>{
+      const btn = e.currentTarget;
+      try{
+        setBtnLoading(btn, true, t('save'));
+        await api('/admin/home-settings',{method:'PUT',body:JSON.stringify({heroTitle:heroTitle.value,heroSubtitle:heroSubtitle.value,deliveryText:deliveryText.value,backgroundImageUrl:bgUrl.value,accentColor:accentColor.value})});
+        showToast(t('saveOk'));
+      }catch(err){showToast(err.message||t('loadError'))}
+      finally{setBtnLoading(btn, false, t('save'))}
+    };
 
     async function loadCategories(){
       const {categories}=await api('/admin/categories');
@@ -460,14 +599,38 @@
       const {categories}=await api('/admin/categories');
       const wrap=document.getElementById('productsList');wrap.innerHTML='';
       products.forEach(p=>{const opts=categories.map(c=>`<option value="${c.id}" ${c.id===p.categoryId?'selected':''}>${c.name}</option>`).join('');
-        const d=document.createElement('div');d.className='item';d.innerHTML=`<b>${p.name}</b><div class="row"><label>Active <input type="checkbox" data-role="active" ${p.active?'checked':''}></label><input data-role="price" type="number" value="${p.price}"><input data-role="stock" type="number" value="${p.stock||0}"><select data-role="categoryId">${opts}</select><button data-id="${p.id}">Save</button></div>`;wrap.appendChild(d);
+        const d=document.createElement('div');d.className='item';d.innerHTML=`
+          <b>${p.name}</b>
+          <div class="muted">${t('imageUrl')}: ${p.image_url || '-'}</div>
+          <div class="row">
+            <label>${t('active')} <input type="checkbox" data-role="active" ${p.active?'checked':''}></label>
+            <input data-role="price" type="number" value="${p.price}" placeholder="price">
+            <input data-role="stock" type="number" value="${p.stock||0}" placeholder="stock">
+            <select data-role="categoryId">${opts}</select>
+            <button data-id="${p.id}">${t('save')}</button>
+          </div>
+        `;wrap.appendChild(d);
       });
     }
     document.getElementById('productsSearch').oninput=()=>loadProducts();
-    document.getElementById('productsList').onclick=async(e)=>{const b=e.target.closest('button');if(!b)return;const p=b.closest('.item');await api('/admin/products/'+b.dataset.id,{method:'PUT',body:JSON.stringify({active:p.querySelector('[data-role=active]').checked,price:Number(p.querySelector('[data-role=price]').value),stock:Number(p.querySelector('[data-role=stock]').value),categoryId:p.querySelector('[data-role=categoryId]').value})});showToast('Saved');loadProducts();};
+    document.getElementById('productsList').onclick=async(e)=>{
+      const b=e.target.closest('button');if(!b)return;
+      const p=b.closest('.item');
+      try{
+        setBtnLoading(b, true, t('save'));
+        await api('/admin/products/'+b.dataset.id,{method:'PUT',body:JSON.stringify({active:p.querySelector('[data-role=active]').checked,price:Number(p.querySelector('[data-role=price]').value),stock:Number(p.querySelector('[data-role=stock]').value),categoryId:p.querySelector('[data-role=categoryId]').value})});
+        showToast(t('saveOk'));
+        await loadProducts();
+      }catch(err){showToast(err.message||t('loadError'))}
+      finally{setBtnLoading(b, false, t('save'))}
+    };
 
     async function bootstrap(){
-      try{await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts(),loadStoreSummary()]);}
+      try{
+        document.getElementById('addBannerBtn').textContent = t('add');
+        document.getElementById('addPromoBtn').textContent = t('add');
+        await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts(),loadStoreSummary()]);
+      }
       catch(e){showToast(e.message||t('checkToken'))}
     }
     bootstrap();
