@@ -122,6 +122,7 @@ function parseDrawingImages(files) {
 }
 
 const WHITE_THRESHOLD = 240;
+const DETECTION_BG_THRESHOLD = 235;
 const OUTPUT_CANVAS_SIZE = 800;
 const MAX_UPSCALE_FACTOR = 4;
 const TARGET_OBJECT_SIDE = 620;
@@ -131,6 +132,56 @@ function isNearWhitePixel(r, g, b, a) {
   return r >= WHITE_THRESHOLD && g >= WHITE_THRESHOLD && b >= WHITE_THRESHOLD;
 }
 
+function isLightBackgroundPixel(r, g, b, a) {
+  if (a <= 16) return true;
+  return r >= DETECTION_BG_THRESHOLD && g >= DETECTION_BG_THRESHOLD && b >= DETECTION_BG_THRESHOLD;
+}
+
+function isDarkPixel(r, g, b, a) {
+  if (a <= 16) return false;
+  return r <= 40 && g <= 40 && b <= 40;
+}
+
+function inBounds(x, y, width, height) {
+  return x >= 0 && y >= 0 && x < width && y < height;
+}
+
+function floodFillFromEdges(width, height, passableAt) {
+  const visited = new Uint8Array(width * height);
+  const queueX = [];
+  const queueY = [];
+
+  function pushIfPassable(x, y) {
+    if (!inBounds(x, y, width, height)) return;
+    const idx = y * width + x;
+    if (visited[idx]) return;
+    if (!passableAt(x, y, idx)) return;
+    visited[idx] = 1;
+    queueX.push(x);
+    queueY.push(y);
+  }
+
+  for (let x = 0; x < width; x += 1) {
+    pushIfPassable(x, 0);
+    pushIfPassable(x, height - 1);
+  }
+  for (let y = 0; y < height; y += 1) {
+    pushIfPassable(0, y);
+    pushIfPassable(width - 1, y);
+  }
+
+  for (let i = 0; i < queueX.length; i += 1) {
+    const x = queueX[i];
+    const y = queueY[i];
+    pushIfPassable(x + 1, y);
+    pushIfPassable(x - 1, y);
+    pushIfPassable(x, y + 1);
+    pushIfPassable(x, y - 1);
+  }
+
+  return visited;
+}
+
 async function detectObjectBoundingBox(imageBuffer) {
   const { data, info } = await sharp(imageBuffer)
     .ensureAlpha()
@@ -138,25 +189,113 @@ async function detectObjectBoundingBox(imageBuffer) {
     .toBuffer({ resolveWithObject: true });
 
   const { width, height, channels } = info;
+  const backgroundMask = floodFillFromEdges(width, height, (x, y) => {
+    const idx = (y * width + x) * channels;
+    return isLightBackgroundPixel(data[idx], data[idx + 1], data[idx + 2], data[idx + 3]);
+  });
+
+  // Ignore dark edge-connected border lines (1-4px-ish artifacts).
+  const darkEdgeMask = floodFillFromEdges(width, height, (x, y) => {
+    const idx = (y * width + x) * channels;
+    return isDarkPixel(data[idx], data[idx + 1], data[idx + 2], data[idx + 3]);
+  });
+
+  const objectCandidate = new Uint8Array(width * height);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const px = y * width + x;
+      const idx = px * channels;
+      const a = data[idx + 3];
+      if (a <= 16) continue;
+      if (backgroundMask[px]) continue;
+      if (darkEdgeMask[px]) continue;
+      if (isNearWhitePixel(data[idx], data[idx + 1], data[idx + 2], a)) continue;
+      objectCandidate[px] = 1;
+    }
+  }
+
+  const visited = new Uint8Array(width * height);
+  const components = [];
+  const minArea = Math.max(20, Math.round((width * height) * 0.00015));
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const start = y * width + x;
+      if (!objectCandidate[start] || visited[start]) continue;
+
+      const queue = [start];
+      visited[start] = 1;
+      let qIndex = 0;
+      let area = 0;
+      let left = width;
+      let top = height;
+      let right = -1;
+      let bottom = -1;
+      let sumX = 0;
+      let sumY = 0;
+
+      while (qIndex < queue.length) {
+        const current = queue[qIndex++];
+        const cx = current % width;
+        const cy = Math.floor(current / width);
+        area += 1;
+        sumX += cx;
+        sumY += cy;
+        if (cx < left) left = cx;
+        if (cy < top) top = cy;
+        if (cx > right) right = cx;
+        if (cy > bottom) bottom = cy;
+
+        const neighborCoords = [
+          [cx - 1, cy],
+          [cx + 1, cy],
+          [cx, cy - 1],
+          [cx, cy + 1]
+        ];
+        for (const [nx, ny] of neighborCoords) {
+          if (!inBounds(nx, ny, width, height)) continue;
+          const n = ny * width + nx;
+          if (!objectCandidate[n] || visited[n]) continue;
+          visited[n] = 1;
+          queue.push(n);
+        }
+      }
+
+      if (area < minArea) continue;
+      components.push({
+        area,
+        left,
+        top,
+        right,
+        bottom,
+        centerX: sumX / area,
+        centerY: sumY / area
+      });
+    }
+  }
+
+  if (!components.length) return null;
+  components.sort((a, b) => b.area - a.area);
+  const largest = components[0];
+  const imageCenterX = width / 2;
+  const imageCenterY = height / 2;
+
+  const selected = components.filter((c, idx) => {
+    if (idx === 0) return true;
+    const dist = Math.hypot(c.centerX - imageCenterX, c.centerY - imageCenterY);
+    const areaRatio = c.area / largest.area;
+    return areaRatio >= 0.15 || (areaRatio >= 0.04 && dist < Math.max(width, height) * 0.22);
+  });
+
   let left = width;
   let top = height;
   let right = -1;
   let bottom = -1;
-
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const idx = (y * width + x) * channels;
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-      const a = data[idx + 3];
-      if (!isNearWhitePixel(r, g, b, a)) {
-        if (x < left) left = x;
-        if (y < top) top = y;
-        if (x > right) right = x;
-        if (y > bottom) bottom = y;
-      }
-    }
+  for (const c of selected) {
+    if (c.left < left) left = c.left;
+    if (c.top < top) top = c.top;
+    if (c.right > right) right = c.right;
+    if (c.bottom > bottom) bottom = c.bottom;
   }
 
   if (right < left || bottom < top) return null;
@@ -219,7 +358,7 @@ async function processAndSaveProductImage({ inputBuffer, outputPath }) {
     const box = await detectObjectBoundingBox(normalizedBuffer);
 
     if (!box) {
-      warnings.push('object_not_found: using fallback contain');
+      warnings.push('object detection failed, fallback used');
       const meta = await sharp(normalizedBuffer).metadata();
       const baseWidth = meta.width || OUTPUT_CANVAS_SIZE;
       const baseHeight = meta.height || OUTPUT_CANVAS_SIZE;
@@ -314,9 +453,11 @@ async function importProductsFromXlsxBuffer(buffer) {
   let skipped = 0;
   let imageExtracted = 0;
   let imageProcessed = 0;
+  let imageObjectDetected = 0;
   let imageUpscaled = 0;
   let imageMissing = 0;
   const imageProcessingWarnings = [];
+  const imageDetectionWarnings = [];
 
   const sortedRows = [...rows.keys()].filter((n) => n >= 2).sort((a, b) => a - b);
 
@@ -356,7 +497,10 @@ async function importProductsFromXlsxBuffer(buffer) {
           inputBuffer: rowImage.buffer,
           outputPath
         });
-        if (processingResult.processed) imageProcessed += 1;
+        if (processingResult.processed) {
+          imageProcessed += 1;
+          imageObjectDetected += 1;
+        }
         if (processingResult.upscaled) imageUpscaled += 1;
         if (processingResult.warnings.length) {
           const warning = {
@@ -365,6 +509,9 @@ async function importProductsFromXlsxBuffer(buffer) {
             message: processingResult.warnings.join('; ')
           };
           imageProcessingWarnings.push(warning);
+          if (warning.message.includes('object detection failed')) {
+            imageDetectionWarnings.push(warning);
+          }
           errors.push({
             row: rowNo,
             code: codeRaw,
@@ -406,6 +553,8 @@ async function importProductsFromXlsxBuffer(buffer) {
     skipped,
     imageExtracted,
     imageProcessed,
+    imageObjectDetected,
+    imageDetectionWarnings,
     imageUpscaled,
     imageProcessingWarnings,
     imageMissing,
