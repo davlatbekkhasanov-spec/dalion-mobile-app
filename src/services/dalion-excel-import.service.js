@@ -124,8 +124,8 @@ function parseDrawingImages(files) {
 const WHITE_THRESHOLD = 240;
 const DETECTION_BG_THRESHOLD = 235;
 const OUTPUT_CANVAS_SIZE = 800;
-const MAX_UPSCALE_FACTOR = 4;
-const TARGET_OBJECT_SIDE = 620;
+const MAX_UPSCALE_FACTOR = 8;
+const TARGET_OBJECT_SIDE = 720;
 
 function isNearWhitePixel(r, g, b, a) {
   if (a <= 16) return true;
@@ -364,13 +364,13 @@ async function processAndSaveProductImage({ inputBuffer, outputPath }) {
       const baseHeight = meta.height || OUTPUT_CANVAS_SIZE;
       const scale = clamp(TARGET_OBJECT_SIDE / Math.max(baseWidth, baseHeight), 1, MAX_UPSCALE_FACTOR);
       const render = await renderToCenteredCanvas(normalizedBuffer, baseWidth, baseHeight, outputPath, scale);
-      if (render.upscaled && Math.max(baseWidth, baseHeight) < 300) {
-        warnings.push('low source image resolution, upscaled');
+      if (render.upscaled && Math.max(baseWidth, baseHeight) < 360) {
+        warnings.push('low resolution image aggressively upscaled');
       }
       return { processed: false, warnings, upscaled: render.upscaled };
     }
 
-    const padding = Math.round(Math.max(box.width, box.height) * 0.12);
+    const padding = Math.round(Math.max(box.width, box.height) * 0.05);
     const cropLeft = Math.max(0, box.left - padding);
     const cropTop = Math.max(0, box.top - padding);
     const cropRight = Math.min(box.imageWidth, box.left + box.width + padding);
@@ -396,8 +396,8 @@ async function processAndSaveProductImage({ inputBuffer, outputPath }) {
       .toBuffer();
 
     const canvasResult = await renderToCenteredCanvas(render, cropWidth, cropHeight, outputPath, scaleFactor);
-    if (canvasResult.upscaled && objectMaxSide < 300) {
-      warnings.push('low source image resolution, upscaled');
+    if (canvasResult.upscaled && objectMaxSide < 360) {
+      warnings.push('low resolution image aggressively upscaled');
     }
 
     return { processed: true, warnings, upscaled: canvasResult.upscaled };
@@ -416,8 +416,8 @@ async function processAndSaveProductImage({ inputBuffer, outputPath }) {
         outputPath,
         scale
       );
-      if (fallbackRender.upscaled && Math.max(baseWidth, baseHeight) < 300) {
-        warnings.push('low source image resolution, upscaled');
+      if (fallbackRender.upscaled && Math.max(baseWidth, baseHeight) < 360) {
+        warnings.push('low resolution image aggressively upscaled');
       }
       return { processed: false, warnings, upscaled: fallbackRender.upscaled };
     } catch (fallbackError) {
