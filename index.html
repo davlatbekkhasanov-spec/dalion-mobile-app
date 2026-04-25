@@ -416,13 +416,21 @@
     .section-head a { text-decoration: none; color: #67fdb9; font-size: 12px; font-weight: 700; }
 
     .cats {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      display: flex;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      padding-bottom: 4px;
       gap: 8px;
       margin-bottom: 16px;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
+    .cats::-webkit-scrollbar { display: none; }
 
     .cat {
+      width: 100px;
+      height: 100px;
+      flex: 0 0 100px;
       border-radius: 14px;
       border: 1px solid rgba(128, 157, 209, 0.26);
       background: linear-gradient(170deg, rgba(24, 38, 64, 0.95), rgba(11, 20, 36, 0.95));
@@ -436,11 +444,15 @@
       color: #b4c8e9;
       text-align: center;
       padding: 6px 2px;
+      line-height: 1.15;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
     .cat i {
-      width: 30px;
-      height: 30px;
+      width: 42px;
+      height: 42px;
       border-radius: 10px;
       display: grid;
       place-items: center;
@@ -449,11 +461,20 @@
       background: linear-gradient(150deg, rgba(37, 244, 143, 0.24), rgba(39, 213, 255, 0.22));
       box-shadow: 0 0 14px rgba(37, 244, 143, 0.34);
       border: 1px solid rgba(119, 232, 189, 0.35);
+      margin-bottom: 4px;
+    }
+    .cat .cat-label {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 4px;
     }
 
     .products-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 9px;
       margin-bottom: 16px;
     }
@@ -463,6 +484,8 @@
       border: 1px solid rgba(127, 158, 213, 0.26);
       background: var(--dark-card);
       padding: 8px;
+      display: flex;
+      flex-direction: column;
       box-shadow: var(--shadow);
       cursor: pointer;
       transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
@@ -476,9 +499,11 @@
     }
 
     .image-box {
-      height: 84px;
+      height: 150px;
+      flex: 0 0 150px;
       border-radius: 12px;
-      background: linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%);
+      background:
+        radial-gradient(circle at 35% 22%, rgba(255, 255, 255, 0.98) 0%, rgba(244, 250, 255, 0.95) 38%, rgba(232, 243, 255, 0.9) 100%);
       border: 1px solid #dbe7f8;
       color: #6178a0;
       font-size: 11px;
@@ -486,10 +511,61 @@
       display: grid;
       place-items: center;
       text-align: center;
-      padding: 6px;
-      margin-bottom: 8px;
+      padding: 1px;
+      margin-bottom: 6px;
       white-space: pre-line;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), inset 0 -10px 18px rgba(203, 223, 248, 0.28);
     }
+
+    .image-box img {
+      max-width: 96%;
+      max-height: 96%;
+      object-fit: contain;
+      display: block;
+      filter: drop-shadow(0 8px 12px rgba(36, 57, 92, 0.24)) drop-shadow(0 2px 4px rgba(39, 52, 80, 0.2));
+      transform: translateZ(0) scale(1);
+      transition: transform 180ms ease, filter 180ms ease;
+    }
+
+    .product:hover .image-box img {
+      transform: translateZ(0) scale(1.02);
+      filter: drop-shadow(0 10px 14px rgba(32, 54, 88, 0.28)) drop-shadow(0 3px 6px rgba(36, 52, 77, 0.22));
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .category-card {
+      border-radius: 12px;
+      border: 1px solid rgba(128, 157, 209, 0.28);
+      background: linear-gradient(170deg, rgba(20, 34, 59, 0.82), rgba(10, 19, 35, 0.82));
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: 38px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      min-height: 56px;
+    }
+
+    .category-card .icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: rgba(39, 213, 255, 0.12);
+      border: 1px solid rgba(96, 240, 178, 0.28);
+      box-shadow: 0 0 10px rgba(39, 213, 255, 0.2) inset;
+    }
+    .category-card b { font-size: 14px; display:block; }
+    .category-card small { color: #9ab3d8; font-size: 11px; }
 
     .product h5 { font-size: 12px; margin-bottom: 3px; color: #eaf4ff; line-height: 1.25; }
     .meta { font-size: 10px; color: #8fb0d8; margin-bottom: 4px; }
@@ -757,7 +833,11 @@
       cursor: pointer;
     }
 
-    .modal-image { height: 130px; margin: 10px 0; }
+    .modal-image {
+      height: 260px;
+      margin: 10px 0;
+      overflow: hidden;
+    }
 
     @keyframes drift {
       from { transform: translateY(0) rotate(0deg); }
@@ -827,19 +907,13 @@
 
         <div class="section-head">
           <h4>Категориялар</h4>
-          <a href="#">Барчаси</a>
+          <a href="#" id="homeAllCategoriesLink">Барчаси</a>
         </div>
-        <section class="cats">
-          <article class="cat"><i>🥤</i>Ичимлик</article>
-          <article class="cat"><i>🍪</i>Снек</article>
-          <article class="cat"><i>🧴</i>Гигиена</article>
-          <article class="cat"><i>🥛</i>Сут</article>
-          <article class="cat"><i>🍫</i>Ширинлик</article>
-        </section>
+        <section class="cats" id="homeCategories"></section>
 
         <div class="section-head">
           <h4>Оммабоп маҳсулотлар</h4>
-          <a href="#">Кўпроқ</a>
+          <a href="#" id="homeMoreProductsLink">Кўпроқ</a>
         </div>
         <section class="products-grid" id="homeProducts"></section>
 
@@ -854,7 +928,10 @@
 
       <section class="view" id="searchView">
         <h2 class="title">Katalog</h2>
-        <input class="search" id="searchInput" placeholder="Mahsulot nomini yozing..." />
+        <input class="search" id="searchInput" placeholder="Mahsulotlar va turkumlar qidirish" />
+        <button class="btn btn-secondary" id="categoryBackBtn" style="display:none; margin-bottom:10px; padding:10px 12px;">← Katalog</button>
+        <section class="category-grid" id="categoryResults"></section>
+        <p class="muted" id="catalogProductResultsTitle" style="display:none; margin-bottom:8px;"></p>
         <section class="products-grid" id="searchResults"></section>
         <div class="empty" id="searchEmpty" style="display:none;">Hech narsa topilmadi. Boshqa so'z kiriting.</div>
       </section>
@@ -941,6 +1018,14 @@ Oq fonli foto</div>
     let currentView = 'homeView';
     let selectedPayment = 'Naqd';
     let activeModalProductId = null;
+    let selectedCategory = null;
+    let selectedCategoryLabel = '';
+    let catalogMode = 'categories';
+    let productsPage = 1;
+    const productsLimit = 40;
+    let productsHasMore = false;
+    let productsLoading = false;
+    let cartItemsSnapshot = [];
 
     const phone = document.getElementById('phone');
     const continueBtn = document.getElementById('continueBtn');
@@ -949,6 +1034,8 @@ Oq fonli foto</div>
     const searchResults = document.getElementById('searchResults');
     const searchInput = document.getElementById('searchInput');
     const searchEmpty = document.getElementById('searchEmpty');
+    const categoryResults = document.getElementById('categoryResults');
+    const categoryBackBtn = document.getElementById('categoryBackBtn');
     const cartItems = document.getElementById('cartItems');
     const cartEmpty = document.getElementById('cartEmpty');
     const cartSummary = document.getElementById('cartSummary');
@@ -957,6 +1044,8 @@ Oq fonli foto</div>
     const bottomNav = document.getElementById('bottomNav');
     const checkoutItems = document.getElementById('checkoutItems');
     const checkoutTotal = document.getElementById('checkoutTotal');
+    const catalogProductResultsTitle = document.getElementById('catalogProductResultsTitle');
+    const homeCategories = document.getElementById('homeCategories');
 
     const modalOverlay = document.getElementById('productModalOverlay');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -983,15 +1072,32 @@ Oq fonli foto</div>
       return data;
     }
 
-    async function loadProducts(search = '') {
-      const query = search ? `?search=${encodeURIComponent(search)}` : '';
-      const data = await api(`/products${query}`);
-      products = data.products || [];
+    async function loadProducts({ reset = false } = {}) {
+      if (productsLoading) return;
+      productsLoading = true;
+      try {
+        if (reset) productsPage = 1;
+        const collected = [];
+        let page = productsPage;
+        while (true) {
+          const params = new URLSearchParams({ page: String(page), limit: String(productsLimit) });
+          const data = await api(`/products?${params.toString()}`);
+          const incoming = (data.items || data.products || []).filter((p) => p.active !== false);
+          collected.push(...incoming);
+          if (!data.hasMore) break;
+          page += 1;
+        }
+        products = reset ? collected : products.concat(collected);
+        productsHasMore = false;
+      } finally {
+        productsLoading = false;
+      }
     }
 
     async function loadCart() {
       const summary = await api('/cart');
       cart = {};
+      cartItemsSnapshot = summary.items || [];
       (summary.items || []).forEach((item) => {
         cart[item.id] = item.quantity;
       });
@@ -1014,11 +1120,17 @@ Oq fonli foto</div>
     }
 
     function totalPrice() {
-      return products.reduce((sum, p) => sum + qtyOf(p.id) * p.price, 0);
+      return cartItemsSnapshot.reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
     }
 
     async function setQty(id, value, showAddToast = false) {
-      const quantity = Math.max(0, Number(value) || 0);
+      const p = products.find((x) => x.id === id);
+      const stockLimit = Number(p?.stock ?? 0);
+      if (stockLimit <= 0 && Number(value) > 0) {
+        showToast("Omborda yo'q");
+        return;
+      }
+      const quantity = Math.max(0, Math.min(Number(value) || 0, stockLimit));
       await api('/cart/items', {
         method: 'PUT',
         body: JSON.stringify({ productId: id, quantity })
@@ -1029,22 +1141,32 @@ Oq fonli foto</div>
     }
 
     function makeQtyControls(id) {
+      const p = products.find((x) => x.id === id);
+      const stock = Number(p?.stock ?? 0);
       const q = qtyOf(id);
+      const plusDisabled = stock <= 0 || q >= stock ? 'disabled' : '';
       return `
         <button class="qty-minus" data-id="${id}">−</button>
         <span>${q}</span>
-        <button class="qty-plus" data-id="${id}">+</button>
+        <button class="qty-plus" data-id="${id}" ${plusDisabled}>+</button>
       `;
     }
 
     function productCardTemplate(p) {
+      const categoryName = normalizedCategoryName(p.categoryDisplayName || p.category);
+      const stock = Number(p.stock ?? 0);
+      const priceText = Number(p.price) > 0 ? money(p.price) : 'Narx aniqlanmoqda';
+      const imageHtml = p.image_url
+        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />`
+        : `DALION
+Oq fonli foto`;
       return `
         <article class="product" data-open-product="${p.id}">
-          <div class="image-box">DALION
-Oq fonli foto</div>
+          <div class="image-box">${imageHtml}</div>
           <h5>${p.name}</h5>
-          <p class="meta">${p.category}</p>
-          <p class="price">${money(p.price)}</p>
+          <p class="meta">${categoryName}</p>
+          <p class="price">${priceText}</p>
+          <p class="meta">${stock > 0 ? `Ostatka: ${stock}` : "Omborda yo'q"}</p>
           <p class="old-price">${money(p.oldPrice)}</p>
           <div class="qty" data-qty-wrap="${p.id}">${makeQtyControls(p.id)}</div>
         </article>
@@ -1052,19 +1174,103 @@ Oq fonli foto</div>
     }
 
     function renderHome() {
-      homeProducts.innerHTML = products.map(productCardTemplate).join('');
+      const popular = products
+        .slice()
+        .sort((a, b) => {
+          const byOrders = Number(b.orderCount || 0) - Number(a.orderCount || 0);
+          if (byOrders !== 0) return byOrders;
+          const byStock = Number(b.stock || 0) - Number(a.stock || 0);
+          if (byStock !== 0) return byStock;
+          const byPrice = Number(b.price || 0) - Number(a.price || 0);
+          if (byPrice !== 0) return byPrice;
+          return String(a.name || '').localeCompare(String(b.name || ''), 'uz');
+        })
+        .slice(0, 8);
+      homeProducts.innerHTML = popular.map(productCardTemplate).join('');
+    }
+
+    function normalizedCategoryName(categoryName) {
+      return String(categoryName || '').trim() || 'Boshqa';
+    }
+
+    function getCategoryIcon(name) {
+      const n = String(name || '').toLowerCase();
+      if (n.includes('ichim')) return '🥤';
+      if (n.includes('shirin')) return '🍬';
+      if (n.includes('sut')) return '🥛';
+      if (n.includes("go'sht") || n.includes('gosht')) return '🥩';
+      if (n.includes('meva')) return '🍏';
+      if (n.includes('блокнот') || n.includes('daftar') || n.includes('тетрад')) return '📒';
+      if (n.includes('альбом') || n.includes('rasm') || n.includes('рисов')) return '🎨';
+      if (n.includes('азбук') || n.includes('kitob') || n.includes('книга')) return '📚';
+      if (n.includes('kantsely') || n.includes('канц') || n.includes('karandash') || n.includes('ручка')) return '✏️';
+      if (n.includes('доск')) return '🧱';
+      if (n.includes('игр')) return '🎲';
+      if (n.includes('калькулятор')) return '🧮';
+      if (n.includes('gigien')) return '🧴';
+      return '📦';
+    }
+
+    function getCategoryEntries() {
+      const categoryMap = new Map();
+      products.forEach((p) => {
+        const key = normalizedCategoryName(p.category);
+        const displayName = normalizedCategoryName(p.categoryDisplayName || p.category);
+        const icon = p.categoryIcon || getCategoryIcon(displayName);
+        const image_url = p.categoryImageUrl || '';
+        const current = categoryMap.get(key) || { key, displayName, icon, image_url, count: 0 };
+        current.count += 1;
+        if (!current.image_url && image_url) current.image_url = image_url;
+        if (!current.icon && icon) current.icon = icon;
+        categoryMap.set(key, current);
+      });
+      return [...categoryMap.values()].sort((a, b) => a.displayName.localeCompare(b.displayName, 'uz'));
+    }
+
+    function renderHomeCategories() {
+      const entries = getCategoryEntries();
+      homeCategories.innerHTML = entries.map((c) => `
+        <article class="cat" data-home-category="${c.key}" data-home-category-label="${c.displayName}">
+          <i>${c.image_url ? `<img src="${c.image_url}" alt="${c.displayName}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />` : c.icon}</i>
+          <span class="cat-label">${c.displayName}</span>
+        </article>
+      `).join('');
     }
 
     function renderSearch() {
       const query = searchInput.value.trim().toLowerCase();
-      const filtered = products.filter((p) => p.name.toLowerCase().includes(query));
-      searchResults.innerHTML = filtered.map(productCardTemplate).join('');
-      searchEmpty.style.display = filtered.length ? 'none' : 'block';
+      if (catalogMode === 'categories') {
+        const categories = getCategoryEntries().filter((c) => c.displayName.toLowerCase().includes(query));
+        categoryResults.innerHTML = categories.map((c) => `
+          <article class="category-card" data-category="${c.key}" data-category-label="${c.displayName}">
+            <span class="icon">${c.image_url ? `<img src="${c.image_url}" alt="${c.displayName}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />` : c.icon}</span>
+            <div><b>${c.displayName}</b><small>${c.count} ta mahsulot</small></div>
+            <span>›</span>
+          </article>
+        `).join('');
+        categoryResults.style.display = 'grid';
+        categoryBackBtn.style.display = 'none';
+        const byProduct = products.filter((p) => p.name.toLowerCase().includes(query));
+        catalogProductResultsTitle.style.display = query ? 'block' : 'none';
+        catalogProductResultsTitle.textContent = query ? "Mahsulotlar bo'yicha natijalar" : '';
+        searchResults.innerHTML = query ? byProduct.slice(0, 12).map(productCardTemplate).join('') : '';
+        searchEmpty.style.display = (!categories.length && !byProduct.length) ? 'block' : 'none';
+        return;
+      }
+
+      const byCategory = products.filter((p) => normalizedCategoryName(p.category) === selectedCategory);
+      const filteredProducts = byCategory.filter((p) => p.name.toLowerCase().includes(query));
+      categoryResults.style.display = 'none';
+      categoryResults.innerHTML = '';
+      categoryBackBtn.style.display = 'inline-flex';
+      catalogProductResultsTitle.style.display = 'block';
+      catalogProductResultsTitle.textContent = selectedCategoryLabel || selectedCategory || 'Katalog';
+      searchResults.innerHTML = filteredProducts.map(productCardTemplate).join('');
+      searchEmpty.style.display = filteredProducts.length ? 'none' : 'block';
     }
 
     function renderCart() {
-      const selected = products.filter((p) => qtyOf(p.id) > 0);
-      if (!selected.length) {
+      if (!cartItemsSnapshot.length) {
         cartItems.innerHTML = '';
         cartEmpty.style.display = 'block';
         cartSummary.style.display = 'none';
@@ -1073,18 +1279,17 @@ Oq fonli foto</div>
 
       cartEmpty.style.display = 'none';
       cartSummary.style.display = 'block';
-      cartItems.innerHTML = selected.map((p) => {
-        const qty = qtyOf(p.id);
-        const subtotal = qty * p.price;
+      cartItems.innerHTML = cartItemsSnapshot.map((item) => {
+        const imageHtml = item.image_url ? `<img src="${item.image_url}" alt="${item.name}" loading="lazy" decoding="async" style="width:42px;height:42px;border-radius:10px;object-fit:contain;background:#fff;" />` : '';
         return `
           <article class="list-card">
             <div class="list-row" style="margin-bottom:6px;">
-              <strong>${p.name}</strong>
-              <span class="muted">${money(p.price)}</span>
+              <div style="display:flex;align-items:center;gap:8px;">${imageHtml}<strong>${item.name}</strong></div>
+              <span class="muted">${money(item.price)}</span>
             </div>
             <div class="list-row">
-              <div class="qty" data-qty-wrap="${p.id}" style="width:110px; margin:0;">${makeQtyControls(p.id)}</div>
-              <strong>${money(subtotal)}</strong>
+              <div class="qty" data-qty-wrap="${item.id}" style="width:110px; margin:0;">${makeQtyControls(item.id)}</div>
+              <strong>${money(item.subtotal)}</strong>
             </div>
           </article>
         `;
@@ -1122,13 +1327,19 @@ Oq fonli foto</div>
       const p = products.find((x) => x.id === activeModalProductId);
       if (!p) return;
       modalName.textContent = p.name;
-      modalCategory.textContent = p.category;
+      modalCategory.textContent = normalizedCategoryName(p.categoryDisplayName || p.category);
       modalPrice.textContent = money(p.price);
       modalOldPrice.textContent = money(p.oldPrice);
+      const modalImageBox = document.querySelector('.modal-image');
+      modalImageBox.innerHTML = p.image_url
+        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />`
+        : `DALION
+Oq fonli foto`;
       modalQty.innerHTML = makeQtyControls(p.id);
     }
 
     function renderAll() {
+      renderHomeCategories();
       renderHome();
       renderSearch();
       renderCart();
@@ -1157,7 +1368,7 @@ Oq fonli foto</div>
 
     async function initializeAppData() {
       try {
-        await Promise.all([loadProducts(), loadCart()]);
+        await Promise.all([loadProducts({ reset: true }), loadCart()]);
         renderAll();
       } catch (error) {
         showToast(error.message || 'Maʼlumotni yuklashda xatolik');
@@ -1172,16 +1383,57 @@ Oq fonli foto</div>
 
     document.getElementById('openSearchBtn').addEventListener('click', () => {
       setView('searchView');
+      selectedCategory = null;
+      selectedCategoryLabel = '';
+      catalogMode = 'categories';
+      searchInput.value = '';
+      renderSearch();
       searchInput.focus();
     });
 
     searchInput.addEventListener('input', renderSearch);
+    categoryBackBtn.addEventListener('click', () => {
+      selectedCategory = null;
+      selectedCategoryLabel = '';
+      catalogMode = 'categories';
+      searchInput.value = '';
+      renderSearch();
+    });
 
     bottomNav.addEventListener('click', (e) => {
       const tab = e.target.closest('.tab');
       if (!tab) return;
       setView(tab.dataset.view);
-      if (tab.dataset.view === 'searchView') searchInput.focus();
+      if (tab.dataset.view === 'searchView') {
+        selectedCategory = null;
+        selectedCategoryLabel = '';
+        catalogMode = 'categories';
+        searchInput.value = '';
+        renderSearch();
+        searchInput.focus();
+      }
+    });
+
+    document.querySelector('.bell')?.addEventListener('click', () => {
+      showToast("Yangi bildirishnomalar tez orada qo'shiladi");
+    });
+    document.getElementById('homeAllCategoriesLink')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      setView('searchView');
+      catalogMode = 'categories';
+      selectedCategory = null;
+      selectedCategoryLabel = '';
+      searchInput.value = '';
+      renderSearch();
+    });
+    document.getElementById('homeMoreProductsLink')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      setView('searchView');
+      catalogMode = 'categories';
+      selectedCategory = null;
+      selectedCategoryLabel = '';
+      searchInput.value = '';
+      renderSearch();
     });
 
     document.body.addEventListener('click', async (e) => {
@@ -1198,6 +1450,16 @@ Oq fonli foto</div>
         if (plus) {
           e.stopPropagation();
           const id = plus.dataset.id;
+          const p = products.find((x) => x.id === id);
+          const stock = Number(p?.stock ?? 0);
+          if (stock <= 0) {
+            showToast("Omborda yo'q");
+            return;
+          }
+          if (qtyOf(id) >= stock) {
+            showToast('Maksimal qoldiqga yetdi');
+            return;
+          }
           await setQty(id, qtyOf(id) + 1, true);
           return;
         }
@@ -1216,6 +1478,27 @@ Oq fonli foto</div>
       const card = e.target.closest('[data-open-product]');
       if (card && !e.target.closest('.qty')) {
         openProductModal(card.dataset.openProduct);
+        return;
+      }
+
+      const categoryCard = e.target.closest('[data-category]');
+      if (categoryCard) {
+        selectedCategory = categoryCard.dataset.category;
+        selectedCategoryLabel = categoryCard.dataset.categoryLabel || categoryCard.dataset.category;
+        catalogMode = 'category';
+        searchInput.value = '';
+        renderSearch();
+        return;
+      }
+
+      const homeCategoryCard = e.target.closest('[data-home-category]');
+      if (homeCategoryCard) {
+        selectedCategory = homeCategoryCard.dataset.homeCategory;
+        selectedCategoryLabel = homeCategoryCard.dataset.homeCategoryLabel || homeCategoryCard.dataset.homeCategory;
+        catalogMode = 'category';
+        setView('searchView');
+        searchInput.value = '';
+        renderSearch();
       }
     });
 
