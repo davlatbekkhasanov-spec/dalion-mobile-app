@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GlobusMarket Admin</title>
+  <style>
+    :root { --bg:#050b18; --card:#0f1d34; --line:#2e436a; --text:#e8f2ff; --muted:#9ab3d6; --acc:#27f39a; }
+    *{box-sizing:border-box;font-family:Inter,Segoe UI,Arial,sans-serif}
+    body{margin:0;background:radial-gradient(circle at 20% 0%,#123,transparent 40%),#040914;color:var(--text)}
+    .wrap{max-width:1100px;margin:0 auto;padding:20px}
+    .card{background:linear-gradient(180deg,#12223d,#0b162a);border:1px solid var(--line);border-radius:14px;padding:14px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    input,textarea,select,button{border-radius:10px;border:1px solid var(--line);background:#0a1730;color:var(--text);padding:10px}
+    button{cursor:pointer}
+    .primary{background:linear-gradient(90deg,#2aff9b,#28d8ff);color:#032519;border:none;font-weight:700}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+    .tab{padding:8px 12px}
+    .tab.active{border-color:#5af5b4;box-shadow:0 0 0 1px #5af5b466 inset}
+    .panel{display:none}
+    .panel.active{display:block}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .list{margin-top:10px;display:grid;gap:8px}
+    .item{border:1px solid var(--line);padding:10px;border-radius:10px;background:#0a162b}
+    .muted{color:var(--muted);font-size:13px}
+    .toast{position:fixed;bottom:18px;right:18px;background:#07172d;border:1px solid var(--line);padding:10px 12px;border-radius:10px;opacity:0;transition:.2s}
+    .toast.show{opacity:1}
+    .progress-wrap{margin-top:10px;display:none}
+    .progress-wrap.show{display:block}
+    .progress-track{height:10px;border-radius:999px;background:#0a1730;border:1px solid var(--line);overflow:hidden}
+    .progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#2aff9b,#28d8ff);transition:width .2s ease}
+    .progress-text{font-size:13px;color:var(--muted);margin-top:6px}
+    .progress-wrap.error .progress-bar{background:linear-gradient(90deg,#ff6f91,#ff3b3b)}
+    .import-summary{margin-top:10px;border:1px solid var(--line);border-radius:10px;background:#0a162b;padding:10px;display:none}
+    .import-summary.show{display:block}
+    .import-summary h4{margin:0 0 8px}
+    .import-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .metric{padding:8px;border:1px solid var(--line);border-radius:8px;background:#0c1a33}
+    .metric b{font-size:18px;display:block}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Admin Panel</h1>
+    <div class="card">
+      <div class="row">
+        <input id="tokenInput" placeholder="ADMIN_IMPORT_TOKEN" style="min-width:280px" />
+        <button id="saveTokenBtn" class="primary">Token saqlash</button>
+      </div>
+      <p class="muted">Token localStorage'da vaqtincha saqlanadi.</p>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+
+    <section class="panel card" id="excel-panel">
+      <h3>Excel Import</h3>
+      <input type="file" id="xlsxFile" accept=".xlsx" />
+      <button id="importBtn" class="primary">Import XLSX</button>
+      <div id="importProgressWrap" class="progress-wrap">
+        <div class="progress-track"><div id="importProgressBar" class="progress-bar"></div></div>
+        <div id="importProgressText" class="progress-text">Yuklanmoqda... 0%</div>
+      </div>
+      <div id="importSummary" class="import-summary"></div>
+      <pre id="importResult" class="muted"></pre>
+    </section>
+
+    <section class="panel card" id="banners-panel">
+      <h3>Banners</h3>
+      <div class="grid">
+        <input id="bannerTitle" placeholder="title" />
+        <input id="bannerSubtitle" placeholder="subtitle" />
+        <input id="bannerImage" placeholder="image_url" />
+        <select id="bannerActive"><option value="true">active true</option><option value="false">active false</option></select>
+      </div>
+      <button id="addBannerBtn" class="primary">Add banner</button>
+      <div id="bannersList" class="list"></div>
+    </section>
+
+    <section class="panel card" id="promotions-panel">
+      <h3>Promotions</h3>
+      <div class="grid">
+        <input id="promoTitle" placeholder="title" />
+        <input id="promoDiscount" placeholder="discount_text" />
+        <input id="promoDesc" placeholder="description" />
+        <select id="promoActive"><option value="true">active true</option><option value="false">active false</option></select>
+      </div>
+      <button id="addPromoBtn" class="primary">Add promo</button>
+      <div id="promotionsList" class="list"></div>
+    </section>
+
+    <section class="panel card" id="home-settings-panel">
+      <h3>Home Settings</h3>
+      <div class="grid">
+        <input id="heroTitle" placeholder="Hero title" />
+        <input id="heroSubtitle" placeholder="Hero subtitle" />
+        <input id="deliveryText" placeholder="Delivery text" />
+        <input id="bgUrl" placeholder="Background image URL" />
+        <input id="accentColor" placeholder="Accent color" />
+      </div>
+      <button id="saveHomeBtn" class="primary">Save settings</button>
+    </section>
+
+    <section class="panel card" id="categories-panel">
+      <h3>Categories</h3>
+      <div id="categoriesList" class="list"></div>
+    </section>
+
+    <section class="panel card" id="products-panel">
+      <h3>Products</h3>
+      <input id="productsSearch" placeholder="Search products" />
+      <div id="productsList" class="list"></div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script>
+    const tabs = [
+      ['excel','Excel Import'],['banners','Banners'],['promotions','Promotions'],['home-settings','Home Settings'],['categories','Categories'],['products','Products']
+    ];
+    const tabsWrap = document.getElementById('tabs');
+    const tokenInput = document.getElementById('tokenInput');
+    const toast = document.getElementById('toast');
+    const tokenKey = 'admin_import_token';
+
+    function showToast(t){toast.textContent=t;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.classList.remove('show'),1400)}
+    function getToken(){return localStorage.getItem(tokenKey)||''}
+
+    async function api(path, options={}){
+      const token = getToken();
+      const res = await fetch('/api/v1'+path,{headers:{'Content-Type':'application/json','x-admin-token':token},...options});
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(data.message||'API xatolik');
+      return data;
+    }
+
+    function activateTab(id){
+      document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.id===id));
+      document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id===id+'-panel'));
+    }
+
+    tabs.forEach(([id,label])=>{
+      const b=document.createElement('button');b.className='tab';b.dataset.id=id;b.textContent=label;b.onclick=()=>activateTab(id);tabsWrap.appendChild(b)
+    });
+    activateTab('excel');
+
+    tokenInput.value = getToken();
+    document.getElementById('saveTokenBtn').onclick=()=>{localStorage.setItem(tokenKey, tokenInput.value.trim());showToast('Token saqlandi')};
+
+    function progressLabel(percent){
+      if(percent >= 100) return 'Yakunlanmoqda... 100%';
+      if(percent >= 75) return 'Yuklanmoqda... 75%';
+      if(percent >= 50) return 'Yuklanmoqda... 50%';
+      if(percent >= 25) return 'Yuklanmoqda... 25%';
+      return 'Yuklanmoqda... 0%';
+    }
+
+    function setImportProgress(percent, isError=false){
+      const wrap = document.getElementById('importProgressWrap');
+      const bar = document.getElementById('importProgressBar');
+      const text = document.getElementById('importProgressText');
+      wrap.classList.add('show');
+      wrap.classList.toggle('error', Boolean(isError));
+      const safe = Math.max(0, Math.min(100, Math.round(percent)));
+      bar.style.width = `${safe}%`;
+      text.textContent = progressLabel(safe);
+      if(isError) text.textContent = `Import xatolik: ${safe}%`;
+    }
+
+    function renderImportSummary(data){
+      const summary = document.getElementById('importSummary');
+      summary.innerHTML = `
+        <h4>Import yakuni</h4>
+        <div class="import-grid">
+          <div class="metric"><span class="muted">Imported</span><b>${data.imported ?? 0}</b></div>
+          <div class="metric"><span class="muted">Skipped</span><b>${data.skipped ?? 0}</b></div>
+          <div class="metric"><span class="muted">Image extracted</span><b>${data.imageExtracted ?? 0}</b></div>
+          <div class="metric"><span class="muted">Image processed</span><b>${data.imageProcessed ?? 0}</b></div>
+          <div class="metric"><span class="muted">Object detected</span><b>${data.imageObjectDetected ?? 0}</b></div>
+          <div class="metric"><span class="muted">Detection warnings</span><b>${(data.imageDetectionWarnings || []).length}</b></div>
+          <div class="metric"><span class="muted">Image upscaled</span><b>${data.imageUpscaled ?? 0}</b></div>
+          <div class="metric"><span class="muted">Image missing</span><b>${data.imageMissing ?? 0}</b></div>
+        </div>
+      `;
+      summary.classList.add('show');
+    }
+
+    document.getElementById('importBtn').onclick = async () => {
+      const file = document.getElementById('xlsxFile').files[0];
+      if(!file) return showToast('Fayl tanlang');
+      const fd = new FormData(); fd.append('file', file);
+      const resultEl = document.getElementById('importResult');
+      const summaryEl = document.getElementById('importSummary');
+      resultEl.textContent = '';
+      summaryEl.classList.remove('show');
+      const btn = document.getElementById('importBtn'); btn.disabled=true; btn.textContent='Import...';
+      setImportProgress(0);
+      try{
+        const data = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', '/api/v1/integrations/excel/import/products-xlsx');
+          xhr.setRequestHeader('x-admin-token', getToken());
+
+          xhr.upload.onprogress = (e) => {
+            if (!e.lengthComputable) return;
+            const percent = Math.min(95, (e.loaded / e.total) * 100);
+            setImportProgress(percent);
+          };
+
+          xhr.onload = () => {
+            setImportProgress(100);
+            let parsed = {};
+            try { parsed = JSON.parse(xhr.responseText || '{}'); } catch (err) {}
+            if (xhr.status >= 200 && xhr.status < 300) resolve(parsed);
+            else reject(new Error(parsed.message || 'Import error'));
+          };
+          xhr.onerror = () => reject(new Error('Network error'));
+          xhr.send(fd);
+        });
+
+        resultEl.textContent = JSON.stringify(data, null, 2);
+        renderImportSummary(data);
+        showToast('Import muvaffaqiyatli');
+      }catch(e){
+        setImportProgress(100, true);
+        showToast(e.message);
+      }finally{btn.disabled=false;btn.textContent='Import XLSX'}
+    };
+
+    async function loadBanners(){
+      const {banners}=await api('/admin/banners');
+      const wrap=document.getElementById('bannersList');wrap.innerHTML='';
+      banners.forEach(b=>{const d=document.createElement('div');d.className='item';d.innerHTML=`<b>${b.title}</b><div class="muted">${b.subtitle||''} | active: ${b.active}</div><div class="row"><button data-id="${b.id}" data-act="toggle">Toggle</button><button data-id="${b.id}" data-act="del">Delete</button></div>`;wrap.appendChild(d);});
+    }
+    document.getElementById('addBannerBtn').onclick=async()=>{await api('/admin/banners',{method:'POST',body:JSON.stringify({title:bannerTitle.value,subtitle:bannerSubtitle.value,image_url:bannerImage.value,active:bannerActive.value==='true'})});showToast('Saved');loadBanners();};
+    document.getElementById('bannersList').onclick=async(e)=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.id;if(b.dataset.act==='del') await api('/admin/banners/'+id,{method:'DELETE'});else{const list=(await api('/admin/banners')).banners;const x=list.find(i=>i.id===id);await api('/admin/banners/'+id,{method:'PUT',body:JSON.stringify({active:!x.active})});}loadBanners();};
+
+    async function loadPromotions(){
+      const {promotions}=await api('/admin/promotions');
+      const wrap=document.getElementById('promotionsList');wrap.innerHTML='';
+      promotions.forEach(p=>{const d=document.createElement('div');d.className='item';d.innerHTML=`<b>${p.title}</b><div class="muted">${p.discount_text||''} | active: ${p.active}</div><div class="row"><button data-id="${p.id}" data-act="toggle">Toggle</button><button data-id="${p.id}" data-act="del">Delete</button></div>`;wrap.appendChild(d);});
+    }
+    document.getElementById('addPromoBtn').onclick=async()=>{await api('/admin/promotions',{method:'POST',body:JSON.stringify({title:promoTitle.value,description:promoDesc.value,discount_text:promoDiscount.value,active:promoActive.value==='true'})});showToast('Saved');loadPromotions();};
+    document.getElementById('promotionsList').onclick=async(e)=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.id;if(b.dataset.act==='del') await api('/admin/promotions/'+id,{method:'DELETE'});else{const list=(await api('/admin/promotions')).promotions;const x=list.find(i=>i.id===id);await api('/admin/promotions/'+id,{method:'PUT',body:JSON.stringify({active:!x.active})});}loadPromotions();};
+
+    async function loadHomeSettings(){
+      const {homeSettings}=await api('/admin/home-settings');
+      heroTitle.value=homeSettings.heroTitle||'';heroSubtitle.value=homeSettings.heroSubtitle||'';deliveryText.value=homeSettings.deliveryText||'';bgUrl.value=homeSettings.backgroundImageUrl||'';accentColor.value=homeSettings.accentColor||'';
+    }
+    document.getElementById('saveHomeBtn').onclick=async()=>{await api('/admin/home-settings',{method:'PUT',body:JSON.stringify({heroTitle:heroTitle.value,heroSubtitle:heroSubtitle.value,deliveryText:deliveryText.value,backgroundImageUrl:bgUrl.value,accentColor:accentColor.value})});showToast('Saved');};
+
+    async function loadCategories(){
+      const {categories}=await api('/admin/categories');
+      const wrap=document.getElementById('categoriesList');wrap.innerHTML='';
+      categories.forEach(c=>{const d=document.createElement('div');d.className='item';d.innerHTML=`<div class="row"><input value="${c.name}" data-id="${c.id}" data-role="name" /><label><input type="checkbox" ${c.active?'checked':''} data-id="${c.id}" data-role="active" /> active</label><button data-id="${c.id}">Save</button></div>`;wrap.appendChild(d);});
+    }
+    document.getElementById('categoriesList').onclick=async(e)=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.id;const p=b.closest('.item');await api('/admin/categories/'+id,{method:'PUT',body:JSON.stringify({name:p.querySelector('[data-role=name]').value,active:p.querySelector('[data-role=active]').checked})});showToast('Saved');loadCategories();};
+
+    async function loadProducts(){
+      const q=document.getElementById('productsSearch').value||'';
+      const {products}=await api('/admin/products?search='+encodeURIComponent(q));
+      const {categories}=await api('/admin/categories');
+      const wrap=document.getElementById('productsList');wrap.innerHTML='';
+      products.forEach(p=>{const opts=categories.map(c=>`<option value="${c.id}" ${c.id===p.categoryId?'selected':''}>${c.name}</option>`).join('');
+        const d=document.createElement('div');d.className='item';d.innerHTML=`<b>${p.name}</b><div class="row"><label>Active <input type="checkbox" data-role="active" ${p.active?'checked':''}></label><input data-role="price" type="number" value="${p.price}"><input data-role="stock" type="number" value="${p.stock||0}"><select data-role="categoryId">${opts}</select><button data-id="${p.id}">Save</button></div>`;wrap.appendChild(d);
+      });
+    }
+    document.getElementById('productsSearch').oninput=()=>loadProducts();
+    document.getElementById('productsList').onclick=async(e)=>{const b=e.target.closest('button');if(!b)return;const p=b.closest('.item');await api('/admin/products/'+b.dataset.id,{method:'PUT',body:JSON.stringify({active:p.querySelector('[data-role=active]').checked,price:Number(p.querySelector('[data-role=price]').value),stock:Number(p.querySelector('[data-role=stock]').value),categoryId:p.querySelector('[data-role=categoryId]').value})});showToast('Saved');loadProducts();};
+
+    async function bootstrap(){
+      try{await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts()]);}
+      catch(e){showToast(e.message||'Token tekshiring')}
+    }
+    bootstrap();
+  </script>
+</body>
+</html>
