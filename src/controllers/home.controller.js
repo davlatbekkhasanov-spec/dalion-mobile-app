@@ -1,27 +1,35 @@
+const store = require('../data/store.js');
+
 exports.getHome = (req, res) => {
+  const settings = store.getHomeSettings();
+  const mainCategories = store.getCategories({ activeOnly: true });
+  const activeProducts = store.listProducts('', { activeOnly: true });
+  const popularProducts = activeProducts
+    .slice()
+    .sort((a, b) => {
+      const byOrders = Number(b.orderCount || 0) - Number(a.orderCount || 0);
+      if (byOrders !== 0) return byOrders;
+      const byStock = Number(b.stock || 0) - Number(a.stock || 0);
+      if (byStock !== 0) return byStock;
+      const byPrice = Number(b.price || 0) - Number(a.price || 0);
+      if (byPrice !== 0) return byPrice;
+      return String(a.name || '').localeCompare(String(b.name || ''), 'uz');
+    })
+    .slice(0, 8);
+
   res.json({
-    banners: [
-      {
-        id: 'banner_1',
-        title: 'Tez yetkazib berish',
-        subtitle: '30 daqiqa ichida buyurtma bering'
-      }
-    ],
-    main_categories: [
-      { id: 'cat_1', name: 'Ichimliklar' },
-      { id: 'cat_2', name: 'Shirinliklar' },
-      { id: 'cat_3', name: 'Sut mahsulotlari' },
-      { id: 'cat_4', name: 'Boshqa' }
-    ],
-    popular_products: [
-      { id: '1', name: 'Coca Cola 1L', price: 14000, image: '', category_id: 'cat_1' },
-      { id: '2', name: 'Pepsi 1L', price: 13000, image: '', category_id: 'cat_1' },
-      { id: '3', name: 'Chocolate Bar', price: 9000, image: '', category_id: 'cat_2' }
-    ],
+    banners: store.getBanners({ activeOnly: true }),
+    promotions: store.getPromotions({ activeOnly: true }),
+    home_settings: settings,
+    settings,
+    main_categories: mainCategories,
+    categories: mainCategories,
+    popular_products: popularProducts,
+    popularProducts,
     delivery_info: {
-      base_km: 3,
-      base_price: 12000,
-      price_per_km: 2500
+      location: settings.locationText || 'Yunusobod, Toshkent',
+      time: settings.deliveryTimeText || '30 daqiqa',
+      price: 12000
     }
   });
 };

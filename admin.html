@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GlobusMarket Admin</title>
+  <style>
+    :root { --bg:#050b18; --card:#0f1d34; --line:#2e436a; --text:#e8f2ff; --muted:#9ab3d6; --acc:#27f39a; }
+    *{box-sizing:border-box;font-family:Inter,Segoe UI,Arial,sans-serif}
+    body{margin:0;background:radial-gradient(circle at 20% 0%,#123,transparent 40%),#040914;color:var(--text)}
+    .wrap{max-width:1100px;margin:0 auto;padding:20px}
+    .card{background:linear-gradient(180deg,#12223d,#0b162a);border:1px solid var(--line);border-radius:14px;padding:14px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    input,textarea,select,button{border-radius:10px;border:1px solid var(--line);background:#0a1730;color:var(--text);padding:10px}
+    button{cursor:pointer}
+    .primary{background:linear-gradient(90deg,#2aff9b,#28d8ff);color:#032519;border:none;font-weight:700}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+    .tab{padding:8px 12px}
+    .tab.active{border-color:#5af5b4;box-shadow:0 0 0 1px #5af5b466 inset}
+    .panel{display:none}
+    .panel.active{display:block}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .list{margin-top:10px;display:grid;gap:8px}
+    .item{border:1px solid var(--line);padding:10px;border-radius:10px;background:#0a162b}
+    .muted{color:var(--muted);font-size:13px}
+    .toast{position:fixed;bottom:18px;right:18px;background:#07172d;border:1px solid var(--line);padding:10px 12px;border-radius:10px;opacity:0;transition:.2s}
+    .toast.show{opacity:1}
+    .progress-wrap{margin-top:10px;display:none}
+    .progress-wrap.show{display:block}
+    .progress-track{height:10px;border-radius:999px;background:#0a1730;border:1px solid var(--line);overflow:hidden}
+    .progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#2aff9b,#28d8ff);transition:width .2s ease}
+    .progress-text{font-size:13px;color:var(--muted);margin-top:6px}
+    .progress-wrap.error .progress-bar{background:linear-gradient(90deg,#ff6f91,#ff3b3b)}
+    .import-summary{margin-top:10px;border:1px solid var(--line);border-radius:10px;background:#0a162b;padding:10px;display:none}
+    .import-summary.show{display:block}
+    .import-summary h4{margin:0 0 8px}
+    .import-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .metric{padding:8px;border:1px solid var(--line);border-radius:8px;background:#0c1a33}
+    .metric b{font-size:18px;display:block}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1 id="pageTitle">Admin Panel</h1>
+    <div class="row" style="margin-bottom:10px;">
+      <button id="langUz" class="tab">UZ</button>
+      <button id="langRu" class="tab">RU</button>
+    </div>
+    <div class="card">
+      <div class="row">
+        <input id="tokenInput" placeholder="ADMIN_IMPORT_TOKEN" style="min-width:280px" />
+        <button id="saveTokenBtn" class="primary">Token saqlash</button>
+      </div>
+      <p class="muted" id="tokenHelp">Token localStorage'da vaqtincha saqlanadi.</p>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+
+    <section class="panel card" id="excel-panel">
+      <h3 id="excelTitle">Excel Import</h3>
+      <input type="file" id="xlsxFile" accept=".xlsx" />
+      <label class="muted" id="processImagesLabel" style="display:flex;gap:8px;align-items:center;margin:8px 0;">
+        <input type="checkbox" id="processImages" checked />
+        <span>Rasmlarni qayta ishlash</span>
+      </label>
+      <label class="muted" id="overwriteImagesLabel" style="display:flex;gap:8px;align-items:center;margin:4px 0;">
+        <input type="checkbox" id="overwriteImages" checked />
+        <span>Mavjud rasmlarni overwrite qilish</span>
+      </label>
+      <label class="muted" id="updateOnlyStockPriceLabel" style="display:flex;gap:8px;align-items:center;margin:4px 0;">
+        <input type="checkbox" id="updateOnlyStockPrice" />
+        <span>Faqat qoldiq/narxni yangilash</span>
+      </label>
+      <button id="importBtn" class="primary">Import XLSX</button>
+      <div class="row" style="margin-top:8px;">
+        <button id="newImportBtn" class="btn">Yangi import qilish</button>
+        <button id="reloadStoreBtn" class="btn">Mavjud ma'lumotni yangilash</button>
+      </div>
+      <div id="importProgressWrap" class="progress-wrap">
+        <div class="progress-track"><div id="importProgressBar" class="progress-bar"></div></div>
+        <div id="importProgressText" class="progress-text">Yuklanmoqda... 0%</div>
+      </div>
+      <div id="importSummary" class="import-summary"></div>
+      <pre id="storeSummary" class="muted"></pre>
+      <pre id="importResult" class="muted"></pre>
+    </section>
+
+    <section class="panel card" id="banners-panel">
+      <h3 id="bannersTitle">Banners</h3>
+      <div class="grid">
+        <input id="bannerTitle" placeholder="title" />
+        <input id="bannerSubtitle" placeholder="subtitle" />
+        <input id="bannerImage" placeholder="image_url" />
+        <select id="bannerActive"><option value="true">active true</option><option value="false">active false</option></select>
+      </div>
+      <button id="addBannerBtn" class="primary">Add banner</button>
+      <div id="bannersList" class="list"></div>
+    </section>
+
+    <section class="panel card" id="promotions-panel">
+      <h3 id="promotionsTitle">Promotions</h3>
+      <div class="grid">
+        <input id="promoTitle" placeholder="title" />
+        <input id="promoDiscount" placeholder="discount_text" />
+        <input id="promoDesc" placeholder="description" />
+        <input id="promoImage" placeholder="image_url" />
+        <select id="promoActive"><option value="true">active true</option><option value="false">active false</option></select>
+      </div>
+      <button id="addPromoBtn" class="primary">Add promo</button>
+      <div id="promotionsList" class="list"></div>
+    </section>
+
+    <section class="panel card" id="home-settings-panel">
+      <h3 id="homeSettingsTitle">Home Settings</h3>
+      <div class="grid">
+        <input id="brandName" placeholder="Brand name" />
+        <input id="locationText" placeholder="Location text" />
+        <input id="searchPlaceholder" placeholder="Search placeholder" />
+        <input id="heroTitle" placeholder="Hero title" />
+        <input id="heroSubtitle" placeholder="Hero subtitle" />
+        <input id="heroBadgeText" placeholder="Hero badge text" />
+        <input id="bonusTitle" placeholder="Bonus title" />
+        <input id="bonusSubtitle" placeholder="Bonus subtitle" />
+        <input id="deliveryTimeText" placeholder="Delivery time text" />
+        <input id="deliveryText" placeholder="Delivery text" />
+        <input id="bgUrl" placeholder="Background image URL" />
+        <input id="accentColor" placeholder="Accent color" />
+      </div>
+      <button id="saveHomeBtn" class="primary">Save settings</button>
+    </section>
+
+    <section class="panel card" id="categories-panel">
+      <h3 id="categoriesTitle">Categories</h3>
+      <div id="categoriesList" class="list"></div>
+    </section>
+
+    <section class="panel card" id="products-panel">
+      <h3 id="productsTitle">Products</h3>
+      <input id="productsSearch" placeholder="Search products" />
+      <div id="productsList" class="list"></div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script>
+    const tabs = [
+      ['excel','Excel Import'],['banners','Banners'],['promotions','Promotions'],['home-settings','Home Settings'],['categories','Categories'],['products','Products']
+    ];
+    const i18n = {
+      uz: {
+        pageTitle: 'Admin Panel',
+        tokenHelp: "Token localStorage'da vaqtincha saqlanadi.",
+        saveToken: 'Token saqlash',
+        excel: 'Excel Import',
+        banners: 'Banners',
+        promotions: 'Promotions',
+        home: 'Home Settings',
+        categories: 'Categories',
+        products: 'Products',
+        processImages: 'Rasmlarni qayta ishlash',
+        overwriteImages: 'Mavjud rasmlarni overwrite qilish',
+        updateOnlyStockPrice: "Faqat qoldiq/narxni yangilash",
+        importBtn: 'Import XLSX',
+        newImport: 'Yangi import qilish',
+        reloadStore: "Mavjud ma'lumotni yangilash",
+        chooseFile: 'Fayl tanlash',
+        save: 'Save',
+        active: 'active',
+        imageUrl: 'image URL',
+        uploadError: 'Rasm yuklash xatolik',
+        categorySaved: 'Category saqlandi',
+        categorySaveError: "Category saqlashda xatolik",
+        tokenSaved: 'Token saqlandi',
+        importOk: 'Import muvaffaqiyatli',
+        importError: 'Import xatolik',
+        apiError: 'API xatolik',
+        networkError: 'Network xatolik',
+        fileRequired: 'Fayl tanlang',
+        storeReloaded: 'Store qayta yuklandi',
+        storeMissing: 'Store fayli topilmadi',
+        reloadError: 'Reload xatolik',
+        checkToken: 'Token tekshiring',
+        importDone: 'Yakunlanmoqda... 100%',
+        importProgress: 'Yuklanmoqda...',
+        uploadedProcessing: 'Fayl yuklandi, rasmlar qayta ishlanmoqda...',
+        productsSearch: 'Mahsulot qidirish',
+        add: "Qo'shish",
+        delete: "O'chirish",
+        saveOk: 'Saqlandi',
+        loadError: 'Yuklashda xatolik',
+        saving: 'Saqlanmoqda...',
+        toggle: 'Holatini almashtirish',
+        productsCount: 'Mahsulotlar soni'
+      },
+      ru: {
+        pageTitle: 'Админ панель',
+        tokenHelp: 'Токен временно хранится в localStorage.',
+        saveToken: 'Сохранить токен',
+        excel: 'Импорт Excel',
+        banners: 'Баннеры',
+        promotions: 'Промо',
+        home: 'Настройки главной',
+        categories: 'Категории',
+        products: 'Товары',
+        processImages: 'Обрабатывать изображения',
+        overwriteImages: 'Перезаписывать существующие изображения',
+        updateOnlyStockPrice: 'Обновить только остаток/цену',
+        importBtn: 'Импорт XLSX',
+        newImport: 'Новый импорт',
+        reloadStore: 'Обновить существующие данные',
+        chooseFile: 'Выбрать файл',
+        save: 'Сохранить',
+        active: 'активный',
+        imageUrl: 'URL изображения',
+        uploadError: 'Ошибка загрузки изображения',
+        categorySaved: 'Категория сохранена',
+        categorySaveError: 'Ошибка сохранения категории',
+        tokenSaved: 'Токен сохранен',
+        importOk: 'Импорт успешно завершен',
+        importError: 'Ошибка импорта',
+        apiError: 'Ошибка API',
+        networkError: 'Ошибка сети',
+        fileRequired: 'Выберите файл',
+        storeReloaded: 'Store перезагружен',
+        storeMissing: 'Файл store не найден',
+        reloadError: 'Ошибка перезагрузки',
+        checkToken: 'Проверьте токен',
+        importDone: 'Завершение... 100%',
+        importProgress: 'Загрузка...',
+        uploadedProcessing: 'Файл загружен, обработка изображений...',
+        productsSearch: 'Поиск товаров',
+        add: 'Добавить',
+        delete: 'Удалить',
+        saveOk: 'Сохранено',
+        loadError: 'Ошибка загрузки',
+        saving: 'Сохранение...',
+        toggle: 'Переключить статус',
+        productsCount: 'Количество товаров'
+      }
+    };
+    const langKey = 'admin_lang';
+    let lang = localStorage.getItem(langKey) || 'uz';
+    const tabsWrap = document.getElementById('tabs');
+    const tokenInput = document.getElementById('tokenInput');
+    const toast = document.getElementById('toast');
+    const tokenKey = 'admin_import_token';
+
+    function t(key){ return (i18n[lang] || i18n.uz)[key] || key; }
+    function showToast(text){toast.textContent=text;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.classList.remove('show'),1400)}
+    function getToken(){return localStorage.getItem(tokenKey)||''}
+    function setBtnLoading(btn, loading, labelWhenIdle) {
+      if (!btn) return;
+      btn.disabled = Boolean(loading);
+      if (loading) {
+        btn.dataset.prevLabel = btn.textContent;
+        btn.textContent = t('saving');
+      } else {
+        btn.textContent = labelWhenIdle || btn.dataset.prevLabel || btn.textContent;
+      }
+    }
+
+    async function api(path, options={}){
+      const token = getToken();
+      const res = await fetch('/api/v1'+path,{headers:{'Content-Type':'application/json','x-admin-token':token},...options});
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(data.message||t('apiError'));
+      return data;
+    }
+
+    function activateTab(id){
+      document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.id===id));
+      document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id===id+'-panel'));
+    }
+
+    tabs.forEach(([id,label])=>{
+      const b=document.createElement('button');b.className='tab';b.dataset.id=id;b.dataset.labelKey=id;b.textContent=label;b.onclick=()=>activateTab(id);tabsWrap.appendChild(b)
+    });
+    activateTab('excel');
+
+    function applyLang() {
+      const t = i18n[lang] || i18n.uz;
+      document.getElementById('pageTitle').textContent = t.pageTitle;
+      document.getElementById('tokenHelp').textContent = t.tokenHelp;
+      document.getElementById('excelTitle').textContent = t.excel;
+      document.getElementById('bannersTitle').textContent = t.banners;
+      document.getElementById('promotionsTitle').textContent = t.promotions;
+      document.getElementById('homeSettingsTitle').textContent = t.home;
+      document.getElementById('categoriesTitle').textContent = t.categories;
+      document.getElementById('productsTitle').textContent = t.products;
+      document.querySelector('#processImagesLabel span').textContent = t.processImages;
+      document.querySelector('#overwriteImagesLabel span').textContent = t.overwriteImages;
+      document.querySelector('#updateOnlyStockPriceLabel span').textContent = t.updateOnlyStockPrice;
+      document.getElementById('saveTokenBtn').textContent = t.saveToken;
+      document.getElementById('importBtn').textContent = t.importBtn;
+      document.getElementById('newImportBtn').textContent = t.newImport;
+      document.getElementById('reloadStoreBtn').textContent = t.reloadStore;
+      document.getElementById('productsSearch').placeholder = t.productsSearch;
+      document.getElementById('addBannerBtn').textContent = t.add;
+      document.getElementById('addPromoBtn').textContent = t.add;
+      document.querySelectorAll('#tabs .tab').forEach((btn) => {
+        const key = btn.dataset.labelKey;
+        if (key === 'excel') btn.textContent = t.excel;
+        if (key === 'banners') btn.textContent = t.banners;
+        if (key === 'promotions') btn.textContent = t.promotions;
+        if (key === 'home-settings') btn.textContent = t.home;
+        if (key === 'categories') btn.textContent = t.categories;
+        if (key === 'products') btn.textContent = t.products;
+      });
+    }
+    document.getElementById('langUz').onclick = () => { lang = 'uz'; localStorage.setItem(langKey, lang); applyLang(); };
+    document.getElementById('langRu').onclick = () => { lang = 'ru'; localStorage.setItem(langKey, lang); applyLang(); };
+    applyLang();
+
+    tokenInput.value = getToken();
+    document.getElementById('saveTokenBtn').onclick=()=>{localStorage.setItem(tokenKey, tokenInput.value.trim());showToast(t('tokenSaved'))};
+
+    function progressLabel(percent){
+      if(percent >= 100) return t('importDone');
+      if(percent >= 75) return `${t('importProgress')} 75%`;
+      if(percent >= 50) return `${t('importProgress')} 50%`;
+      if(percent >= 25) return `${t('importProgress')} 25%`;
+      return `${t('importProgress')} 0%`;
+    }
+
+    function setImportProgress(percent, isError=false){
+      const wrap = document.getElementById('importProgressWrap');
+      const bar = document.getElementById('importProgressBar');
+      const text = document.getElementById('importProgressText');
+      wrap.classList.add('show');
+      wrap.classList.toggle('error', Boolean(isError));
+      const safe = Math.max(0, Math.min(100, Math.round(percent)));
+      bar.style.width = `${safe}%`;
+      text.textContent = progressLabel(safe);
+      if(isError) text.textContent = `${t('importError')}: ${safe}%`;
+    }
+
+    function renderImportSummary(data){
+      const summary = document.getElementById('importSummary');
+      summary.innerHTML = `
+        <h4>Import yakuni</h4>
+        <div class="import-grid">
+          <div class="metric"><span class="muted">Imported</span><b>${data.imported ?? 0}</b></div>
+          <div class="metric"><span class="muted">Skipped</span><b>${data.skipped ?? 0}</b></div>
+          <div class="metric"><span class="muted">Image extracted</span><b>${data.imageExtracted ?? 0}</b></div>
+          <div class="metric"><span class="muted">Image processed</span><b>${data.imageProcessed ?? 0}</b></div>
+          <div class="metric"><span class="muted">Object detected</span><b>${data.imageObjectDetected ?? 0}</b></div>
+          <div class="metric"><span class="muted">Detection warnings</span><b>${(data.imageDetectionWarnings || []).length}</b></div>
+          <div class="metric"><span class="muted">Image upscaled</span><b>${data.imageUpscaled ?? 0}</b></div>
+          <div class="metric"><span class="muted">Image skipped</span><b>${data.imageSkippedExisting ?? 0}</b></div>
+          <div class="metric"><span class="muted">Image missing</span><b>${data.imageMissing ?? 0}</b></div>
+          <div class="metric"><span class="muted">Processing ms</span><b>${data.processingTimeMs ?? 0}</b></div>
+          <div class="metric"><span class="muted">Avg image ms</span><b>${data.averageImageMs ?? 0}</b></div>
+        </div>
+      `;
+      summary.classList.add('show');
+    }
+
+    document.getElementById('importBtn').onclick = async () => {
+      const file = document.getElementById('xlsxFile').files[0];
+      if(!file) return showToast(t('fileRequired'));
+      const processImages = document.getElementById('processImages').checked;
+      const overwriteImages = document.getElementById('overwriteImages').checked;
+      const updateOnlyStockPrice = document.getElementById('updateOnlyStockPrice').checked;
+      const fd = new FormData(); fd.append('file', file);
+      const resultEl = document.getElementById('importResult');
+      const summaryEl = document.getElementById('importSummary');
+      resultEl.textContent = '';
+      summaryEl.classList.remove('show');
+      const btn = document.getElementById('importBtn'); btn.disabled=true; btn.textContent='Import...';
+      setImportProgress(0);
+      try{
+        const data = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', `/api/v1/integrations/excel/import/products-xlsx?overwriteImages=${overwriteImages}&processImages=${processImages}&updateOnlyStockPrice=${updateOnlyStockPrice}`);
+          xhr.setRequestHeader('x-admin-token', getToken());
+
+          xhr.upload.onprogress = (e) => {
+            if (!e.lengthComputable) return;
+            const percent = Math.min(95, (e.loaded / e.total) * 100);
+            setImportProgress(percent);
+          };
+
+          xhr.onload = () => {
+            setImportProgress(100);
+            document.getElementById('importProgressText').textContent = t('uploadedProcessing');
+            let parsed = {};
+            try { parsed = JSON.parse(xhr.responseText || '{}'); } catch (err) {}
+            if (xhr.status >= 200 && xhr.status < 300) resolve(parsed);
+            else reject(new Error(parsed.message || t('importError')));
+          };
+          xhr.onerror = () => reject(new Error(t('networkError')));
+          xhr.send(fd);
+        });
+
+        resultEl.textContent = JSON.stringify(data, null, 2);
+        renderImportSummary(data);
+        showToast(i18n[lang].importOk);
+      }catch(e){
+        setImportProgress(100, true);
+        showToast(e.message);
+      }finally{btn.disabled=false;btn.textContent=t('importBtn')}
+    };
+
+    document.getElementById('newImportBtn').onclick = () => document.getElementById('importBtn').click();
+    document.getElementById('reloadStoreBtn').onclick = async () => {
+      try {
+        const out = await api('/admin/store/reload', { method: 'POST' });
+        showToast(out.ok ? t('storeReloaded') : t('storeMissing'));
+        await loadStoreSummary();
+      } catch (e) {
+        showToast(e.message || t('reloadError'));
+      }
+    };
+
+    async function loadStoreSummary() {
+      try {
+        const { summary } = await api('/admin/store/summary');
+        document.getElementById('storeSummary').textContent = JSON.stringify(summary, null, 2);
+      } catch (e) {}
+    }
+
+    async function loadBanners(){
+      const {banners}=await api('/admin/banners');
+      const wrap=document.getElementById('bannersList');wrap.innerHTML='';
+      banners.forEach(b=>{
+        const d=document.createElement('div');
+        d.className='item';
+        d.innerHTML=`
+          <div class="row">
+            <input data-role="title" value="${b.title || ''}" placeholder="title" />
+            <input data-role="subtitle" value="${b.subtitle || ''}" placeholder="subtitle" />
+            <input data-role="image_url" value="${b.image_url || ''}" placeholder="image_url" />
+            <label><input data-role="active" type="checkbox" ${b.active ? 'checked' : ''} /> ${t('active')}</label>
+            <button data-id="${b.id}" data-act="save">${t('save')}</button>
+            <button data-id="${b.id}" data-act="toggle">${t('toggle')}</button>
+            <button data-id="${b.id}" data-act="del">${t('delete')}</button>
+          </div>
+        `;
+        wrap.appendChild(d);
+      });
+    }
+    document.getElementById('addBannerBtn').onclick=async(e)=>{
+      const btn = e.currentTarget;
+      try {
+        setBtnLoading(btn, true);
+        await api('/admin/banners',{method:'POST',body:JSON.stringify({title:bannerTitle.value,subtitle:bannerSubtitle.value,image_url:bannerImage.value,active:bannerActive.value==='true'})});
+        showToast(t('saveOk'));
+        bannerTitle.value='';bannerSubtitle.value='';bannerImage.value='';bannerActive.value='true';
+        await loadBanners();
+      } catch (err) {
+        showToast(err.message || t('loadError'));
+      } finally {
+        setBtnLoading(btn, false, t('add'));
+      }
+    };
+    document.getElementById('bannersList').onclick=async(e)=>{
+      const b=e.target.closest('button');if(!b)return;
+      const id=b.dataset.id;
+      const row=b.closest('.item');
+      try{
+        if(b.dataset.act==='del'){
+          setBtnLoading(b, true, t('delete'));
+          await api('/admin/banners/'+id,{method:'DELETE'});
+          showToast(t('saveOk'));
+        }else if(b.dataset.act==='toggle'){
+          setBtnLoading(b, true, t('toggle'));
+          const checked = row.querySelector('[data-role=active]').checked;
+          await api('/admin/banners/'+id,{method:'PUT',body:JSON.stringify({active:!checked})});
+          showToast(t('saveOk'));
+        }else{
+          setBtnLoading(b, true, t('save'));
+          await api('/admin/banners/'+id,{method:'PUT',body:JSON.stringify({
+            title: row.querySelector('[data-role=title]').value,
+            subtitle: row.querySelector('[data-role=subtitle]').value,
+            image_url: row.querySelector('[data-role=image_url]').value,
+            active: row.querySelector('[data-role=active]').checked
+          })});
+          showToast(t('saveOk'));
+        }
+        await loadBanners();
+      }catch(err){showToast(err.message||t('loadError'))}
+      finally{setBtnLoading(b, false)}
+    };
+
+    async function loadPromotions(){
+      const {promotions}=await api('/admin/promotions');
+      const wrap=document.getElementById('promotionsList');wrap.innerHTML='';
+      promotions.forEach(p=>{
+        const d=document.createElement('div');
+        d.className='item';
+        d.innerHTML=`
+          <div class="row">
+            <input data-role="title" value="${p.title || ''}" placeholder="title" />
+            <input data-role="discount_text" value="${p.discount_text || ''}" placeholder="discount_text" />
+            <input data-role="description" value="${p.description || ''}" placeholder="description" />
+            <input data-role="image_url" value="${p.image_url || ''}" placeholder="image_url" />
+            <label><input data-role="active" type="checkbox" ${p.active ? 'checked' : ''} /> ${t('active')}</label>
+            <button data-id="${p.id}" data-act="save">${t('save')}</button>
+            <button data-id="${p.id}" data-act="toggle">${t('toggle')}</button>
+            <button data-id="${p.id}" data-act="del">${t('delete')}</button>
+          </div>
+        `;
+        wrap.appendChild(d);
+      });
+    }
+    document.getElementById('addPromoBtn').onclick=async(e)=>{
+      const btn = e.currentTarget;
+      try{
+        setBtnLoading(btn, true);
+        await api('/admin/promotions',{method:'POST',body:JSON.stringify({title:promoTitle.value,description:promoDesc.value,discount_text:promoDiscount.value,image_url:promoImage.value,active:promoActive.value==='true'})});
+        showToast(t('saveOk'));
+        promoTitle.value='';promoDiscount.value='';promoDesc.value='';promoImage.value='';promoActive.value='true';
+        await loadPromotions();
+      }catch(err){showToast(err.message||t('loadError'))}
+      finally{setBtnLoading(btn, false, t('add'))}
+    };
+    document.getElementById('promotionsList').onclick=async(e)=>{
+      const b=e.target.closest('button');if(!b)return;
+      const id=b.dataset.id;
+      const row=b.closest('.item');
+      try{
+        if(b.dataset.act==='del'){
+          setBtnLoading(b, true, t('delete'));
+          await api('/admin/promotions/'+id,{method:'DELETE'});
+        }else if(b.dataset.act==='toggle'){
+          setBtnLoading(b, true, t('toggle'));
+          const checked = row.querySelector('[data-role=active]').checked;
+          await api('/admin/promotions/'+id,{method:'PUT',body:JSON.stringify({active:!checked})});
+        }else{
+          setBtnLoading(b, true, t('save'));
+          await api('/admin/promotions/'+id,{method:'PUT',body:JSON.stringify({
+            title: row.querySelector('[data-role=title]').value,
+            discount_text: row.querySelector('[data-role=discount_text]').value,
+            description: row.querySelector('[data-role=description]').value,
+            image_url: row.querySelector('[data-role=image_url]').value,
+            active: row.querySelector('[data-role=active]').checked
+          })});
+        }
+        showToast(t('saveOk'));
+        await loadPromotions();
+      }catch(err){showToast(err.message||t('loadError'))}
+      finally{setBtnLoading(b, false)}
+    };
+
+    async function loadHomeSettings(){
+      const {homeSettings}=await api('/admin/home-settings');
+      brandName.value=homeSettings.brandName||'';
+      locationText.value=homeSettings.locationText||'';
+      searchPlaceholder.value=homeSettings.searchPlaceholder||'';
+      heroTitle.value=homeSettings.heroTitle||'';
+      heroSubtitle.value=homeSettings.heroSubtitle||'';
+      heroBadgeText.value=homeSettings.heroBadgeText||'';
+      bonusTitle.value=homeSettings.bonusTitle||'';
+      bonusSubtitle.value=homeSettings.bonusSubtitle||'';
+      deliveryTimeText.value=homeSettings.deliveryTimeText||'';
+      deliveryText.value=homeSettings.deliveryText||'';
+      bgUrl.value=homeSettings.backgroundImageUrl||'';
+      accentColor.value=homeSettings.accentColor||'';
+    }
+    document.getElementById('saveHomeBtn').onclick=async(e)=>{
+      const btn = e.currentTarget;
+      try{
+        setBtnLoading(btn, true, t('save'));
+        await api('/admin/home-settings',{method:'PUT',body:JSON.stringify({
+          brandName: brandName.value,
+          locationText: locationText.value,
+          searchPlaceholder: searchPlaceholder.value,
+          heroTitle: heroTitle.value,
+          heroSubtitle: heroSubtitle.value,
+          heroBadgeText: heroBadgeText.value,
+          bonusTitle: bonusTitle.value,
+          bonusSubtitle: bonusSubtitle.value,
+          deliveryTimeText: deliveryTimeText.value,
+          deliveryText: deliveryText.value,
+          backgroundImageUrl:bgUrl.value,
+          accentColor:accentColor.value
+        })});
+        showToast(t('saveOk'));
+      }catch(err){showToast(err.message||t('loadError'))}
+      finally{setBtnLoading(btn, false, t('save'))}
+    };
+
+    async function loadCategories(){
+      const {categories}=await api('/admin/categories');
+      const wrap=document.getElementById('categoriesList');wrap.innerHTML='';
+      categories.forEach(c=>{
+        const d=document.createElement('div');
+        d.className='item';
+        d.innerHTML=`
+          <div class="row">
+            <input value="${c.name || ''}" data-id="${c.id}" data-role="name" disabled />
+            <input value="${c.displayName || c.name || ''}" data-id="${c.id}" data-role="displayName" placeholder="display name" />
+            <input value="${c.icon || ''}" data-id="${c.id}" data-role="icon" placeholder="emoji icon" style="max-width:90px;" />
+            <input value="${c.image_url || ''}" data-id="${c.id}" data-role="image_url" placeholder="${t('imageUrl')}" />
+            <input type="file" accept="image/*" data-id="${c.id}" data-role="image_file" />
+            <label><input type="checkbox" ${c.active?'checked':''} data-id="${c.id}" data-role="active" /> ${t('active')}</label>
+            <button data-id="${c.id}">${t('save')}</button>
+          </div>
+          <div class="muted">Products: ${c.productCount || 0}</div>
+        `;
+        wrap.appendChild(d);
+      });
+    }
+    document.getElementById('categoriesList').onclick=async(e)=>{
+      const b=e.target.closest('button');if(!b)return;
+      const id=b.dataset.id;const p=b.closest('.item');
+      try{
+        const fileInput = p.querySelector('[data-role=image_file]');
+        const file = fileInput?.files?.[0];
+        if (file) {
+          const fd = new FormData();
+          fd.append('file', file);
+          const token = getToken();
+          const res = await fetch('/api/v1/admin/categories/'+id+'/image', { method: 'POST', headers: { 'x-admin-token': token }, body: fd });
+          const out = await res.json().catch(()=>({}));
+          if(!res.ok) throw new Error(out.message || t('uploadError'));
+          if (out.category?.image_url) p.querySelector('[data-role=image_url]').value = out.category.image_url;
+        }
+        await api('/admin/categories/'+id,{method:'PUT',body:JSON.stringify({
+          displayName:p.querySelector('[data-role=displayName]').value,
+          icon:p.querySelector('[data-role=icon]').value,
+          image_url:p.querySelector('[data-role=image_url]').value,
+          active:p.querySelector('[data-role=active]').checked
+        })});
+        showToast(t('categorySaved'));
+        loadCategories();
+      }catch(err){showToast(err.message||t('categorySaveError'))}
+    };
+
+    async function loadProducts(){
+      const q=document.getElementById('productsSearch').value||'';
+      const {products}=await api('/admin/products?search='+encodeURIComponent(q));
+      const {categories}=await api('/admin/categories');
+      const wrap=document.getElementById('productsList');wrap.innerHTML='';
+      products.forEach(p=>{const opts=categories.map(c=>`<option value="${c.id}" ${c.id===p.categoryId?'selected':''}>${c.name}</option>`).join('');
+        const d=document.createElement('div');d.className='item';d.innerHTML=`
+          <b>${p.name}</b>
+          <div class="muted">${t('imageUrl')}: ${p.image_url || '-'}</div>
+          <div class="row">
+            <label>${t('active')} <input type="checkbox" data-role="active" ${p.active?'checked':''}></label>
+            <input data-role="price" type="number" value="${p.price}" placeholder="price">
+            <input data-role="stock" type="number" value="${p.stock||0}" placeholder="stock">
+            <select data-role="categoryId">${opts}</select>
+            <button data-id="${p.id}">${t('save')}</button>
+          </div>
+        `;wrap.appendChild(d);
+      });
+    }
+    document.getElementById('productsSearch').oninput=()=>loadProducts();
+    document.getElementById('productsList').onclick=async(e)=>{
+      const b=e.target.closest('button');if(!b)return;
+      const p=b.closest('.item');
+      try{
+        setBtnLoading(b, true, t('save'));
+        await api('/admin/products/'+b.dataset.id,{method:'PUT',body:JSON.stringify({active:p.querySelector('[data-role=active]').checked,price:Number(p.querySelector('[data-role=price]').value),stock:Number(p.querySelector('[data-role=stock]').value),categoryId:p.querySelector('[data-role=categoryId]').value})});
+        showToast(t('saveOk'));
+        await loadProducts();
+      }catch(err){showToast(err.message||t('loadError'))}
+      finally{setBtnLoading(b, false, t('save'))}
+    };
+
+    async function bootstrap(){
+      try{
+        document.getElementById('addBannerBtn').textContent = t('add');
+        document.getElementById('addPromoBtn').textContent = t('add');
+        await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts(),loadStoreSummary()]);
+      }
+      catch(e){showToast(e.message||t('checkToken'))}
+    }
+    bootstrap();
+  </script>
+</body>
+</html>
