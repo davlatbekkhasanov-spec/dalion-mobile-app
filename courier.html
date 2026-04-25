@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Courier</title>
+  <style>
+    body{margin:0;background:#07111f;color:#e8f4ff;font-family:Inter,Segoe UI,Arial,sans-serif}
+    .wrap{max-width:560px;margin:0 auto;padding:16px}
+    .card{background:#0d1d36;border:1px solid #28466c;border-radius:14px;padding:14px}
+    input,button{width:100%;padding:12px;border-radius:10px;border:1px solid #34567f;background:#0b1830;color:#e8f4ff;margin-top:8px}
+    button{cursor:pointer;font-weight:700}
+    .primary{background:linear-gradient(90deg,#2aff9b,#28d8ff);color:#04221c;border:none}
+    .muted{color:#9ab8df;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h2 style="margin-top:0;">Courier QR</h2>
+      <p id="msg" class="muted"></p>
+      <div id="orderInfo" class="muted"></div>
+      <input id="courierName" placeholder="Courier name" />
+      <input id="courierPhone" placeholder="Courier phone" />
+      <button id="acceptBtn" class="primary">Buyurtmani qabul qildim</button>
+      <button id="deliverBtn" style="display:none;">Mijozga topshirildi</button>
+    </div>
+  </div>
+  <script>
+    const token = location.pathname.split('/').pop();
+    let order = null;
+    async function api(path, options={}) {
+      const res = await fetch('/api/v1'+path, { headers: { 'Content-Type':'application/json' }, ...options });
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(data.message || 'Xatolik');
+      return data;
+    }
+    function render(){
+      if(!order) return;
+      document.getElementById('orderInfo').innerHTML = `#${order.orderNumber} · ${(order.items||[]).length} item · ${Number(order.total||0).toLocaleString('ru-RU')} so'm<br>${order.customerAddress || order.location || '-'}`;
+      document.getElementById('msg').textContent = `Status: ${order.status}`;
+      document.getElementById('deliverBtn').style.display = order.status === 'out_for_delivery' ? 'block' : 'none';
+      if (order.courierTokenUsed) {
+        document.getElementById('msg').textContent = 'Bu QR kod allaqachon ishlatilgan';
+        document.getElementById('acceptBtn').disabled = true;
+        document.getElementById('deliverBtn').disabled = true;
+      }
+    }
+    async function refresh(){
+      try{
+        const data = await api('/courier/'+token);
+        order = data.order;
+        render();
+      }catch(e){
+        document.getElementById('msg').textContent = e.message;
+      }
+    }
+    document.getElementById('acceptBtn').onclick = async ()=>{
+      try{
+        const data = await api('/courier/'+token+'/accept',{method:'POST',body:JSON.stringify({courierName:courierName.value,courierPhone:courierPhone.value})});
+        order = data.order; render();
+      }catch(e){alert(e.message)}
+    };
+    document.getElementById('deliverBtn').onclick = async ()=>{
+      try{
+        const data = await api('/courier/'+token+'/deliver',{method:'POST'});
+        order = data.order; render();
+      }catch(e){alert(e.message)}
+    };
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+</body>
+</html>
