@@ -11,10 +11,18 @@ app.use(express.urlencoded({ extended: true }));
 
 // Static files from project root
 app.use(express.static(__dirname));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  maxAge: '30d',
+  immutable: true
+}));
 
 // Frontend preview
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
 // API routes
