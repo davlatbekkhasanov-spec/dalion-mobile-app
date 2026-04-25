@@ -19,6 +19,7 @@ router.put('/cart/items', cartController.setCartItem);
 router.delete('/cart', cartController.clearCart);
 
 router.post('/orders', orderController.createOrder);
+router.get('/orders/:orderNumber/status', orderController.getOrderStatus);
 
 router.get('/integrations/status', integrationController.getIntegrationStatus);
 router.post('/integrations/1c/import', integrationController.importFrom1C);
@@ -54,5 +55,9 @@ router.get('/admin/products', requireAdminImportToken, adminController.getProduc
 router.put('/admin/products/:id', requireAdminImportToken, adminController.updateProduct);
 router.get('/admin/store/summary', requireAdminImportToken, adminController.getStoreSummary);
 router.post('/admin/store/reload', requireAdminImportToken, adminController.reloadStore);
+router.get('/admin/orders', requireAdminImportToken, adminController.getOrders);
+router.get('/admin/orders/:id', requireAdminImportToken, adminController.getOrderById);
+router.put('/admin/orders/:id/status', requireAdminImportToken, adminController.updateOrderStatus);
+router.post('/admin/orders/:id/cancel', requireAdminImportToken, adminController.cancelOrder);
 
 module.exports = router;

@@ -106,3 +106,26 @@ exports.reloadStore = (req, res) => {
   const out = store.reloadStoreFromDisk();
   res.json(out);
 };
+
+exports.getOrders = (req, res) => {
+  res.json({ orders: store.getOrders() });
+};
+
+exports.getOrderById = (req, res) => {
+  const order = store.getOrderById(req.params.id);
+  if (!order) return res.status(404).json({ message: 'Order not found' });
+  return res.json({ order });
+};
+
+exports.updateOrderStatus = (req, res) => {
+  const status = String(req.body?.status || '').trim();
+  const order = store.updateOrderStatus(req.params.id, status);
+  if (!order) return res.status(400).json({ message: 'Order not found or invalid status' });
+  return res.json({ order });
+};
+
+exports.cancelOrder = (req, res) => {
+  const order = store.cancelOrder(req.params.id);
+  if (!order) return res.status(404).json({ message: 'Order not found' });
+  return res.json({ order });
+};

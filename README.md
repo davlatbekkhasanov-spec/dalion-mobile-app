@@ -52,6 +52,15 @@ curl -X POST "https://<your-domain>/api/v1/integrations/excel/import/products-xl
 - `GET/PUT /api/v1/admin/home-settings`
 - `GET/PUT /api/v1/admin/categories`
 - `GET/PUT /api/v1/admin/products`
+- `GET /api/v1/admin/orders`
+- `GET /api/v1/admin/orders/:id`
+- `PUT /api/v1/admin/orders/:id/status`
+- `POST /api/v1/admin/orders/:id/cancel`
+- `GET /api/v1/orders/:orderNumber/status`
+
+Order dashboard page:
+
+- `/orders` (polling every 5s, token-protected API usage via `x-admin-token`)
 
 ### Home Settings CMS fields
 

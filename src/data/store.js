@@ -42,6 +42,7 @@ let homeSettings = {
 const cart = new Map();
 const orders = [];
 let lastUpdated = null;
+let orderSequence = 1;
 
 function persistState() {
   try {
@@ -52,6 +53,8 @@ function persistState() {
       banners,
       promotions,
       homeSettings,
+      orders,
+      orderSequence,
       savedAt: new Date().toISOString()
     };
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
@@ -70,6 +73,8 @@ function loadStateFromDisk() {
     if (Array.isArray(parsed.banners)) { banners.splice(0, banners.length, ...parsed.banners); }
     if (Array.isArray(parsed.promotions)) { promotions.splice(0, promotions.length, ...parsed.promotions); }
     if (parsed.homeSettings && typeof parsed.homeSettings === 'object') { homeSettings = { ...homeSettings, ...parsed.homeSettings }; }
+    if (Array.isArray(parsed.orders)) { orders.splice(0, orders.length, ...parsed.orders); }
+    if (Number.isFinite(Number(parsed.orderSequence))) orderSequence = Math.max(1, Number(parsed.orderSequence));
     lastUpdated = parsed.savedAt || new Date().toISOString();
     return true;
   } catch (e) {
@@ -306,7 +311,15 @@ function clearCart() {
   cart.clear();
 }
 
-function createOrder({ paymentMethod = 'Naqd', location = 'Yunusobod, Toshkent', deliveryTime = '30 daqiqa', deliveryPrice = 12000 } = {}) {
+function createOrder({
+  paymentMethod = 'Naqd',
+  location = 'Yunusobod, Toshkent',
+  deliveryTime = '30 daqiqa',
+  deliveryPrice = 12000,
+  customerName = 'Mehmon',
+  customerPhone = '',
+  customerAddress = ''
+} = {}) {
   const summary = getCartSummary();
   if (summary.totalQty === 0) return { error: 'Cart is empty' };
 
@@ -321,18 +334,37 @@ function createOrder({ paymentMethod = 'Naqd', location = 'Yunusobod, Toshkent',
     }
   }
 
+  const now = new Date().toISOString();
+  const orderItems = summary.items.map((item) => {
+    const p = getProductById(item.id) || {};
+    return {
+      code: p.code || p.sku || p.id || item.id,
+      name: item.name,
+      price: Number(item.price || 0),
+      quantity: Number(item.quantity || 0),
+      subtotal: Number(item.subtotal || 0),
+      image_url: item.image_url || p.image_url || p.image || ''
+    };
+  });
+
   const order = {
-    id: `ord_${Date.now()}`,
-    createdAt: new Date().toISOString(),
-    status: 'accepted',
+    id: `ord_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    orderNumber: `ORD-${String(orderSequence).padStart(5, '0')}`,
+    customerName: String(customerName || 'Mehmon'),
+    customerPhone: String(customerPhone || ''),
+    customerAddress: String(customerAddress || location || ''),
+    created_at: now,
+    updated_at: now,
+    status: 'new',
     paymentMethod,
-    location,
-    deliveryTime,
-    deliveryPrice,
-    items: summary.items,
+    location: location || '',
+    deliveryTime: deliveryTime || '',
+    deliveryPrice: Number(deliveryPrice || 0),
+    items: orderItems,
     subtotal: summary.subtotal,
     total: summary.subtotal + deliveryPrice
   };
+  orderSequence += 1;
 
   for (const item of summary.items) {
     const p = getProductById(item.id);
@@ -347,6 +379,44 @@ function createOrder({ paymentMethod = 'Naqd', location = 'Yunusobod, Toshkent',
   persistState();
 
   return { data: order };
+}
+
+function getOrders() {
+  return orders
+    .slice()
+    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+}
+
+function getOrderById(id) {
+  return orders.find((o) => o.id === id) || null;
+}
+
+function getOrderByNumber(orderNumber) {
+  return orders.find((o) => String(o.orderNumber || '') === String(orderNumber || '')) || null;
+}
+
+function applyStatusTimestamps(order, status) {
+  const now = new Date().toISOString();
+  if (status === 'picking' && !order.pickerStartedAt) order.pickerStartedAt = now;
+  if (status === 'picked' && !order.pickedAt) order.pickedAt = now;
+  if (status === 'waiting_courier' && !order.courierWaitingAt) order.courierWaitingAt = now;
+  if (status === 'delivered' && !order.deliveredAt) order.deliveredAt = now;
+}
+
+function updateOrderStatus(id, status) {
+  const allowed = new Set(['new', 'picking', 'picked', 'waiting_courier', 'out_for_delivery', 'delivered', 'cancelled']);
+  if (!allowed.has(status)) return null;
+  const order = getOrderById(id);
+  if (!order) return null;
+  order.status = status;
+  order.updated_at = new Date().toISOString();
+  applyStatusTimestamps(order, status);
+  persistState();
+  return order;
+}
+
+function cancelOrder(id) {
+  return updateOrderStatus(id, 'cancelled');
 }
 
 function upsertProducts(items = []) {
@@ -395,6 +465,7 @@ function getStoreSummary() {
     categories: categories.length,
     banners: banners.length,
     promotions: promotions.length,
+    orders: orders.length,
     lastUpdated,
     storageMode: 'file+memory'
   };
@@ -438,5 +509,10 @@ module.exports = {
   upsertProducts,
   getStoreSummary,
   reloadStoreFromDisk,
+  getOrders,
+  getOrderById,
+  getOrderByNumber,
+  updateOrderStatus,
+  cancelOrder,
   orders
 };

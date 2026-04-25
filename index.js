@@ -25,6 +25,10 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
+app.get('/orders', (req, res) => {
+  res.sendFile(path.join(__dirname, 'orders.html'));
+});
+
 // API routes
 app.use('/api/v1', homeRoutes);
 

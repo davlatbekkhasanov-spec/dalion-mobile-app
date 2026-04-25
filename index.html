@@ -991,6 +991,8 @@
         <div class="list-card" style="margin-top:24px; text-align:center;">
           <h2 style="margin-bottom:8px;">Buyurtma qabul qilindi</h2>
           <p class="muted">Operator tez orada bog'lanadi</p>
+          <p class="muted" id="successOrderNumber">Buyurtma: -</p>
+          <p class="muted" id="successOrderStatus">Status: Yangi buyurtma</p>
           <button class="full-btn" id="backHomeBtn">Homega qaytish</button>
         </div>
       </section>
@@ -1037,6 +1039,8 @@ Oq fonli foto</div>
     let productsLoading = false;
     let cartItemsSnapshot = [];
     let homePayload = null;
+    let latestOrderNumber = '';
+    let orderStatusTimer = null;
 
     const phone = document.getElementById('phone');
     const continueBtn = document.getElementById('continueBtn');
@@ -1065,6 +1069,8 @@ Oq fonli foto</div>
     const checkoutLocation = document.getElementById('checkoutLocation');
     const checkoutTime = document.getElementById('checkoutTime');
     const checkoutPrice = document.getElementById('checkoutPrice');
+    const successOrderNumber = document.getElementById('successOrderNumber');
+    const successOrderStatus = document.getElementById('successOrderStatus');
 
     const modalOverlay = document.getElementById('productModalOverlay');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -1195,6 +1201,18 @@ Oq fonli foto</div>
       toast.classList.add('show');
       clearTimeout(showToast.timer);
       showToast.timer = setTimeout(() => toast.classList.remove('show'), 1300);
+    }
+
+    function orderStatusLabel(status) {
+      return {
+        new: 'Yangi buyurtma',
+        picking: 'Tovar terilmoqda',
+        picked: 'Tovarlar yig‘ib bo‘lindi',
+        waiting_courier: 'Kurier kutilmoqda',
+        out_for_delivery: 'Yetkazilmoqda',
+        delivered: 'Yetkazildi',
+        cancelled: 'Bekor qilindi'
+      }[status] || status || '-';
     }
 
     function totalQty() {
@@ -1448,6 +1466,20 @@ Oq fonli foto`;
       bottomNav.classList.toggle('hidden', viewId === 'checkoutView' || viewId === 'successView');
     }
 
+    async function refreshOrderStatus() {
+      if (!latestOrderNumber) return;
+      try {
+        const data = await api(`/orders/${encodeURIComponent(latestOrderNumber)}/status`);
+        successOrderStatus.textContent = `Status: ${orderStatusLabel(data.status)}`;
+        if (data.status === 'delivered' || data.status === 'cancelled') {
+          clearInterval(orderStatusTimer);
+          orderStatusTimer = null;
+        }
+      } catch (e) {
+        // keep silent, next poll will retry
+      }
+    }
+
     async function initializeAppData() {
       try {
         await Promise.all([loadHomePayload(), loadProducts({ reset: true }), loadCart()]);
@@ -1621,19 +1653,28 @@ Oq fonli foto`;
       }
 
       try {
-        await api('/orders', {
+        const order = await api('/orders', {
           method: 'POST',
           body: JSON.stringify({
             paymentMethod: selectedPayment,
             location: homePayload?.delivery_info?.location || 'Yunusobod, Toshkent',
             deliveryTime: homePayload?.delivery_info?.time || '30 daqiqa',
-            deliveryPrice: homePayload?.delivery_info?.price || 12000
+            deliveryPrice: homePayload?.delivery_info?.price || 12000,
+            customerName: 'Mehmon',
+            customerPhone: '',
+            customerAddress: homePayload?.delivery_info?.location || 'Yunusobod, Toshkent'
           })
         });
 
         await Promise.all([loadProducts({ reset: true }), loadCart()]);
         cart = {};
         renderAll();
+        latestOrderNumber = order.orderNumber || '';
+        successOrderNumber.textContent = `Buyurtma: ${latestOrderNumber || '-'}`;
+        successOrderStatus.textContent = `Status: ${orderStatusLabel(order.status)}`;
+        if (orderStatusTimer) clearInterval(orderStatusTimer);
+        orderStatusTimer = setInterval(refreshOrderStatus, 5000);
+        refreshOrderStatus();
         setView('successView');
       } catch (error) {
         showToast(error.message || 'Buyurtmani yuborishda xatolik');
@@ -1641,6 +1682,10 @@ Oq fonli foto`;
     });
 
     document.getElementById('backHomeBtn').addEventListener('click', async () => {
+      if (orderStatusTimer) {
+        clearInterval(orderStatusTimer);
+        orderStatusTimer = null;
+      }
       await initializeAppData();
       setView('homeView');
       showToast('Buyurtma yakunlandi');
