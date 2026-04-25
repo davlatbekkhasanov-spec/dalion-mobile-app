@@ -339,10 +339,13 @@ function createOrder({
     const p = getProductById(item.id) || {};
     return {
       code: p.code || p.sku || p.id || item.id,
+      sku: p.sku || p.code || p.id || item.id,
+      barcode: p.barcode || p.sku || p.code || p.id || item.id,
       name: item.name,
       price: Number(item.price || 0),
       quantity: Number(item.quantity || 0),
       subtotal: Number(item.subtotal || 0),
+      stock: Number(p.stock || 0),
       image_url: item.image_url || p.image_url || p.image || ''
     };
   });
@@ -417,6 +420,33 @@ function updateOrderStatus(id, status) {
 
 function cancelOrder(id) {
   return updateOrderStatus(id, 'cancelled');
+}
+
+function getOrderPicklist(id) {
+  const order = getOrderById(id);
+  if (!order) return null;
+  return {
+    orderNumber: order.orderNumber,
+    items: (order.items || []).map((item) => ({
+      code: item.code || '',
+      sku: item.sku || item.code || '',
+      name: item.name || '',
+      quantity: Number(item.quantity || 0),
+      barcode: item.barcode || item.sku || item.code || '',
+      image_url: item.image_url || ''
+    }))
+  };
+}
+
+function sendOrderToTsd(id) {
+  const order = getOrderById(id);
+  if (!order) return null;
+  order.tsdStatus = 'queued';
+  order.tsdQueuedAt = new Date().toISOString();
+  order.updated_at = new Date().toISOString();
+  // TODO: Data Mobile API integration should be connected here.
+  persistState();
+  return { ok: true, message: "Order TSD queue ga qo‘shildi", order };
 }
 
 function upsertProducts(items = []) {
@@ -514,5 +544,7 @@ module.exports = {
   getOrderByNumber,
   updateOrderStatus,
   cancelOrder,
+  getOrderPicklist,
+  sendOrderToTsd,
   orders
 };

@@ -56,12 +56,14 @@ curl -X POST "https://<your-domain>/api/v1/integrations/excel/import/products-xl
 - `GET /api/v1/admin/orders/:id`
 - `PUT /api/v1/admin/orders/:id/status`
 - `POST /api/v1/admin/orders/:id/cancel`
+- `GET /api/v1/admin/orders/:id/picklist`
+- `POST /api/v1/admin/orders/:id/send-to-tsd`
 - `GET /api/v1/orders/:orderNumber/status`
 - `GET /api/v1/orders/display` (public read-only display feed)
 
 Order dashboard display page:
 
-- `/orders-display` (TV display, no token input, read-only)
+- `/orders-display` (sensor/TV operator panel, token stored in localStorage, large touch buttons)
 
 ### Home Settings CMS fields
 

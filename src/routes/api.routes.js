@@ -60,5 +60,7 @@ router.get('/admin/orders', requireAdminImportToken, adminController.getOrders);
 router.get('/admin/orders/:id', requireAdminImportToken, adminController.getOrderById);
 router.put('/admin/orders/:id/status', requireAdminImportToken, adminController.updateOrderStatus);
 router.post('/admin/orders/:id/cancel', requireAdminImportToken, adminController.cancelOrder);
+router.get('/admin/orders/:id/picklist', requireAdminImportToken, adminController.getOrderPicklist);
+router.post('/admin/orders/:id/send-to-tsd', requireAdminImportToken, adminController.sendOrderToTsd);
 
 module.exports = router;

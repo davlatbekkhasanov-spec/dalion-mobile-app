@@ -129,3 +129,15 @@ exports.cancelOrder = (req, res) => {
   if (!order) return res.status(404).json({ message: 'Order not found' });
   return res.json({ order });
 };
+
+exports.getOrderPicklist = (req, res) => {
+  const picklist = store.getOrderPicklist(req.params.id);
+  if (!picklist) return res.status(404).json({ message: 'Order not found' });
+  return res.json(picklist);
+};
+
+exports.sendOrderToTsd = (req, res) => {
+  const out = store.sendOrderToTsd(req.params.id);
+  if (!out) return res.status(404).json({ message: 'Order not found' });
+  return res.json(out);
+};
