@@ -905,6 +905,7 @@
         <button class="btn btn-secondary" id="categoryBackBtn" style="display:none; margin-bottom:10px; padding:10px 12px;">← Kategoriyalarga qaytish</button>
         <section class="category-grid" id="categoryResults"></section>
         <section class="products-grid" id="searchResults"></section>
+        <button class="btn btn-secondary" id="loadMoreBtn" style="display:none; width:100%;">Yana ko'rsatish</button>
         <div class="empty" id="searchEmpty" style="display:none;">Hech narsa topilmadi. Boshqa so'z kiriting.</div>
       </section>
 
@@ -991,6 +992,10 @@ Oq fonli foto</div>
     let selectedPayment = 'Naqd';
     let activeModalProductId = null;
     let selectedCategory = null;
+    let productsPage = 1;
+    const productsLimit = 40;
+    let productsHasMore = false;
+    let productsLoading = false;
 
     const phone = document.getElementById('phone');
     const continueBtn = document.getElementById('continueBtn');
@@ -1009,6 +1014,7 @@ Oq fonli foto</div>
     const bottomNav = document.getElementById('bottomNav');
     const checkoutItems = document.getElementById('checkoutItems');
     const checkoutTotal = document.getElementById('checkoutTotal');
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
 
     const modalOverlay = document.getElementById('productModalOverlay');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -1035,10 +1041,20 @@ Oq fonli foto</div>
       return data;
     }
 
-    async function loadProducts(search = '') {
-      const query = search ? `?search=${encodeURIComponent(search)}` : '';
-      const data = await api(`/products${query}`);
-      products = data.products || [];
+    async function loadProducts({ reset = false } = {}) {
+      if (productsLoading) return;
+      productsLoading = true;
+      try {
+        if (reset) productsPage = 1;
+        const params = new URLSearchParams({ page: String(productsPage), limit: String(productsLimit) });
+        const data = await api(`/products?${params.toString()}`);
+        const incoming = data.items || data.products || [];
+        products = reset ? incoming : products.concat(incoming);
+        productsHasMore = Boolean(data.hasMore);
+        loadMoreBtn.style.display = productsHasMore ? 'block' : 'none';
+      } finally {
+        productsLoading = false;
+      }
     }
 
     async function loadCart() {
@@ -1092,7 +1108,7 @@ Oq fonli foto</div>
     function productCardTemplate(p) {
       const categoryName = normalizedCategoryName(p.category);
       const imageHtml = p.image_url
-        ? `<img src="${p.image_url}" alt="${p.name}" style="width:100%;height:100%;object-fit:contain;" />`
+        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />`
         : `DALION
 Oq fonli foto`;
       return `
@@ -1109,7 +1125,7 @@ Oq fonli foto`;
     }
 
     function renderHome() {
-      homeProducts.innerHTML = products.map(productCardTemplate).join('');
+      homeProducts.innerHTML = products.slice(0, 8).map(productCardTemplate).join('');
     }
 
     function normalizedCategoryName(categoryName) {
@@ -1224,7 +1240,7 @@ Oq fonli foto`;
       modalOldPrice.textContent = money(p.oldPrice);
       const modalImageBox = document.querySelector('.modal-image');
       modalImageBox.innerHTML = p.image_url
-        ? `<img src="${p.image_url}" alt="${p.name}" style="width:100%;height:100%;object-fit:contain;" />`
+        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />`
         : `DALION
 Oq fonli foto`;
       modalQty.innerHTML = makeQtyControls(p.id);
@@ -1259,7 +1275,7 @@ Oq fonli foto`;
 
     async function initializeAppData() {
       try {
-        await Promise.all([loadProducts(), loadCart()]);
+        await Promise.all([loadProducts({ reset: true }), loadCart()]);
         renderAll();
       } catch (error) {
         showToast(error.message || 'Maʼlumotni yuklashda xatolik');
@@ -1281,6 +1297,12 @@ Oq fonli foto`;
     });
 
     searchInput.addEventListener('input', renderSearch);
+    loadMoreBtn.addEventListener('click', async () => {
+      if (!productsHasMore) return;
+      productsPage += 1;
+      await loadProducts();
+      renderAll();
+    });
     categoryBackBtn.addEventListener('click', () => {
       selectedCategory = null;
       searchInput.value = '';

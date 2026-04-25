@@ -55,6 +55,10 @@
     <section class="panel card" id="excel-panel">
       <h3>Excel Import</h3>
       <input type="file" id="xlsxFile" accept=".xlsx" />
+      <label class="muted" style="display:flex;gap:8px;align-items:center;margin:8px 0;">
+        <input type="checkbox" id="overwriteImages" checked />
+        Rasmlarni qayta ishlash
+      </label>
       <button id="importBtn" class="primary">Import XLSX</button>
       <div id="importProgressWrap" class="progress-wrap">
         <div class="progress-track"><div id="importProgressBar" class="progress-bar"></div></div>
@@ -178,7 +182,10 @@
           <div class="metric"><span class="muted">Object detected</span><b>${data.imageObjectDetected ?? 0}</b></div>
           <div class="metric"><span class="muted">Detection warnings</span><b>${(data.imageDetectionWarnings || []).length}</b></div>
           <div class="metric"><span class="muted">Image upscaled</span><b>${data.imageUpscaled ?? 0}</b></div>
+          <div class="metric"><span class="muted">Image skipped</span><b>${data.imageSkippedExisting ?? 0}</b></div>
           <div class="metric"><span class="muted">Image missing</span><b>${data.imageMissing ?? 0}</b></div>
+          <div class="metric"><span class="muted">Processing ms</span><b>${data.processingTimeMs ?? 0}</b></div>
+          <div class="metric"><span class="muted">Avg image ms</span><b>${data.averageImageMs ?? 0}</b></div>
         </div>
       `;
       summary.classList.add('show');
@@ -187,6 +194,7 @@
     document.getElementById('importBtn').onclick = async () => {
       const file = document.getElementById('xlsxFile').files[0];
       if(!file) return showToast('Fayl tanlang');
+      const overwriteImages = document.getElementById('overwriteImages').checked;
       const fd = new FormData(); fd.append('file', file);
       const resultEl = document.getElementById('importResult');
       const summaryEl = document.getElementById('importSummary');
@@ -197,7 +205,7 @@
       try{
         const data = await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          xhr.open('POST', '/api/v1/integrations/excel/import/products-xlsx');
+          xhr.open('POST', `/api/v1/integrations/excel/import/products-xlsx?overwriteImages=${overwriteImages}`);
           xhr.setRequestHeader('x-admin-token', getToken());
 
           xhr.upload.onprogress = (e) => {
@@ -208,6 +216,7 @@
 
           xhr.onload = () => {
             setImportProgress(100);
+            document.getElementById('importProgressText').textContent = 'Fayl yuklandi, rasmlar qayta ishlanmoqda...';
             let parsed = {};
             try { parsed = JSON.parse(xhr.responseText || '{}'); } catch (err) {}
             if (xhr.status >= 200 && xhr.status < 300) resolve(parsed);

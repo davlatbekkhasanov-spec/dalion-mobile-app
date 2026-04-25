@@ -62,7 +62,11 @@ exports.importProductsXlsx = async (req, res) => {
       return res.status(400).json({ ok: false, message: 'xlsx file is required (multipart/form-data, field: file)' });
     }
 
-    const result = await xlsxImportService.importProductsFromXlsxBuffer(req.file.buffer);
+    const overwriteFromQuery = req.query?.overwriteImages;
+    const overwriteFromBody = req.body?.overwriteImages;
+    const overwriteImages = String(overwriteFromQuery ?? overwriteFromBody ?? 'true').toLowerCase() !== 'false';
+
+    const result = await xlsxImportService.importProductsFromXlsxBuffer(req.file.buffer, { overwriteImages });
     return res.json({ ok: true, ...result });
   } catch (error) {
     return res.status(400).json({ ok: false, message: error.message || 'XLSX import failed' });

@@ -44,10 +44,12 @@ function ensureCategory(categoryName = 'Boshqa') {
   return found;
 }
 
-function listProducts(search = '', { activeOnly = false } = {}) {
+function listProducts(search = '', { activeOnly = false, category = '' } = {}) {
   const q = String(search || '').trim().toLowerCase();
+  const categoryQuery = String(category || '').trim().toLowerCase();
   return products
     .filter((p) => (activeOnly ? p.active !== false : true))
+    .filter((p) => (categoryQuery ? String(p.category || '').toLowerCase() === categoryQuery : true))
     .filter((p) => (q ? p.name.toLowerCase().includes(q) : true));
 }
 

@@ -336,19 +336,24 @@ async function renderToCenteredCanvas(inputBuffer, sourceWidth, sourceHeight, ou
   const left = Math.floor((OUTPUT_CANVAS_SIZE - targetWidth) / 2);
   const top = Math.floor((OUTPUT_CANVAS_SIZE - targetHeight) / 2);
 
-  await sharp({
+  const baseCanvas = sharp({
     create: {
       width: OUTPUT_CANVAS_SIZE,
       height: OUTPUT_CANVAS_SIZE,
       channels: 4,
       background: { r: 255, g: 255, b: 255, alpha: 1 }
     }
-  })
-    .composite([{ input: resized, left, top }])
-    .png({ compressionLevel: 9, effort: 10, palette: false })
-    .toFile(outputPath);
+  }).composite([{ input: resized, left, top }]);
 
-  return { upscaled: scale > 1.01 };
+  try {
+    await baseCanvas.clone().webp({ quality: 82, effort: 5 }).toFile(outputPath.replace(/\.png$/i, '.webp'));
+    return { upscaled: scale > 1.01, ext: 'webp' };
+  } catch (webpError) {
+    await baseCanvas
+      .png({ compressionLevel: 9, effort: 8, palette: false })
+      .toFile(outputPath.replace(/\.png$/i, '.png'));
+    return { upscaled: scale > 1.01, ext: 'png', webpError: webpError.message };
+  }
 }
 
 async function processAndSaveProductImage({ inputBuffer, outputPath }) {
@@ -367,7 +372,8 @@ async function processAndSaveProductImage({ inputBuffer, outputPath }) {
       if (render.upscaled && Math.max(baseWidth, baseHeight) < 360) {
         warnings.push('low resolution image aggressively upscaled');
       }
-      return { processed: false, warnings, upscaled: render.upscaled };
+      if (render.webpError) warnings.push(`webp_fallback_png: ${render.webpError}`);
+      return { processed: false, warnings, upscaled: render.upscaled, ext: render.ext };
     }
 
     const padding = Math.round(Math.max(box.width, box.height) * 0.05);
@@ -399,8 +405,9 @@ async function processAndSaveProductImage({ inputBuffer, outputPath }) {
     if (canvasResult.upscaled && objectMaxSide < 360) {
       warnings.push('low resolution image aggressively upscaled');
     }
+    if (canvasResult.webpError) warnings.push(`webp_fallback_png: ${canvasResult.webpError}`);
 
-    return { processed: true, warnings, upscaled: canvasResult.upscaled };
+    return { processed: true, warnings, upscaled: canvasResult.upscaled, ext: canvasResult.ext };
   } catch (processingError) {
     warnings.push(`processing_failed: ${processingError.message}`);
     try {
@@ -419,16 +426,30 @@ async function processAndSaveProductImage({ inputBuffer, outputPath }) {
       if (fallbackRender.upscaled && Math.max(baseWidth, baseHeight) < 360) {
         warnings.push('low resolution image aggressively upscaled');
       }
-      return { processed: false, warnings, upscaled: fallbackRender.upscaled };
+      if (fallbackRender.webpError) warnings.push(`webp_fallback_png: ${fallbackRender.webpError}`);
+      return { processed: false, warnings, upscaled: fallbackRender.upscaled, ext: fallbackRender.ext };
     } catch (fallbackError) {
       warnings.push(`fallback_failed: ${fallbackError.message}`);
       fs.writeFileSync(outputPath, inputBuffer);
-      return { processed: false, warnings, upscaled: false };
+      return { processed: false, warnings, upscaled: false, ext: 'png' };
     }
   }
 }
 
-async function importProductsFromXlsxBuffer(buffer) {
+async function mapLimit(items, limit, handler) {
+  const out = new Array(items.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < items.length) {
+      const idx = cursor++;
+      out[idx] = await handler(items[idx], idx);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => worker()));
+  return out;
+}
+
+async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true } = {}) {
   const files = unzipBuffer(buffer);
   const sharedStrings = parseSharedStrings((files['xl/sharedStrings.xml'] || Buffer.from('')).toString('utf8'));
   const sheetXmlPath = 'xl/worksheets/sheet1.xml';
@@ -455,12 +476,16 @@ async function importProductsFromXlsxBuffer(buffer) {
   let imageProcessed = 0;
   let imageObjectDetected = 0;
   let imageUpscaled = 0;
+  let imageSkippedExisting = 0;
   let imageMissing = 0;
   const imageProcessingWarnings = [];
   const imageDetectionWarnings = [];
+  const startedAt = Date.now();
+  const imageTimings = [];
 
   const sortedRows = [...rows.keys()].filter((n) => n >= 2).sort((a, b) => a - b);
 
+  const parsedRows = [];
   for (const rowNo of sortedRows) {
     const row = rows.get(rowNo) || new Map();
     const codeRaw = (row.get(headersByName['Код']) || '').trim();
@@ -487,66 +512,90 @@ async function importProductsFromXlsxBuffer(buffer) {
       continue;
     }
 
-    const safeCode = sanitizeCode(codeRaw);
+    parsedRows.push({
+      rowNo,
+      codeRaw,
+      nameRaw,
+      safeCode: sanitizeCode(codeRaw),
+      currentCategory,
+      stock: Number.isNaN(stock) ? 0 : stock,
+      price,
+      rowImage: rowImages.get(rowNo)
+    });
+  }
+
+  await mapLimit(parsedRows, 4, async (item) => {
     let imageUrl = null;
-    const rowImage = rowImages.get(rowNo);
-    if (rowImage && rowImage.col === 2) {
+    if (item.rowImage && item.rowImage.col === 2) {
       try {
-        const outputPath = path.join(PRODUCTS_UPLOAD_DIR, `${safeCode}.png`);
-        const processingResult = await processAndSaveProductImage({
-          inputBuffer: rowImage.buffer,
-          outputPath
-        });
-        if (processingResult.processed) {
-          imageProcessed += 1;
-          imageObjectDetected += 1;
-        }
-        if (processingResult.upscaled) imageUpscaled += 1;
-        if (processingResult.warnings.length) {
-          const warning = {
-            row: rowNo,
-            code: codeRaw,
-            message: processingResult.warnings.join('; ')
-          };
-          imageProcessingWarnings.push(warning);
-          if (warning.message.includes('object detection failed')) {
-            imageDetectionWarnings.push(warning);
-          }
-          errors.push({
-            row: rowNo,
-            code: codeRaw,
-            message: `Image processing warning: ${warning.message}`
+        const baseOutputPath = path.join(PRODUCTS_UPLOAD_DIR, `${item.safeCode}.png`);
+        const webpPath = baseOutputPath.replace(/\.png$/i, '.webp');
+        const pngPath = baseOutputPath.replace(/\.png$/i, '.png');
+        if (!overwriteImages && (fs.existsSync(webpPath) || fs.existsSync(pngPath))) {
+          imageSkippedExisting += 1;
+          imageUrl = fs.existsSync(webpPath)
+            ? `/uploads/products/${item.safeCode}.webp`
+            : `/uploads/products/${item.safeCode}.png`;
+        } else {
+          const startMs = Date.now();
+          const processingResult = await processAndSaveProductImage({
+            inputBuffer: item.rowImage.buffer,
+            outputPath: baseOutputPath
           });
+          imageTimings.push(Date.now() - startMs);
+          if (processingResult.processed) {
+            imageProcessed += 1;
+            imageObjectDetected += 1;
+          }
+          if (processingResult.upscaled) imageUpscaled += 1;
+          if (processingResult.warnings.length) {
+            const warning = {
+              row: item.rowNo,
+              code: item.codeRaw,
+              message: processingResult.warnings.join('; ')
+            };
+            imageProcessingWarnings.push(warning);
+            if (warning.message.includes('object detection failed')) {
+              imageDetectionWarnings.push(warning);
+            }
+            errors.push({
+              row: item.rowNo,
+              code: item.codeRaw,
+              message: `Image processing warning: ${warning.message}`
+            });
+          }
+          imageUrl = `/uploads/products/${item.safeCode}.${processingResult.ext === 'png' ? 'png' : 'webp'}`;
         }
-        imageUrl = `/uploads/products/${safeCode}.png`;
         imageExtracted += 1;
       } catch (e) {
-        errors.push({ row: rowNo, code: codeRaw, message: 'Image save warning: ' + e.message });
+        errors.push({ row: item.rowNo, code: item.codeRaw, message: 'Image save warning: ' + e.message });
         imageMissing += 1;
       }
     } else {
-      errors.push({ row: rowNo, code: codeRaw, message: 'Image warning: anchor/image not found' });
+      errors.push({ row: item.rowNo, code: item.codeRaw, message: 'Image warning: anchor/image not found' });
       imageMissing += 1;
     }
 
     upsertRows.push({
-      id: safeCode,
-      code: codeRaw,
-      sku: codeRaw,
-      name: nameRaw,
-      category: currentCategory,
-      stock: Number.isNaN(stock) ? 0 : stock,
-      price,
-      oldPrice: price,
+      id: item.safeCode,
+      code: item.codeRaw,
+      sku: item.codeRaw,
+      name: item.nameRaw,
+      category: item.currentCategory,
+      stock: item.stock,
+      price: item.price,
+      oldPrice: item.price,
       image_url: imageUrl,
       image: imageUrl,
       source: 'excel',
       updated_at: new Date().toISOString(),
       active: true
     });
-  }
+  });
 
   store.upsertProducts(upsertRows);
+  const processingTimeMs = Date.now() - startedAt;
+  const averageImageMs = imageTimings.length ? Math.round(imageTimings.reduce((a, b) => a + b, 0) / imageTimings.length) : 0;
 
   return {
     imported: upsertRows.length,
@@ -556,6 +605,9 @@ async function importProductsFromXlsxBuffer(buffer) {
     imageObjectDetected,
     imageDetectionWarnings,
     imageUpscaled,
+    imageSkippedExisting,
+    processingTimeMs,
+    averageImageMs,
     imageProcessingWarnings,
     imageMissing,
     errors
