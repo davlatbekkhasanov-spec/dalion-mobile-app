@@ -42,6 +42,10 @@
 <body>
   <div class="wrap">
     <h1>Admin Panel</h1>
+    <div class="row" style="margin-bottom:10px;">
+      <button id="langUz" class="tab">UZ</button>
+      <button id="langRu" class="tab">RU</button>
+    </div>
     <div class="card">
       <div class="row">
         <input id="tokenInput" placeholder="ADMIN_IMPORT_TOKEN" style="min-width:280px" />
@@ -56,15 +60,28 @@
       <h3>Excel Import</h3>
       <input type="file" id="xlsxFile" accept=".xlsx" />
       <label class="muted" style="display:flex;gap:8px;align-items:center;margin:8px 0;">
-        <input type="checkbox" id="overwriteImages" checked />
+        <input type="checkbox" id="processImages" checked />
         Rasmlarni qayta ishlash
       </label>
+      <label class="muted" style="display:flex;gap:8px;align-items:center;margin:4px 0;">
+        <input type="checkbox" id="overwriteImages" checked />
+        Mavjud rasmlarni overwrite qilish
+      </label>
+      <label class="muted" style="display:flex;gap:8px;align-items:center;margin:4px 0;">
+        <input type="checkbox" id="updateOnlyStockPrice" />
+        Faqat qoldiq/narxni yangilash
+      </label>
       <button id="importBtn" class="primary">Import XLSX</button>
+      <div class="row" style="margin-top:8px;">
+        <button id="newImportBtn" class="btn">Yangi import qilish</button>
+        <button id="reloadStoreBtn" class="btn">Mavjud ma'lumotni yangilash</button>
+      </div>
       <div id="importProgressWrap" class="progress-wrap">
         <div class="progress-track"><div id="importProgressBar" class="progress-bar"></div></div>
         <div id="importProgressText" class="progress-text">Yuklanmoqda... 0%</div>
       </div>
       <div id="importSummary" class="import-summary"></div>
+      <pre id="storeSummary" class="muted"></pre>
       <pre id="importResult" class="muted"></pre>
     </section>
 
@@ -121,6 +138,12 @@
     const tabs = [
       ['excel','Excel Import'],['banners','Banners'],['promotions','Promotions'],['home-settings','Home Settings'],['categories','Categories'],['products','Products']
     ];
+    const i18n = {
+      uz: { saveToken: 'Token saqlash', importBtn: 'Import XLSX', excel: 'Excel Import', banners: 'Banners', promotions: 'Promotions', home: 'Home Settings', categories: 'Categories', products: 'Products', saved: 'Saqlandi', importOk: 'Import muvaffaqiyatli' },
+      ru: { saveToken: 'Сохранить токен', importBtn: 'Импорт XLSX', excel: 'Импорт Excel', banners: 'Баннеры', promotions: 'Промо', home: 'Настройки главной', categories: 'Категории', products: 'Товары', saved: 'Сохранено', importOk: 'Импорт успешно завершен' }
+    };
+    const langKey = 'admin_lang';
+    let lang = localStorage.getItem(langKey) || 'uz';
     const tabsWrap = document.getElementById('tabs');
     const tokenInput = document.getElementById('tokenInput');
     const toast = document.getElementById('toast');
@@ -143,12 +166,30 @@
     }
 
     tabs.forEach(([id,label])=>{
-      const b=document.createElement('button');b.className='tab';b.dataset.id=id;b.textContent=label;b.onclick=()=>activateTab(id);tabsWrap.appendChild(b)
+      const b=document.createElement('button');b.className='tab';b.dataset.id=id;b.dataset.labelKey=id;b.textContent=label;b.onclick=()=>activateTab(id);tabsWrap.appendChild(b)
     });
     activateTab('excel');
 
+    function applyLang() {
+      const t = i18n[lang] || i18n.uz;
+      document.getElementById('saveTokenBtn').textContent = t.saveToken;
+      document.getElementById('importBtn').textContent = t.importBtn;
+      document.querySelectorAll('#tabs .tab').forEach((btn) => {
+        const key = btn.dataset.labelKey;
+        if (key === 'excel') btn.textContent = t.excel;
+        if (key === 'banners') btn.textContent = t.banners;
+        if (key === 'promotions') btn.textContent = t.promotions;
+        if (key === 'home-settings') btn.textContent = t.home;
+        if (key === 'categories') btn.textContent = t.categories;
+        if (key === 'products') btn.textContent = t.products;
+      });
+    }
+    document.getElementById('langUz').onclick = () => { lang = 'uz'; localStorage.setItem(langKey, lang); applyLang(); };
+    document.getElementById('langRu').onclick = () => { lang = 'ru'; localStorage.setItem(langKey, lang); applyLang(); };
+    applyLang();
+
     tokenInput.value = getToken();
-    document.getElementById('saveTokenBtn').onclick=()=>{localStorage.setItem(tokenKey, tokenInput.value.trim());showToast('Token saqlandi')};
+    document.getElementById('saveTokenBtn').onclick=()=>{localStorage.setItem(tokenKey, tokenInput.value.trim());showToast(lang==='ru' ? 'Токен сохранен' : 'Token saqlandi')};
 
     function progressLabel(percent){
       if(percent >= 100) return 'Yakunlanmoqda... 100%';
@@ -194,7 +235,9 @@
     document.getElementById('importBtn').onclick = async () => {
       const file = document.getElementById('xlsxFile').files[0];
       if(!file) return showToast('Fayl tanlang');
+      const processImages = document.getElementById('processImages').checked;
       const overwriteImages = document.getElementById('overwriteImages').checked;
+      const updateOnlyStockPrice = document.getElementById('updateOnlyStockPrice').checked;
       const fd = new FormData(); fd.append('file', file);
       const resultEl = document.getElementById('importResult');
       const summaryEl = document.getElementById('importSummary');
@@ -205,7 +248,7 @@
       try{
         const data = await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          xhr.open('POST', `/api/v1/integrations/excel/import/products-xlsx?overwriteImages=${overwriteImages}`);
+          xhr.open('POST', `/api/v1/integrations/excel/import/products-xlsx?overwriteImages=${overwriteImages}&processImages=${processImages}&updateOnlyStockPrice=${updateOnlyStockPrice}`);
           xhr.setRequestHeader('x-admin-token', getToken());
 
           xhr.upload.onprogress = (e) => {
@@ -228,12 +271,30 @@
 
         resultEl.textContent = JSON.stringify(data, null, 2);
         renderImportSummary(data);
-        showToast('Import muvaffaqiyatli');
+        showToast(i18n[lang].importOk);
       }catch(e){
         setImportProgress(100, true);
         showToast(e.message);
       }finally{btn.disabled=false;btn.textContent='Import XLSX'}
     };
+
+    document.getElementById('newImportBtn').onclick = () => document.getElementById('importBtn').click();
+    document.getElementById('reloadStoreBtn').onclick = async () => {
+      try {
+        const out = await api('/admin/store/reload', { method: 'POST' });
+        showToast(out.ok ? 'Store qayta yuklandi' : 'Store fayli topilmadi');
+        await loadStoreSummary();
+      } catch (e) {
+        showToast(e.message || 'Reload xatolik');
+      }
+    };
+
+    async function loadStoreSummary() {
+      try {
+        const { summary } = await api('/admin/store/summary');
+        document.getElementById('storeSummary').textContent = JSON.stringify(summary, null, 2);
+      } catch (e) {}
+    }
 
     async function loadBanners(){
       const {banners}=await api('/admin/banners');
@@ -269,6 +330,7 @@
             <input value="${c.displayName || c.name || ''}" data-id="${c.id}" data-role="displayName" placeholder="display name" />
             <input value="${c.icon || ''}" data-id="${c.id}" data-role="icon" placeholder="emoji icon" style="max-width:90px;" />
             <input value="${c.image_url || ''}" data-id="${c.id}" data-role="image_url" placeholder="image URL" />
+            <input type="file" accept="image/*" data-id="${c.id}" data-role="image_file" />
             <label><input type="checkbox" ${c.active?'checked':''} data-id="${c.id}" data-role="active" /> active</label>
             <button data-id="${c.id}">Save</button>
           </div>
@@ -281,13 +343,24 @@
       const b=e.target.closest('button');if(!b)return;
       const id=b.dataset.id;const p=b.closest('.item');
       try{
+        const fileInput = p.querySelector('[data-role=image_file]');
+        const file = fileInput?.files?.[0];
+        if (file) {
+          const fd = new FormData();
+          fd.append('file', file);
+          const token = getToken();
+          const res = await fetch('/api/v1/admin/categories/'+id+'/image', { method: 'POST', headers: { 'x-admin-token': token }, body: fd });
+          const out = await res.json().catch(()=>({}));
+          if(!res.ok) throw new Error(out.message || 'Image upload error');
+          if (out.category?.image_url) p.querySelector('[data-role=image_url]').value = out.category.image_url;
+        }
         await api('/admin/categories/'+id,{method:'PUT',body:JSON.stringify({
           displayName:p.querySelector('[data-role=displayName]').value,
           icon:p.querySelector('[data-role=icon]').value,
           image_url:p.querySelector('[data-role=image_url]').value,
           active:p.querySelector('[data-role=active]').checked
         })});
-        showToast('Category saqlandi');
+        showToast(lang==='ru' ? 'Категория сохранена' : 'Category saqlandi');
         loadCategories();
       }catch(err){showToast(err.message||'Category saqlashda xatolik')}
     };
@@ -305,7 +378,7 @@
     document.getElementById('productsList').onclick=async(e)=>{const b=e.target.closest('button');if(!b)return;const p=b.closest('.item');await api('/admin/products/'+b.dataset.id,{method:'PUT',body:JSON.stringify({active:p.querySelector('[data-role=active]').checked,price:Number(p.querySelector('[data-role=price]').value),stock:Number(p.querySelector('[data-role=stock]').value),categoryId:p.querySelector('[data-role=categoryId]').value})});showToast('Saved');loadProducts();};
 
     async function bootstrap(){
-      try{await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts()]);}
+      try{await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts(),loadStoreSummary()]);}
       catch(e){showToast(e.message||'Token tekshiring')}
     }
     bootstrap();

@@ -1,4 +1,7 @@
 const store = require('../data/store.js');
+const fs = require('fs');
+const path = require('path');
+const sharp = require('sharp');
 
 exports.getBanners = (req, res) => {
   res.json({ banners: store.getBanners() });
@@ -61,6 +64,29 @@ exports.updateCategory = (req, res) => {
   return res.json({ category });
 };
 
+exports.uploadCategoryImage = async (req, res) => {
+  try {
+    if (!req.file?.buffer) return res.status(400).json({ message: 'image file is required' });
+    const category = store.getCategories().find((c) => c.id === req.params.id);
+    if (!category) return res.status(404).json({ message: 'Category not found' });
+
+    const dir = path.join(process.cwd(), 'uploads', 'categories');
+    fs.mkdirSync(dir, { recursive: true });
+    const outPath = path.join(dir, `${category.id}.webp`);
+    await sharp(req.file.buffer)
+      .rotate()
+      .resize(300, 300, { fit: 'cover' })
+      .webp({ quality: 82, effort: 5 })
+      .toFile(outPath);
+
+    const image_url = `/uploads/categories/${category.id}.webp`;
+    const updated = store.updateCategory(category.id, { image_url });
+    return res.json({ category: updated });
+  } catch (e) {
+    return res.status(400).json({ message: e.message || 'Image upload failed' });
+  }
+};
+
 exports.getProducts = (req, res) => {
   const { search = '' } = req.query;
   res.json({ products: store.listProducts(search) });
@@ -70,4 +96,13 @@ exports.updateProduct = (req, res) => {
   const product = store.updateProduct(req.params.id, req.body || {});
   if (!product) return res.status(404).json({ message: 'Product not found' });
   return res.json({ product });
+};
+
+exports.getStoreSummary = (req, res) => {
+  res.json({ summary: store.getStoreSummary() });
+};
+
+exports.reloadStore = (req, res) => {
+  const out = store.reloadStoreFromDisk();
+  res.json(out);
 };

@@ -48,8 +48,11 @@ router.put('/admin/home-settings', requireAdminImportToken, adminController.upda
 
 router.get('/admin/categories', requireAdminImportToken, adminController.getCategories);
 router.put('/admin/categories/:id', requireAdminImportToken, adminController.updateCategory);
+router.post('/admin/categories/:id/image', requireAdminImportToken, parseMultipartSingleFile('file'), adminController.uploadCategoryImage);
 
 router.get('/admin/products', requireAdminImportToken, adminController.getProducts);
 router.put('/admin/products/:id', requireAdminImportToken, adminController.updateProduct);
+router.get('/admin/store/summary', requireAdminImportToken, adminController.getStoreSummary);
+router.post('/admin/store/reload', requireAdminImportToken, adminController.reloadStore);
 
 module.exports = router;

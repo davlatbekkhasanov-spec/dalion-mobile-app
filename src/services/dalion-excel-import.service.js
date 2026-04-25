@@ -449,7 +449,7 @@ async function mapLimit(items, limit, handler) {
   return out;
 }
 
-async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true } = {}) {
+async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, processImages = true, updateOnlyStockPrice = false } = {}) {
   const files = unzipBuffer(buffer);
   const sharedStrings = parseSharedStrings((files['xl/sharedStrings.xml'] || Buffer.from('')).toString('utf8'));
   const sheetXmlPath = 'xl/worksheets/sheet1.xml';
@@ -525,8 +525,9 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true } =
   }
 
   await mapLimit(parsedRows, 4, async (item) => {
+    const existing = store.getProductById(item.safeCode);
     let imageUrl = null;
-    if (item.rowImage && item.rowImage.col === 2) {
+    if (processImages && item.rowImage && item.rowImage.col === 2) {
       try {
         const baseOutputPath = path.join(PRODUCTS_UPLOAD_DIR, `${item.safeCode}.png`);
         const webpPath = baseOutputPath.replace(/\.png$/i, '.webp');
@@ -571,25 +572,30 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true } =
         errors.push({ row: item.rowNo, code: item.codeRaw, message: 'Image save warning: ' + e.message });
         imageMissing += 1;
       }
-    } else {
+    } else if (processImages) {
       errors.push({ row: item.rowNo, code: item.codeRaw, message: 'Image warning: anchor/image not found' });
       imageMissing += 1;
+    }
+
+    if (!processImages && existing?.image_url) {
+      imageUrl = existing.image_url;
     }
 
     upsertRows.push({
       id: item.safeCode,
       code: item.codeRaw,
       sku: item.codeRaw,
-      name: item.nameRaw,
-      category: item.currentCategory,
+      name: updateOnlyStockPrice && existing ? existing.name : item.nameRaw,
+      category: updateOnlyStockPrice && existing ? existing.category : item.currentCategory,
       stock: item.stock,
       price: item.price,
       oldPrice: item.price,
-      image_url: imageUrl,
-      image: imageUrl,
+      image_url: updateOnlyStockPrice && existing ? existing.image_url : imageUrl,
+      image: updateOnlyStockPrice && existing ? existing.image : imageUrl,
       source: 'excel',
       updated_at: new Date().toISOString(),
-      active: true
+      active: existing ? existing.active !== false : true,
+      orderCount: existing?.orderCount || 0
     });
   });
 

@@ -65,8 +65,10 @@ exports.importProductsXlsx = async (req, res) => {
     const overwriteFromQuery = req.query?.overwriteImages;
     const overwriteFromBody = req.body?.overwriteImages;
     const overwriteImages = String(overwriteFromQuery ?? overwriteFromBody ?? 'true').toLowerCase() !== 'false';
+    const processImages = String(req.query?.processImages ?? req.body?.processImages ?? 'true').toLowerCase() !== 'false';
+    const updateOnlyStockPrice = String(req.query?.updateOnlyStockPrice ?? req.body?.updateOnlyStockPrice ?? 'false').toLowerCase() === 'true';
 
-    const result = await xlsxImportService.importProductsFromXlsxBuffer(req.file.buffer, { overwriteImages });
+    const result = await xlsxImportService.importProductsFromXlsxBuffer(req.file.buffer, { overwriteImages, processImages, updateOnlyStockPrice });
     return res.json({ ok: true, ...result });
   } catch (error) {
     return res.status(400).json({ ok: false, message: error.message || 'XLSX import failed' });

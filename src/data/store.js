@@ -1,3 +1,8 @@
+const fs = require('fs');
+const path = require('path');
+const DATA_DIR = path.join(process.cwd(), 'data');
+const DATA_FILE = path.join(DATA_DIR, 'store.json');
+
 const products = [
   { id: 'coca', code: 'DAL-COCA-1L', sku: 'DAL-COCA-1L', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 12000, oldPrice: 13400, stock: 100, image: '', image_url: '', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
   { id: 'pepsi', code: 'DAL-PEPSI-1L', sku: 'DAL-PEPSI-1L', name: 'Pepsi 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 12000, oldPrice: 13400, stock: 100, image: '', image_url: '', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
@@ -29,6 +34,41 @@ let homeSettings = {
 
 const cart = new Map();
 const orders = [];
+let lastUpdated = null;
+
+function persistState() {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    const data = {
+      products,
+      categories,
+      banners,
+      promotions,
+      homeSettings,
+      savedAt: new Date().toISOString()
+    };
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+    lastUpdated = data.savedAt;
+  } catch (e) {
+    // no-op for demo mode
+  }
+}
+
+function loadStateFromDisk() {
+  try {
+    if (!fs.existsSync(DATA_FILE)) return false;
+    const parsed = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    if (Array.isArray(parsed.products)) { products.splice(0, products.length, ...parsed.products); }
+    if (Array.isArray(parsed.categories)) { categories.splice(0, categories.length, ...parsed.categories); }
+    if (Array.isArray(parsed.banners)) { banners.splice(0, banners.length, ...parsed.banners); }
+    if (Array.isArray(parsed.promotions)) { promotions.splice(0, promotions.length, ...parsed.promotions); }
+    if (parsed.homeSettings && typeof parsed.homeSettings === 'object') { homeSettings = { ...homeSettings, ...parsed.homeSettings }; }
+    lastUpdated = parsed.savedAt || new Date().toISOString();
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 function makeId(prefix) {
   return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
@@ -119,6 +159,7 @@ function createBanner(payload = {}) {
     active: payload.active !== false
   };
   banners.push(banner);
+  persistState();
   return banner;
 }
 
@@ -126,6 +167,7 @@ function updateBanner(id, payload = {}) {
   const i = banners.findIndex((x) => x.id === id);
   if (i === -1) return null;
   banners[i] = { ...banners[i], ...payload };
+  persistState();
   return banners[i];
 }
 
@@ -133,6 +175,7 @@ function deleteBanner(id) {
   const i = banners.findIndex((x) => x.id === id);
   if (i === -1) return false;
   banners.splice(i, 1);
+  persistState();
   return true;
 }
 
@@ -149,6 +192,7 @@ function createPromotion(payload = {}) {
     active: payload.active !== false
   };
   promotions.push(promo);
+  persistState();
   return promo;
 }
 
@@ -156,6 +200,7 @@ function updatePromotion(id, payload = {}) {
   const i = promotions.findIndex((x) => x.id === id);
   if (i === -1) return null;
   promotions[i] = { ...promotions[i], ...payload };
+  persistState();
   return promotions[i];
 }
 
@@ -163,6 +208,7 @@ function deletePromotion(id) {
   const i = promotions.findIndex((x) => x.id === id);
   if (i === -1) return false;
   promotions.splice(i, 1);
+  persistState();
   return true;
 }
 
@@ -172,6 +218,7 @@ function getHomeSettings() {
 
 function updateHomeSettings(payload = {}) {
   homeSettings = { ...homeSettings, ...payload };
+  persistState();
   return homeSettings;
 }
 
@@ -185,6 +232,7 @@ function updateCategory(id, payload = {}) {
     icon: payload.icon !== undefined ? payload.icon : categories[i].icon,
     image_url: payload.image_url !== undefined ? payload.image_url : categories[i].image_url
   };
+  persistState();
   return categories[i];
 }
 
@@ -209,6 +257,7 @@ function updateProduct(id, payload = {}) {
     stock: payload.stock !== undefined ? Number(payload.stock) || 0 : products[i].stock,
     oldPrice: payload.oldPrice !== undefined ? Number(payload.oldPrice) || 0 : products[i].oldPrice
   };
+  persistState();
   return products[i];
 }
 
@@ -273,6 +322,7 @@ function createOrder({ paymentMethod = 'Naqd', location = 'Yunusobod, Toshkent',
 
   orders.push(order);
   clearCart();
+  persistState();
 
   return { data: order };
 }
@@ -312,8 +362,28 @@ function upsertProducts(items = []) {
     }
   }
 
+  persistState();
+
   return touched;
 }
+
+function getStoreSummary() {
+  return {
+    products: products.length,
+    categories: categories.length,
+    banners: banners.length,
+    promotions: promotions.length,
+    lastUpdated,
+    storageMode: 'file+memory'
+  };
+}
+
+function reloadStoreFromDisk() {
+  const ok = loadStateFromDisk();
+  return { ok, ...getStoreSummary() };
+}
+
+loadStateFromDisk();
 
 module.exports = {
   // state sections
@@ -344,5 +414,7 @@ module.exports = {
   clearCart,
   createOrder,
   upsertProducts,
+  getStoreSummary,
+  reloadStoreFromDisk,
   orders
 };
