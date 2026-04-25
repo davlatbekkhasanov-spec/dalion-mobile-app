@@ -3,100 +3,66 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Orders Tablo</title>
+  <title>Orders Display</title>
   <style>
-    :root { --bg:#040b17; --card:#0e1b30; --line:#294366; --txt:#e7f3ff; --muted:#9ab7dd; --accent:#31f2a5; }
+    :root { --bg:#030915; --card:#0d1b31; --line:#27476a; --txt:#e6f3ff; --muted:#9db9dd; }
     *{box-sizing:border-box;font-family:Inter,Segoe UI,Arial,sans-serif}
-    body{margin:0;background:radial-gradient(circle at 0% 0%,#132747 0,transparent 35%),var(--bg);color:var(--txt)}
-    .wrap{padding:14px;max-width:1700px;margin:0 auto}
-    .top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
-    input,button{background:#0c1830;border:1px solid var(--line);color:var(--txt);padding:10px;border-radius:10px}
-    button{cursor:pointer}
-    .primary{background:linear-gradient(90deg,#2aff9b,#28d8ff);color:#05231f;border:none;font-weight:700}
+    body{margin:0;background:radial-gradient(circle at 10% 0%,#143057 0,transparent 38%),var(--bg);color:var(--txt)}
+    .wrap{padding:16px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
     .muted{color:var(--muted);font-size:13px}
-    .grid{display:grid;grid-template-columns:repeat(6,minmax(220px,1fr));gap:10px;align-items:start}
-    .col{background:linear-gradient(180deg,#10213a,#091628);border:1px solid var(--line);border-radius:14px;padding:10px;min-height:240px}
-    .col h3{margin:0 0 8px;font-size:15px}
-    .list{display:grid;gap:8px}
-    .card{border:1px solid var(--line);background:#0a162b;border-radius:12px;padding:10px}
-    .card b{font-size:14px}
-    .row{display:flex;justify-content:space-between;gap:8px}
-    .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-    .actions button{padding:7px 9px;font-size:12px}
-    .online{padding:4px 8px;border-radius:999px;border:1px solid #267d5a;background:#0d2b22;color:#8dffc9;font-size:12px}
-    .offline{border-color:#8b3e4c;background:#2a1018;color:#ffb7c3}
+    .grid{display:grid;grid-template-columns:repeat(6,minmax(220px,1fr));gap:10px;flex:1;min-height:0}
+    .col{background:linear-gradient(180deg,#10213a,#091628);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;min-height:0}
+    .col h3{margin:0 0 8px;font-size:16px}
+    .list{display:grid;gap:8px;overflow:auto;scrollbar-width:none;-ms-overflow-style:none}
+    .list::-webkit-scrollbar{display:none}
+    .card{border:1px solid var(--line);background:#0a162b;border-radius:12px;padding:12px}
+    .card b{font-size:16px}
+    .row{display:flex;justify-content:space-between;gap:8px;margin-top:4px}
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="top">
-      <a href="/admin" class="muted">← Admin</a>
-      <input id="tokenInput" placeholder="ADMIN_IMPORT_TOKEN" style="min-width:280px" />
-      <button id="saveTokenBtn" class="primary">Token saqlash</button>
-      <span id="onlineBadge" class="online">Online</span>
-      <span id="lastUpdated" class="muted">Yangilanmagan</span>
-      <span id="networkMsg" class="muted"></span>
+      <h1 style="margin:0;font-size:24px;">Orders Display</h1>
+      <div>
+        <span id="online" class="muted">Online</span>
+        <span id="lastUpdated" class="muted" style="margin-left:10px;">Yangilanmagan</span>
+        <span id="network" class="muted" style="margin-left:10px;"></span>
+      </div>
     </div>
-    <div class="grid" id="columns"></div>
+    <div class="grid" id="cols"></div>
   </div>
-
   <script>
-    const tokenKey = 'admin_import_token';
     const statuses = [
-      ['new', 'Yangi'],
-      ['picking', 'Terilmoqda'],
-      ['picked', 'Yig‘ildi'],
-      ['waiting_courier', 'Kurier kutilyapti'],
-      ['out_for_delivery', 'Yetkazilmoqda'],
-      ['delivered', 'Yakunlandi']
+      ['new', 'new'],
+      ['picking', 'picking'],
+      ['picked', 'picked'],
+      ['waiting_courier', 'waiting_courier'],
+      ['out_for_delivery', 'out_for_delivery'],
+      ['delivered', 'delivered']
     ];
-    const nextAction = {
-      new: ['Terishni boshlash', 'picking'],
-      picking: ['Terib bo‘lindi', 'picked'],
-      picked: ['Kurierni kutmoqda', 'waiting_courier'],
-      waiting_courier: ['Kurierga berildi', 'out_for_delivery'],
-      out_for_delivery: ['Yetkazildi', 'delivered']
-    };
 
-    const tokenInput = document.getElementById('tokenInput');
-    tokenInput.value = localStorage.getItem(tokenKey) || '';
-    document.getElementById('saveTokenBtn').onclick = () => localStorage.setItem(tokenKey, tokenInput.value.trim());
+    function t(v){ return v ? new Date(v).toLocaleTimeString('ru-RU') : '-'; }
 
-    function fmtTime(t){ return t ? new Date(t).toLocaleTimeString('ru-RU') : '-'; }
-
-    async function api(path, options = {}) {
-      const token = localStorage.getItem(tokenKey) || '';
-      const res = await fetch('/api/v1' + path, {
-        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
-        ...options
+    function render(orders){
+      const grouped = new Map(statuses.map(([s]) => [s, []]));
+      (orders || []).forEach((o) => {
+        if (!grouped.has(o.status)) return;
+        grouped.get(o.status).push(o);
       });
-      const data = await res.json().catch(()=>({}));
-      if (!res.ok) throw new Error(data.message || 'API error');
-      return data;
-    }
-
-    function renderOrders(orders) {
-      const wrap = document.getElementById('columns');
-      const byStatus = new Map(statuses.map(([k]) => [k, []]));
-      orders.forEach((o) => {
-        const key = byStatus.has(o.status) ? o.status : 'new';
-        byStatus.get(key).push(o);
-      });
-      wrap.innerHTML = statuses.map(([key, title]) => `
+      document.getElementById('cols').innerHTML = statuses.map(([key,title]) => `
         <section class="col">
-          <h3>${title} (${byStatus.get(key).length})</h3>
+          <h3>${title} (${grouped.get(key).length})</h3>
           <div class="list">
-            ${byStatus.get(key).map((o) => `
+            ${grouped.get(key).map((o) => `
               <article class="card">
                 <b>#${o.orderNumber || o.id}</b>
-                <div class="muted">${fmtTime(o.created_at)}</div>
-                <div class="muted">${o.customerName || 'Mehmon'} | ${o.customerPhone || '-'}</div>
+                <div class="muted">${t(o.created_at)}</div>
+                <div class="muted">${o.customerName || 'Mehmon'}</div>
+                <div class="muted">${o.customerPhone || '-'}</div>
                 <div class="muted">${o.customerAddress || o.location || '-'}</div>
-                <div class="row"><span>${(o.items || []).length} ta item</span><strong>${Number(o.total || 0).toLocaleString('ru-RU')} so'm</strong></div>
-                <div class="actions">
-                  ${nextAction[o.status] ? `<button data-id="${o.id}" data-status="${nextAction[o.status][1]}">${nextAction[o.status][0]}</button>` : ''}
-                  ${o.status !== 'cancelled' && o.status !== 'delivered' ? `<button data-id="${o.id}" data-action="cancel">Bekor qilish</button>` : ''}
-                </div>
+                <div class="row"><span>${(o.items || []).length} item</span><strong>${Number(o.total || 0).toLocaleString('ru-RU')} so'm</strong></div>
               </article>
             `).join('')}
           </div>
@@ -104,40 +70,24 @@
       `).join('');
     }
 
-    async function refreshOrders() {
-      try {
-        const { orders } = await api('/admin/orders');
-        renderOrders(orders || []);
-        document.getElementById('onlineBadge').textContent = 'Online';
-        document.getElementById('onlineBadge').classList.remove('offline');
-        document.getElementById('networkMsg').textContent = '';
-      } catch (e) {
-        document.getElementById('onlineBadge').textContent = 'Offline';
-        document.getElementById('onlineBadge').classList.add('offline');
-        document.getElementById('networkMsg').textContent = 'Aloqa uzildi, qayta ulanmoqda...';
-      } finally {
+    async function refresh(){
+      try{
+        const res = await fetch('/api/v1/orders/display');
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.message || 'error');
+        render(data.orders || []);
+        document.getElementById('online').textContent = 'Online';
+        document.getElementById('network').textContent = '';
+      }catch(e){
+        document.getElementById('online').textContent = 'Offline';
+        document.getElementById('network').textContent = 'Aloqa uzildi, qayta ulanmoqda...';
+      }finally{
         document.getElementById('lastUpdated').textContent = `Oxirgi yangilanish: ${new Date().toLocaleTimeString('ru-RU')}`;
       }
     }
 
-    document.body.addEventListener('click', async (e) => {
-      const btn = e.target.closest('button[data-id]');
-      if (!btn) return;
-      const id = btn.dataset.id;
-      try {
-        if (btn.dataset.action === 'cancel') {
-          await api(`/admin/orders/${id}/cancel`, { method: 'POST' });
-        } else if (btn.dataset.status) {
-          await api(`/admin/orders/${id}/status`, { method: 'PUT', body: JSON.stringify({ status: btn.dataset.status }) });
-        }
-        await refreshOrders();
-      } catch (err) {
-        alert(err.message || 'Xatolik');
-      }
-    });
-
-    refreshOrders();
-    setInterval(refreshOrders, 5000);
+    refresh();
+    setInterval(refresh, 5000);
   </script>
 </body>
 </html>

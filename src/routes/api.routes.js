@@ -20,6 +20,7 @@ router.delete('/cart', cartController.clearCart);
 
 router.post('/orders', orderController.createOrder);
 router.get('/orders/:orderNumber/status', orderController.getOrderStatus);
+router.get('/orders/display', orderController.getOrdersDisplay);
 
 router.get('/integrations/status', integrationController.getIntegrationStatus);
 router.post('/integrations/1c/import', integrationController.importFrom1C);

@@ -43,7 +43,7 @@
   <div class="wrap">
     <h1 id="pageTitle">Admin Panel</h1>
     <div class="row" style="margin-bottom:10px;">
-      <a href="/orders" class="tab" style="text-decoration:none;display:inline-flex;align-items:center;">Orders / Tablo</a>
+      <a href="/orders-display" class="tab" style="text-decoration:none;display:inline-flex;align-items:center;">Orders Display</a>
       <button id="langUz" class="tab">UZ</button>
       <button id="langRu" class="tab">RU</button>
     </div>
@@ -140,12 +140,17 @@
       <input id="productsSearch" placeholder="Search products" />
       <div id="productsList" class="list"></div>
     </section>
+
+    <section class="panel card" id="orders-panel">
+      <h3>Orders</h3>
+      <div id="ordersAdminBoard" class="list"></div>
+    </section>
   </div>
 
   <div class="toast" id="toast"></div>
   <script>
     const tabs = [
-      ['excel','Excel Import'],['banners','Banners'],['promotions','Promotions'],['home-settings','Home Settings'],['categories','Categories'],['products','Products']
+      ['excel','Excel Import'],['banners','Banners'],['promotions','Promotions'],['home-settings','Home Settings'],['categories','Categories'],['products','Products'],['orders','Orders']
     ];
     const i18n = {
       uz: {
@@ -158,6 +163,7 @@
         home: 'Home Settings',
         categories: 'Categories',
         products: 'Products',
+        orders: 'Orders',
         processImages: 'Rasmlarni qayta ishlash',
         overwriteImages: 'Mavjud rasmlarni overwrite qilish',
         updateOnlyStockPrice: "Faqat qoldiq/narxni yangilash",
@@ -203,6 +209,7 @@
         home: 'Настройки главной',
         categories: 'Категории',
         products: 'Товары',
+        orders: 'Заказы',
         processImages: 'Обрабатывать изображения',
         overwriteImages: 'Перезаписывать существующие изображения',
         updateOnlyStockPrice: 'Обновить только остаток/цену',
@@ -306,6 +313,7 @@
         if (key === 'home-settings') btn.textContent = t.home;
         if (key === 'categories') btn.textContent = t.categories;
         if (key === 'products') btn.textContent = t.products;
+        if (key === 'orders') btn.textContent = t.orders;
       });
     }
     document.getElementById('langUz').onclick = () => { lang = 'uz'; localStorage.setItem(langKey, lang); applyLang(); };
@@ -660,15 +668,63 @@
       finally{setBtnLoading(b, false, t('save'))}
     };
 
+    const orderNext = {
+      new: ['Terishni boshlash', 'picking'],
+      picking: ['Terib bo‘lindi', 'picked'],
+      picked: ['Kurierni kutmoqda', 'waiting_courier'],
+      waiting_courier: ['Kurierga berildi', 'out_for_delivery'],
+      out_for_delivery: ['Yetkazildi', 'delivered']
+    };
+
+    async function loadOrdersAdmin(){
+      const {orders} = await api('/admin/orders');
+      const wrap = document.getElementById('ordersAdminBoard');
+      const statuses = ['new','picking','picked','waiting_courier','out_for_delivery','delivered'];
+      const buckets = Object.fromEntries(statuses.map((s)=>[s,[]]));
+      (orders || []).forEach((o)=>{ if (buckets[o.status]) buckets[o.status].push(o); });
+      wrap.innerHTML = statuses.map((s)=>`
+        <div class="item">
+          <b>${s} (${buckets[s].length})</b>
+          <div class="list">
+            ${buckets[s].map((o)=>`
+              <div class="item">
+                <div><b>#${o.orderNumber || o.id}</b> · ${new Date(o.created_at).toLocaleTimeString('ru-RU')}</div>
+                <div class="muted">${o.customerName || 'Mehmon'} | ${o.customerPhone || '-'} | ${o.customerAddress || o.location || '-'}</div>
+                <div class="muted">${(o.items || []).length} item · ${Number(o.total || 0).toLocaleString('ru-RU')} so'm</div>
+                <div class="row">
+                  ${orderNext[o.status] ? `<button data-id="${o.id}" data-next="${orderNext[o.status][1]}">${orderNext[o.status][0]}</button>` : ''}
+                  ${o.status !== 'cancelled' && o.status !== 'delivered' ? `<button data-id="${o.id}" data-cancel="1">Bekor qilish</button>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('ordersAdminBoard').onclick = async (e) => {
+      const btn = e.target.closest('button[data-id]');
+      if(!btn) return;
+      try{
+        if (btn.dataset.cancel) await api('/admin/orders/'+btn.dataset.id+'/cancel',{method:'POST'});
+        if (btn.dataset.next) await api('/admin/orders/'+btn.dataset.id+'/status',{method:'PUT',body:JSON.stringify({status:btn.dataset.next})});
+        showToast(t('saveOk'));
+        await loadOrdersAdmin();
+      }catch(err){showToast(err.message||t('loadError'))}
+    };
+
     async function bootstrap(){
       try{
         document.getElementById('addBannerBtn').textContent = t('add');
         document.getElementById('addPromoBtn').textContent = t('add');
-        await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts(),loadStoreSummary()]);
+        await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts(),loadStoreSummary(),loadOrdersAdmin()]);
       }
       catch(e){showToast(e.message||t('checkToken'))}
     }
     bootstrap();
+    setInterval(() => {
+      if (document.getElementById('orders-panel').classList.contains('active')) loadOrdersAdmin().catch(()=>{});
+    }, 5000);
   </script>
 </body>
 </html>

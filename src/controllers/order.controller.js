@@ -19,3 +19,7 @@ exports.getOrderStatus = (req, res) => {
     created_at: order.created_at
   });
 };
+
+exports.getOrdersDisplay = (req, res) => {
+  res.json({ orders: store.getOrders() });
+};
