@@ -5,10 +5,10 @@ const products = [
 ];
 
 const categories = [
-  { id: 'cat_ichimliklar', name: 'Ichimliklar', active: true },
-  { id: 'cat_shirinliklar', name: 'Shirinliklar', active: true },
-  { id: 'cat_sut', name: 'Sut mahsulotlari', active: true },
-  { id: 'cat_boshqa', name: 'Boshqa', active: true }
+  { id: 'cat_ichimliklar', name: 'Ichimliklar', displayName: 'Ichimliklar', icon: '🥤', image_url: '', active: true, productCount: 0 },
+  { id: 'cat_shirinliklar', name: 'Shirinliklar', displayName: 'Shirinliklar', icon: '🍬', image_url: '', active: true, productCount: 0 },
+  { id: 'cat_sut', name: 'Sut mahsulotlari', displayName: 'Sut mahsulotlari', icon: '🥛', image_url: '', active: true, productCount: 0 },
+  { id: 'cat_boshqa', name: 'Boshqa', displayName: 'Boshqa', icon: '📦', image_url: '', active: true, productCount: 0 }
 ];
 
 const banners = [
@@ -38,10 +38,33 @@ function ensureCategory(categoryName = 'Boshqa') {
   const normalized = String(categoryName || 'Boshqa').trim() || 'Boshqa';
   let found = categories.find((c) => c.name.toLowerCase() === normalized.toLowerCase());
   if (!found) {
-    found = { id: makeId('cat'), name: normalized, active: true };
+    found = { id: makeId('cat'), name: normalized, displayName: normalized, icon: '', image_url: '', active: true, productCount: 0 };
     categories.push(found);
   }
   return found;
+}
+
+function defaultCategoryIcon(name = '') {
+  const n = String(name || '').toLowerCase();
+  if (n.includes('ichim')) return '🥤';
+  if (n.includes('shirin')) return '🍬';
+  if (n.includes('sut')) return '🥛';
+  if (n.includes("go'sht") || n.includes('gosht')) return '🥩';
+  if (n.includes('meva')) return '🍏';
+  if (n.includes('блокнот') || n.includes('daftar') || n.includes('тетрад')) return '📒';
+  if (n.includes('альбом') || n.includes('rasm') || n.includes('рисов')) return '🎨';
+  if (n.includes('азбук') || n.includes('kitob') || n.includes('книга')) return '📚';
+  if (n.includes('kantsely') || n.includes('канц') || n.includes('karandash') || n.includes('ручка')) return '✏️';
+  if (n.includes('доск')) return '🧱';
+  if (n.includes('игр')) return '🎲';
+  if (n.includes('калькулятор')) return '🧮';
+  if (n.includes('gigien')) return '🧴';
+  return '📦';
+}
+
+function categoryMetaByName(name = '') {
+  const normalized = String(name || '').trim().toLowerCase();
+  return categories.find((c) => String(c.name || '').toLowerCase() === normalized) || null;
 }
 
 function listProducts(search = '', { activeOnly = false, category = '' } = {}) {
@@ -50,7 +73,16 @@ function listProducts(search = '', { activeOnly = false, category = '' } = {}) {
   return products
     .filter((p) => (activeOnly ? p.active !== false : true))
     .filter((p) => (categoryQuery ? String(p.category || '').toLowerCase() === categoryQuery : true))
-    .filter((p) => (q ? p.name.toLowerCase().includes(q) : true));
+    .filter((p) => (q ? p.name.toLowerCase().includes(q) : true))
+    .map((p) => {
+      const cat = categoryMetaByName(p.category);
+      return {
+        ...p,
+        categoryDisplayName: cat?.displayName || p.category || 'Boshqa',
+        categoryIcon: cat?.icon || defaultCategoryIcon(cat?.displayName || p.category),
+        categoryImageUrl: cat?.image_url || ''
+      };
+    });
 }
 
 function getProductById(id) {
@@ -58,7 +90,20 @@ function getProductById(id) {
 }
 
 function getCategories({ activeOnly = false } = {}) {
-  return categories.filter((c) => (activeOnly ? c.active !== false : true));
+  const counts = new Map();
+  products.forEach((p) => {
+    const k = String(p.category || '').toLowerCase();
+    counts.set(k, (counts.get(k) || 0) + 1);
+  });
+  return categories
+    .filter((c) => (activeOnly ? c.active !== false : true))
+    .map((c) => ({
+      ...c,
+      displayName: c.displayName || c.name,
+      icon: c.icon || defaultCategoryIcon(c.displayName || c.name),
+      image_url: c.image_url || '',
+      productCount: counts.get(String(c.name || '').toLowerCase()) || 0
+    }));
 }
 
 function getBanners({ activeOnly = false } = {}) {
@@ -133,7 +178,13 @@ function updateHomeSettings(payload = {}) {
 function updateCategory(id, payload = {}) {
   const i = categories.findIndex((x) => x.id === id);
   if (i === -1) return null;
-  categories[i] = { ...categories[i], ...payload };
+  categories[i] = {
+    ...categories[i],
+    ...payload,
+    displayName: payload.displayName || payload.name || categories[i].displayName || categories[i].name,
+    icon: payload.icon !== undefined ? payload.icon : categories[i].icon,
+    image_url: payload.image_url !== undefined ? payload.image_url : categories[i].image_url
+  };
   return categories[i];
 }
 

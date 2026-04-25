@@ -260,9 +260,37 @@
     async function loadCategories(){
       const {categories}=await api('/admin/categories');
       const wrap=document.getElementById('categoriesList');wrap.innerHTML='';
-      categories.forEach(c=>{const d=document.createElement('div');d.className='item';d.innerHTML=`<div class="row"><input value="${c.name}" data-id="${c.id}" data-role="name" /><label><input type="checkbox" ${c.active?'checked':''} data-id="${c.id}" data-role="active" /> active</label><button data-id="${c.id}">Save</button></div>`;wrap.appendChild(d);});
+      categories.forEach(c=>{
+        const d=document.createElement('div');
+        d.className='item';
+        d.innerHTML=`
+          <div class="row">
+            <input value="${c.name || ''}" data-id="${c.id}" data-role="name" disabled />
+            <input value="${c.displayName || c.name || ''}" data-id="${c.id}" data-role="displayName" placeholder="display name" />
+            <input value="${c.icon || ''}" data-id="${c.id}" data-role="icon" placeholder="emoji icon" style="max-width:90px;" />
+            <input value="${c.image_url || ''}" data-id="${c.id}" data-role="image_url" placeholder="image URL" />
+            <label><input type="checkbox" ${c.active?'checked':''} data-id="${c.id}" data-role="active" /> active</label>
+            <button data-id="${c.id}">Save</button>
+          </div>
+          <div class="muted">Products: ${c.productCount || 0}</div>
+        `;
+        wrap.appendChild(d);
+      });
     }
-    document.getElementById('categoriesList').onclick=async(e)=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.id;const p=b.closest('.item');await api('/admin/categories/'+id,{method:'PUT',body:JSON.stringify({name:p.querySelector('[data-role=name]').value,active:p.querySelector('[data-role=active]').checked})});showToast('Saved');loadCategories();};
+    document.getElementById('categoriesList').onclick=async(e)=>{
+      const b=e.target.closest('button');if(!b)return;
+      const id=b.dataset.id;const p=b.closest('.item');
+      try{
+        await api('/admin/categories/'+id,{method:'PUT',body:JSON.stringify({
+          displayName:p.querySelector('[data-role=displayName]').value,
+          icon:p.querySelector('[data-role=icon]').value,
+          image_url:p.querySelector('[data-role=image_url]').value,
+          active:p.querySelector('[data-role=active]').checked
+        })});
+        showToast('Category saqlandi');
+        loadCategories();
+      }catch(err){showToast(err.message||'Category saqlashda xatolik')}
+    };
 
     async function loadProducts(){
       const q=document.getElementById('productsSearch').value||'';
