@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orders Display</title>
+  <style>
+    :root { --bg:#030915; --card:#0d1b31; --line:#27476a; --txt:#e6f3ff; --muted:#9db9dd; }
+    *{box-sizing:border-box;font-family:Inter,Segoe UI,Arial,sans-serif}
+    body{margin:0;background:radial-gradient(circle at 10% 0%,#143057 0,transparent 38%),var(--bg);color:var(--txt)}
+    .wrap{padding:16px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .muted{color:var(--muted);font-size:13px}
+    .grid{display:grid;grid-template-columns:repeat(6,minmax(220px,1fr));gap:10px;flex:1;min-height:0}
+    .col{background:linear-gradient(180deg,#10213a,#091628);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;min-height:0}
+    .col h3{margin:0 0 8px;font-size:16px}
+    .list{display:grid;gap:8px;overflow:auto;scrollbar-width:none;-ms-overflow-style:none}
+    .list::-webkit-scrollbar{display:none}
+    .card{border:1px solid var(--line);background:#0a162b;border-radius:12px;padding:12px}
+    .card b{font-size:16px}
+    .row{display:flex;justify-content:space-between;gap:8px;margin-top:4px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <h1 style="margin:0;font-size:24px;">Orders Display</h1>
+      <div>
+        <span id="online" class="muted">Online</span>
+        <span id="lastUpdated" class="muted" style="margin-left:10px;">Yangilanmagan</span>
+        <span id="network" class="muted" style="margin-left:10px;"></span>
+      </div>
+    </div>
+    <div class="grid" id="cols"></div>
+  </div>
+  <script>
+    const statuses = [
+      ['new', 'new'],
+      ['picking', 'picking'],
+      ['picked', 'picked'],
+      ['waiting_courier', 'waiting_courier'],
+      ['out_for_delivery', 'out_for_delivery'],
+      ['delivered', 'delivered']
+    ];
+
+    function t(v){ return v ? new Date(v).toLocaleTimeString('ru-RU') : '-'; }
+
+    function render(orders){
+      const grouped = new Map(statuses.map(([s]) => [s, []]));
+      (orders || []).forEach((o) => {
+        if (!grouped.has(o.status)) return;
+        grouped.get(o.status).push(o);
+      });
+      document.getElementById('cols').innerHTML = statuses.map(([key,title]) => `
+        <section class="col">
+          <h3>${title} (${grouped.get(key).length})</h3>
+          <div class="list">
+            ${grouped.get(key).map((o) => `
+              <article class="card">
+                <b>#${o.orderNumber || o.id}</b>
+                <div class="muted">${t(o.created_at)}</div>
+                <div class="muted">${o.customerName || 'Mehmon'}</div>
+                <div class="muted">${o.customerPhone || '-'}</div>
+                <div class="muted">${o.customerAddress || o.location || '-'}</div>
+                <div class="row"><span>${(o.items || []).length} item</span><strong>${Number(o.total || 0).toLocaleString('ru-RU')} so'm</strong></div>
+              </article>
+            `).join('')}
+          </div>
+        </section>
+      `).join('');
+    }
+
+    async function refresh(){
+      try{
+        const res = await fetch('/api/v1/orders/display');
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.message || 'error');
+        render(data.orders || []);
+        document.getElementById('online').textContent = 'Online';
+        document.getElementById('network').textContent = '';
+      }catch(e){
+        document.getElementById('online').textContent = 'Offline';
+        document.getElementById('network').textContent = 'Aloqa uzildi, qayta ulanmoqda...';
+      }finally{
+        document.getElementById('lastUpdated').textContent = `Oxirgi yangilanish: ${new Date().toLocaleTimeString('ru-RU')}`;
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+</body>
+</html>
