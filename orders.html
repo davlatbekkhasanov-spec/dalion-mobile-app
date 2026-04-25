@@ -135,7 +135,6 @@
       }
       if (order.status === 'waiting_courier') {
         actions.push('<button data-print="1">Chek chiqarish</button>');
-        actions.push('<button data-qr="1">QR ko‘rsatish</button>');
       }
       if (order.status !== 'delivered' && order.status !== 'cancelled') {
         actions.push('<button class="full" data-cancel="1">Bekor qilish</button>');
@@ -152,14 +151,19 @@
 
     async function printReceipt(order) {
       const qr = await api(`/admin/orders/${order.id}/qr`);
+      if (!qr.qrDataUrl) throw new Error('QR render bo‘lmadi');
       const w = window.open('', '_blank', 'width=420,height=700');
+      if (!w) throw new Error('Print oynasi ochilmadi');
       const rows = (order.items || []).map((it)=>`<tr><td>${it.name||''}</td><td>${it.quantity||0}</td><td>${Number(it.price||0).toLocaleString('ru-RU')}</td><td>${Number(it.subtotal||0).toLocaleString('ru-RU')}</td></tr>`).join('');
       w.document.write(`
         <html><head><title>Chek</title><style>
-          body{font-family:Arial;font-size:12px;width:280px;margin:0 auto}
-          table{width:100%;border-collapse:collapse}td{padding:2px 0;border-bottom:1px dashed #ccc}
+          body{font-family:Arial;font-size:12px;width:58mm;max-width:58mm;margin:0 auto}
+          table{width:100%;border-collapse:collapse}td{padding:2px 0;border-bottom:1px dashed #ccc;vertical-align:top}
+          .center{text-align:center}
+          .qr{width:150px;height:150px;object-fit:contain}
+          @media print { body{width:58mm} }
         </style></head><body>
-        <h3>GlobusMarket</h3>
+        <h3 class="center">GlobusMarket</h3>
         <div>Order: ${order.orderNumber}</div>
         <div>Sana: ${new Date().toLocaleString('ru-RU')}</div>
         <div>Mijoz: ${order.customerName||'-'}</div>
@@ -168,11 +172,18 @@
         <table><tr><td><b>Nomi</b></td><td><b>Soni</b></td><td><b>Narx</b></td><td><b>Sum</b></td></tr>${rows}</table>
         <h4>Jami: ${Number(order.total||0).toLocaleString('ru-RU')} so'm</h4>
         <div>Status: ${order.status}</div>
-        <div>Courier URL: ${qr.courierUrl}</div>
-        <div style="word-break:break-all;">QR: ${qr.qrUrl}</div>
+        <div class="center" style="margin-top:8px;"><img id="receiptQr" class="qr" src="${qr.qrDataUrl}" alt="courier qr" /></div>
+        <div class="center" style="font-size:11px;margin-top:4px;">Kurier buyurtmani qabul qilish uchun QR kodni skaner qiling</div>
+        <div style="word-break:break-all;font-size:10px;margin-top:4px;">${qr.courierUrl}</div>
         </body></html>
       `);
       w.document.close();
+      const img = w.document.getElementById('receiptQr');
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('QR render bo‘lmadi')), 2500);
+        img.onload = () => { clearTimeout(timeout); resolve(); };
+        img.onerror = () => { clearTimeout(timeout); reject(new Error('QR render bo‘lmadi')); };
+      });
       w.focus();
       w.print();
     }
@@ -237,9 +248,6 @@
           await api(`/admin/orders/${activeOrder.id}/cancel`, { method: 'POST' });
         } else if (btn.dataset.tsd) {
           await api(`/admin/orders/${activeOrder.id}/send-to-tsd`, { method: 'POST' });
-        } else if (btn.dataset.qr) {
-          const qr = await api(`/admin/orders/${activeOrder.id}/qr`);
-          alert(`Courier URL: ${qr.courierUrl}`);
         } else if (btn.dataset.print) {
           await printReceipt(activeOrder);
         }
