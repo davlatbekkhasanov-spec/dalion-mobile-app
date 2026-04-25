@@ -41,7 +41,7 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Admin Panel</h1>
+    <h1 id="pageTitle">Admin Panel</h1>
     <div class="row" style="margin-bottom:10px;">
       <button id="langUz" class="tab">UZ</button>
       <button id="langRu" class="tab">RU</button>
@@ -51,25 +51,25 @@
         <input id="tokenInput" placeholder="ADMIN_IMPORT_TOKEN" style="min-width:280px" />
         <button id="saveTokenBtn" class="primary">Token saqlash</button>
       </div>
-      <p class="muted">Token localStorage'da vaqtincha saqlanadi.</p>
+      <p class="muted" id="tokenHelp">Token localStorage'da vaqtincha saqlanadi.</p>
     </div>
 
     <div class="tabs" id="tabs"></div>
 
     <section class="panel card" id="excel-panel">
-      <h3>Excel Import</h3>
+      <h3 id="excelTitle">Excel Import</h3>
       <input type="file" id="xlsxFile" accept=".xlsx" />
-      <label class="muted" style="display:flex;gap:8px;align-items:center;margin:8px 0;">
+      <label class="muted" id="processImagesLabel" style="display:flex;gap:8px;align-items:center;margin:8px 0;">
         <input type="checkbox" id="processImages" checked />
-        Rasmlarni qayta ishlash
+        <span>Rasmlarni qayta ishlash</span>
       </label>
-      <label class="muted" style="display:flex;gap:8px;align-items:center;margin:4px 0;">
+      <label class="muted" id="overwriteImagesLabel" style="display:flex;gap:8px;align-items:center;margin:4px 0;">
         <input type="checkbox" id="overwriteImages" checked />
-        Mavjud rasmlarni overwrite qilish
+        <span>Mavjud rasmlarni overwrite qilish</span>
       </label>
-      <label class="muted" style="display:flex;gap:8px;align-items:center;margin:4px 0;">
+      <label class="muted" id="updateOnlyStockPriceLabel" style="display:flex;gap:8px;align-items:center;margin:4px 0;">
         <input type="checkbox" id="updateOnlyStockPrice" />
-        Faqat qoldiq/narxni yangilash
+        <span>Faqat qoldiq/narxni yangilash</span>
       </label>
       <button id="importBtn" class="primary">Import XLSX</button>
       <div class="row" style="margin-top:8px;">
@@ -86,7 +86,7 @@
     </section>
 
     <section class="panel card" id="banners-panel">
-      <h3>Banners</h3>
+      <h3 id="bannersTitle">Banners</h3>
       <div class="grid">
         <input id="bannerTitle" placeholder="title" />
         <input id="bannerSubtitle" placeholder="subtitle" />
@@ -98,7 +98,7 @@
     </section>
 
     <section class="panel card" id="promotions-panel">
-      <h3>Promotions</h3>
+      <h3 id="promotionsTitle">Promotions</h3>
       <div class="grid">
         <input id="promoTitle" placeholder="title" />
         <input id="promoDiscount" placeholder="discount_text" />
@@ -110,7 +110,7 @@
     </section>
 
     <section class="panel card" id="home-settings-panel">
-      <h3>Home Settings</h3>
+      <h3 id="homeSettingsTitle">Home Settings</h3>
       <div class="grid">
         <input id="heroTitle" placeholder="Hero title" />
         <input id="heroSubtitle" placeholder="Hero subtitle" />
@@ -122,12 +122,12 @@
     </section>
 
     <section class="panel card" id="categories-panel">
-      <h3>Categories</h3>
+      <h3 id="categoriesTitle">Categories</h3>
       <div id="categoriesList" class="list"></div>
     </section>
 
     <section class="panel card" id="products-panel">
-      <h3>Products</h3>
+      <h3 id="productsTitle">Products</h3>
       <input id="productsSearch" placeholder="Search products" />
       <div id="productsList" class="list"></div>
     </section>
@@ -139,8 +139,82 @@
       ['excel','Excel Import'],['banners','Banners'],['promotions','Promotions'],['home-settings','Home Settings'],['categories','Categories'],['products','Products']
     ];
     const i18n = {
-      uz: { saveToken: 'Token saqlash', importBtn: 'Import XLSX', excel: 'Excel Import', banners: 'Banners', promotions: 'Promotions', home: 'Home Settings', categories: 'Categories', products: 'Products', saved: 'Saqlandi', importOk: 'Import muvaffaqiyatli' },
-      ru: { saveToken: 'Сохранить токен', importBtn: 'Импорт XLSX', excel: 'Импорт Excel', banners: 'Баннеры', promotions: 'Промо', home: 'Настройки главной', categories: 'Категории', products: 'Товары', saved: 'Сохранено', importOk: 'Импорт успешно завершен' }
+      uz: {
+        pageTitle: 'Admin Panel',
+        tokenHelp: "Token localStorage'da vaqtincha saqlanadi.",
+        saveToken: 'Token saqlash',
+        excel: 'Excel Import',
+        banners: 'Banners',
+        promotions: 'Promotions',
+        home: 'Home Settings',
+        categories: 'Categories',
+        products: 'Products',
+        processImages: 'Rasmlarni qayta ishlash',
+        overwriteImages: 'Mavjud rasmlarni overwrite qilish',
+        updateOnlyStockPrice: "Faqat qoldiq/narxni yangilash",
+        importBtn: 'Import XLSX',
+        newImport: 'Yangi import qilish',
+        reloadStore: "Mavjud ma'lumotni yangilash",
+        chooseFile: 'Fayl tanlash',
+        save: 'Save',
+        active: 'active',
+        imageUrl: 'image URL',
+        uploadError: 'Rasm yuklash xatolik',
+        categorySaved: 'Category saqlandi',
+        categorySaveError: "Category saqlashda xatolik",
+        tokenSaved: 'Token saqlandi',
+        importOk: 'Import muvaffaqiyatli',
+        importError: 'Import xatolik',
+        apiError: 'API xatolik',
+        networkError: 'Network xatolik',
+        fileRequired: 'Fayl tanlang',
+        storeReloaded: 'Store qayta yuklandi',
+        storeMissing: 'Store fayli topilmadi',
+        reloadError: 'Reload xatolik',
+        checkToken: 'Token tekshiring',
+        importDone: 'Yakunlanmoqda... 100%',
+        importProgress: 'Yuklanmoqda...',
+        uploadedProcessing: 'Fayl yuklandi, rasmlar qayta ishlanmoqda...',
+        productsSearch: 'Search products'
+      },
+      ru: {
+        pageTitle: 'Админ панель',
+        tokenHelp: 'Токен временно хранится в localStorage.',
+        saveToken: 'Сохранить токен',
+        excel: 'Импорт Excel',
+        banners: 'Баннеры',
+        promotions: 'Промо',
+        home: 'Настройки главной',
+        categories: 'Категории',
+        products: 'Товары',
+        processImages: 'Обрабатывать изображения',
+        overwriteImages: 'Перезаписывать существующие изображения',
+        updateOnlyStockPrice: 'Обновить только остаток/цену',
+        importBtn: 'Импорт XLSX',
+        newImport: 'Новый импорт',
+        reloadStore: 'Обновить существующие данные',
+        chooseFile: 'Выбрать файл',
+        save: 'Сохранить',
+        active: 'активный',
+        imageUrl: 'URL изображения',
+        uploadError: 'Ошибка загрузки изображения',
+        categorySaved: 'Категория сохранена',
+        categorySaveError: 'Ошибка сохранения категории',
+        tokenSaved: 'Токен сохранен',
+        importOk: 'Импорт успешно завершен',
+        importError: 'Ошибка импорта',
+        apiError: 'Ошибка API',
+        networkError: 'Ошибка сети',
+        fileRequired: 'Выберите файл',
+        storeReloaded: 'Store перезагружен',
+        storeMissing: 'Файл store не найден',
+        reloadError: 'Ошибка перезагрузки',
+        checkToken: 'Проверьте токен',
+        importDone: 'Завершение... 100%',
+        importProgress: 'Загрузка...',
+        uploadedProcessing: 'Файл загружен, обработка изображений...',
+        productsSearch: 'Поиск товаров'
+      }
     };
     const langKey = 'admin_lang';
     let lang = localStorage.getItem(langKey) || 'uz';
@@ -149,14 +223,15 @@
     const toast = document.getElementById('toast');
     const tokenKey = 'admin_import_token';
 
-    function showToast(t){toast.textContent=t;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.classList.remove('show'),1400)}
+    function t(key){ return (i18n[lang] || i18n.uz)[key] || key; }
+    function showToast(text){toast.textContent=text;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.classList.remove('show'),1400)}
     function getToken(){return localStorage.getItem(tokenKey)||''}
 
     async function api(path, options={}){
       const token = getToken();
       const res = await fetch('/api/v1'+path,{headers:{'Content-Type':'application/json','x-admin-token':token},...options});
       const data = await res.json().catch(()=>({}));
-      if(!res.ok) throw new Error(data.message||'API xatolik');
+      if(!res.ok) throw new Error(data.message||t('apiError'));
       return data;
     }
 
@@ -172,8 +247,22 @@
 
     function applyLang() {
       const t = i18n[lang] || i18n.uz;
+      document.getElementById('pageTitle').textContent = t.pageTitle;
+      document.getElementById('tokenHelp').textContent = t.tokenHelp;
+      document.getElementById('excelTitle').textContent = t.excel;
+      document.getElementById('bannersTitle').textContent = t.banners;
+      document.getElementById('promotionsTitle').textContent = t.promotions;
+      document.getElementById('homeSettingsTitle').textContent = t.home;
+      document.getElementById('categoriesTitle').textContent = t.categories;
+      document.getElementById('productsTitle').textContent = t.products;
+      document.querySelector('#processImagesLabel span').textContent = t.processImages;
+      document.querySelector('#overwriteImagesLabel span').textContent = t.overwriteImages;
+      document.querySelector('#updateOnlyStockPriceLabel span').textContent = t.updateOnlyStockPrice;
       document.getElementById('saveTokenBtn').textContent = t.saveToken;
       document.getElementById('importBtn').textContent = t.importBtn;
+      document.getElementById('newImportBtn').textContent = t.newImport;
+      document.getElementById('reloadStoreBtn').textContent = t.reloadStore;
+      document.getElementById('productsSearch').placeholder = t.productsSearch;
       document.querySelectorAll('#tabs .tab').forEach((btn) => {
         const key = btn.dataset.labelKey;
         if (key === 'excel') btn.textContent = t.excel;
@@ -189,14 +278,14 @@
     applyLang();
 
     tokenInput.value = getToken();
-    document.getElementById('saveTokenBtn').onclick=()=>{localStorage.setItem(tokenKey, tokenInput.value.trim());showToast(lang==='ru' ? 'Токен сохранен' : 'Token saqlandi')};
+    document.getElementById('saveTokenBtn').onclick=()=>{localStorage.setItem(tokenKey, tokenInput.value.trim());showToast(t('tokenSaved'))};
 
     function progressLabel(percent){
-      if(percent >= 100) return 'Yakunlanmoqda... 100%';
-      if(percent >= 75) return 'Yuklanmoqda... 75%';
-      if(percent >= 50) return 'Yuklanmoqda... 50%';
-      if(percent >= 25) return 'Yuklanmoqda... 25%';
-      return 'Yuklanmoqda... 0%';
+      if(percent >= 100) return t('importDone');
+      if(percent >= 75) return `${t('importProgress')} 75%`;
+      if(percent >= 50) return `${t('importProgress')} 50%`;
+      if(percent >= 25) return `${t('importProgress')} 25%`;
+      return `${t('importProgress')} 0%`;
     }
 
     function setImportProgress(percent, isError=false){
@@ -208,7 +297,7 @@
       const safe = Math.max(0, Math.min(100, Math.round(percent)));
       bar.style.width = `${safe}%`;
       text.textContent = progressLabel(safe);
-      if(isError) text.textContent = `Import xatolik: ${safe}%`;
+      if(isError) text.textContent = `${t('importError')}: ${safe}%`;
     }
 
     function renderImportSummary(data){
@@ -234,7 +323,7 @@
 
     document.getElementById('importBtn').onclick = async () => {
       const file = document.getElementById('xlsxFile').files[0];
-      if(!file) return showToast('Fayl tanlang');
+      if(!file) return showToast(t('fileRequired'));
       const processImages = document.getElementById('processImages').checked;
       const overwriteImages = document.getElementById('overwriteImages').checked;
       const updateOnlyStockPrice = document.getElementById('updateOnlyStockPrice').checked;
@@ -259,13 +348,13 @@
 
           xhr.onload = () => {
             setImportProgress(100);
-            document.getElementById('importProgressText').textContent = 'Fayl yuklandi, rasmlar qayta ishlanmoqda...';
+            document.getElementById('importProgressText').textContent = t('uploadedProcessing');
             let parsed = {};
             try { parsed = JSON.parse(xhr.responseText || '{}'); } catch (err) {}
             if (xhr.status >= 200 && xhr.status < 300) resolve(parsed);
-            else reject(new Error(parsed.message || 'Import error'));
+            else reject(new Error(parsed.message || t('importError')));
           };
-          xhr.onerror = () => reject(new Error('Network error'));
+          xhr.onerror = () => reject(new Error(t('networkError')));
           xhr.send(fd);
         });
 
@@ -275,17 +364,17 @@
       }catch(e){
         setImportProgress(100, true);
         showToast(e.message);
-      }finally{btn.disabled=false;btn.textContent='Import XLSX'}
+      }finally{btn.disabled=false;btn.textContent=t('importBtn')}
     };
 
     document.getElementById('newImportBtn').onclick = () => document.getElementById('importBtn').click();
     document.getElementById('reloadStoreBtn').onclick = async () => {
       try {
         const out = await api('/admin/store/reload', { method: 'POST' });
-        showToast(out.ok ? 'Store qayta yuklandi' : 'Store fayli topilmadi');
+        showToast(out.ok ? t('storeReloaded') : t('storeMissing'));
         await loadStoreSummary();
       } catch (e) {
-        showToast(e.message || 'Reload xatolik');
+        showToast(e.message || t('reloadError'));
       }
     };
 
@@ -329,10 +418,10 @@
             <input value="${c.name || ''}" data-id="${c.id}" data-role="name" disabled />
             <input value="${c.displayName || c.name || ''}" data-id="${c.id}" data-role="displayName" placeholder="display name" />
             <input value="${c.icon || ''}" data-id="${c.id}" data-role="icon" placeholder="emoji icon" style="max-width:90px;" />
-            <input value="${c.image_url || ''}" data-id="${c.id}" data-role="image_url" placeholder="image URL" />
+            <input value="${c.image_url || ''}" data-id="${c.id}" data-role="image_url" placeholder="${t('imageUrl')}" />
             <input type="file" accept="image/*" data-id="${c.id}" data-role="image_file" />
-            <label><input type="checkbox" ${c.active?'checked':''} data-id="${c.id}" data-role="active" /> active</label>
-            <button data-id="${c.id}">Save</button>
+            <label><input type="checkbox" ${c.active?'checked':''} data-id="${c.id}" data-role="active" /> ${t('active')}</label>
+            <button data-id="${c.id}">${t('save')}</button>
           </div>
           <div class="muted">Products: ${c.productCount || 0}</div>
         `;
@@ -351,7 +440,7 @@
           const token = getToken();
           const res = await fetch('/api/v1/admin/categories/'+id+'/image', { method: 'POST', headers: { 'x-admin-token': token }, body: fd });
           const out = await res.json().catch(()=>({}));
-          if(!res.ok) throw new Error(out.message || 'Image upload error');
+          if(!res.ok) throw new Error(out.message || t('uploadError'));
           if (out.category?.image_url) p.querySelector('[data-role=image_url]').value = out.category.image_url;
         }
         await api('/admin/categories/'+id,{method:'PUT',body:JSON.stringify({
@@ -360,9 +449,9 @@
           image_url:p.querySelector('[data-role=image_url]').value,
           active:p.querySelector('[data-role=active]').checked
         })});
-        showToast(lang==='ru' ? 'Категория сохранена' : 'Category saqlandi');
+        showToast(t('categorySaved'));
         loadCategories();
-      }catch(err){showToast(err.message||'Category saqlashda xatolik')}
+      }catch(err){showToast(err.message||t('categorySaveError'))}
     };
 
     async function loadProducts(){
@@ -379,7 +468,7 @@
 
     async function bootstrap(){
       try{await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts(),loadStoreSummary()]);}
-      catch(e){showToast(e.message||'Token tekshiring')}
+      catch(e){showToast(e.message||t('checkToken'))}
     }
     bootstrap();
   </script>
