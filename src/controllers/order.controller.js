@@ -23,3 +23,18 @@ exports.getOrderStatus = (req, res) => {
 exports.getOrdersDisplay = (req, res) => {
   res.json({ orders: store.getOrders() });
 };
+
+exports.getOrderTrack = (req, res) => {
+  const order = store.getOrderByNumber(req.params.orderNumber);
+  if (!order) return res.status(404).json({ message: 'Order not found' });
+  return res.json({ order });
+};
+
+exports.submitOrderFeedback = (req, res) => {
+  const order = store.saveOrderFeedback(req.params.orderNumber, {
+    rating: req.body?.feedbackRating,
+    comment: req.body?.feedbackComment
+  });
+  if (!order) return res.status(404).json({ message: 'Order not found' });
+  return res.json({ ok: true, order, message: 'Rahmat, fikringiz qabul qilindi' });
+};

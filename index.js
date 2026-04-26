@@ -37,6 +37,10 @@ app.get('/courier/:token', (req, res) => {
   res.sendFile(path.join(__dirname, 'courier.html'));
 });
 
+app.get('/track/:orderNumber', (req, res) => {
+  res.sendFile(path.join(__dirname, 'track.html'));
+});
+
 // API routes
 app.use('/api/v1', homeRoutes);
 

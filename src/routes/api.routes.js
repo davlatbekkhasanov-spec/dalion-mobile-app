@@ -21,6 +21,8 @@ router.delete('/cart', cartController.clearCart);
 
 router.post('/orders', orderController.createOrder);
 router.get('/orders/:orderNumber/status', orderController.getOrderStatus);
+router.get('/orders/:orderNumber/track', orderController.getOrderTrack);
+router.post('/orders/:orderNumber/feedback', orderController.submitOrderFeedback);
 router.get('/orders/display', orderController.getOrdersDisplay);
 router.get('/courier/:token', courierController.getCourierOrder);
 router.post('/courier/:token/accept', courierController.acceptCourierOrder);

@@ -412,6 +412,17 @@ function getOrderByNumber(orderNumber) {
   return orders.find((o) => String(o.orderNumber || '') === String(orderNumber || '')) || null;
 }
 
+function saveOrderFeedback(orderNumber, { rating = 0, comment = '' } = {}) {
+  const order = getOrderByNumber(orderNumber);
+  if (!order) return null;
+  order.feedbackRating = Math.max(1, Math.min(5, Number(rating) || 0));
+  order.feedbackComment = String(comment || '').trim();
+  order.feedbackAt = new Date().toISOString();
+  order.updated_at = order.feedbackAt;
+  persistState();
+  return order;
+}
+
 function applyStatusTimestamps(order, status) {
   const now = new Date().toISOString();
   if (status === 'picking' && !order.pickerStartedAt) order.pickerStartedAt = now;
@@ -488,6 +499,7 @@ function courierAccept(token, { courierName = '', courierPhone = '' } = {}) {
   const order = getOrderByCourierToken(token);
   if (!order) return { error: 'Invalid token' };
   if (order.courierTokenUsed) return { error: 'Bu QR kod allaqachon ishlatilgan' };
+  if (order.status !== 'waiting_courier') return { error: 'Buyurtma hali courier qabul bosqichida emas' };
   order.status = 'out_for_delivery';
   order.courierName = String(courierName || order.courierName || '').trim();
   order.courierPhone = String(courierPhone || order.courierPhone || '').trim();
@@ -501,6 +513,7 @@ function courierDeliver(token) {
   const order = getOrderByCourierToken(token);
   if (!order) return { error: 'Invalid token' };
   if (order.courierTokenUsed) return { error: 'Bu QR kod allaqachon ishlatilgan' };
+  if (order.status !== 'out_for_delivery') return { error: 'Buyurtma courierda emas' };
   order.status = 'delivered';
   order.deliveredAt = new Date().toISOString();
   order.courierDeliveredAt = order.deliveredAt;
@@ -603,6 +616,7 @@ module.exports = {
   getOrders,
   getOrderById,
   getOrderByNumber,
+  saveOrderFeedback,
   updateOrderStatus,
   cancelOrder,
   getOrderPicklist,

@@ -993,6 +993,7 @@
           <p class="muted">Operator tez orada bog'lanadi</p>
           <p class="muted" id="successOrderNumber">Buyurtma: -</p>
           <p class="muted" id="successOrderStatus">Status: Yangi buyurtma</p>
+          <a id="trackOrderBtn" class="btn btn-secondary" style="display:none;margin-top:10px;">Buyurtmani kuzatish</a>
           <button class="full-btn" id="backHomeBtn">Homega qaytish</button>
         </div>
       </section>
@@ -1071,6 +1072,7 @@ Oq fonli foto</div>
     const checkoutPrice = document.getElementById('checkoutPrice');
     const successOrderNumber = document.getElementById('successOrderNumber');
     const successOrderStatus = document.getElementById('successOrderStatus');
+    const trackOrderBtn = document.getElementById('trackOrderBtn');
 
     const modalOverlay = document.getElementById('productModalOverlay');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -1672,6 +1674,10 @@ Oq fonli foto`;
         latestOrderNumber = order.orderNumber || '';
         successOrderNumber.textContent = `Buyurtma: ${latestOrderNumber || '-'}`;
         successOrderStatus.textContent = `Status: ${orderStatusLabel(order.status)}`;
+        if (latestOrderNumber) {
+          trackOrderBtn.style.display = 'inline-flex';
+          trackOrderBtn.setAttribute('href', `/track/${encodeURIComponent(latestOrderNumber)}`);
+        }
         if (orderStatusTimer) clearInterval(orderStatusTimer);
         orderStatusTimer = setInterval(refreshOrderStatus, 5000);
         refreshOrderStatus();
@@ -1688,6 +1694,7 @@ Oq fonli foto`;
       }
       await initializeAppData();
       setView('homeView');
+      trackOrderBtn.style.display = 'none';
       showToast('Buyurtma yakunlandi');
     });
 

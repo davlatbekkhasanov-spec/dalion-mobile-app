@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Courier</title>
   <style>
+    html,body{min-height:100dvh;overflow-x:hidden}
     body{margin:0;background:#07111f;color:#e8f4ff;font-family:Inter,Segoe UI,Arial,sans-serif}
-    .wrap{max-width:560px;margin:0 auto;padding:16px}
-    .card{background:#0d1d36;border:1px solid #28466c;border-radius:14px;padding:14px}
-    input,button{width:100%;padding:12px;border-radius:10px;border:1px solid #34567f;background:#0b1830;color:#e8f4ff;margin-top:8px}
+    .wrap{padding:12px;overflow-y:auto}
+    .card{width:min(100% - 24px,520px);margin:24px auto;background:#0d1d36;border:1px solid #28466c;border-radius:14px;padding:14px}
+    input,button{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #34567f;background:#0b1830;color:#e8f4ff;margin-top:8px;font-size:16px}
     button{cursor:pointer;font-weight:700}
     .primary{background:linear-gradient(90deg,#2aff9b,#28d8ff);color:#04221c;border:none}
     .muted{color:#9ab8df;font-size:13px}
@@ -24,6 +25,7 @@
       <input id="courierPhone" placeholder="Courier phone" />
       <button id="acceptBtn" class="primary">Buyurtmani qabul qildim</button>
       <button id="deliverBtn" style="display:none;">Mijozga topshirildi</button>
+      <div id="successMsg" class="muted" style="display:none;margin-top:10px;color:#9dffcc;">Buyurtma mijozga topshirildi</div>
     </div>
   </div>
   <script>
@@ -35,15 +37,53 @@
       if(!res.ok) throw new Error(data.message || 'Xatolik');
       return data;
     }
+    function setBusy(btn, busy){
+      if(!btn) return;
+      btn.disabled = !!busy;
+      btn.dataset.old = btn.dataset.old || btn.textContent;
+      btn.textContent = busy ? 'Yuklanmoqda...' : btn.dataset.old;
+    }
     function render(){
       if(!order) return;
       document.getElementById('orderInfo').innerHTML = `#${order.orderNumber} · ${(order.items||[]).length} item · ${Number(order.total||0).toLocaleString('ru-RU')} so'm<br>${order.customerAddress || order.location || '-'}`;
       document.getElementById('msg').textContent = `Status: ${order.status}`;
-      document.getElementById('deliverBtn').style.display = order.status === 'out_for_delivery' ? 'block' : 'none';
-      if (order.courierTokenUsed) {
-        document.getElementById('msg').textContent = 'Bu QR kod allaqachon ishlatilgan';
-        document.getElementById('acceptBtn').disabled = true;
-        document.getElementById('deliverBtn').disabled = true;
+      const acceptBtn = document.getElementById('acceptBtn');
+      const deliverBtn = document.getElementById('deliverBtn');
+      const successMsg = document.getElementById('successMsg');
+      const nameInput = document.getElementById('courierName');
+      const phoneInput = document.getElementById('courierPhone');
+      successMsg.style.display = 'none';
+
+      if (order.status === 'waiting_courier') {
+        nameInput.style.display = 'block';
+        phoneInput.style.display = 'block';
+        nameInput.readOnly = false;
+        phoneInput.readOnly = false;
+        acceptBtn.style.display = 'block';
+        deliverBtn.style.display = 'none';
+      } else if (order.status === 'out_for_delivery') {
+        nameInput.style.display = 'block';
+        phoneInput.style.display = 'block';
+        nameInput.value = order.courierName || '';
+        phoneInput.value = order.courierPhone || '';
+        nameInput.readOnly = true;
+        phoneInput.readOnly = true;
+        acceptBtn.style.display = 'none';
+        deliverBtn.style.display = 'block';
+      } else if (order.status === 'delivered') {
+        acceptBtn.style.display = 'none';
+        deliverBtn.style.display = 'none';
+        nameInput.style.display = 'none';
+        phoneInput.style.display = 'none';
+        successMsg.style.display = 'block';
+      }
+
+      if (order.courierTokenUsed || order.status === 'cancelled') {
+        document.getElementById('msg').textContent = 'Bu QR kod ishlatilgan yoki yaroqsiz';
+        acceptBtn.style.display = 'none';
+        deliverBtn.style.display = 'none';
+        nameInput.style.display = 'none';
+        phoneInput.style.display = 'none';
       }
     }
     async function refresh(){
@@ -56,16 +96,22 @@
       }
     }
     document.getElementById('acceptBtn').onclick = async ()=>{
+      const btn = document.getElementById('acceptBtn');
+      setBusy(btn, true);
       try{
         const data = await api('/courier/'+token+'/accept',{method:'POST',body:JSON.stringify({courierName:courierName.value,courierPhone:courierPhone.value})});
         order = data.order; render();
       }catch(e){alert(e.message)}
+      finally{setBusy(btn,false);}
     };
     document.getElementById('deliverBtn').onclick = async ()=>{
+      const btn = document.getElementById('deliverBtn');
+      setBusy(btn, true);
       try{
         const data = await api('/courier/'+token+'/deliver',{method:'POST'});
         order = data.order; render();
       }catch(e){alert(e.message)}
+      finally{setBusy(btn,false);}
     };
     refresh();
     setInterval(refresh, 5000);

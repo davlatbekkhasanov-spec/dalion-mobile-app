@@ -2,7 +2,6 @@ const store = require('../data/store.js');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
-const QRCode = require('qrcode');
 
 exports.getBanners = (req, res) => {
   res.json({ banners: store.getBanners() });
@@ -146,6 +145,13 @@ exports.sendOrderToTsd = (req, res) => {
 exports.getOrderQr = async (req, res) => {
   const order = store.getOrderById(req.params.id);
   if (!order) return res.status(404).json({ message: 'Order not found' });
+  let QRCode;
+  try {
+    // optional dependency: installed in normal deploy/runtime
+    QRCode = require('qrcode');
+  } catch (e) {
+    return res.status(500).json({ message: 'QR generator dependency not installed' });
+  }
   const publicBase = process.env.PUBLIC_BASE_URL || 'https://dalion-mobile-app-production.up.railway.app';
   const courierUrl = `${publicBase}/courier/${order.courierToken}`;
   const qrDataUrl = await QRCode.toDataURL(courierUrl, { margin: 1, width: 220 });
