@@ -37,7 +37,16 @@ let homeSettings = {
   deliveryTimeText: '30 daqiqa',
   deliveryText: '30 daqiqada yetkazib berish',
   backgroundImageUrl: '',
-  accentColor: '#25f48f'
+  accentColor: '#25f48f',
+  clickPaymentUrl: '',
+  paymePaymentUrl: '',
+  cashTermsText: "Men buyurtmani yetkazilganda naqd to‘lashni tasdiqlayman"
+};
+
+let customerProfile = {
+  name: '',
+  phone: '',
+  address: ''
 };
 
 const cart = new Map();
@@ -54,6 +63,7 @@ function persistState() {
       banners,
       promotions,
       homeSettings,
+      customerProfile,
       orders,
       orderSequence,
       savedAt: new Date().toISOString()
@@ -74,6 +84,7 @@ function loadStateFromDisk() {
     if (Array.isArray(parsed.banners)) { banners.splice(0, banners.length, ...parsed.banners); }
     if (Array.isArray(parsed.promotions)) { promotions.splice(0, promotions.length, ...parsed.promotions); }
     if (parsed.homeSettings && typeof parsed.homeSettings === 'object') { homeSettings = { ...homeSettings, ...parsed.homeSettings }; }
+    if (parsed.customerProfile && typeof parsed.customerProfile === 'object') { customerProfile = { ...customerProfile, ...parsed.customerProfile }; }
     if (Array.isArray(parsed.orders)) { orders.splice(0, orders.length, ...parsed.orders); }
     if (Number.isFinite(Number(parsed.orderSequence))) orderSequence = Math.max(1, Number(parsed.orderSequence));
     lastUpdated = parsed.savedAt || new Date().toISOString();
@@ -236,6 +247,20 @@ function updateHomeSettings(payload = {}) {
   return homeSettings;
 }
 
+function getCustomerProfile() {
+  return customerProfile;
+}
+
+function saveCustomerProfile(payload = {}) {
+  customerProfile = {
+    name: String(payload.name || '').trim(),
+    phone: String(payload.phone || '').trim(),
+    address: String(payload.address || '').trim()
+  };
+  persistState();
+  return customerProfile;
+}
+
 function updateCategory(id, payload = {}) {
   const i = categories.findIndex((x) => x.id === id);
   if (i === -1) return null;
@@ -313,13 +338,21 @@ function clearCart() {
 }
 
 function createOrder({
-  paymentMethod = 'Naqd',
+  paymentMethod = 'cash',
+  paymentStatus = 'pending',
+  cashTermsAccepted = false,
   location = 'Yunusobod, Toshkent',
+  locationLat = null,
+  locationLng = null,
+  locationAccuracy = null,
+  addressText = '',
+  landmarkText = '',
   deliveryTime = '30 daqiqa',
   deliveryPrice = 12000,
   customerName = 'Mehmon',
   customerPhone = '',
-  customerAddress = ''
+  customerAddress = '',
+  customerSelfieUrl = ''
 } = {}) {
   const summary = getCartSummary();
   if (summary.totalQty === 0) return { error: 'Cart is empty' };
@@ -336,6 +369,25 @@ function createOrder({
   }
 
   const now = new Date().toISOString();
+  const normalizedPaymentMethod = String(paymentMethod || '').toLowerCase();
+  const acceptedPaymentMethods = new Set(['cash', 'click', 'payme']);
+  if (!acceptedPaymentMethods.has(normalizedPaymentMethod)) {
+    return { error: 'To‘lov turi noto‘g‘ri' };
+  }
+  if (!String(customerName || '').trim() || !String(customerPhone || '').trim()) {
+    return { error: "Avval ro‘yxatdan o‘ting" };
+  }
+  if (!String(customerSelfieUrl || '').trim()) {
+    return { error: 'Selfie tasdiq talab qilinadi' };
+  }
+  const hasGeo = Number.isFinite(Number(locationLat)) && Number.isFinite(Number(locationLng));
+  const hasManual = String(addressText || customerAddress || location || '').trim() && String(landmarkText || '').trim();
+  if (!hasGeo && !hasManual) {
+    return { error: 'Lokatsiya yoki manzil/orientir talab qilinadi' };
+  }
+  if (normalizedPaymentMethod === 'cash' && !cashTermsAccepted) {
+    return { error: 'Naqd to‘lov shartlarini tasdiqlang' };
+  }
   const orderItems = summary.items.map((item) => {
     const p = getProductById(item.id) || {};
     return {
@@ -357,6 +409,7 @@ function createOrder({
     customerName: String(customerName || 'Mehmon'),
     customerPhone: String(customerPhone || ''),
     customerAddress: String(customerAddress || location || ''),
+    customerSelfieUrl: String(customerSelfieUrl || ''),
     created_at: now,
     updated_at: now,
     status: 'new',
@@ -373,8 +426,15 @@ function createOrder({
     courierDeliveredAt: null,
     deliveredAt: null,
     cancelledAt: null,
-    paymentMethod,
+    paymentMethod: normalizedPaymentMethod,
+    paymentStatus: String(paymentStatus || (normalizedPaymentMethod === 'cash' ? 'cash_pending' : 'pending')),
+    cashTermsAccepted: Boolean(cashTermsAccepted),
     location: location || '',
+    locationLat: hasGeo ? Number(locationLat) : null,
+    locationLng: hasGeo ? Number(locationLng) : null,
+    locationAccuracy: hasGeo && Number.isFinite(Number(locationAccuracy)) ? Number(locationAccuracy) : null,
+    addressText: String(addressText || customerAddress || location || ''),
+    landmarkText: String(landmarkText || ''),
     deliveryTime: deliveryTime || '',
     deliveryPrice: Number(deliveryPrice || 0),
     items: orderItems,
@@ -595,6 +655,7 @@ module.exports = {
   getBanners,
   getPromotions,
   getHomeSettings,
+  getCustomerProfile,
   // admin operations
   createBanner,
   updateBanner,
@@ -603,6 +664,7 @@ module.exports = {
   updatePromotion,
   deletePromotion,
   updateHomeSettings,
+  saveCustomerProfile,
   updateCategory,
   updateProduct,
   // cart/order/import

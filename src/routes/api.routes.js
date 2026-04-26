@@ -20,6 +20,8 @@ router.put('/cart/items', cartController.setCartItem);
 router.delete('/cart', cartController.clearCart);
 
 router.post('/orders', orderController.createOrder);
+router.get('/profile', orderController.getProfile);
+router.put('/profile', orderController.saveProfile);
 router.get('/orders/:orderNumber/status', orderController.getOrderStatus);
 router.get('/orders/:orderNumber/track', orderController.getOrderTrack);
 router.post('/orders/:orderNumber/feedback', orderController.submitOrderFeedback);

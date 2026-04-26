@@ -126,6 +126,9 @@
         <input id="deliveryText" placeholder="Delivery text" />
         <input id="bgUrl" placeholder="Background image URL" />
         <input id="accentColor" placeholder="Accent color" />
+        <input id="clickPaymentUrl" placeholder="CLICK_PAYMENT_URL" />
+        <input id="paymePaymentUrl" placeholder="PAYME_PAYMENT_URL" />
+        <input id="cashTermsText" placeholder="cashTermsText" />
       </div>
       <button id="saveHomeBtn" class="primary">Save settings</button>
     </section>
@@ -565,6 +568,9 @@
       deliveryText.value=homeSettings.deliveryText||'';
       bgUrl.value=homeSettings.backgroundImageUrl||'';
       accentColor.value=homeSettings.accentColor||'';
+      clickPaymentUrl.value=homeSettings.clickPaymentUrl||'';
+      paymePaymentUrl.value=homeSettings.paymePaymentUrl||'';
+      cashTermsText.value=homeSettings.cashTermsText||'';
     }
     document.getElementById('saveHomeBtn').onclick=async(e)=>{
       const btn = e.currentTarget;
@@ -582,7 +588,10 @@
           deliveryTimeText: deliveryTimeText.value,
           deliveryText: deliveryText.value,
           backgroundImageUrl:bgUrl.value,
-          accentColor:accentColor.value
+          accentColor:accentColor.value,
+          clickPaymentUrl: clickPaymentUrl.value,
+          paymePaymentUrl: paymePaymentUrl.value,
+          cashTermsText: cashTermsText.value
         })});
         showToast(t('saveOk'));
       }catch(err){showToast(err.message||t('loadError'))}

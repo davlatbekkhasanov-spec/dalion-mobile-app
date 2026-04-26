@@ -9,6 +9,20 @@ exports.createOrder = (req, res) => {
   return res.status(201).json(result.data);
 };
 
+exports.getProfile = (req, res) => {
+  return res.json({ profile: store.getCustomerProfile() });
+};
+
+exports.saveProfile = (req, res) => {
+  const name = String(req.body?.name || '').trim();
+  const phone = String(req.body?.phone || '').trim();
+  if (!name || !phone) {
+    return res.status(400).json({ message: 'name va phone majburiy' });
+  }
+  const profile = store.saveCustomerProfile(req.body || {});
+  return res.json({ profile });
+};
+
 exports.getOrderStatus = (req, res) => {
   const order = store.getOrderByNumber(req.params.orderNumber);
   if (!order) return res.status(404).json({ message: 'Order not found' });

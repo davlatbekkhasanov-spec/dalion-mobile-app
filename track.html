@@ -25,6 +25,7 @@
       <h3 style="margin-top:0;">Holat</h3>
       <div id="timeline"></div>
       <div id="courier" class="muted" style="margin-top:8px;"></div>
+      <div id="payment" class="muted" style="margin-top:8px;"></div>
     </div>
     <div class="card">
       <h3 style="margin-top:0;">Buyurtma</h3>
@@ -43,7 +44,8 @@
     const orderNumber = decodeURIComponent(location.pathname.split('/').pop());
     const steps = [
       { label: 'Buyurtma qabul qilindi', statuses: ['new'] },
-      { label: 'Tayyor / Kurier kutilyapti', statuses: ['sent_to_tsd', 'picked', 'waiting_courier'] },
+      { label: 'Tovarlar terilmoqda', statuses: ['sent_to_tsd'] },
+      { label: 'Yig‘ildi / Kurier kutilyapti', statuses: ['picked', 'waiting_courier'] },
       { label: 'Kurierda', statuses: ['out_for_delivery'] },
       { label: 'Yetkazildi', statuses: ['delivered'] }
     ];
@@ -60,6 +62,7 @@
       document.getElementById('timeline').innerHTML = steps.map((step)=>`<div class="step ${step.statuses.includes(order.status)?'active':''}">${step.label}</div>`).join('');
       document.getElementById('courier').textContent = (order.status === 'out_for_delivery' || order.status === 'delivered') && order.courierName
         ? `Kurier: ${order.courierName}, ${order.courierPhone || ''}` : '';
+      document.getElementById('payment').textContent = `To‘lov: ${order.paymentMethod || '-'} | ${order.paymentStatus || '-'}`;
       document.getElementById('items').innerHTML = (order.items||[]).map((i)=>`${i.name} × ${i.quantity} = ${Number(i.subtotal||0).toLocaleString('ru-RU')} so'm`).join('<br>');
       document.getElementById('total').innerHTML = `<b>Jami: ${Number(order.total||0).toLocaleString('ru-RU')} so'm</b>`;
       const feedbackCard = document.getElementById('feedbackCard');

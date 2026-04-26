@@ -971,17 +971,35 @@
         <h2 class="title">Buyurtma preview</h2>
         <div id="checkoutItems"></div>
         <div class="list-card">
+          <h4 style="margin-bottom:8px;">Mijoz ma'lumotlari</h4>
+          <p class="muted" id="checkoutProfile">Profil: kiritilmagan</p>
+          <button class="btn btn-secondary" id="editProfileBtn">Ro‘yxatdan o‘tish</button>
+        </div>
+        <div class="list-card">
           <h4 style="margin-bottom:8px;">Yetkazib berish</h4>
           <p class="muted" id="checkoutLocation">Manzil: Yunusobod, Toshkent</p>
+          <p class="muted" id="checkoutGeo">Geo: olinmagan</p>
+          <p class="muted" id="checkoutLandmark">Orientir: -</p>
+          <input id="manualAddress" placeholder="Manzil (qo'lda)" />
+          <input id="landmarkInput" placeholder="Orientir" />
+          <button class="btn btn-secondary" id="captureLocationBtn">Lokatsiyani kiritish</button>
           <p class="muted" id="checkoutTime">Vaqt: 30 daqiqa</p>
           <p class="muted" id="checkoutPrice">Narx: 12 000 so'm</p>
         </div>
         <div class="list-card">
           <h4 style="margin-bottom:8px;">To'lov turi</h4>
           <div class="payment-grid">
-            <button class="pay-btn active" data-payment="Naqd">Naqd</button>
-            <button class="pay-btn" data-payment="Karta orqali">Karta orqali</button>
+            <button class="pay-btn" data-payment="cash">Naqd</button>
+            <button class="pay-btn" data-payment="click">Click</button>
+            <button class="pay-btn" data-payment="payme">Payme</button>
           </div>
+          <label class="muted" style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;">
+            <input type="checkbox" id="cashTermsCheckbox" />
+            <span id="cashTermsText">Men buyurtmani yetkazilganda naqd to‘lashni tasdiqlayman</span>
+          </label>
+          <div id="paymentLinks" class="muted" style="margin-top:8px;"></div>
+          <label class="muted" style="display:block;margin-top:8px;">Buyurtmani tasdiqlash uchun selfie tasdiq talab qilinadi</label>
+          <input id="selfieInput" type="file" accept="image/*" capture="user" />
           <p class="checkout-total" id="checkoutTotal">Jami: 0 so'm</p>
           <button class="full-btn" id="confirmOrderBtn">Buyurtmani tasdiqlash</button>
         </div>
@@ -1029,7 +1047,10 @@ Oq fonli foto</div>
     let products = [];
     let cart = {};
     let currentView = 'homeView';
-    let selectedPayment = 'Naqd';
+    let selectedPayment = '';
+    let customerProfile = { name: '', phone: '', address: '' };
+    let customerLocation = { lat: null, lng: null, accuracy: null, addressText: '', landmarkText: '', permissionDenied: false };
+    let selfieDataUrl = '';
     let activeModalProductId = null;
     let selectedCategory = null;
     let selectedCategoryLabel = '';
@@ -1068,6 +1089,15 @@ Oq fonli foto</div>
     const bannerCarousel = document.getElementById('bannerCarousel');
     const promoCarousel = document.getElementById('promoCarousel');
     const checkoutLocation = document.getElementById('checkoutLocation');
+    const checkoutProfile = document.getElementById('checkoutProfile');
+    const checkoutGeo = document.getElementById('checkoutGeo');
+    const checkoutLandmark = document.getElementById('checkoutLandmark');
+    const manualAddress = document.getElementById('manualAddress');
+    const landmarkInput = document.getElementById('landmarkInput');
+    const cashTermsCheckbox = document.getElementById('cashTermsCheckbox');
+    const cashTermsText = document.getElementById('cashTermsText');
+    const paymentLinks = document.getElementById('paymentLinks');
+    const selfieInput = document.getElementById('selfieInput');
     const checkoutTime = document.getElementById('checkoutTime');
     const checkoutPrice = document.getElementById('checkoutPrice');
     const successOrderNumber = document.getElementById('successOrderNumber');
@@ -1194,6 +1224,30 @@ Oq fonli foto</div>
       return summary;
     }
 
+    async function loadProfile() {
+      const local = JSON.parse(localStorage.getItem('customer_profile') || '{}');
+      try {
+        const out = await api('/profile');
+        customerProfile = { ...local, ...(out.profile || {}) };
+      } catch {
+        customerProfile = { ...customerProfile, ...local };
+      }
+      manualAddress.value = customerProfile.address || '';
+    }
+
+    async function saveProfileFlow() {
+      const name = prompt("Ismingizni kiriting", customerProfile.name || '');
+      if (!name) return false;
+      const phoneValue = prompt("Telefon raqamingizni kiriting", customerProfile.phone || '');
+      if (!phoneValue) return false;
+      const address = prompt("Manzil (ixtiyoriy)", customerProfile.address || '') || '';
+      customerProfile = { name: name.trim(), phone: phoneValue.trim(), address: address.trim() };
+      localStorage.setItem('customer_profile', JSON.stringify(customerProfile));
+      await api('/profile', { method: 'PUT', body: JSON.stringify(customerProfile) });
+      renderCheckout();
+      return true;
+    }
+
     function qtyOf(id) {
       return cart[id] || 0;
     }
@@ -1209,8 +1263,9 @@ Oq fonli foto</div>
       return {
         new: 'Yangi buyurtma',
         picking: 'Tovar terilmoqda',
-        picked: 'Tovarlar yig‘ib bo‘lindi',
-        waiting_courier: 'Kurier kutilmoqda',
+        picked: 'Yig‘ildi / Kurier kutilyapti',
+        waiting_courier: 'Yig‘ildi / Kurier kutilyapti',
+        sent_to_tsd: 'Tovarlar terilmoqda',
         out_for_delivery: 'Yetkazilmoqda',
         delivered: 'Yetkazildi',
         cancelled: 'Bekor qilindi'
@@ -1416,6 +1471,20 @@ Oq fonli foto`;
 
       const orderTotal = totalPrice() + 12000;
       checkoutTotal.textContent = `Jami: ${money(orderTotal)}`;
+      checkoutProfile.textContent = customerProfile.name && customerProfile.phone
+        ? `Profil: ${customerProfile.name} · ${customerProfile.phone}`
+        : "Profil: kiritilmagan";
+      checkoutLocation.textContent = `Manzil: ${customerLocation.addressText || manualAddress.value || customerProfile.address || homePayload?.delivery_info?.location || 'Yunusobod, Toshkent'}`;
+      checkoutLandmark.textContent = `Orientir: ${customerLocation.landmarkText || landmarkInput.value || '-'}`;
+      checkoutGeo.textContent = Number.isFinite(Number(customerLocation.lat)) && Number.isFinite(Number(customerLocation.lng))
+        ? `Geo: ${Number(customerLocation.lat).toFixed(6)}, ${Number(customerLocation.lng).toFixed(6)} (±${Math.round(Number(customerLocation.accuracy || 0))}m)`
+        : 'Geo: olinmagan';
+      const hs = homePayload?.home_settings || {};
+      cashTermsText.textContent = hs.cashTermsText || "Men buyurtmani yetkazilganda naqd to‘lashni tasdiqlayman";
+      cashTermsCheckbox.closest('label').style.display = selectedPayment === 'cash' ? 'flex' : 'none';
+      if (selectedPayment === 'click' && hs.clickPaymentUrl) paymentLinks.innerHTML = `Click: <a href="${hs.clickPaymentUrl}" target="_blank">To‘lov havolasi</a>`;
+      else if (selectedPayment === 'payme' && hs.paymePaymentUrl) paymentLinks.innerHTML = `Payme: <a href="${hs.paymePaymentUrl}" target="_blank">To‘lov havolasi</a>`;
+      else paymentLinks.innerHTML = '';
     }
 
     function renderCartBadge() {
@@ -1484,7 +1553,7 @@ Oq fonli foto`;
 
     async function initializeAppData() {
       try {
-        await Promise.all([loadHomePayload(), loadProducts({ reset: true }), loadCart()]);
+        await Promise.all([loadHomePayload(), loadProducts({ reset: true }), loadCart(), loadProfile()]);
         renderAll();
       } catch (error) {
         showToast(error.message || 'Maʼlumotni yuklashda xatolik');
@@ -1638,6 +1707,7 @@ Oq fonli foto`;
         return;
       }
       setView('checkoutView');
+      renderCheckout();
     });
 
     document.querySelectorAll('.pay-btn').forEach((btn) => {
@@ -1645,6 +1715,7 @@ Oq fonli foto`;
         selectedPayment = btn.dataset.payment;
         document.querySelectorAll('.pay-btn').forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
+        renderCheckout();
       });
     });
 
@@ -1653,18 +1724,50 @@ Oq fonli foto`;
         showToast("Savat bo'sh");
         return;
       }
+      if (!customerProfile.name || !customerProfile.phone) {
+        showToast("Avval ro‘yxatdan o‘ting");
+        const ok = await saveProfileFlow();
+        if (!ok) return;
+      }
+      if (!selectedPayment) {
+        showToast("To'lov turini tanlang");
+        return;
+      }
+      customerLocation.addressText = manualAddress.value.trim() || customerProfile.address || '';
+      customerLocation.landmarkText = landmarkInput.value.trim();
+      if (!Number.isFinite(Number(customerLocation.lat)) && (!customerLocation.addressText || !customerLocation.landmarkText)) {
+        showToast("Lokatsiyani kiriting yoki manzil + orientirni to‘ldiring");
+        return;
+      }
+      if (selectedPayment === 'cash' && !cashTermsCheckbox.checked) {
+        showToast("Naqd to‘lov shartlarini tasdiqlang");
+        return;
+      }
+      if (!selfieDataUrl) {
+        if (!confirm('Buyurtmani tasdiqlash uchun selfie tasdiq talab qilinadi')) return;
+        showToast('Selfie yuklang');
+        return;
+      }
 
       try {
         const order = await api('/orders', {
           method: 'POST',
           body: JSON.stringify({
             paymentMethod: selectedPayment,
-            location: homePayload?.delivery_info?.location || 'Yunusobod, Toshkent',
+            paymentStatus: selectedPayment === 'cash' ? 'cash_pending' : 'pending',
+            cashTermsAccepted: selectedPayment === 'cash' ? cashTermsCheckbox.checked : false,
+            location: customerLocation.addressText || homePayload?.delivery_info?.location || 'Yunusobod, Toshkent',
+            locationLat: customerLocation.lat,
+            locationLng: customerLocation.lng,
+            locationAccuracy: customerLocation.accuracy,
+            addressText: customerLocation.addressText,
+            landmarkText: customerLocation.landmarkText,
             deliveryTime: homePayload?.delivery_info?.time || '30 daqiqa',
             deliveryPrice: homePayload?.delivery_info?.price || 12000,
-            customerName: 'Mehmon',
-            customerPhone: '',
-            customerAddress: homePayload?.delivery_info?.location || 'Yunusobod, Toshkent'
+            customerName: customerProfile.name,
+            customerPhone: customerProfile.phone,
+            customerAddress: customerLocation.addressText || customerProfile.address,
+            customerSelfieUrl: selfieDataUrl
           })
         });
 
@@ -1682,6 +1785,9 @@ Oq fonli foto`;
         orderStatusTimer = setInterval(refreshOrderStatus, 5000);
         refreshOrderStatus();
         setView('successView');
+        selfieDataUrl = '';
+        selfieInput.value = '';
+        cashTermsCheckbox.checked = false;
       } catch (error) {
         showToast(error.message || 'Buyurtmani yuborishda xatolik');
       }
@@ -1697,6 +1803,41 @@ Oq fonli foto`;
       trackOrderBtn.style.display = 'none';
       showToast('Buyurtma yakunlandi');
     });
+
+
+    document.getElementById('editProfileBtn').addEventListener('click', async () => {
+      try { await saveProfileFlow(); } catch (error) { showToast(error.message || 'Profil saqlanmadi'); }
+    });
+
+    document.getElementById('captureLocationBtn').addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        customerLocation.permissionDenied = true;
+        showToast('Brauzer geolokatsiyani qo‘llamaydi');
+        return;
+      }
+      navigator.geolocation.getCurrentPosition((pos) => {
+        customerLocation.lat = pos.coords.latitude;
+        customerLocation.lng = pos.coords.longitude;
+        customerLocation.accuracy = pos.coords.accuracy;
+        customerLocation.permissionDenied = false;
+        renderCheckout();
+        showToast('Lokatsiya olindi');
+      }, () => {
+        customerLocation.permissionDenied = true;
+        showToast('Geo ruxsati rad etildi. Manzil va orientirni qo‘lda kiriting');
+      }, { enableHighAccuracy: true, timeout: 12000 });
+    });
+
+    selfieInput.addEventListener('change', () => {
+      const file = selfieInput.files && selfieInput.files[0];
+      if (!file) { selfieDataUrl = ''; return; }
+      const fr = new FileReader();
+      fr.onload = () => { selfieDataUrl = String(fr.result || ''); };
+      fr.readAsDataURL(file);
+    });
+
+    manualAddress.addEventListener('input', renderCheckout);
+    landmarkInput.addEventListener('input', renderCheckout);
 
     initializeAppData();
   </script>
