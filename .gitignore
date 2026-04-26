@@ -1,2 +1,5 @@
 node_modules/
 .env
+data/store.json
+uploads/products/
+uploads/categories/
