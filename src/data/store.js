@@ -377,16 +377,10 @@ function createOrder({
   if (!String(customerName || '').trim() || !String(customerPhone || '').trim()) {
     return { error: "Avval ro‘yxatdan o‘ting" };
   }
-  if (!String(customerSelfieUrl || '').trim()) {
-    return { error: 'Selfie tasdiq talab qilinadi' };
-  }
   const hasGeo = Number.isFinite(Number(locationLat)) && Number.isFinite(Number(locationLng));
-  const hasManual = String(addressText || customerAddress || location || '').trim() && String(landmarkText || '').trim();
+  const hasManual = String(addressText || customerAddress || location || '').trim();
   if (!hasGeo && !hasManual) {
-    return { error: 'Lokatsiya yoki manzil/orientir talab qilinadi' };
-  }
-  if (normalizedPaymentMethod === 'cash' && !cashTermsAccepted) {
-    return { error: 'Naqd to‘lov shartlarini tasdiqlang' };
+    return { error: 'Lokatsiya yoki manzil talab qilinadi' };
   }
   const orderItems = summary.items.map((item) => {
     const p = getProductById(item.id) || {};
@@ -429,7 +423,7 @@ function createOrder({
     paymentMethod: normalizedPaymentMethod,
     paymentStatus: String(paymentStatus || (normalizedPaymentMethod === 'cash' ? 'cash_pending' : 'pending')),
     cashTermsAccepted: Boolean(cashTermsAccepted),
-    location: location || '',
+    location: String(location || addressText || customerAddress || ''),
     locationLat: hasGeo ? Number(locationLat) : null,
     locationLng: hasGeo ? Number(locationLng) : null,
     locationAccuracy: hasGeo && Number.isFinite(Number(locationAccuracy)) ? Number(locationAccuracy) : null,
