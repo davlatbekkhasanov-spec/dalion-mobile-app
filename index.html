@@ -1070,13 +1070,18 @@
 
       <section class="view" id="profileView">
         <h2 class="title">Profil</h2>
-        <div class="list-card">
+        <div class="list-card" id="profileUserCard">
           <h3 style="margin-bottom:6px;" id="profileName">Foydalanuvchi</h3>
           <p class="muted" id="profilePhone">Telefon: -</p>
+          <button class="btn btn-secondary" id="logoutBtn" style="margin-top:10px;">Chiqish</button>
         </div>
-        <div class="list-card">
+        <div class="list-card" id="profileOrdersCard">
           <h3 style="margin-bottom:6px;">Buyurtmalarim</h3>
           <div id="profileOrders"></div>
+        </div>
+        <div class="list-card" id="profileGuestCard" style="display:none;">
+          <h3 style="margin-bottom:6px;">Mehmon foydalanuvchi</h3>
+          <button class="btn btn-primary" id="profileRegisterBtn">Ro‘yxatdan o‘tish</button>
         </div>
       </section>
 
@@ -1160,7 +1165,7 @@ Oq fonli foto</div>
     let cart = {};
     let currentView = 'homeView';
     let selectedPayment = '';
-    let customerProfile = { name: '', phone: '', address: '' };
+    let currentUser = null;
     let customerLocation = { lat: null, lng: null, accuracy: null, addressText: '', landmarkText: '', permissionDenied: false };
     let activeModalProductId = null;
     let selectedCategory = null;
@@ -1227,6 +1232,11 @@ Oq fonli foto</div>
     const profileName = document.getElementById('profileName');
     const profilePhone = document.getElementById('profilePhone');
     const profileOrders = document.getElementById('profileOrders');
+    const profileUserCard = document.getElementById('profileUserCard');
+    const profileOrdersCard = document.getElementById('profileOrdersCard');
+    const profileGuestCard = document.getElementById('profileGuestCard');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const profileRegisterBtn = document.getElementById('profileRegisterBtn');
 
     const modalOverlay = document.getElementById('productModalOverlay');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -1349,18 +1359,16 @@ Oq fonli foto</div>
     }
 
     async function loadProfile() {
-      const local = JSON.parse(localStorage.getItem('customer_profile') || '{}');
-      try {
-        const out = await api('/profile');
-        customerProfile = { ...local, ...(out.profile || {}) };
-      } catch {
-        customerProfile = { ...customerProfile, ...local };
+      const local = JSON.parse(localStorage.getItem('globusUser') || 'null');
+      if (local && local.name && local.phone) {
+        currentUser = local;
+        return;
       }
-      manualAddress.value = customerProfile.address || '';
+      currentUser = null;
     }
 
     function isAuthed() {
-      return !!(customerProfile.name && customerProfile.phone);
+      return !!(currentUser && currentUser.name && currentUser.phone);
     }
 
     async function submitAuth() {
@@ -1368,9 +1376,9 @@ Oq fonli foto</div>
       const nameValue = String(authName.value || '').trim();
       if (!nameValue) { showToast('Ismingizni kiriting'); return false; }
       if (!phoneValue) { showToast('Telefon raqamingizni kiriting'); return false; }
-      customerProfile = { name: nameValue, phone: phoneValue, address: customerProfile.address || '' };
-      localStorage.setItem('customer_profile', JSON.stringify(customerProfile));
-      await api('/profile', { method: 'PUT', body: JSON.stringify(customerProfile) });
+      currentUser = { name: nameValue, phone: phoneValue, createdAt: new Date().toISOString() };
+      localStorage.setItem('globusUser', JSON.stringify(currentUser));
+      await api('/profile', { method: 'PUT', body: JSON.stringify({ name: currentUser.name, phone: currentUser.phone, address: '' }) });
       authSheetOverlay.classList.remove('show');
       showToast("Ro'yxatdan o'tildi");
       return true;
@@ -1607,7 +1615,7 @@ Oq fonli foto`;
 
       const orderTotal = totalPrice() + 12000;
       checkoutTotal.textContent = `Jami: ${money(orderTotal)}`;
-      checkoutLocation.textContent = `Manzil: ${customerLocation.addressText || manualAddress.value || customerProfile.address || homePayload?.delivery_info?.location || 'Yunusobod, Toshkent'}`;
+      checkoutLocation.textContent = `Manzil: ${customerLocation.addressText || manualAddress.value || '' || homePayload?.delivery_info?.location || 'Yunusobod, Toshkent'}`;
       checkoutLandmark.textContent = `Orientir: ${customerLocation.landmarkText || landmarkInput.value || '-'}`;
       checkoutGeo.textContent = Number.isFinite(Number(customerLocation.lat)) && Number.isFinite(Number(customerLocation.lng))
         ? `Geo: ${Number(customerLocation.lat).toFixed(6)}, ${Number(customerLocation.lng).toFixed(6)} (±${Math.round(Number(customerLocation.accuracy || 0))}m)`
@@ -1623,9 +1631,9 @@ Oq fonli foto`;
     }
 
     async function loadCustomerOrders() {
-      if (!customerProfile.phone) return [];
+      if (!currentUser?.phone) return [];
       try {
-        const out = await api(`/customer/orders?phone=${encodeURIComponent(customerProfile.phone)}`);
+        const out = await api(`/customer/orders?phone=${encodeURIComponent(currentUser?.phone)}`);
         return out.orders || [];
       } catch {
         return [];
@@ -1672,8 +1680,17 @@ Oq fonli foto`;
     }
 
     async function renderProfileOrders() {
-      profileName.textContent = customerProfile.name || 'Foydalanuvchi';
-      profilePhone.textContent = `Telefon: ${customerProfile.phone || '-'}`;
+      if (!isAuthed()) {
+        profileUserCard.style.display = 'none';
+        profileOrdersCard.style.display = 'none';
+        profileGuestCard.style.display = 'block';
+        return;
+      }
+      profileGuestCard.style.display = 'none';
+      profileUserCard.style.display = 'block';
+      profileOrdersCard.style.display = 'block';
+      profileName.textContent = currentUser?.name || 'Foydalanuvchi';
+      profilePhone.textContent = `Telefon: ${currentUser?.phone || '-'}`;
       const orders = await loadCustomerOrders();
       const merged = [...orders];
       ordersHistory.forEach((h) => {
@@ -1792,6 +1809,20 @@ Oq fonli foto`;
       } catch (error) {
         showToast(error.message || 'Auth xatolik');
       }
+    });
+
+    logoutBtn?.addEventListener('click', () => {
+      localStorage.removeItem('globusUser');
+      currentUser = null;
+      activeOrderNumber = '';
+      localStorage.removeItem('activeOrderNumber');
+      phone.classList.remove('show-app');
+      showToast("Siz tizimdan chiqdingiz");
+      renderProfileOrders();
+    });
+
+    profileRegisterBtn?.addEventListener('click', () => {
+      authSheetOverlay.classList.add('show');
     });
 
     document.getElementById('openSearchBtn').addEventListener('click', () => {
@@ -1960,7 +1991,7 @@ Oq fonli foto`;
         showToast("To'lov turini tanlang");
         return;
       }
-      customerLocation.addressText = manualAddress.value.trim() || customerProfile.address || '';
+      customerLocation.addressText = manualAddress.value.trim() || '' || '';
       customerLocation.landmarkText = landmarkInput.value.trim();
       if (!Number.isFinite(Number(customerLocation.lat)) && !customerLocation.addressText) {
         showToast("Lokatsiyani kiriting yoki manzilni to‘ldiring");
@@ -2010,9 +2041,9 @@ Oq fonli foto`;
             landmarkText: customerLocation.landmarkText,
             deliveryTime: homePayload?.delivery_info?.time || '30 daqiqa',
             deliveryPrice: homePayload?.delivery_info?.price || 12000,
-            customerName: customerProfile.name,
-            customerPhone: customerProfile.phone,
-            customerAddress: customerLocation.addressText || customerProfile.address
+            customerName: currentUser?.name,
+            customerPhone: currentUser?.phone,
+            customerAddress: customerLocation.addressText || ''
           })
         });
 
