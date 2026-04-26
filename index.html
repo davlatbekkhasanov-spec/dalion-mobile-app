@@ -709,6 +709,68 @@
       box-shadow: 0 12px 24px rgba(12, 62, 120, 0.35);
     }
 
+    .auth-sheet-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(2, 8, 20, 0.72);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+      z-index: 12;
+    }
+
+    .auth-sheet-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .auth-sheet {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      border: 1px solid rgba(109, 171, 255, 0.35);
+      background: linear-gradient(165deg, rgba(16, 34, 60, 0.95), rgba(7, 18, 35, 0.95));
+      border-radius: 18px;
+      padding: 14px;
+      transform: translateY(120%);
+      transition: transform 220ms ease;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    .auth-sheet-overlay.show .auth-sheet {
+      transform: translateY(0);
+    }
+
+    .auth-sheet-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .auth-sheet-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      border: 1px solid rgba(129, 174, 240, 0.4);
+      color: #d8e9ff;
+      background: rgba(18, 30, 51, 0.82);
+      cursor: pointer;
+    }
+
+    .auth-input {
+      width: 100%;
+      background: rgba(11, 24, 42, 0.95);
+      border: 1px solid rgba(101, 174, 255, 0.5);
+      border-radius: 14px;
+      color: #f3fbff;
+      padding: 13px 14px;
+      font-size: 16px;
+      margin-top: 10px;
+      outline: none;
+    }
+
     .payment-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -926,17 +988,21 @@
         <h2 class="headline">Хуш келибсиз!</h2>
         <p class="subtitle">Дунёча танлов, тез етказиб бериш ва премиум харид тажрибаси энди бир жойда.</p>
 
-        <button class="btn btn-primary" id="continueBtn">Davom etish</button>
-        <button class="btn btn-secondary" id="openLoginBtn">Kirish</button>
-        <button class="btn btn-secondary" id="openRegisterBtn" style="margin-top:8px;">Ro‘yxatdan o‘tish</button>
-        <div class="list-card" id="authPanel" style="margin-top:12px;display:none;text-align:left;">
-          <h4 id="authTitle" style="margin-bottom:8px;">Kirish</h4>
-          <input id="authName" placeholder="Ism (register)" style="display:none;" />
-          <input id="authPhone" placeholder="Telefon" />
-          <button class="btn btn-primary" id="submitAuthBtn" style="margin-top:8px;">Tasdiqlash</button>
-        </div>
+        <button class="btn btn-primary" id="openRegisterBtn">Ro‘yxatdan o‘tish</button>
       </div>
     </section>
+
+    <div class="auth-sheet-overlay" id="authSheetOverlay">
+      <div class="auth-sheet" id="authSheet">
+        <div class="auth-sheet-head">
+          <h3 style="margin:0;">Ro‘yxatdan o‘tish</h3>
+          <button class="auth-sheet-close" id="closeAuthSheetBtn">✕</button>
+        </div>
+        <input id="authName" class="auth-input" placeholder="Ismingiz" />
+        <input id="authPhone" class="auth-input" placeholder="Telefon raqamingiz" />
+        <button class="btn btn-primary" id="submitAuthBtn" style="margin-top:10px;">Tasdiqlash</button>
+      </div>
+    </div>
 
     <section class="screen app" id="appScreen">
       <section class="view active" id="homeView">
@@ -1079,7 +1145,6 @@ Oq fonli foto</div>
     let selectedPayment = '';
     let customerProfile = { name: '', phone: '', address: '' };
     let customerLocation = { lat: null, lng: null, accuracy: null, addressText: '', landmarkText: '', permissionDenied: false };
-    let authMode = 'login';
     let activeModalProductId = null;
     let selectedCategory = null;
     let selectedCategoryLabel = '';
@@ -1094,11 +1159,9 @@ Oq fonli foto</div>
     let orderStatusTimer = null;
 
     const phone = document.getElementById('phone');
-    const continueBtn = document.getElementById('continueBtn');
-    const openLoginBtn = document.getElementById('openLoginBtn');
     const openRegisterBtn = document.getElementById('openRegisterBtn');
-    const authPanel = document.getElementById('authPanel');
-    const authTitle = document.getElementById('authTitle');
+    const authSheetOverlay = document.getElementById('authSheetOverlay');
+    const closeAuthSheetBtn = document.getElementById('closeAuthSheetBtn');
     const authName = document.getElementById('authName');
     const authPhone = document.getElementById('authPhone');
     const submitAuthBtn = document.getElementById('submitAuthBtn');
@@ -1274,31 +1337,21 @@ Oq fonli foto</div>
     async function submitAuth() {
       const phoneValue = String(authPhone.value || '').trim();
       const nameValue = String(authName.value || '').trim();
-      if (!phoneValue) { showToast('Telefon kiriting'); return false; }
-
-      if (authMode === 'register') {
-        if (!nameValue) { showToast('Ism kiriting'); return false; }
-        customerProfile = { name: nameValue, phone: phoneValue, address: customerProfile.address || '' };
-        localStorage.setItem('customer_profile', JSON.stringify(customerProfile));
-        await api('/profile', { method: 'PUT', body: JSON.stringify(customerProfile) });
-        showToast("Ro'yxatdan o'tildi");
-      } else {
-        const saved = JSON.parse(localStorage.getItem('customer_profile') || '{}');
-        if (!saved.phone || saved.phone !== phoneValue) {
-          showToast('Foydalanuvchi topilmadi, ro‘yxatdan o‘ting');
-          return false;
-        }
-        customerProfile = { ...customerProfile, ...saved };
-        showToast('Kirish muvaffaqiyatli');
-      }
-      authPanel.style.display = 'none';
+      if (!nameValue) { showToast('Ismingizni kiriting'); return false; }
+      if (!phoneValue) { showToast('Telefon raqamingizni kiriting'); return false; }
+      customerProfile = { name: nameValue, phone: phoneValue, address: customerProfile.address || '' };
+      localStorage.setItem('customer_profile', JSON.stringify(customerProfile));
+      await api('/profile', { method: 'PUT', body: JSON.stringify(customerProfile) });
+      authSheetOverlay.classList.remove('show');
+      showToast("Ro'yxatdan o'tildi");
       return true;
     }
 
     function requireAuthOrIntro() {
       if (isAuthed()) return true;
-      showToast("Avval kirish yoki ro'yxatdan o'tish kerak");
+      showToast("Avval ro'yxatdan o'ting");
       phone.classList.remove('show-app');
+      authSheetOverlay.classList.add('show');
       return false;
     }
 
@@ -1608,32 +1661,16 @@ Oq fonli foto`;
       }
     }
 
-    continueBtn.addEventListener('click', async () => {
-      await loadProfile();
-      if (!requireAuthOrIntro()) {
-        authMode = 'login';
-        authTitle.textContent = 'Kirish';
-        authName.style.display = 'none';
-        authPanel.style.display = 'block';
-        return;
-      }
-      phone.classList.add('show-app');
-      setView('homeView');
-      await initializeAppData();
-    });
-
-    openLoginBtn.addEventListener('click', () => {
-      authMode = 'login';
-      authTitle.textContent = 'Kirish';
-      authName.style.display = 'none';
-      authPanel.style.display = 'block';
-    });
-
     openRegisterBtn.addEventListener('click', () => {
-      authMode = 'register';
-      authTitle.textContent = "Ro'yxatdan o'tish";
-      authName.style.display = 'block';
-      authPanel.style.display = 'block';
+      authSheetOverlay.classList.add('show');
+    });
+
+    closeAuthSheetBtn.addEventListener('click', () => {
+      authSheetOverlay.classList.remove('show');
+    });
+
+    authSheetOverlay.addEventListener('click', (e) => {
+      if (e.target === authSheetOverlay) authSheetOverlay.classList.remove('show');
     });
 
     submitAuthBtn.addEventListener('click', async () => {
@@ -1897,7 +1934,16 @@ Oq fonli foto`;
     manualAddress.addEventListener('input', renderCheckout);
     landmarkInput.addEventListener('input', renderCheckout);
 
-    initializeAppData();
+    (async () => {
+      await loadProfile();
+      if (isAuthed()) {
+        phone.classList.add('show-app');
+        setView('homeView');
+        await initializeAppData();
+      } else {
+        phone.classList.remove('show-app');
+      }
+    })();
   </script>
 </body>
 </html>
