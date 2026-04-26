@@ -1252,8 +1252,13 @@ Oq fonli foto</div>
     }
 
     async function api(path, options = {}) {
+      const headers = { ...(options.headers || {}) };
+      const hasBody = options.body !== undefined && options.body !== null;
+      const isFormData = typeof FormData !== 'undefined' && hasBody && options.body instanceof FormData;
+      if (!isFormData && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+      if (currentUser?.phone) headers['x-user-phone'] = currentUser.phone;
       const res = await fetch(`/api/v1${path}`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         ...options
       });
       const data = await res.json().catch(() => ({}));
@@ -1349,6 +1354,11 @@ Oq fonli foto</div>
     }
 
     async function loadCart() {
+      if (!currentUser?.phone) {
+        cart = {};
+        cartItemsSnapshot = [];
+        return { items: [], totalQty: 0, subtotal: 0 };
+      }
       const summary = await api('/cart');
       cart = {};
       cartItemsSnapshot = summary.items || [];
@@ -1776,7 +1786,8 @@ Oq fonli foto`;
 
     async function initializeAppData() {
       try {
-        await Promise.all([loadHomePayload(), loadProducts({ reset: true }), loadCart(), loadProfile()]);
+        await loadProfile();
+        await Promise.all([loadHomePayload(), loadProducts({ reset: true }), loadCart()]);
         renderAll();
       } catch (error) {
         showToast(error.message || 'Maʼlumotni yuklashda xatolik');
@@ -2040,10 +2051,7 @@ Oq fonli foto`;
             addressText: customerLocation.addressText,
             landmarkText: customerLocation.landmarkText,
             deliveryTime: homePayload?.delivery_info?.time || '30 daqiqa',
-            deliveryPrice: homePayload?.delivery_info?.price || 12000,
-            customerName: currentUser?.name,
-            customerPhone: currentUser?.phone,
-            customerAddress: customerLocation.addressText || ''
+            deliveryPrice: homePayload?.delivery_info?.price || 12000
           })
         });
 

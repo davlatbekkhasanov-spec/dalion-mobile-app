@@ -43,16 +43,27 @@ let homeSettings = {
   cashTermsText: "Men buyurtmani yetkazilganda naqd to‘lashni tasdiqlayman"
 };
 
-let customerProfile = {
-  name: '',
-  phone: '',
-  address: ''
-};
-
-const cart = new Map();
+const users = new Map();
+const carts = new Map();
 const orders = [];
 let lastUpdated = null;
 let orderSequence = 1;
+const ORDER_STATUSES = new Set(['new', 'sent_to_tsd', 'picking', 'picked', 'waiting_courier', 'out_for_delivery', 'delivered', 'cancelled']);
+
+function normalizeOrderStatus(status = '') {
+  const raw = String(status || '').trim();
+  if (ORDER_STATUSES.has(raw)) return raw;
+  const legacyMap = {
+    queued: 'sent_to_tsd',
+    accepted: 'sent_to_tsd',
+    preparing: 'picking',
+    ready: 'picked',
+    waiting: 'waiting_courier',
+    in_delivery: 'out_for_delivery',
+    done: 'delivered'
+  };
+  return legacyMap[raw] || 'new';
+}
 
 function persistState() {
   try {
@@ -63,7 +74,11 @@ function persistState() {
       banners,
       promotions,
       homeSettings,
-      customerProfile,
+      users: Array.from(users.values()),
+      carts: Array.from(carts.entries()).map(([phone, cart]) => ({
+        phone,
+        items: Array.from(cart.entries()).map(([productId, quantity]) => ({ productId, quantity }))
+      })),
       orders,
       orderSequence,
       savedAt: new Date().toISOString()
@@ -84,8 +99,61 @@ function loadStateFromDisk() {
     if (Array.isArray(parsed.banners)) { banners.splice(0, banners.length, ...parsed.banners); }
     if (Array.isArray(parsed.promotions)) { promotions.splice(0, promotions.length, ...parsed.promotions); }
     if (parsed.homeSettings && typeof parsed.homeSettings === 'object') { homeSettings = { ...homeSettings, ...parsed.homeSettings }; }
-    if (parsed.customerProfile && typeof parsed.customerProfile === 'object') { customerProfile = { ...customerProfile, ...parsed.customerProfile }; }
-    if (Array.isArray(parsed.orders)) { orders.splice(0, orders.length, ...parsed.orders); }
+    if (Array.isArray(parsed.users)) {
+      users.clear();
+      parsed.users.forEach((user) => {
+        const phone = String(user?.phone || '').replace(/\s+/g, '');
+        if (!phone) return;
+        users.set(phone, {
+          phone,
+          name: String(user?.name || '').trim(),
+          address: String(user?.address || '').trim(),
+          createdAt: user?.createdAt || new Date().toISOString(),
+          updatedAt: user?.updatedAt || new Date().toISOString()
+        });
+      });
+    }
+    if (Array.isArray(parsed.carts)) {
+      carts.clear();
+      parsed.carts.forEach((entry) => {
+        const phone = String(entry?.phone || '').replace(/\s+/g, '');
+        if (!phone) return;
+        const cart = new Map();
+        (entry?.items || []).forEach((item) => {
+          const productId = String(item?.productId || '').trim();
+          const quantity = Number(item?.quantity || 0);
+          if (!productId || quantity <= 0) return;
+          cart.set(productId, quantity);
+        });
+        carts.set(phone, cart);
+      });
+    }
+    if (!users.size && parsed.customerProfile && typeof parsed.customerProfile === 'object') {
+      const legacyPhone = String(parsed.customerProfile.phone || '').replace(/\s+/g, '');
+      if (legacyPhone) {
+        users.set(legacyPhone, {
+          phone: legacyPhone,
+          name: String(parsed.customerProfile.name || '').trim(),
+          address: String(parsed.customerProfile.address || '').trim(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
+    }
+    if (!carts.size && parsed.cart && parsed.customerProfile?.phone) {
+      const legacyPhone = String(parsed.customerProfile.phone || '').replace(/\s+/g, '');
+      if (legacyPhone) {
+        const legacyCart = new Map();
+        Object.entries(parsed.cart || {}).forEach(([productId, quantity]) => {
+          const qty = Number(quantity || 0);
+          if (qty > 0) legacyCart.set(productId, qty);
+        });
+        carts.set(legacyPhone, legacyCart);
+      }
+    }
+    if (Array.isArray(parsed.orders)) {
+      orders.splice(0, orders.length, ...parsed.orders.map((o) => ({ ...o, status: normalizeOrderStatus(o?.status) })));
+    }
     if (Number.isFinite(Number(parsed.orderSequence))) orderSequence = Math.max(1, Number(parsed.orderSequence));
     lastUpdated = parsed.savedAt || new Date().toISOString();
     return true;
@@ -247,18 +315,38 @@ function updateHomeSettings(payload = {}) {
   return homeSettings;
 }
 
-function getCustomerProfile() {
-  return customerProfile;
+function normalizePhone(phone = '') {
+  return String(phone || '').replace(/\s+/g, '');
 }
 
-function saveCustomerProfile(payload = {}) {
-  customerProfile = {
-    name: String(payload.name || '').trim(),
-    phone: String(payload.phone || '').trim(),
-    address: String(payload.address || '').trim()
+function getUserByPhone(phone = '') {
+  const normalized = normalizePhone(phone);
+  if (!normalized) return null;
+  return users.get(normalized) || null;
+}
+
+function upsertUser(payload = {}) {
+  const phone = normalizePhone(payload.phone);
+  if (!phone) return null;
+  const existing = users.get(phone);
+  const now = new Date().toISOString();
+  const user = {
+    phone,
+    name: String(payload.name ?? existing?.name ?? '').trim(),
+    address: String(payload.address ?? existing?.address ?? '').trim(),
+    createdAt: existing?.createdAt || now,
+    updatedAt: now
   };
+  users.set(phone, user);
   persistState();
-  return customerProfile;
+  return user;
+}
+
+function getOrCreateCart(phone = '') {
+  const normalized = normalizePhone(phone);
+  if (!normalized) return null;
+  if (!carts.has(normalized)) carts.set(normalized, new Map());
+  return carts.get(normalized);
 }
 
 function updateCategory(id, payload = {}) {
@@ -300,7 +388,9 @@ function updateProduct(id, payload = {}) {
   return products[i];
 }
 
-function getCartItems() {
+function getCartItems(phone = '') {
+  const cart = getOrCreateCart(phone);
+  if (!cart) return [];
   return products
     .map((p) => ({ product: p, quantity: cart.get(p.id) || 0 }))
     .filter((item) => item.quantity > 0)
@@ -316,25 +406,31 @@ function getCartItems() {
     }));
 }
 
-function getCartSummary() {
-  const items = getCartItems();
+function getCartSummary(phone = '') {
+  const items = getCartItems(phone);
   const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
   const subtotal = items.reduce((sum, i) => sum + i.subtotal, 0);
   return { items, totalQty, subtotal };
 }
 
-function setCartItem(productId, quantity) {
+function setCartItem(phone, productId, quantity) {
+  const cart = getOrCreateCart(phone);
+  if (!cart) return { error: 'Foydalanuvchi topilmadi' };
   const product = getProductById(productId);
   if (!product) return { error: 'Product not found' };
   const maxStock = Math.max(0, Number(product.stock || 0));
   const qty = Math.max(0, Math.min(Number(quantity) || 0, maxStock));
   if (qty === 0) cart.delete(productId);
   else cart.set(productId, qty);
-  return { data: getCartSummary() };
+  persistState();
+  return { data: getCartSummary(phone) };
 }
 
-function clearCart() {
+function clearCart(phone = '') {
+  const cart = getOrCreateCart(phone);
+  if (!cart) return;
   cart.clear();
+  persistState();
 }
 
 function createOrder({
@@ -349,9 +445,7 @@ function createOrder({
   landmarkText = '',
   deliveryTime = '30 daqiqa',
   deliveryPrice = 12000,
-  customerName = 'Mehmon',
-  customerPhone = '',
-  customerAddress = '',
+  userPhone = '',
   customerSelfieUrl = '',
   paymentProofUrl = '',
   cashAgreementConfirmed = false,
@@ -361,7 +455,11 @@ function createOrder({
   cashAgreementAccepted = false,
   cashAgreementAcceptedAt = null
 } = {}) {
-  const summary = getCartSummary();
+  const normalizedUserPhone = normalizePhone(userPhone);
+  if (!normalizedUserPhone) return { error: "Avval ro‘yxatdan o‘ting" };
+  const user = getUserByPhone(normalizedUserPhone);
+  if (!user || !String(user.name || '').trim()) return { error: "Avval ro‘yxatdan o‘ting" };
+  const summary = getCartSummary(normalizedUserPhone);
   if (summary.totalQty === 0) return { error: 'Cart is empty' };
 
   // validate stock before order creation
@@ -381,9 +479,7 @@ function createOrder({
   if (!acceptedPaymentMethods.has(normalizedPaymentMethod)) {
     return { error: 'To‘lov turi noto‘g‘ri' };
   }
-  if (!String(customerName || '').trim() || !String(customerPhone || '').trim()) {
-    return { error: "Avval ro‘yxatdan o‘ting" };
-  }
+  const customerAddress = String(user.address || addressText || location || '').trim();
   const hasGeo = Number.isFinite(Number(locationLat)) && Number.isFinite(Number(locationLng));
   const hasManual = String(addressText || customerAddress || location || '').trim();
   if (!hasGeo && !hasManual) {
@@ -416,8 +512,8 @@ function createOrder({
   const order = {
     id: `ord_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
     orderNumber: `ORD-${String(orderSequence).padStart(5, '0')}`,
-    customerName: String(customerName || 'Mehmon'),
-    customerPhone: String(customerPhone || ''),
+    customerName: String(user.name || 'Mehmon'),
+    customerPhone: normalizedUserPhone,
     customerAddress: String(customerAddress || location || ''),
     customerSelfieUrl: String(customerSelfieUrl || ''),
     created_at: now,
@@ -469,14 +565,14 @@ function createOrder({
   }
 
   orders.push(order);
-  clearCart();
+  clearCart(normalizedUserPhone);
   persistState();
 
   return { data: order };
 }
 
 function getCustomerOrders(phone = '') {
-  const normalized = String(phone || '').replace(/\s+/g, '');
+  const normalized = normalizePhone(phone);
   if (!normalized) return [];
   return getOrders().filter((o) => String(o.customerPhone || '').replace(/\s+/g, '') === normalized);
 }
@@ -528,8 +624,7 @@ function applyStatusTimestamps(order, status) {
 }
 
 function updateOrderStatus(id, status) {
-  const allowed = new Set(['new', 'picking', 'picked', 'sent_to_tsd', 'waiting_courier', 'out_for_delivery', 'delivered', 'cancelled']);
-  if (!allowed.has(status)) return null;
+  if (!ORDER_STATUSES.has(status)) return null;
   const order = getOrderById(id);
   if (!order) return null;
   order.status = status;
@@ -688,7 +783,7 @@ module.exports = {
   getBanners,
   getPromotions,
   getHomeSettings,
-  getCustomerProfile,
+  getUserByPhone,
   // admin operations
   createBanner,
   updateBanner,
@@ -697,7 +792,7 @@ module.exports = {
   updatePromotion,
   deletePromotion,
   updateHomeSettings,
-  saveCustomerProfile,
+  upsertUser,
   updateCategory,
   updateProduct,
   // cart/order/import
