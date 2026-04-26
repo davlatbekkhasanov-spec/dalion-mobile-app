@@ -1,7 +1,13 @@
 const store = require('../data/store.js');
 
+function resolveUserPhone(req) {
+  return String(req.header('x-user-phone') || req.query?.phone || req.body?.phone || req.body?.userPhone || '').trim();
+}
+
 exports.getCart = (req, res) => {
-  res.json(store.getCartSummary());
+  const phone = resolveUserPhone(req);
+  if (!phone) return res.status(400).json({ message: 'user phone is required' });
+  res.json(store.getCartSummary(phone));
 };
 
 exports.setCartItem = (req, res) => {
@@ -10,7 +16,10 @@ exports.setCartItem = (req, res) => {
     return res.status(400).json({ message: 'productId is required' });
   }
 
-  const result = store.setCartItem(productId, quantity);
+  const phone = resolveUserPhone(req);
+  if (!phone) return res.status(400).json({ message: 'user phone is required' });
+
+  const result = store.setCartItem(phone, productId, quantity);
   if (result.error) {
     return res.status(404).json({ message: result.error });
   }
@@ -19,6 +28,8 @@ exports.setCartItem = (req, res) => {
 };
 
 exports.clearCart = (req, res) => {
-  store.clearCart();
-  return res.json(store.getCartSummary());
+  const phone = resolveUserPhone(req);
+  if (!phone) return res.status(400).json({ message: 'user phone is required' });
+  store.clearCart(phone);
+  return res.json(store.getCartSummary(phone));
 };

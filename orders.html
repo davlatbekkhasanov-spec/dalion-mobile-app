@@ -64,7 +64,9 @@
     const tokenKey = 'admin_import_token';
     const statusGroups = [
       { key: 'new', label: 'Yangi', statuses: ['new'] },
-      { key: 'ready_waiting', label: 'Tayyor / Kurier kutilyapti', statuses: ['sent_to_tsd', 'picked', 'waiting_courier'] },
+      { key: 'sent_to_tsd', label: 'TSD ga yuborilgan', statuses: ['sent_to_tsd'] },
+      { key: 'picking', label: 'Terilmoqda', statuses: ['picking'] },
+      { key: 'picked_waiting', label: 'Tayyor / Kurier kutilyapti', statuses: ['picked', 'waiting_courier'] },
       { key: 'out_for_delivery', label: 'Kurierda', statuses: ['out_for_delivery'] },
       { key: 'delivered', label: 'Yetkazildi', statuses: ['delivered'] },
       { key: 'cancelled', label: 'Bekor qilingan', statuses: ['cancelled'] }
@@ -136,8 +138,13 @@
         actions.push(`<button class="primary" data-tsd="1">${order.tsdStatus === 'queued' ? 'Tayyorlanmoqda' : 'Tayyorlashni boshlash'}</button>`);
       }
       if (order.status === 'sent_to_tsd') {
-        actions.push('<button disabled>Tayyorlanmoqda</button>');
-        actions.push('<button data-next="waiting_courier">Tayyor</button>');
+        actions.push('<button data-next="picking">Terishni boshlash</button>');
+      }
+      if (order.status === 'picking') {
+        actions.push('<button data-next="picked">Terib bo‘lindi</button>');
+      }
+      if (order.status === 'picked') {
+        actions.push('<button data-next="waiting_courier">Kurierni kutmoqda</button>');
       }
       if (order.status === 'picked' || order.status === 'waiting_courier') {
         actions.push('<button data-print="1">Chek chiqarish</button>');
