@@ -352,7 +352,14 @@ function createOrder({
   customerName = 'Mehmon',
   customerPhone = '',
   customerAddress = '',
-  customerSelfieUrl = ''
+  customerSelfieUrl = '',
+  paymentProofUrl = '',
+  cashAgreementConfirmed = false,
+  cashAgreementConfirmedAt = null,
+  authMethod = '',
+  cashAgreementTextVersion = 'draft-v1',
+  cashAgreementAccepted = false,
+  cashAgreementAcceptedAt = null
 } = {}) {
   const summary = getCartSummary();
   if (summary.totalQty === 0) return { error: 'Cart is empty' };
@@ -381,6 +388,15 @@ function createOrder({
   const hasManual = String(addressText || customerAddress || location || '').trim();
   if (!hasGeo && !hasManual) {
     return { error: 'Lokatsiya yoki manzil talab qilinadi' };
+  }
+  if ((normalizedPaymentMethod === 'click' || normalizedPaymentMethod === 'payme') && !String(paymentProofUrl || '').trim()) {
+    return { error: "To‘lov cheki screenshotini yuklang" };
+  }
+  if (normalizedPaymentMethod === 'cash' && !cashAgreementAccepted) {
+    return { error: 'Naqd to‘lov majburiyatini tasdiqlang' };
+  }
+  if (normalizedPaymentMethod === 'cash' && !cashAgreementConfirmed) {
+    return { error: "Naqd to'lov uchun tasdiqlash talab qilinadi" };
   }
   const orderItems = summary.items.map((item) => {
     const p = getProductById(item.id) || {};
@@ -423,6 +439,13 @@ function createOrder({
     paymentMethod: normalizedPaymentMethod,
     paymentStatus: String(paymentStatus || (normalizedPaymentMethod === 'cash' ? 'cash_pending' : 'pending')),
     cashTermsAccepted: Boolean(cashTermsAccepted),
+    paymentProofUrl: String(paymentProofUrl || ''),
+    cashAgreementConfirmed: Boolean(cashAgreementConfirmed),
+    cashAgreementConfirmedAt: cashAgreementConfirmedAt || (cashAgreementConfirmed ? now : null),
+    authMethod: String(authMethod || ''),
+    cashAgreementTextVersion: String(cashAgreementTextVersion || 'draft-v1'),
+    cashAgreementAccepted: Boolean(cashAgreementAccepted),
+    cashAgreementAcceptedAt: cashAgreementAcceptedAt || (cashAgreementAccepted ? now : null),
     location: String(location || addressText || customerAddress || ''),
     locationLat: hasGeo ? Number(locationLat) : null,
     locationLng: hasGeo ? Number(locationLng) : null,
@@ -450,6 +473,22 @@ function createOrder({
   persistState();
 
   return { data: order };
+}
+
+function getCustomerOrders(phone = '') {
+  const normalized = String(phone || '').replace(/\s+/g, '');
+  if (!normalized) return [];
+  return getOrders().filter((o) => String(o.customerPhone || '').replace(/\s+/g, '') === normalized);
+}
+
+function attachPaymentProof(orderNumber, { paymentProofUrl = '' } = {}) {
+  const order = getOrderByNumber(orderNumber);
+  if (!order) return null;
+  order.paymentProofUrl = String(paymentProofUrl || '');
+  order.paymentStatus = 'proof_uploaded';
+  order.updated_at = new Date().toISOString();
+  persistState();
+  return order;
 }
 
 function getOrders() {
@@ -670,9 +709,11 @@ module.exports = {
   getStoreSummary,
   reloadStoreFromDisk,
   getOrders,
+  getCustomerOrders,
   getOrderById,
   getOrderByNumber,
   saveOrderFeedback,
+  attachPaymentProof,
   updateOrderStatus,
   cancelOrder,
   getOrderPicklist,

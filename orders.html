@@ -99,10 +99,12 @@
               <article class="card" data-order-id="${o.id}">
                 <b>#${o.orderNumber || o.id}</b>
                 <div class="muted">${o.customerName || 'Mehmon'}</div>
+                <div class="muted">${o.customerPhone || '-'}</div>
                 <div class="muted">${o.customerAddress || o.addressText || o.location || '-'}</div>
                 <div class="muted">Orientir: ${o.landmarkText || '-'}</div>
                 <div class="row"><span>${(o.items||[]).length} item</span><strong>${Number(o.total||0).toLocaleString('ru-RU')} so'm</strong></div>
                 <div class="muted">Status: ${o.status} | To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatus || '-'}</div>
+                <div class="muted">${o.paymentProofUrl ? `<a href="${o.paymentProofUrl}" target="_blank">Payment proof</a>` : 'Payment proof: -'}</div>
                 <div class="muted">${fmt(o.created_at)}</div>
               </article>
             `).join('')}
@@ -116,7 +118,7 @@
       document.getElementById('mOrderTitle').textContent = `#${order.orderNumber || order.id}`;
       const mapLink = (Number.isFinite(Number(order.locationLat)) && Number.isFinite(Number(order.locationLng)))
         ? `https://maps.google.com/?q=${order.locationLat},${order.locationLng}` : '';
-      document.getElementById('mMeta').innerHTML = `${order.customerName || 'Mehmon'} | ${order.customerPhone || '-'} | ${order.customerAddress || order.addressText || order.location || '-'}<br>Orientir: ${order.landmarkText || '-'}${mapLink ? ` | <a href="${mapLink}" target="_blank">Map</a>` : ''}<br>To‘lov: ${order.paymentMethod || '-'} / ${order.paymentStatus || '-'}`;
+      document.getElementById('mMeta').innerHTML = `${order.customerName || 'Mehmon'} | ${order.customerPhone || '-'} | ${order.customerAddress || order.addressText || order.location || '-'}<br>Orientir: ${order.landmarkText || '-'}${mapLink ? ` | <a href="${mapLink}" target="_blank">Map</a>` : ''}<br>To‘lov: ${order.paymentMethod || '-'} / ${order.paymentStatus || '-'}<br>Cash agreement: ${order.cashAgreementAccepted ? 'ha' : 'yo‘q'}<br>${order.paymentProofUrl ? `<a href=\"${order.paymentProofUrl}\" target=\"_blank\">Payment proof</a>` : 'Payment proof: -'}`;
       document.getElementById('mItems').innerHTML = (order.items || []).map((it) => `
         <div class="item">
           ${it.image_url ? `<img src="${it.image_url}" alt="${it.name}" />` : `<img alt="" />`}

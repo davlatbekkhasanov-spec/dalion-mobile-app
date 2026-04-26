@@ -1045,6 +1045,7 @@
           <h4 id="promoSectionTitle">Aksiyalar</h4>
         </div>
         <section class="home-scroll" id="promoCarousel"></section>
+        <section id="activeOrderCardWrap" style="margin-top:10px;"></section>
       </section>
 
       <section class="view" id="searchView">
@@ -1070,11 +1071,12 @@
       <section class="view" id="profileView">
         <h2 class="title">Profil</h2>
         <div class="list-card">
-          <h3 style="margin-bottom:6px;">Mehmon foydalanuvchi</h3>
-          <p class="muted">Kirish yoki ro'yxatdan o'tish</p>
-          <button class="full-btn" data-toast="Kirish oynasi tez kunda qo'shiladi">Kirish</button>
-          <button class="btn btn-secondary" style="margin-top:10px;" data-toast="Ro'yxatdan o'tish oynasi tez kunda qo'shiladi">Ro'yxatdan o'tish</button>
-          <button class="btn btn-secondary" style="margin-top:10px;" data-toast="Buyurtmalar tarixi tez kunda qo'shiladi">Buyurtmalar tarixi</button>
+          <h3 style="margin-bottom:6px;" id="profileName">Foydalanuvchi</h3>
+          <p class="muted" id="profilePhone">Telefon: -</p>
+        </div>
+        <div class="list-card">
+          <h3 style="margin-bottom:6px;">Buyurtmalarim</h3>
+          <div id="profileOrders"></div>
         </div>
       </section>
 
@@ -1100,6 +1102,16 @@
             <button class="pay-btn" data-payment="payme">Payme</button>
           </div>
           <div id="paymentLinks" class="muted" style="margin-top:8px;"></div>
+          <input id="paymentProofInput" class="checkout-input" type="file" accept="image/*,.pdf" style="display:none;" />
+          <details id="cashAgreementDetails" style="display:none; margin-top:8px;">
+            <summary style="cursor:pointer;color:#9bc9ff;">Naqd to‘lov shartlari (draft)</summary>
+            <p class="muted" style="margin-top:8px;">Mijoz buyurtma berganini tasdiqlaydi; yetkazilganda qabul qilgan tovar uchun naqd to‘lovni kechiktirmasdan amalga oshirish majburiyatini oladi; noto‘g‘ri ma’lumot uchun javobgarlikni qabul qiladi; tovarni qabul qilishdan oldin tekshirish huquqiga ega; nizolar O‘zbekiston Respublikasi qonunchiligiga muvofiq hal qilinadi. (Draft, yurist tekshiruvi talab qilinadi.)</p>
+          </details>
+          <label id="cashAgreementLabel" class="muted" style="display:none; margin-top:8px;">
+            <input type="checkbox" id="cashAgreementCheckbox" />
+            Men buyurtma summasini tovar yetkazib berilganda naqd to‘lash majburiyatini olaman
+          </label>
+          <button class="btn btn-secondary" id="cashConfirmBtn" style="display:none; margin-top:8px;">Naqd agreement tasdiqlash</button>
           <p class="checkout-total" id="checkoutTotal">Jami: 0 so'm</p>
           <button class="full-btn" id="confirmOrderBtn">Buyurtmani tasdiqlash</button>
         </div>
@@ -1161,7 +1173,10 @@ Oq fonli foto</div>
     let cartItemsSnapshot = [];
     let homePayload = null;
     let latestOrderNumber = '';
+    let activeOrderNumber = localStorage.getItem('activeOrderNumber') || '';
+    let ordersHistory = JSON.parse(localStorage.getItem('orders_history') || '[]');
     let orderStatusTimer = null;
+    let cashAgreementAuth = { confirmed: false, method: '' };
 
     const phone = document.getElementById('phone');
     const openRegisterBtn = document.getElementById('openRegisterBtn');
@@ -1192,17 +1207,26 @@ Oq fonli foto</div>
     const openSearchBtn = document.getElementById('openSearchBtn');
     const bannerCarousel = document.getElementById('bannerCarousel');
     const promoCarousel = document.getElementById('promoCarousel');
+    const activeOrderCardWrap = document.getElementById('activeOrderCardWrap');
     const checkoutLocation = document.getElementById('checkoutLocation');
     const checkoutGeo = document.getElementById('checkoutGeo');
     const checkoutLandmark = document.getElementById('checkoutLandmark');
     const manualAddress = document.getElementById('manualAddress');
     const landmarkInput = document.getElementById('landmarkInput');
     const paymentLinks = document.getElementById('paymentLinks');
+    const paymentProofInput = document.getElementById('paymentProofInput');
+    const cashAgreementDetails = document.getElementById('cashAgreementDetails');
+    const cashAgreementCheckbox = document.getElementById('cashAgreementCheckbox');
+    const cashAgreementLabel = document.getElementById('cashAgreementLabel');
+    const cashConfirmBtn = document.getElementById('cashConfirmBtn');
     const checkoutTime = document.getElementById('checkoutTime');
     const checkoutPrice = document.getElementById('checkoutPrice');
     const successOrderNumber = document.getElementById('successOrderNumber');
     const successOrderStatus = document.getElementById('successOrderStatus');
     const trackOrderBtn = document.getElementById('trackOrderBtn');
+    const profileName = document.getElementById('profileName');
+    const profilePhone = document.getElementById('profilePhone');
+    const profileOrders = document.getElementById('profileOrders');
 
     const modalOverlay = document.getElementById('productModalOverlay');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -1591,6 +1615,75 @@ Oq fonli foto`;
       if (selectedPayment === 'click') paymentLinks.innerHTML = 'Click: <a href="https://indoor.click.uz/pay?id=081328&t=0" target="_blank">To‘lov havolasi</a>';
       else if (selectedPayment === 'payme') paymentLinks.innerHTML = 'Payme: <a href="https://transfer.paycom.uz/693801c1958777a0164fea76" target="_blank">To‘lov havolasi</a>';
       else paymentLinks.innerHTML = '';
+      const isOnline = selectedPayment === 'click' || selectedPayment === 'payme';
+      paymentProofInput.style.display = isOnline ? 'block' : 'none';
+      cashAgreementDetails.style.display = selectedPayment === 'cash' ? 'block' : 'none';
+      cashAgreementLabel.style.display = selectedPayment === 'cash' ? 'block' : 'none';
+      cashConfirmBtn.style.display = selectedPayment === 'cash' ? 'block' : 'none';
+    }
+
+    async function loadCustomerOrders() {
+      if (!customerProfile.phone) return [];
+      try {
+        const out = await api(`/customer/orders?phone=${encodeURIComponent(customerProfile.phone)}`);
+        return out.orders || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function pushOrderHistory(order) {
+      const id = String(order.orderNumber || '');
+      if (!id) return;
+      if (!ordersHistory.some((o) => o.orderNumber === id)) {
+        ordersHistory.unshift({
+          orderNumber: id,
+          status: order.status,
+          total: order.total,
+          paymentMethod: order.paymentMethod,
+          paymentStatus: order.paymentStatus,
+          feedbackAt: order.feedbackAt || null,
+          created_at: order.created_at
+        });
+        localStorage.setItem('orders_history', JSON.stringify(ordersHistory.slice(0, 100)));
+      }
+    }
+
+    async function renderActiveOrderCard() {
+      if (!activeOrderNumber) {
+        activeOrderCardWrap.innerHTML = '';
+        return;
+      }
+      try {
+        const data = await api(`/orders/${encodeURIComponent(activeOrderNumber)}/track`);
+        const o = data.order;
+        if (!o) { activeOrderCardWrap.innerHTML = ''; return; }
+        if (o.status === 'delivered' && o.feedbackAt) {
+          pushOrderHistory(o);
+          activeOrderNumber = '';
+          localStorage.removeItem('activeOrderNumber');
+          activeOrderCardWrap.innerHTML = '';
+          return;
+        }
+        activeOrderCardWrap.innerHTML = `<article class="list-card"><h4 style="margin-bottom:6px;">Faol buyurtma</h4><div class="muted">#${o.orderNumber} · ${orderStatusLabel(o.status)}</div><div class="muted">Jami: ${money(o.total || 0)}</div><div style="display:flex;gap:8px;margin-top:8px;"><a class="btn btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="text-align:center;">Kuzatish</a>${o.status === 'delivered' && !o.feedbackAt ? `<a class="btn btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="text-align:center;">Fikr bildirish</a>` : ''}</div></article>`;
+      } catch {
+        activeOrderCardWrap.innerHTML = '';
+      }
+    }
+
+    async function renderProfileOrders() {
+      profileName.textContent = customerProfile.name || 'Foydalanuvchi';
+      profilePhone.textContent = `Telefon: ${customerProfile.phone || '-'}`;
+      const orders = await loadCustomerOrders();
+      const merged = [...orders];
+      ordersHistory.forEach((h) => {
+        if (!merged.some((o) => o.orderNumber === h.orderNumber)) merged.push(h);
+      });
+      if (!merged.length) {
+        profileOrders.innerHTML = '<div class="empty">Hozircha buyurtmalar yo‘q</div>';
+        return;
+      }
+      profileOrders.innerHTML = merged.map((o) => `<article class="list-card"><div><b>#${o.orderNumber || '-'}</b></div><div class="muted">${new Date(o.created_at || Date.now()).toLocaleString('ru-RU')}</div><div class="muted">Status: ${orderStatusLabel(o.status)}</div><div class="muted">Jami: ${money(o.total || 0)}</div><div class="muted">To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatus || '-'}</div><div class="muted">Feedback: ${o.feedbackAt ? 'Yuborilgan' : 'Kutilmoqda'}</div><a class="btn btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="margin-top:8px;text-align:center;">Kuzatish</a></article>`).join('');
     }
 
     function renderCartBadge() {
@@ -1623,6 +1716,8 @@ Oq fonli foto`;
       renderCheckout();
       renderCartBadge();
       renderModal();
+      renderActiveOrderCard();
+      renderProfileOrders();
     }
 
     function openProductModal(id) {
@@ -1646,9 +1741,14 @@ Oq fonli foto`;
     async function refreshOrderStatus() {
       if (!latestOrderNumber) return;
       try {
-        const data = await api(`/orders/${encodeURIComponent(latestOrderNumber)}/status`);
-        successOrderStatus.textContent = `Status: ${orderStatusLabel(data.status)}`;
-        if (data.status === 'delivered' || data.status === 'cancelled') {
+        const data = await api(`/orders/${encodeURIComponent(latestOrderNumber)}/track`);
+        successOrderStatus.textContent = `Status: ${orderStatusLabel(data.order?.status)}`;
+        if (data.order?.status === 'delivered' && data.order?.feedbackAt) {
+          pushOrderHistory(data.order);
+          activeOrderNumber = '';
+          localStorage.removeItem('activeOrderNumber');
+        }
+        if (data.order?.status === 'delivered' || data.order?.status === 'cancelled') {
           clearInterval(orderStatusTimer);
           orderStatusTimer = null;
         }
@@ -1843,6 +1943,7 @@ Oq fonli foto`;
     document.querySelectorAll('.pay-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         selectedPayment = btn.dataset.payment;
+        if (selectedPayment !== 'cash') cashAgreementAuth = { confirmed: false, method: '' };
         document.querySelectorAll('.pay-btn').forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
         renderCheckout();
@@ -1867,15 +1968,40 @@ Oq fonli foto`;
       }
 
       try {
+        let paymentProofUrl = '';
         if (selectedPayment === 'click') window.open('https://indoor.click.uz/pay?id=081328&t=0', '_blank');
         if (selectedPayment === 'payme') window.open('https://transfer.paycom.uz/693801c1958777a0164fea76', '_blank');
-        if (selectedPayment === 'cash' && !confirm("Naqd to'lovni tasdiqlaysizmi?")) return;
+        if (selectedPayment === 'click' || selectedPayment === 'payme') {
+          const file = paymentProofInput.files && paymentProofInput.files[0];
+          if (!file) {
+            showToast("To‘lov cheki screenshotini yuklang");
+            return;
+          }
+          paymentProofUrl = file.name;
+        }
+        if (selectedPayment === 'cash') {
+          if (!cashAgreementCheckbox.checked) {
+            showToast("Naqd to‘lov majburiyatini tasdiqlang");
+            return;
+          }
+          if (!cashAgreementAuth.confirmed) {
+            showToast("Naqd agreement tasdiqlash tugmasini bosing");
+            return;
+          }
+        }
         const order = await api('/orders', {
           method: 'POST',
           body: JSON.stringify({
             paymentMethod: selectedPayment,
-            paymentStatus: selectedPayment === 'cash' ? 'cash_pending' : 'pending',
+            paymentStatus: selectedPayment === 'cash' ? 'cash_pending' : 'proof_uploaded',
             cashTermsAccepted: selectedPayment === 'cash',
+            paymentProofUrl,
+            cashAgreementConfirmed: selectedPayment === 'cash' ? cashAgreementAuth.confirmed : false,
+            cashAgreementConfirmedAt: selectedPayment === 'cash' ? new Date().toISOString() : null,
+            authMethod: selectedPayment === 'cash' ? cashAgreementAuth.method : '',
+            cashAgreementTextVersion: selectedPayment === 'cash' ? 'draft-v1' : '',
+            cashAgreementAccepted: selectedPayment === 'cash' ? cashAgreementCheckbox.checked : false,
+            cashAgreementAcceptedAt: selectedPayment === 'cash' ? new Date().toISOString() : null,
             location: customerLocation.addressText || homePayload?.delivery_info?.location || 'Yunusobod, Toshkent',
             locationLat: customerLocation.lat,
             locationLng: customerLocation.lng,
@@ -1891,9 +2017,16 @@ Oq fonli foto`;
         });
 
         await Promise.all([loadProducts({ reset: true }), loadCart()]);
+        if ((selectedPayment === 'click' || selectedPayment === 'payme') && paymentProofInput.files?.[0]) {
+          const fd2 = new FormData();
+          fd2.append('file', paymentProofInput.files[0]);
+          await fetch(`/api/v1/orders/payment-proof?orderNumber=${encodeURIComponent(order.orderNumber)}`, { method: 'POST', body: fd2 }).catch(() => null);
+        }
         cart = {};
         renderAll();
         latestOrderNumber = order.orderNumber || '';
+        activeOrderNumber = latestOrderNumber;
+        localStorage.setItem('activeOrderNumber', activeOrderNumber);
         successOrderNumber.textContent = `Buyurtma: ${latestOrderNumber || '-'}`;
         successOrderStatus.textContent = `Status: ${orderStatusLabel(order.status)}`;
         if (latestOrderNumber) {
@@ -1942,6 +2075,32 @@ Oq fonli foto`;
 
     manualAddress.addEventListener('input', renderCheckout);
     landmarkInput.addEventListener('input', renderCheckout);
+    cashConfirmBtn?.addEventListener('click', async () => {
+      try {
+        if (window.PublicKeyCredential && navigator.credentials?.get) {
+          const challenge = new Uint8Array(32);
+          crypto.getRandomValues(challenge);
+          await navigator.credentials.get({ publicKey: { challenge, timeout: 12000, userVerification: 'preferred', allowCredentials: [] } });
+          cashAgreementAuth = { confirmed: true, method: 'webauthn' };
+        } else {
+          const pin = prompt("PIN kiriting (fallback)");
+          if (!pin || String(pin).trim().length < 4) {
+            showToast("PIN noto'g'ri");
+            return;
+          }
+          cashAgreementAuth = { confirmed: true, method: 'pin_fallback' };
+        }
+        showToast("Naqd agreement tasdiqlandi");
+      } catch {
+        const pin = prompt("WebAuthn bo'lmadi. PIN kiriting");
+        if (!pin || String(pin).trim().length < 4) {
+          showToast("Tasdiqlash muvaffaqiyatsiz");
+          return;
+        }
+        cashAgreementAuth = { confirmed: true, method: 'pin_fallback' };
+        showToast("Naqd agreement tasdiqlandi");
+      }
+    });
 
     (async () => {
       await loadProfile();

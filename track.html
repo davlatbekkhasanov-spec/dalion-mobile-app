@@ -29,6 +29,7 @@
     </div>
     <div class="card">
       <h3 style="margin-top:0;">Buyurtma</h3>
+      <div id="address" class="muted" style="margin-bottom:8px;"></div>
       <div id="items" class="muted"></div>
       <div id="total" style="margin-top:8px;"></div>
     </div>
@@ -63,6 +64,9 @@
       document.getElementById('courier').textContent = (order.status === 'out_for_delivery' || order.status === 'delivered') && order.courierName
         ? `Kurier: ${order.courierName}, ${order.courierPhone || ''}` : '';
       document.getElementById('payment').textContent = `To‘lov: ${order.paymentMethod || '-'} | ${order.paymentStatus || '-'}`;
+      const mapLink = (Number.isFinite(Number(order.locationLat)) && Number.isFinite(Number(order.locationLng)))
+        ? `https://maps.google.com/?q=${order.locationLat},${order.locationLng}` : '';
+      document.getElementById('address').innerHTML = `Manzil: ${order.addressText || order.customerAddress || order.location || '-'}<br>Orientir: ${order.landmarkText || '-'}${mapLink ? `<br><a href="${mapLink}" target="_blank">Xaritada ochish</a>` : ''}`;
       document.getElementById('items').innerHTML = (order.items||[]).map((i)=>`${i.name} × ${i.quantity} = ${Number(i.subtotal||0).toLocaleString('ru-RU')} so'm`).join('<br>');
       document.getElementById('total').innerHTML = `<b>Jami: ${Number(order.total||0).toLocaleString('ru-RU')} so'm</b>`;
       const feedbackCard = document.getElementById('feedbackCard');
@@ -89,6 +93,12 @@
         });
         order = out.order;
         render();
+        localStorage.removeItem('activeOrderNumber');
+        const history = JSON.parse(localStorage.getItem('orders_history') || '[]');
+        if (!history.some((h) => h.orderNumber === order.orderNumber)) {
+          history.unshift({ orderNumber: order.orderNumber, status: order.status, total: order.total, paymentMethod: order.paymentMethod, paymentStatus: order.paymentStatus, feedbackAt: order.feedbackAt, created_at: order.created_at });
+          localStorage.setItem('orders_history', JSON.stringify(history.slice(0, 100)));
+        }
       }catch(e){ alert(e.message); }
     };
     refresh();

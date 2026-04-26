@@ -134,3 +134,8 @@ Current `store.json` fallback is meant as a temporary persistence layer.
    - verify `/` and `/api/v1/products` reflect updates.
 9. Restart server:
    - ensure products/categories/banners/promotions/home settings load from `data/store.json`.
+
+## Legal note (cash agreement text)
+
+- Checkoutdagi naqd to‘lov majburiyati matni hozircha **draft** holatda.
+- Productionga chiqarishdan oldin ushbu matn yuridik (legal) tekshiruvdan o‘tishi shart.

@@ -20,6 +20,8 @@ router.put('/cart/items', cartController.setCartItem);
 router.delete('/cart', cartController.clearCart);
 
 router.post('/orders', orderController.createOrder);
+router.get('/customer/orders', orderController.getCustomerOrders);
+router.post('/orders/payment-proof', parseMultipartSingleFile('file'), orderController.uploadPaymentProof);
 router.get('/profile', orderController.getProfile);
 router.put('/profile', orderController.saveProfile);
 router.get('/orders/:orderNumber/status', orderController.getOrderStatus);
