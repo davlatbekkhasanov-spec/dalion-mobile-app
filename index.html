@@ -713,21 +713,26 @@
       position: absolute;
       inset: 0;
       background: rgba(2, 8, 20, 0.72);
+      display: none;
       opacity: 0;
       pointer-events: none;
       transition: opacity 180ms ease;
-      z-index: 12;
+      z-index: 30;
     }
 
     .auth-sheet-overlay.show {
+      display: block;
       opacity: 1;
       pointer-events: auto;
     }
 
     .auth-sheet {
       position: absolute;
-      left: 12px;
-      right: 12px;
+      left: 0;
+      right: 0;
+      width: calc(100% - 24px);
+      max-width: 372px;
+      margin: 0 auto;
       bottom: 12px;
       border: 1px solid rgba(109, 171, 255, 0.35);
       background: linear-gradient(165deg, rgba(16, 34, 60, 0.95), rgba(7, 18, 35, 0.95));
@@ -1661,19 +1666,23 @@ Oq fonli foto`;
       }
     }
 
-    openRegisterBtn.addEventListener('click', () => {
+    openRegisterBtn?.addEventListener('click', () => {
+      if (!authSheetOverlay) {
+        showToast("Ro'yxatdan o'tish paneli topilmadi");
+        return;
+      }
       authSheetOverlay.classList.add('show');
     });
 
-    closeAuthSheetBtn.addEventListener('click', () => {
+    closeAuthSheetBtn?.addEventListener('click', () => {
       authSheetOverlay.classList.remove('show');
     });
 
-    authSheetOverlay.addEventListener('click', (e) => {
+    authSheetOverlay?.addEventListener('click', (e) => {
       if (e.target === authSheetOverlay) authSheetOverlay.classList.remove('show');
     });
 
-    submitAuthBtn.addEventListener('click', async () => {
+    submitAuthBtn?.addEventListener('click', async () => {
       try {
         const ok = await submitAuth();
         if (!ok) return;
