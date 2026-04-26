@@ -675,6 +675,40 @@
       margin-top: 10px;
     }
 
+    .checkout-delivery-card {
+      border-color: rgba(120, 175, 255, 0.3);
+      background: linear-gradient(160deg, rgba(18, 35, 62, 0.88), rgba(11, 22, 39, 0.94));
+      backdrop-filter: blur(10px);
+      padding: 16px;
+    }
+
+    .checkout-input {
+      width: 100%;
+      background: rgba(10, 24, 44, 0.92);
+      border: 1px solid rgba(126, 165, 226, 0.33);
+      color: #e7f2ff;
+      border-radius: 14px;
+      padding: 13px 14px;
+      margin-top: 10px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .checkout-input:focus {
+      border-color: rgba(88, 243, 173, 0.65);
+      box-shadow: 0 0 0 3px rgba(77, 226, 157, 0.15);
+    }
+
+    .location-premium-btn {
+      margin-top: 10px;
+      border-radius: 14px;
+      background: linear-gradient(95deg, rgba(41, 106, 255, 0.72), rgba(38, 224, 255, 0.58));
+      border: 1px solid rgba(126, 205, 255, 0.65);
+      color: #e6f8ff;
+      font-weight: 700;
+      box-shadow: 0 12px 24px rgba(12, 62, 120, 0.35);
+    }
+
     .payment-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -893,8 +927,14 @@
         <p class="subtitle">Дунёча танлов, тез етказиб бериш ва премиум харид тажрибаси энди бир жойда.</p>
 
         <button class="btn btn-primary" id="continueBtn">Davom etish</button>
-        <button class="btn btn-secondary" data-toast="Kirish oynasi tez kunda qo'shiladi">Kirish</button>
-        <a href="#" class="register" data-toast="Ro'yxatdan o'tish oynasi tez kunda qo'shiladi">Ro'yxatdan o'tish</a>
+        <button class="btn btn-secondary" id="openLoginBtn">Kirish</button>
+        <button class="btn btn-secondary" id="openRegisterBtn" style="margin-top:8px;">Ro‘yxatdan o‘tish</button>
+        <div class="list-card" id="authPanel" style="margin-top:12px;display:none;text-align:left;">
+          <h4 id="authTitle" style="margin-bottom:8px;">Kirish</h4>
+          <input id="authName" placeholder="Ism (register)" style="display:none;" />
+          <input id="authPhone" placeholder="Telefon" />
+          <button class="btn btn-primary" id="submitAuthBtn" style="margin-top:8px;">Tasdiqlash</button>
+        </div>
       </div>
     </section>
 
@@ -970,23 +1010,14 @@
       <section class="view" id="checkoutView">
         <h2 class="title">Buyurtma preview</h2>
         <div id="checkoutItems"></div>
-        <div class="list-card">
-          <h4 style="margin-bottom:8px;">Mijoz ma'lumotlari</h4>
-          <p class="muted" id="checkoutProfile">Profil: kiritilmagan</p>
-          <input id="regName" placeholder="Ism" />
-          <input id="regPhone" placeholder="Telefon raqam" />
-          <input id="regAddress" placeholder="Manzil (ixtiyoriy)" />
-          <button class="btn btn-secondary" id="registerBtn">Ro‘yxatdan o‘tish</button>
-          <p class="muted" id="authStatusText">Auth: tekshirilmagan</p>
-        </div>
-        <div class="list-card">
-          <h4 style="margin-bottom:8px;">Yetkazib berish</h4>
+        <div class="list-card checkout-delivery-card">
+          <h4 style="margin-bottom:10px;">Yetkazib berish</h4>
           <p class="muted" id="checkoutLocation">Manzil: Yunusobod, Toshkent</p>
           <p class="muted" id="checkoutGeo">Geo: olinmagan</p>
           <p class="muted" id="checkoutLandmark">Orientir: -</p>
-          <input id="manualAddress" placeholder="Manzil (qo'lda)" />
-          <input id="landmarkInput" placeholder="Orientir" />
-          <button class="btn btn-secondary" id="captureLocationBtn">Lokatsiyani aniqlash</button>
+          <input id="manualAddress" class="checkout-input" placeholder="Manzil (qo'lda)" />
+          <input id="landmarkInput" class="checkout-input" placeholder="Orientir" />
+          <button class="btn btn-secondary location-premium-btn" id="captureLocationBtn">Lokatsiyani aniqlash</button>
           <p class="muted" id="checkoutTime">Vaqt: 30 daqiqa</p>
           <p class="muted" id="checkoutPrice">Narx: 12 000 so'm</p>
         </div>
@@ -1048,7 +1079,7 @@ Oq fonli foto</div>
     let selectedPayment = '';
     let customerProfile = { name: '', phone: '', address: '' };
     let customerLocation = { lat: null, lng: null, accuracy: null, addressText: '', landmarkText: '', permissionDenied: false };
-    let customerAuth = { verified: false, method: 'none' };
+    let authMode = 'login';
     let activeModalProductId = null;
     let selectedCategory = null;
     let selectedCategoryLabel = '';
@@ -1064,6 +1095,13 @@ Oq fonli foto</div>
 
     const phone = document.getElementById('phone');
     const continueBtn = document.getElementById('continueBtn');
+    const openLoginBtn = document.getElementById('openLoginBtn');
+    const openRegisterBtn = document.getElementById('openRegisterBtn');
+    const authPanel = document.getElementById('authPanel');
+    const authTitle = document.getElementById('authTitle');
+    const authName = document.getElementById('authName');
+    const authPhone = document.getElementById('authPhone');
+    const submitAuthBtn = document.getElementById('submitAuthBtn');
     const toast = document.getElementById('toast');
     const homeProducts = document.getElementById('homeProducts');
     const searchResults = document.getElementById('searchResults');
@@ -1087,13 +1125,8 @@ Oq fonli foto</div>
     const bannerCarousel = document.getElementById('bannerCarousel');
     const promoCarousel = document.getElementById('promoCarousel');
     const checkoutLocation = document.getElementById('checkoutLocation');
-    const checkoutProfile = document.getElementById('checkoutProfile');
     const checkoutGeo = document.getElementById('checkoutGeo');
     const checkoutLandmark = document.getElementById('checkoutLandmark');
-    const regName = document.getElementById('regName');
-    const regPhone = document.getElementById('regPhone');
-    const regAddress = document.getElementById('regAddress');
-    const authStatusText = document.getElementById('authStatusText');
     const manualAddress = document.getElementById('manualAddress');
     const landmarkInput = document.getElementById('landmarkInput');
     const paymentLinks = document.getElementById('paymentLinks');
@@ -1225,71 +1258,48 @@ Oq fonli foto</div>
 
     async function loadProfile() {
       const local = JSON.parse(localStorage.getItem('customer_profile') || '{}');
-      const localAuth = JSON.parse(localStorage.getItem('customer_auth') || '{}');
       try {
         const out = await api('/profile');
         customerProfile = { ...local, ...(out.profile || {}) };
       } catch {
         customerProfile = { ...customerProfile, ...local };
       }
-      customerAuth = { verified: !!localAuth.verified, method: localAuth.method || 'none' };
-      regName.value = customerProfile.name || '';
-      regPhone.value = customerProfile.phone || '';
-      regAddress.value = customerProfile.address || '';
       manualAddress.value = customerProfile.address || '';
     }
 
-    async function runRegistrationAuth() {
-      if (window.PublicKeyCredential && navigator.credentials?.create) {
-        try {
-          const challenge = new Uint8Array(32);
-          crypto.getRandomValues(challenge);
-          const userId = new Uint8Array(16);
-          crypto.getRandomValues(userId);
-          await navigator.credentials.create({
-            publicKey: {
-              challenge,
-              rp: { name: 'GlobusMarket' },
-              user: { id: userId, name: 'globus-user', displayName: 'Globus User' },
-              pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
-              timeout: 15000,
-              authenticatorSelection: { userVerification: 'preferred' }
-            }
-          });
-          customerAuth = { verified: true, method: 'webauthn' };
-          localStorage.setItem('customer_auth', JSON.stringify(customerAuth));
-          return true;
-        } catch (e) {
-          // fallback below
+    function isAuthed() {
+      return !!(customerProfile.name && customerProfile.phone);
+    }
+
+    async function submitAuth() {
+      const phoneValue = String(authPhone.value || '').trim();
+      const nameValue = String(authName.value || '').trim();
+      if (!phoneValue) { showToast('Telefon kiriting'); return false; }
+
+      if (authMode === 'register') {
+        if (!nameValue) { showToast('Ism kiriting'); return false; }
+        customerProfile = { name: nameValue, phone: phoneValue, address: customerProfile.address || '' };
+        localStorage.setItem('customer_profile', JSON.stringify(customerProfile));
+        await api('/profile', { method: 'PUT', body: JSON.stringify(customerProfile) });
+        showToast("Ro'yxatdan o'tildi");
+      } else {
+        const saved = JSON.parse(localStorage.getItem('customer_profile') || '{}');
+        if (!saved.phone || saved.phone !== phoneValue) {
+          showToast('Foydalanuvchi topilmadi, ro‘yxatdan o‘ting');
+          return false;
         }
+        customerProfile = { ...customerProfile, ...saved };
+        showToast('Kirish muvaffaqiyatli');
       }
-      const pin = prompt('Face ID mavjud emas. 4 xonali PIN kiriting (fallback)');
-      if (!pin || String(pin).trim().length < 4) return false;
-      customerAuth = { verified: true, method: 'pin' };
-      localStorage.setItem('customer_auth', JSON.stringify(customerAuth));
+      authPanel.style.display = 'none';
       return true;
     }
 
-    async function saveProfileFlow() {
-      const name = regName.value.trim();
-      const phoneValue = regPhone.value.trim();
-      const address = regAddress.value.trim();
-      if (!name || !phoneValue) {
-        showToast("Ism va telefon majburiy");
-        return false;
-      }
-      if (!customerAuth.verified) {
-        const ok = await runRegistrationAuth();
-        if (!ok) {
-          showToast("Autentifikatsiya muvaffaqiyatsiz");
-          return false;
-        }
-      }
-      customerProfile = { name, phone: phoneValue, address };
-      localStorage.setItem('customer_profile', JSON.stringify(customerProfile));
-      await api('/profile', { method: 'PUT', body: JSON.stringify(customerProfile) });
-      renderCheckout();
-      return true;
+    function requireAuthOrIntro() {
+      if (isAuthed()) return true;
+      showToast("Avval kirish yoki ro'yxatdan o'tish kerak");
+      phone.classList.remove('show-app');
+      return false;
     }
 
     function qtyOf(id) {
@@ -1515,15 +1525,11 @@ Oq fonli foto`;
 
       const orderTotal = totalPrice() + 12000;
       checkoutTotal.textContent = `Jami: ${money(orderTotal)}`;
-      checkoutProfile.textContent = customerProfile.name && customerProfile.phone
-        ? `Profil: ${customerProfile.name} · ${customerProfile.phone}`
-        : "Profil: kiritilmagan";
       checkoutLocation.textContent = `Manzil: ${customerLocation.addressText || manualAddress.value || customerProfile.address || homePayload?.delivery_info?.location || 'Yunusobod, Toshkent'}`;
       checkoutLandmark.textContent = `Orientir: ${customerLocation.landmarkText || landmarkInput.value || '-'}`;
       checkoutGeo.textContent = Number.isFinite(Number(customerLocation.lat)) && Number.isFinite(Number(customerLocation.lng))
         ? `Geo: ${Number(customerLocation.lat).toFixed(6)}, ${Number(customerLocation.lng).toFixed(6)} (±${Math.round(Number(customerLocation.accuracy || 0))}m)`
         : 'Geo: olinmagan';
-      authStatusText.textContent = `Auth: ${customerAuth.verified ? `tasdiqlangan (${customerAuth.method})` : 'tasdiqlanmagan'}`;
       if (selectedPayment === 'click') paymentLinks.innerHTML = 'Click: <a href="https://indoor.click.uz/pay?id=081328&t=0" target="_blank">To‘lov havolasi</a>';
       else if (selectedPayment === 'payme') paymentLinks.innerHTML = 'Payme: <a href="https://transfer.paycom.uz/693801c1958777a0164fea76" target="_blank">To‘lov havolasi</a>';
       else paymentLinks.innerHTML = '';
@@ -1603,9 +1609,43 @@ Oq fonli foto`;
     }
 
     continueBtn.addEventListener('click', async () => {
+      await loadProfile();
+      if (!requireAuthOrIntro()) {
+        authMode = 'login';
+        authTitle.textContent = 'Kirish';
+        authName.style.display = 'none';
+        authPanel.style.display = 'block';
+        return;
+      }
       phone.classList.add('show-app');
       setView('homeView');
       await initializeAppData();
+    });
+
+    openLoginBtn.addEventListener('click', () => {
+      authMode = 'login';
+      authTitle.textContent = 'Kirish';
+      authName.style.display = 'none';
+      authPanel.style.display = 'block';
+    });
+
+    openRegisterBtn.addEventListener('click', () => {
+      authMode = 'register';
+      authTitle.textContent = "Ro'yxatdan o'tish";
+      authName.style.display = 'block';
+      authPanel.style.display = 'block';
+    });
+
+    submitAuthBtn.addEventListener('click', async () => {
+      try {
+        const ok = await submitAuth();
+        if (!ok) return;
+        phone.classList.add('show-app');
+        setView('homeView');
+        await initializeAppData();
+      } catch (error) {
+        showToast(error.message || 'Auth xatolik');
+      }
     });
 
     document.getElementById('openSearchBtn').addEventListener('click', () => {
@@ -1630,6 +1670,7 @@ Oq fonli foto`;
     bottomNav.addEventListener('click', (e) => {
       const tab = e.target.closest('.tab');
       if (!tab) return;
+      if (!requireAuthOrIntro()) return;
       setView(tab.dataset.view);
       if (tab.dataset.view === 'searchView') {
         selectedCategory = null;
@@ -1744,6 +1785,7 @@ Oq fonli foto`;
     });
 
     document.getElementById('orderBtn').addEventListener('click', () => {
+      if (!requireAuthOrIntro()) return;
       if (totalQty() === 0) {
         showToast("Savat bo'sh");
         return;
@@ -1766,10 +1808,7 @@ Oq fonli foto`;
         showToast("Savat bo'sh");
         return;
       }
-      if (!customerProfile.name || !customerProfile.phone) {
-        showToast("Avval ro‘yxatdan o‘ting");
-        return;
-      }
+      if (!requireAuthOrIntro()) return;
       if (!selectedPayment) {
         showToast("To'lov turini tanlang");
         return;
@@ -1835,10 +1874,6 @@ Oq fonli foto`;
       showToast('Buyurtma yakunlandi');
     });
 
-
-    document.getElementById('registerBtn').addEventListener('click', async () => {
-      try { await saveProfileFlow(); } catch (error) { showToast(error.message || 'Profil saqlanmadi'); }
-    });
 
     document.getElementById('captureLocationBtn').addEventListener('click', () => {
       if (!navigator.geolocation) {
