@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Tracking</title>
+  <style>
+    body{margin:0;background:#07111f;color:#e8f4ff;font-family:Inter,Segoe UI,Arial,sans-serif}
+    .wrap{max-width:620px;margin:0 auto;padding:14px}
+    .card{background:#0d1d36;border:1px solid #28466c;border-radius:14px;padding:14px;margin-bottom:10px}
+    .muted{color:#9ab8df;font-size:13px}
+    .step{padding:8px;border-left:3px solid #355b86;margin:4px 0}
+    .step.active{border-left-color:#2aff9b;background:#0e273f}
+    textarea,input,button{width:100%;box-sizing:border-box;margin-top:8px;padding:10px;border-radius:10px;border:1px solid #355b86;background:#0b1830;color:#e8f4ff}
+    button{cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h2 style="margin-top:0;">GlobusMarket</h2>
+      <div id="meta" class="muted"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Holat</h3>
+      <div id="timeline"></div>
+      <div id="courier" class="muted" style="margin-top:8px;"></div>
+      <div id="payment" class="muted" style="margin-top:8px;"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Buyurtma</h3>
+      <div id="address" class="muted" style="margin-bottom:8px;"></div>
+      <div id="items" class="muted"></div>
+      <div id="total" style="margin-top:8px;"></div>
+    </div>
+    <div class="card" id="feedbackCard" style="display:none;">
+      <h3 style="margin-top:0;">Fikr qoldirish</h3>
+      <input id="rating" type="number" min="1" max="5" placeholder="Rating 1-5" />
+      <textarea id="comment" rows="3" placeholder="Izoh"></textarea>
+      <button id="sendFeedback">Fikr yuborish</button>
+      <div id="feedbackMsg" class="muted"></div>
+    </div>
+  </div>
+  <script>
+    const orderNumber = decodeURIComponent(location.pathname.split('/').pop());
+    const steps = [
+      { label: 'Buyurtma qabul qilindi', statuses: ['new'] },
+      { label: 'Tovarlar terilmoqda', statuses: ['sent_to_tsd'] },
+      { label: 'Yig‘ildi / Kurier kutilyapti', statuses: ['picked', 'waiting_courier'] },
+      { label: 'Kurierda', statuses: ['out_for_delivery'] },
+      { label: 'Yetkazildi', statuses: ['delivered'] }
+    ];
+    let order = null;
+    async function api(path, options={}) {
+      const res = await fetch('/api/v1'+path,{headers:{'Content-Type':'application/json'},...options});
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(data.message||'Xatolik');
+      return data;
+    }
+    function render() {
+      if(!order) return;
+      document.getElementById('meta').textContent = `#${order.orderNumber} · ${new Date(order.created_at).toLocaleString('ru-RU')} · ${order.customerAddress || order.location || '-'}`;
+      document.getElementById('timeline').innerHTML = steps.map((step)=>`<div class="step ${step.statuses.includes(order.status)?'active':''}">${step.label}</div>`).join('');
+      document.getElementById('courier').textContent = (order.status === 'out_for_delivery' || order.status === 'delivered') && order.courierName
+        ? `Kurier: ${order.courierName}, ${order.courierPhone || ''}` : '';
+      document.getElementById('payment').textContent = `To‘lov: ${order.paymentMethod || '-'} | ${order.paymentStatus || '-'}`;
+      const mapLink = (Number.isFinite(Number(order.locationLat)) && Number.isFinite(Number(order.locationLng)))
+        ? `https://maps.google.com/?q=${order.locationLat},${order.locationLng}` : '';
+      document.getElementById('address').innerHTML = `Manzil: ${order.addressText || order.customerAddress || order.location || '-'}<br>Orientir: ${order.landmarkText || '-'}${mapLink ? `<br><a href="${mapLink}" target="_blank">Xaritada ochish</a>` : ''}`;
+      document.getElementById('items').innerHTML = (order.items||[]).map((i)=>`${i.name} × ${i.quantity} = ${Number(i.subtotal||0).toLocaleString('ru-RU')} so'm`).join('<br>');
+      document.getElementById('total').innerHTML = `<b>Jami: ${Number(order.total||0).toLocaleString('ru-RU')} so'm</b>`;
+      const feedbackCard = document.getElementById('feedbackCard');
+      const already = !!order.feedbackAt;
+      feedbackCard.style.display = order.status === 'delivered' ? 'block' : 'none';
+      document.getElementById('sendFeedback').disabled = already;
+      if (already) document.getElementById('feedbackMsg').textContent = 'Rahmat, fikringiz qabul qilindi';
+    }
+    async function refresh(){
+      try{
+        const data = await api(`/orders/${encodeURIComponent(orderNumber)}/track`);
+        order = data.order;
+        render();
+      }catch(e){}
+    }
+    document.getElementById('sendFeedback').onclick = async ()=>{
+      try{
+        const out = await api(`/orders/${encodeURIComponent(orderNumber)}/feedback`, {
+          method:'POST',
+          body: JSON.stringify({
+            feedbackRating: document.getElementById('rating').value,
+            feedbackComment: document.getElementById('comment').value
+          })
+        });
+        order = out.order;
+        render();
+        localStorage.removeItem('activeOrderNumber');
+        const history = JSON.parse(localStorage.getItem('orders_history') || '[]');
+        if (!history.some((h) => h.orderNumber === order.orderNumber)) {
+          history.unshift({ orderNumber: order.orderNumber, status: order.status, total: order.total, paymentMethod: order.paymentMethod, paymentStatus: order.paymentStatus, feedbackAt: order.feedbackAt, created_at: order.created_at });
+          localStorage.setItem('orders_history', JSON.stringify(history.slice(0, 100)));
+        }
+      }catch(e){ alert(e.message); }
+    };
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+</body>
+</html>
