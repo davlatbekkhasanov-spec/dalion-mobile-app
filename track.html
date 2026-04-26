@@ -42,12 +42,10 @@
   <script>
     const orderNumber = decodeURIComponent(location.pathname.split('/').pop());
     const steps = [
-      ['new', 'Buyurtma qabul qilindi'],
-      ['sent_to_tsd', 'Tovarlar terilmoqda / TSD ga yuborildi'],
-      ['picked', 'Tovarlar yig‘ildi'],
-      ['waiting_courier', 'Kurier kutilyapti'],
-      ['out_for_delivery', 'Kurierda'],
-      ['delivered', 'Yetkazildi']
+      { label: 'Buyurtma qabul qilindi', statuses: ['new'] },
+      { label: 'Tayyor / Kurier kutilyapti', statuses: ['sent_to_tsd', 'picked', 'waiting_courier'] },
+      { label: 'Kurierda', statuses: ['out_for_delivery'] },
+      { label: 'Yetkazildi', statuses: ['delivered'] }
     ];
     let order = null;
     async function api(path, options={}) {
@@ -59,7 +57,7 @@
     function render() {
       if(!order) return;
       document.getElementById('meta').textContent = `#${order.orderNumber} · ${new Date(order.created_at).toLocaleString('ru-RU')} · ${order.customerAddress || order.location || '-'}`;
-      document.getElementById('timeline').innerHTML = steps.map(([k,txt])=>`<div class="step ${order.status===k?'active':''}">${txt}</div>`).join('');
+      document.getElementById('timeline').innerHTML = steps.map((step)=>`<div class="step ${step.statuses.includes(order.status)?'active':''}">${step.label}</div>`).join('');
       document.getElementById('courier').textContent = (order.status === 'out_for_delivery' || order.status === 'delivered') && order.courierName
         ? `Kurier: ${order.courierName}, ${order.courierPhone || ''}` : '';
       document.getElementById('items').innerHTML = (order.items||[]).map((i)=>`${i.name} × ${i.quantity} = ${Number(i.subtotal||0).toLocaleString('ru-RU')} so'm`).join('<br>');

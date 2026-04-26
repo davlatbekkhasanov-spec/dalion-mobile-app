@@ -62,13 +62,12 @@
 
   <script>
     const tokenKey = 'admin_import_token';
-    const statuses = [
-      ['new', 'Yangi'],
-      ['sent_to_tsd', 'TSD ga yuborildi'],
-      ['waiting_courier', 'Kurier kutyapti'],
-      ['out_for_delivery', 'Kurierda'],
-      ['delivered', 'Yetkazildi'],
-      ['cancelled', 'Bekor qilingan']
+    const statusGroups = [
+      { key: 'new', label: 'Yangi', statuses: ['new'] },
+      { key: 'ready_waiting', label: 'Tayyor / Kurier kutilyapti', statuses: ['sent_to_tsd', 'picked', 'waiting_courier'] },
+      { key: 'out_for_delivery', label: 'Kurierda', statuses: ['out_for_delivery'] },
+      { key: 'delivered', label: 'Yetkazildi', statuses: ['delivered'] },
+      { key: 'cancelled', label: 'Bekor qilingan', statuses: ['cancelled'] }
     ];
     let orders = [];
     let activeOrder = null;
@@ -88,19 +87,21 @@
     }
 
     function renderColumns() {
-      const map = new Map(statuses.map(([s]) => [s, []]));
-      orders.forEach((o)=>{ if (map.has(o.status)) map.get(o.status).push(o); });
-      document.getElementById('columns').innerHTML = statuses.map(([s,label]) => `
+      const grouped = statusGroups.map((group) => ({
+        ...group,
+        items: orders.filter((o) => group.statuses.includes(o.status))
+      }));
+      document.getElementById('columns').innerHTML = grouped.map((group) => `
         <section class="col">
-          <h3>${label} (${map.get(s).length})</h3>
+          <h3>${group.label} (${group.items.length})</h3>
           <div class="list">
-            ${map.get(s).map((o)=>`
+            ${group.items.map((o)=>`
               <article class="card" data-order-id="${o.id}">
                 <b>#${o.orderNumber || o.id}</b>
                 <div class="muted">${o.customerName || 'Mehmon'}</div>
                 <div class="muted">${o.customerAddress || o.location || '-'}</div>
                 <div class="row"><span>${(o.items||[]).length} item</span><strong>${Number(o.total||0).toLocaleString('ru-RU')} so'm</strong></div>
-                <div class="muted">Status: ${o.status} | tsd: ${o.tsdStatus || '-'}</div>
+                <div class="muted">Status: ${o.status} | tayyorlash: ${o.tsdStatus || '-'}</div>
                 <div class="muted">${fmt(o.created_at)}</div>
               </article>
             `).join('')}
@@ -127,13 +128,13 @@
 
       const actions = [];
       if (order.status === 'new') {
-        actions.push(`<button class="primary" data-tsd="1">${order.tsdStatus === 'queued' ? 'TSD ga yuborilgan' : 'TSD ga yuborish'}</button>`);
+        actions.push(`<button class="primary" data-tsd="1">${order.tsdStatus === 'queued' ? 'Tayyorlanmoqda' : 'Tayyorlashni boshlash'}</button>`);
       }
       if (order.status === 'sent_to_tsd') {
-        actions.push('<button disabled>TSD ga yuborilgan</button>');
-        actions.push('<button data-next="waiting_courier">Terib bo‘lindi</button>');
+        actions.push('<button disabled>Tayyorlanmoqda</button>');
+        actions.push('<button data-next="waiting_courier">Tayyor</button>');
       }
-      if (order.status === 'waiting_courier') {
+      if (order.status === 'picked' || order.status === 'waiting_courier') {
         actions.push('<button data-print="1">Chek chiqarish</button>');
       }
       if (order.status !== 'delivered' && order.status !== 'cancelled') {
