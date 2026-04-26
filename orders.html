@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orders Display</title>
+  <style>
+    :root { --bg:#030915; --card:#0d1b31; --line:#2b4b73; --txt:#e6f3ff; --muted:#9db9dd; --acc:#30f2a5; }
+    *{box-sizing:border-box;font-family:Inter,Segoe UI,Arial,sans-serif}
+    body{margin:0;background:radial-gradient(circle at 0% 0%,#13335f 0,transparent 40%),var(--bg);color:var(--txt)}
+    .wrap{padding:14px;height:100vh;display:flex;flex-direction:column}
+    .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+    input,button{background:#0c1931;border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:12px}
+    button{cursor:pointer}
+    .primary{background:linear-gradient(90deg,#2aff9b,#28d8ff);border:none;color:#05241f;font-weight:700}
+    .muted{color:var(--muted);font-size:13px}
+    .grid{display:grid;grid-template-columns:repeat(6,minmax(220px,1fr));gap:10px;flex:1;min-height:0;overflow:auto;scrollbar-width:none;-ms-overflow-style:none}
+    .grid::-webkit-scrollbar{display:none}
+    .col{background:linear-gradient(180deg,#10213a,#091628);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;min-height:0}
+    .col h3{margin:0 0 8px}
+    .list{display:grid;gap:8px;overflow:auto;scrollbar-width:none}
+    .list::-webkit-scrollbar{display:none}
+    .card{border:1px solid var(--line);background:#0a162b;border-radius:14px;padding:12px;cursor:pointer}
+    .card b{font-size:18px}
+    .row{display:flex;justify-content:space-between;gap:8px;margin-top:4px}
+    .token-required{border:1px dashed #c17a8b;background:#2b1119;color:#ffcad5;padding:14px;border-radius:12px}
+    .badge{padding:4px 9px;border-radius:999px;border:1px solid #2d7f5f;color:#9cffcf;background:#0f2a22;font-size:12px}
+    .offline{border-color:#8a4352;background:#2a1118;color:#ffc8d3}
+    .overlay{position:fixed;inset:0;background:rgba(2,8,18,.8);display:none;align-items:center;justify-content:center;padding:14px}
+    .overlay.show{display:flex}
+    .modal{width:min(920px,100%);max-height:95vh;overflow:auto;background:linear-gradient(180deg,#11233e,#081425);border:1px solid var(--line);border-radius:16px;padding:14px}
+    .items{display:grid;gap:8px}
+    .item{display:grid;grid-template-columns:56px 1fr auto;gap:8px;align-items:center;border:1px solid var(--line);background:#0a162b;border-radius:12px;padding:8px}
+    .item img{width:56px;height:56px;object-fit:cover;border-radius:10px;background:#fff}
+    .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+    .actions button{min-height:56px;font-size:17px;font-weight:700}
+    .full{grid-column:1/-1}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <button id="fullscreenBtn" class="primary">To‘liq ekran</button>
+      <input id="tokenInput" placeholder="ADMIN_IMPORT_TOKEN" style="min-width:260px" />
+      <button id="saveTokenBtn">Token saqlash</button>
+      <span id="online" class="badge">Online</span>
+      <span id="lastUpdated" class="muted">Yangilanmagan</span>
+      <span id="network" class="muted"></span>
+    </div>
+    <div id="tokenRequired" class="token-required" style="display:none;">Token kiriting</div>
+    <div class="grid" id="columns"></div>
+  </div>
+
+  <div id="modalOverlay" class="overlay">
+    <div class="modal">
+      <div class="row"><h2 id="mOrderTitle" style="margin:0;">Order</h2><button id="closeModal">Yopish</button></div>
+      <p id="mMeta" class="muted"></p>
+      <div id="mItems" class="items"></div>
+      <div id="mActions" class="actions"></div>
+    </div>
+  </div>
+
+  <script>
+    const tokenKey = 'admin_import_token';
+    const statusGroups = [
+      { key: 'new', label: 'Yangi', statuses: ['new'] },
+      { key: 'ready_waiting', label: 'Tayyor / Kurier kutilyapti', statuses: ['sent_to_tsd', 'picked', 'waiting_courier'] },
+      { key: 'out_for_delivery', label: 'Kurierda', statuses: ['out_for_delivery'] },
+      { key: 'delivered', label: 'Yetkazildi', statuses: ['delivered'] },
+      { key: 'cancelled', label: 'Bekor qilingan', statuses: ['cancelled'] }
+    ];
+    let orders = [];
+    let activeOrder = null;
+
+    function getToken(){ return localStorage.getItem(tokenKey) || ''; }
+    function fmt(v){ return v ? new Date(v).toLocaleTimeString('ru-RU') : '-'; }
+
+    async function api(path, options = {}) {
+      const token = getToken();
+      const res = await fetch('/api/v1' + path, {
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        ...options
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data.message || 'API error');
+      return data;
+    }
+
+    function renderColumns() {
+      const grouped = statusGroups.map((group) => ({
+        ...group,
+        items: orders.filter((o) => group.statuses.includes(o.status))
+      }));
+      document.getElementById('columns').innerHTML = grouped.map((group) => `
+        <section class="col">
+          <h3>${group.label} (${group.items.length})</h3>
+          <div class="list">
+            ${group.items.map((o)=>`
+              <article class="card" data-order-id="${o.id}">
+                <b>#${o.orderNumber || o.id}</b>
+                <div class="muted">${o.customerName || 'Mehmon'}</div>
+                <div class="muted">${o.customerPhone || '-'}</div>
+                <div class="muted">${o.customerAddress || o.addressText || o.location || '-'}</div>
+                <div class="muted">Orientir: ${o.landmarkText || '-'}</div>
+                <div class="row"><span>${(o.items||[]).length} item</span><strong>${Number(o.total||0).toLocaleString('ru-RU')} so'm</strong></div>
+                <div class="muted">Status: ${o.status} | To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatus || '-'}</div>
+                <div class="muted">${o.paymentProofUrl ? `<a href="${o.paymentProofUrl}" target="_blank">Payment proof</a>` : 'Payment proof: -'}</div>
+                <div class="muted">${fmt(o.created_at)}</div>
+              </article>
+            `).join('')}
+          </div>
+        </section>
+      `).join('');
+    }
+
+    function renderModal(order) {
+      activeOrder = order;
+      document.getElementById('mOrderTitle').textContent = `#${order.orderNumber || order.id}`;
+      const mapLink = (Number.isFinite(Number(order.locationLat)) && Number.isFinite(Number(order.locationLng)))
+        ? `https://maps.google.com/?q=${order.locationLat},${order.locationLng}` : '';
+      document.getElementById('mMeta').innerHTML = `${order.customerName || 'Mehmon'} | ${order.customerPhone || '-'} | ${order.customerAddress || order.addressText || order.location || '-'}<br>Orientir: ${order.landmarkText || '-'}${mapLink ? ` | <a href="${mapLink}" target="_blank">Map</a>` : ''}<br>To‘lov: ${order.paymentMethod || '-'} / ${order.paymentStatus || '-'}<br>Cash agreement: ${order.cashAgreementAccepted ? 'ha' : 'yo‘q'}<br>${order.paymentProofUrl ? `<a href=\"${order.paymentProofUrl}\" target=\"_blank\">Payment proof</a>` : 'Payment proof: -'}`;
+      document.getElementById('mItems').innerHTML = (order.items || []).map((it) => `
+        <div class="item">
+          ${it.image_url ? `<img src="${it.image_url}" alt="${it.name}" />` : `<img alt="" />`}
+          <div>
+            <div><b>${it.name || '-'}</b></div>
+            <div class="muted">qty: ${it.quantity || 0} · narx: ${Number(it.price||0).toLocaleString('ru-RU')} so'm</div>
+            <div class="muted">stock: ${Number(it.stock || 0)}</div>
+          </div>
+          <div><strong>${Number(it.subtotal || 0).toLocaleString('ru-RU')} so'm</strong></div>
+        </div>
+      `).join('');
+
+      const actions = [];
+      if (order.status === 'new') {
+        actions.push(`<button class="primary" data-tsd="1">${order.tsdStatus === 'queued' ? 'Tayyorlanmoqda' : 'Tayyorlashni boshlash'}</button>`);
+      }
+      if (order.status === 'sent_to_tsd') {
+        actions.push('<button disabled>Tayyorlanmoqda</button>');
+        actions.push('<button data-next="waiting_courier">Tayyor</button>');
+      }
+      if (order.status === 'picked' || order.status === 'waiting_courier') {
+        actions.push('<button data-print="1">Chek chiqarish</button>');
+      }
+      if (order.status !== 'delivered' && order.status !== 'cancelled') {
+        actions.push('<button class="full" data-cancel="1">Bekor qilish</button>');
+      }
+      if (order.status === 'out_for_delivery') {
+        actions.push(`<button disabled class="full">Kurierda: ${order.courierName || '-'} ${order.courierPhone || ''}</button>`);
+      }
+      if (order.status === 'delivered') {
+        actions.push('<button disabled class="full">Yetkazildi</button>');
+      }
+      document.getElementById('mActions').innerHTML = actions.join('');
+      document.getElementById('modalOverlay').classList.add('show');
+    }
+
+    async function printReceipt(order) {
+      const qr = await api(`/admin/orders/${order.id}/qr`);
+      if (!qr.qrDataUrl) throw new Error('QR render bo‘lmadi');
+      const w = window.open('', '_blank', 'width=420,height=700');
+      if (!w) throw new Error('Print oynasi ochilmadi');
+      const rows = (order.items || []).map((it)=>`<tr><td>${it.name||''}</td><td>${it.quantity||0}</td><td>${Number(it.price||0).toLocaleString('ru-RU')}</td><td>${Number(it.subtotal||0).toLocaleString('ru-RU')}</td></tr>`).join('');
+      w.document.write(`
+        <html><head><title>Chek</title><style>
+          body{font-family:Arial;font-size:12px;width:58mm;max-width:58mm;margin:0 auto}
+          table{width:100%;border-collapse:collapse}td{padding:2px 0;border-bottom:1px dashed #ccc;vertical-align:top}
+          .center{text-align:center}
+          .qr{width:150px;height:150px;object-fit:contain}
+          @media print { body{width:58mm} }
+        </style></head><body>
+        <h3 class="center">GlobusMarket</h3>
+        <div>Order: ${order.orderNumber}</div>
+        <div>Sana: ${new Date().toLocaleString('ru-RU')}</div>
+        <div>Mijoz: ${order.customerName||'-'}</div>
+        <div>Tel: ${order.customerPhone||'-'}</div>
+        <div>Manzil: ${order.customerAddress||order.location||'-'}</div>
+        <table><tr><td><b>Nomi</b></td><td><b>Soni</b></td><td><b>Narx</b></td><td><b>Sum</b></td></tr>${rows}</table>
+        <h4>Jami: ${Number(order.total||0).toLocaleString('ru-RU')} so'm</h4>
+        <div>Status: ${order.status}</div>
+        <div class="center" style="margin-top:8px;"><img id="receiptQr" class="qr" src="${qr.qrDataUrl}" alt="courier qr" /></div>
+        <div class="center" style="font-size:11px;margin-top:4px;">Kurier buyurtmani qabul qilish uchun QR kodni skaner qiling</div>
+        <div style="word-break:break-all;font-size:10px;margin-top:4px;">${qr.courierUrl}</div>
+        </body></html>
+      `);
+      w.document.close();
+      const img = w.document.getElementById('receiptQr');
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('QR render bo‘lmadi')), 2500);
+        img.onload = () => { clearTimeout(timeout); resolve(); };
+        img.onerror = () => { clearTimeout(timeout); reject(new Error('QR render bo‘lmadi')); };
+      });
+      w.focus();
+      w.print();
+    }
+
+    async function refresh() {
+      const token = getToken();
+      document.getElementById('tokenRequired').style.display = token ? 'none' : 'block';
+      if (!token) return;
+      try {
+        const { orders: list } = await api('/admin/orders');
+        orders = list || [];
+        renderColumns();
+        if (activeOrder) {
+          const upd = orders.find((o) => o.id === activeOrder.id);
+          if (upd) renderModal(upd);
+        }
+        document.getElementById('online').textContent = 'Online';
+        document.getElementById('online').classList.remove('offline');
+        document.getElementById('network').textContent = '';
+      } catch (e) {
+        document.getElementById('online').textContent = 'Offline';
+        document.getElementById('online').classList.add('offline');
+        document.getElementById('network').textContent = 'Aloqa uzildi, qayta ulanmoqda...';
+      } finally {
+        document.getElementById('lastUpdated').textContent = `Oxirgi yangilanish: ${new Date().toLocaleTimeString('ru-RU')}`;
+      }
+    }
+
+    document.getElementById('tokenInput').value = getToken();
+    document.getElementById('saveTokenBtn').onclick = () => {
+      localStorage.setItem(tokenKey, document.getElementById('tokenInput').value.trim());
+      refresh();
+    };
+
+    document.getElementById('fullscreenBtn').onclick = async () => {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen().catch(()=>{});
+      else await document.exitFullscreen().catch(()=>{});
+    };
+
+    document.getElementById('columns').onclick = (e) => {
+      const card = e.target.closest('[data-order-id]');
+      if (!card) return;
+      const order = orders.find((o) => o.id === card.dataset.orderId);
+      if (order) renderModal(order);
+    };
+
+    document.getElementById('closeModal').onclick = () => {
+      activeOrder = null;
+      document.getElementById('modalOverlay').classList.remove('show');
+    };
+
+    document.getElementById('mActions').onclick = async (e) => {
+      const btn = e.target.closest('button');
+      if (!btn || !activeOrder) return;
+      const original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Yuklanmoqda...';
+      try {
+        if (btn.dataset.next) {
+          await api(`/admin/orders/${activeOrder.id}/status`, { method: 'PUT', body: JSON.stringify({ status: btn.dataset.next }) });
+        } else if (btn.dataset.cancel) {
+          await api(`/admin/orders/${activeOrder.id}/cancel`, { method: 'POST' });
+        } else if (btn.dataset.tsd) {
+          await api(`/admin/orders/${activeOrder.id}/send-to-tsd`, { method: 'POST' });
+        } else if (btn.dataset.print) {
+          await printReceipt(activeOrder);
+        }
+        await refresh();
+      } catch (err) {
+        alert(err.message || 'Xatolik');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = original;
+      }
+    };
+
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+</body>
+</html>
