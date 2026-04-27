@@ -139,3 +139,33 @@ Current `store.json` fallback is meant as a temporary persistence layer.
 
 - Checkoutdagi naqd to‘lov majburiyati matni hozircha **draft** holatda.
 - Productionga chiqarishdan oldin ushbu matn yuridik (legal) tekshiruvdan o‘tishi shart.
+
+## SMS/OTP foundation (mock mode)
+
+Current implementation provides infrastructure only; real SMS provider is **not connected yet**.
+
+### Endpoints
+
+- `POST /api/v1/auth/request-otp`
+  - body: `{ "phone": "+998..." }`
+  - mock response: `{ "ok": true, "devOtp": "123456" }`
+- `POST /api/v1/auth/verify-otp`
+  - body: `{ "phone": "+998...", "code": "123456" }`
+  - success: marks user `phoneVerified=true`, sets `otpVerifiedAt`, returns user.
+
+### Environment variables
+
+- `SMS_PROVIDER=mock` (default)
+- `SMS_API_KEY` (reserved for future provider adapters)
+- `SMS_SENDER` (reserved for future provider adapters)
+
+### Current behavior
+
+- In `mock` mode, no real SMS is sent.
+- `request-otp` returns `devOtp` for local/dev testing.
+- Existing registration/checkout flow stays non-blocking while provider remains mock.
+
+### Future integration point
+
+Provider adapter integration point: `src/services/sms.service.js` (`sendOtp(phone, code)`).
+When ready, replace mock branch with real provider SDK/API call and keep endpoint contracts unchanged.

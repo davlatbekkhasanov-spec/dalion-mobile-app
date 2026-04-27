@@ -1,8 +1,12 @@
-const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DATA_FILE = path.join(DATA_DIR, 'store.json');
+const storageAdapter = require('../storage/file-storage.adapter.js');
+const {
+  ORDER_STATUS_LIST,
+  ORDER_STATUSES,
+  PAYMENT_METHOD_LIST,
+  PAYMENT_METHODS,
+  PAYMENT_STATUSES
+} = require('../constants/domain.constants.js');
 
 const products = [
   { id: 'coca', code: 'DAL-COCA-1L', sku: 'DAL-COCA-1L', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 12000, oldPrice: 13400, stock: 100, image: '', image_url: '', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
@@ -43,32 +47,46 @@ let homeSettings = {
   cashTermsText: "Men buyurtmani yetkazilganda naqd to‘lashni tasdiqlayman"
 };
 
-let customerProfile = {
-  name: '',
-  phone: '',
-  address: ''
-};
-
-const cart = new Map();
+const users = new Map();
+const carts = new Map();
 const orders = [];
 let lastUpdated = null;
 let orderSequence = 1;
+const ORDER_STATUS_SET = new Set(ORDER_STATUS_LIST);
+
+function normalizeOrderStatus(status = '') {
+  const raw = String(status || '').trim();
+  if (ORDER_STATUS_SET.has(raw)) return raw;
+  const legacyMap = {
+    queued: 'sent_to_tsd',
+    accepted: 'sent_to_tsd',
+    preparing: 'picking',
+    ready: 'picked',
+    waiting: 'waiting_courier',
+    in_delivery: 'out_for_delivery',
+    done: 'delivered'
+  };
+  return legacyMap[raw] || ORDER_STATUSES.NEW;
+}
 
 function persistState() {
   try {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
     const data = {
       products,
       categories,
       banners,
       promotions,
       homeSettings,
-      customerProfile,
+      users: Array.from(users.values()),
+      carts: Array.from(carts.entries()).map(([phone, cart]) => ({
+        phone,
+        items: Array.from(cart.entries()).map(([productId, quantity]) => ({ productId, quantity }))
+      })),
       orders,
       orderSequence,
       savedAt: new Date().toISOString()
     };
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+    storageAdapter.writeJson(data);
     lastUpdated = data.savedAt;
   } catch (e) {
     // no-op for demo mode
@@ -77,15 +95,72 @@ function persistState() {
 
 function loadStateFromDisk() {
   try {
-    if (!fs.existsSync(DATA_FILE)) return false;
-    const parsed = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    const parsed = storageAdapter.readJson();
+    if (!parsed) return false;
     if (Array.isArray(parsed.products)) { products.splice(0, products.length, ...parsed.products); }
     if (Array.isArray(parsed.categories)) { categories.splice(0, categories.length, ...parsed.categories); }
     if (Array.isArray(parsed.banners)) { banners.splice(0, banners.length, ...parsed.banners); }
     if (Array.isArray(parsed.promotions)) { promotions.splice(0, promotions.length, ...parsed.promotions); }
     if (parsed.homeSettings && typeof parsed.homeSettings === 'object') { homeSettings = { ...homeSettings, ...parsed.homeSettings }; }
-    if (parsed.customerProfile && typeof parsed.customerProfile === 'object') { customerProfile = { ...customerProfile, ...parsed.customerProfile }; }
-    if (Array.isArray(parsed.orders)) { orders.splice(0, orders.length, ...parsed.orders); }
+    if (Array.isArray(parsed.users)) {
+      users.clear();
+      parsed.users.forEach((user) => {
+        const phone = String(user?.phone || '').replace(/\s+/g, '');
+        if (!phone) return;
+        users.set(phone, {
+          phone,
+          name: String(user?.name || '').trim(),
+          address: String(user?.address || '').trim(),
+          phoneVerified: Boolean(user?.phoneVerified),
+          otpVerifiedAt: user?.otpVerifiedAt || null,
+          createdAt: user?.createdAt || new Date().toISOString(),
+          updatedAt: user?.updatedAt || new Date().toISOString()
+        });
+      });
+    }
+    if (Array.isArray(parsed.carts)) {
+      carts.clear();
+      parsed.carts.forEach((entry) => {
+        const phone = String(entry?.phone || '').replace(/\s+/g, '');
+        if (!phone) return;
+        const cart = new Map();
+        (entry?.items || []).forEach((item) => {
+          const productId = String(item?.productId || '').trim();
+          const quantity = Number(item?.quantity || 0);
+          if (!productId || quantity <= 0) return;
+          cart.set(productId, quantity);
+        });
+        carts.set(phone, cart);
+      });
+    }
+    if (!users.size && parsed.customerProfile && typeof parsed.customerProfile === 'object') {
+      const legacyPhone = String(parsed.customerProfile.phone || '').replace(/\s+/g, '');
+      if (legacyPhone) {
+        users.set(legacyPhone, {
+          phone: legacyPhone,
+          name: String(parsed.customerProfile.name || '').trim(),
+          address: String(parsed.customerProfile.address || '').trim(),
+          phoneVerified: false,
+          otpVerifiedAt: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
+    }
+    if (!carts.size && parsed.cart && parsed.customerProfile?.phone) {
+      const legacyPhone = String(parsed.customerProfile.phone || '').replace(/\s+/g, '');
+      if (legacyPhone) {
+        const legacyCart = new Map();
+        Object.entries(parsed.cart || {}).forEach(([productId, quantity]) => {
+          const qty = Number(quantity || 0);
+          if (qty > 0) legacyCart.set(productId, qty);
+        });
+        carts.set(legacyPhone, legacyCart);
+      }
+    }
+    if (Array.isArray(parsed.orders)) {
+      orders.splice(0, orders.length, ...parsed.orders.map((o) => ({ ...o, status: normalizeOrderStatus(o?.status) })));
+    }
     if (Number.isFinite(Number(parsed.orderSequence))) orderSequence = Math.max(1, Number(parsed.orderSequence));
     lastUpdated = parsed.savedAt || new Date().toISOString();
     return true;
@@ -247,18 +322,51 @@ function updateHomeSettings(payload = {}) {
   return homeSettings;
 }
 
-function getCustomerProfile() {
-  return customerProfile;
+function normalizePhone(phone = '') {
+  return String(phone || '').replace(/\s+/g, '');
 }
 
-function saveCustomerProfile(payload = {}) {
-  customerProfile = {
-    name: String(payload.name || '').trim(),
-    phone: String(payload.phone || '').trim(),
-    address: String(payload.address || '').trim()
+function getUserByPhone(phone = '') {
+  const normalized = normalizePhone(phone);
+  if (!normalized) return null;
+  return users.get(normalized) || null;
+}
+
+function upsertUser(payload = {}) {
+  const phone = normalizePhone(payload.phone);
+  if (!phone) return null;
+  const existing = users.get(phone);
+  const now = new Date().toISOString();
+  const user = {
+    phone,
+    name: String(payload.name ?? existing?.name ?? '').trim(),
+    address: String(payload.address ?? existing?.address ?? '').trim(),
+    phoneVerified: payload.phoneVerified !== undefined ? Boolean(payload.phoneVerified) : Boolean(existing?.phoneVerified),
+    otpVerifiedAt: payload.otpVerifiedAt !== undefined ? (payload.otpVerifiedAt || null) : (existing?.otpVerifiedAt || null),
+    createdAt: existing?.createdAt || now,
+    updatedAt: now
   };
+  users.set(phone, user);
   persistState();
-  return customerProfile;
+  return user;
+}
+
+function markPhoneVerified(phone = '') {
+  const existing = getUserByPhone(phone);
+  if (!existing) return null;
+  return upsertUser({
+    ...existing,
+    phone: existing.phone,
+    phoneVerified: true,
+    otpVerifiedAt: new Date().toISOString()
+  });
+}
+
+function getOrCreateCart(phone = '') {
+  const normalized = normalizePhone(phone);
+  if (!normalized) return null;
+  if (!carts.has(normalized)) carts.set(normalized, new Map());
+  return carts.get(normalized);
 }
 
 function updateCategory(id, payload = {}) {
@@ -300,7 +408,9 @@ function updateProduct(id, payload = {}) {
   return products[i];
 }
 
-function getCartItems() {
+function getCartItems(phone = '') {
+  const cart = getOrCreateCart(phone);
+  if (!cart) return [];
   return products
     .map((p) => ({ product: p, quantity: cart.get(p.id) || 0 }))
     .filter((item) => item.quantity > 0)
@@ -316,30 +426,36 @@ function getCartItems() {
     }));
 }
 
-function getCartSummary() {
-  const items = getCartItems();
+function getCartSummary(phone = '') {
+  const items = getCartItems(phone);
   const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
   const subtotal = items.reduce((sum, i) => sum + i.subtotal, 0);
   return { items, totalQty, subtotal };
 }
 
-function setCartItem(productId, quantity) {
+function setCartItem(phone, productId, quantity) {
+  const cart = getOrCreateCart(phone);
+  if (!cart) return { error: 'Foydalanuvchi topilmadi' };
   const product = getProductById(productId);
   if (!product) return { error: 'Product not found' };
   const maxStock = Math.max(0, Number(product.stock || 0));
   const qty = Math.max(0, Math.min(Number(quantity) || 0, maxStock));
   if (qty === 0) cart.delete(productId);
   else cart.set(productId, qty);
-  return { data: getCartSummary() };
+  persistState();
+  return { data: getCartSummary(phone) };
 }
 
-function clearCart() {
+function clearCart(phone = '') {
+  const cart = getOrCreateCart(phone);
+  if (!cart) return;
   cart.clear();
+  persistState();
 }
 
 function createOrder({
   paymentMethod = 'cash',
-  paymentStatus = 'pending',
+  paymentStatus = '',
   cashTermsAccepted = false,
   location = 'Yunusobod, Toshkent',
   locationLat = null,
@@ -349,9 +465,7 @@ function createOrder({
   landmarkText = '',
   deliveryTime = '30 daqiqa',
   deliveryPrice = 12000,
-  customerName = 'Mehmon',
-  customerPhone = '',
-  customerAddress = '',
+  userPhone = '',
   customerSelfieUrl = '',
   paymentProofUrl = '',
   cashAgreementConfirmed = false,
@@ -361,7 +475,11 @@ function createOrder({
   cashAgreementAccepted = false,
   cashAgreementAcceptedAt = null
 } = {}) {
-  const summary = getCartSummary();
+  const normalizedUserPhone = normalizePhone(userPhone);
+  if (!normalizedUserPhone) return { error: "Avval ro‘yxatdan o‘ting" };
+  const user = getUserByPhone(normalizedUserPhone);
+  if (!user || !String(user.name || '').trim()) return { error: "Avval ro‘yxatdan o‘ting" };
+  const summary = getCartSummary(normalizedUserPhone);
   if (summary.totalQty === 0) return { error: 'Cart is empty' };
 
   // validate stock before order creation
@@ -377,30 +495,29 @@ function createOrder({
 
   const now = new Date().toISOString();
   const normalizedPaymentMethod = String(paymentMethod || '').toLowerCase();
-  const acceptedPaymentMethods = new Set(['cash', 'click', 'payme']);
+  const acceptedPaymentMethods = new Set(PAYMENT_METHOD_LIST);
   if (!acceptedPaymentMethods.has(normalizedPaymentMethod)) {
     return { error: 'To‘lov turi noto‘g‘ri' };
   }
-  if (!String(customerName || '').trim() || !String(customerPhone || '').trim()) {
-    return { error: "Avval ro‘yxatdan o‘ting" };
-  }
-  const hasGeo = Number.isFinite(Number(locationLat)) && Number.isFinite(Number(locationLng));
+  const customerAddress = String(user.address || addressText || location || '').trim();
+  const latNum = Number(locationLat);
+  const lngNum = Number(locationLng);
+  const hasGeoInput = locationLat !== null && locationLat !== undefined && locationLat !== '' && locationLng !== null && locationLng !== undefined && locationLng !== '';
+  const hasGeo = hasGeoInput && Number.isFinite(latNum) && Number.isFinite(lngNum) && Math.abs(latNum) <= 90 && Math.abs(lngNum) <= 180;
   const hasManual = String(addressText || customerAddress || location || '').trim();
   if (!hasGeo && !hasManual) {
     return { error: 'Lokatsiya yoki manzil talab qilinadi' };
   }
-  if ((normalizedPaymentMethod === 'click' || normalizedPaymentMethod === 'payme') && !String(paymentProofUrl || '').trim()) {
+  if ((normalizedPaymentMethod === PAYMENT_METHODS.CLICK || normalizedPaymentMethod === PAYMENT_METHODS.PAYME) && !String(paymentProofUrl || '').trim()) {
     return { error: "To‘lov cheki screenshotini yuklang" };
   }
-  if (normalizedPaymentMethod === 'cash' && !cashAgreementAccepted) {
-    return { error: 'Naqd to‘lov majburiyatini tasdiqlang' };
-  }
-  if (normalizedPaymentMethod === 'cash' && !cashAgreementConfirmed) {
-    return { error: "Naqd to'lov uchun tasdiqlash talab qilinadi" };
+  if (normalizedPaymentMethod === PAYMENT_METHODS.CASH && !cashAgreementAccepted) {
+    return { error: 'Naqd to‘lov shartlarini tasdiqlang' };
   }
   const orderItems = summary.items.map((item) => {
     const p = getProductById(item.id) || {};
     return {
+      id: item.id,
       code: p.code || p.sku || p.id || item.id,
       sku: p.sku || p.code || p.id || item.id,
       barcode: p.barcode || p.sku || p.code || p.id || item.id,
@@ -416,13 +533,13 @@ function createOrder({
   const order = {
     id: `ord_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
     orderNumber: `ORD-${String(orderSequence).padStart(5, '0')}`,
-    customerName: String(customerName || 'Mehmon'),
-    customerPhone: String(customerPhone || ''),
+    customerName: String(user.name || 'Mehmon'),
+    customerPhone: normalizedUserPhone,
     customerAddress: String(customerAddress || location || ''),
     customerSelfieUrl: String(customerSelfieUrl || ''),
     created_at: now,
     updated_at: now,
-    status: 'new',
+    status: ORDER_STATUSES.NEW,
     sentToTsdAt: null,
     tsdStatus: '',
     dalionPicked: false,
@@ -434,10 +551,17 @@ function createOrder({
     courierPhone: '',
     courierAcceptedAt: null,
     courierDeliveredAt: null,
+    courierLocationLat: null,
+    courierLocationLng: null,
+    courierLocationAccuracy: null,
+    courierLocationUpdatedAt: null,
+    courierTrackingStartedAt: null,
+    courierTrackingStoppedAt: null,
+    courierTrackingHeartbeatAt: null,
     deliveredAt: null,
     cancelledAt: null,
     paymentMethod: normalizedPaymentMethod,
-    paymentStatus: String(paymentStatus || (normalizedPaymentMethod === 'cash' ? 'cash_pending' : 'pending')),
+    paymentStatus: String(paymentStatus || (normalizedPaymentMethod === PAYMENT_METHODS.CASH ? PAYMENT_STATUSES.CASH_PENDING : PAYMENT_STATUSES.PENDING)),
     cashTermsAccepted: Boolean(cashTermsAccepted),
     paymentProofUrl: String(paymentProofUrl || ''),
     cashAgreementConfirmed: Boolean(cashAgreementConfirmed),
@@ -447,8 +571,8 @@ function createOrder({
     cashAgreementAccepted: Boolean(cashAgreementAccepted),
     cashAgreementAcceptedAt: cashAgreementAcceptedAt || (cashAgreementAccepted ? now : null),
     location: String(location || addressText || customerAddress || ''),
-    locationLat: hasGeo ? Number(locationLat) : null,
-    locationLng: hasGeo ? Number(locationLng) : null,
+    locationLat: hasGeo ? latNum : null,
+    locationLng: hasGeo ? lngNum : null,
     locationAccuracy: hasGeo && Number.isFinite(Number(locationAccuracy)) ? Number(locationAccuracy) : null,
     addressText: String(addressText || customerAddress || location || ''),
     landmarkText: String(landmarkText || ''),
@@ -469,14 +593,14 @@ function createOrder({
   }
 
   orders.push(order);
-  clearCart();
+  clearCart(normalizedUserPhone);
   persistState();
 
   return { data: order };
 }
 
 function getCustomerOrders(phone = '') {
-  const normalized = String(phone || '').replace(/\s+/g, '');
+  const normalized = normalizePhone(phone);
   if (!normalized) return [];
   return getOrders().filter((o) => String(o.customerPhone || '').replace(/\s+/g, '') === normalized);
 }
@@ -485,7 +609,7 @@ function attachPaymentProof(orderNumber, { paymentProofUrl = '' } = {}) {
   const order = getOrderByNumber(orderNumber);
   if (!order) return null;
   order.paymentProofUrl = String(paymentProofUrl || '');
-  order.paymentStatus = 'proof_uploaded';
+  order.paymentStatus = PAYMENT_STATUSES.PROOF_UPLOADED;
   order.updated_at = new Date().toISOString();
   persistState();
   return order;
@@ -518,20 +642,34 @@ function saveOrderFeedback(orderNumber, { rating = 0, comment = '' } = {}) {
 
 function applyStatusTimestamps(order, status) {
   const now = new Date().toISOString();
-  if (status === 'picking' && !order.pickerStartedAt) order.pickerStartedAt = now;
-  if (status === 'picked' && !order.pickedAt) order.pickedAt = now;
-  if (status === 'sent_to_tsd' && !order.sentToTsdAt) order.sentToTsdAt = now;
-  if (status === 'waiting_courier' && !order.waitingCourierAt) order.waitingCourierAt = now;
-  if (status === 'waiting_courier' && !order.courierWaitingAt) order.courierWaitingAt = now;
-  if (status === 'delivered' && !order.deliveredAt) order.deliveredAt = now;
-  if (status === 'cancelled' && !order.cancelledAt) order.cancelledAt = now;
+  if (status === ORDER_STATUSES.PICKING && !order.pickerStartedAt) order.pickerStartedAt = now;
+  if (status === ORDER_STATUSES.PICKED && !order.pickedAt) order.pickedAt = now;
+  if (status === ORDER_STATUSES.SENT_TO_TSD && !order.sentToTsdAt) order.sentToTsdAt = now;
+  if (status === ORDER_STATUSES.WAITING_COURIER && !order.waitingCourierAt) order.waitingCourierAt = now;
+  if (status === ORDER_STATUSES.WAITING_COURIER && !order.courierWaitingAt) order.courierWaitingAt = now;
+  if (status === ORDER_STATUSES.DELIVERED && !order.deliveredAt) order.deliveredAt = now;
+  if (status === ORDER_STATUSES.CANCELLED && !order.cancelledAt) order.cancelledAt = now;
+  if ((status === ORDER_STATUSES.DELIVERED || status === ORDER_STATUSES.CANCELLED) && !order.courierTrackingStoppedAt) order.courierTrackingStoppedAt = now;
+}
+
+function restoreStockForCancelledOrder(order) {
+  if (!order || order.stockRestoredAt) return;
+  for (const item of order.items || []) {
+    const p = getProductById(item.id);
+    if (!p) continue;
+    p.stock = Math.max(0, Number(p.stock || 0) + Math.max(0, Number(item.quantity || 0)));
+    p.updated_at = new Date().toISOString();
+  }
+  order.stockRestoredAt = new Date().toISOString();
 }
 
 function updateOrderStatus(id, status) {
-  const allowed = new Set(['new', 'picking', 'picked', 'sent_to_tsd', 'waiting_courier', 'out_for_delivery', 'delivered', 'cancelled']);
-  if (!allowed.has(status)) return null;
+  if (!ORDER_STATUS_SET.has(status)) return null;
   const order = getOrderById(id);
   if (!order) return null;
+  if (status === ORDER_STATUSES.CANCELLED && order.status !== ORDER_STATUSES.DELIVERED && order.status !== ORDER_STATUSES.CANCELLED) {
+    restoreStockForCancelledOrder(order);
+  }
   order.status = status;
   order.updated_at = new Date().toISOString();
   applyStatusTimestamps(order, status);
@@ -540,7 +678,7 @@ function updateOrderStatus(id, status) {
 }
 
 function cancelOrder(id) {
-  return updateOrderStatus(id, 'cancelled');
+  return updateOrderStatus(id, ORDER_STATUSES.CANCELLED);
 }
 
 function getOrderPicklist(id) {
@@ -562,7 +700,7 @@ function getOrderPicklist(id) {
 function sendOrderToTsd(id) {
   const order = getOrderById(id);
   if (!order) return null;
-  order.status = 'sent_to_tsd';
+  order.status = ORDER_STATUSES.SENT_TO_TSD;
   order.tsdStatus = 'queued';
   order.tsdQueuedAt = new Date().toISOString();
   order.sentToTsdAt = order.sentToTsdAt || order.tsdQueuedAt;
@@ -575,7 +713,7 @@ function sendOrderToTsd(id) {
 function markDalionPicked(id) {
   const order = getOrderById(id);
   if (!order) return null;
-  order.status = 'waiting_courier';
+  order.status = ORDER_STATUSES.WAITING_COURIER;
   order.dalionPicked = true;
   order.pickedAt = new Date().toISOString();
   order.waitingCourierAt = order.pickedAt;
@@ -592,11 +730,13 @@ function courierAccept(token, { courierName = '', courierPhone = '' } = {}) {
   const order = getOrderByCourierToken(token);
   if (!order) return { error: 'Invalid token' };
   if (order.courierTokenUsed) return { error: 'Bu QR kod allaqachon ishlatilgan' };
-  if (order.status !== 'waiting_courier') return { error: 'Buyurtma hali courier qabul bosqichida emas' };
-  order.status = 'out_for_delivery';
+  if (order.status !== ORDER_STATUSES.WAITING_COURIER) return { error: 'Buyurtma hali courier qabul bosqichida emas' };
+  order.status = ORDER_STATUSES.OUT_FOR_DELIVERY;
   order.courierName = String(courierName || order.courierName || '').trim();
   order.courierPhone = String(courierPhone || order.courierPhone || '').trim();
   order.courierAcceptedAt = new Date().toISOString();
+  order.courierTrackingStartedAt = order.courierTrackingStartedAt || order.courierAcceptedAt;
+  order.courierTrackingStoppedAt = null;
   order.updated_at = order.courierAcceptedAt;
   persistState();
   return { order };
@@ -606,14 +746,38 @@ function courierDeliver(token) {
   const order = getOrderByCourierToken(token);
   if (!order) return { error: 'Invalid token' };
   if (order.courierTokenUsed) return { error: 'Bu QR kod allaqachon ishlatilgan' };
-  if (order.status !== 'out_for_delivery') return { error: 'Buyurtma courierda emas' };
-  order.status = 'delivered';
+  if (order.status !== ORDER_STATUSES.OUT_FOR_DELIVERY) return { error: 'Buyurtma courierda emas' };
+  order.status = ORDER_STATUSES.DELIVERED;
   order.deliveredAt = new Date().toISOString();
   order.courierDeliveredAt = order.deliveredAt;
+  order.courierTrackingStoppedAt = order.deliveredAt;
   order.courierTokenUsed = true;
   order.updated_at = order.deliveredAt;
   persistState();
   return { order };
+}
+
+function updateCourierLocation(token, { lat = null, lng = null, accuracy = null } = {}) {
+  const order = getOrderByCourierToken(token);
+  if (!order) return { error: 'Invalid token' };
+  if (order.status !== ORDER_STATUSES.OUT_FOR_DELIVERY) return { error: 'Buyurtma courierda emas' };
+  if (order.status === ORDER_STATUSES.DELIVERED || order.status === ORDER_STATUSES.CANCELLED || order.courierTokenUsed) {
+    return { error: 'Lokatsiya yuborish mumkin emas' };
+  }
+  const latNum = Number(lat);
+  const lngNum = Number(lng);
+  if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
+    return { error: 'lat/lng noto‘g‘ri' };
+  }
+  order.courierLocationLat = latNum;
+  order.courierLocationLng = lngNum;
+  order.courierLocationAccuracy = Number.isFinite(Number(accuracy)) ? Number(accuracy) : null;
+  order.courierLocationUpdatedAt = new Date().toISOString();
+  order.courierTrackingStartedAt = order.courierTrackingStartedAt || order.courierLocationUpdatedAt;
+  order.courierTrackingHeartbeatAt = order.courierLocationUpdatedAt;
+  order.updated_at = order.courierLocationUpdatedAt;
+  persistState();
+  return { ok: true, order };
 }
 
 function upsertProducts(items = []) {
@@ -688,7 +852,7 @@ module.exports = {
   getBanners,
   getPromotions,
   getHomeSettings,
-  getCustomerProfile,
+  getUserByPhone,
   // admin operations
   createBanner,
   updateBanner,
@@ -697,7 +861,8 @@ module.exports = {
   updatePromotion,
   deletePromotion,
   updateHomeSettings,
-  saveCustomerProfile,
+  upsertUser,
+  markPhoneVerified,
   updateCategory,
   updateProduct,
   // cart/order/import
@@ -722,5 +887,6 @@ module.exports = {
   getOrderByCourierToken,
   courierAccept,
   courierDeliver,
+  updateCourierLocation,
   orders
 };
