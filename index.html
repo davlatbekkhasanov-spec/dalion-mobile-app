@@ -1005,6 +1005,15 @@
         </div>
         <input id="authName" class="auth-input" placeholder="Ismingiz" />
         <input id="authPhone" class="auth-input" placeholder="Telefon raqamingiz" />
+        <div class="list-card" style="margin-top:10px;padding:10px;">
+          <div class="muted" style="margin-bottom:8px;">OTP tasdiqlash (ixtiyoriy)</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary" id="requestOtpBtn" style="flex:1;">OTP olish</button>
+          </div>
+          <input id="otpCodeInput" class="auth-input" placeholder="OTP kod" style="margin-top:8px;" />
+          <button class="btn btn-secondary" id="verifyOtpBtn" style="margin-top:8px;width:100%;">OTP ni tekshirish</button>
+          <div id="devOtpHint" class="muted" style="margin-top:8px;display:none;"></div>
+        </div>
         <button class="btn btn-primary" id="submitAuthBtn" style="margin-top:10px;">Tasdiqlash</button>
       </div>
     </div>
@@ -1187,6 +1196,10 @@ Oq fonli foto</div>
     const closeAuthSheetBtn = document.getElementById('closeAuthSheetBtn');
     const authName = document.getElementById('authName');
     const authPhone = document.getElementById('authPhone');
+    const requestOtpBtn = document.getElementById('requestOtpBtn');
+    const otpCodeInput = document.getElementById('otpCodeInput');
+    const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+    const devOtpHint = document.getElementById('devOtpHint');
     const submitAuthBtn = document.getElementById('submitAuthBtn');
     const toast = document.getElementById('toast');
     const homeProducts = document.getElementById('homeProducts');
@@ -1389,6 +1402,33 @@ Oq fonli foto</div>
       authSheetOverlay.classList.remove('show');
       showToast("Ro'yxatdan o'tildi");
       return true;
+    }
+
+    async function requestOtpCode() {
+      const phoneValue = String(authPhone.value || '').trim();
+      if (!phoneValue) { showToast('Telefon raqamingizni kiriting'); return; }
+      const out = await api('/auth/request-otp', { method: 'POST', body: JSON.stringify({ phone: phoneValue }) });
+      if (out.devOtp) {
+        devOtpHint.style.display = 'block';
+        devOtpHint.textContent = `Dev OTP (mock): ${out.devOtp}`;
+      } else {
+        devOtpHint.style.display = 'none';
+        devOtpHint.textContent = '';
+      }
+      showToast('OTP yuborildi');
+    }
+
+    async function verifyOtpCode() {
+      const phoneValue = String(authPhone.value || '').trim();
+      const codeValue = String(otpCodeInput.value || '').trim();
+      if (!phoneValue || !codeValue) { showToast('Telefon va OTP kodni kiriting'); return; }
+      const out = await api('/auth/verify-otp', { method: 'POST', body: JSON.stringify({ phone: phoneValue, code: codeValue }) });
+      if (currentUser && String(currentUser.phone || '') === phoneValue) {
+        currentUser.phoneVerified = Boolean(out.user?.phoneVerified);
+        currentUser.otpVerifiedAt = out.user?.otpVerifiedAt || null;
+        localStorage.setItem('globusUser', JSON.stringify(currentUser));
+      }
+      showToast('Telefon OTP orqali tasdiqlandi');
     }
 
     function requireAuthOrIntro() {
@@ -1819,6 +1859,22 @@ Oq fonli foto`;
         await initializeAppData();
       } catch (error) {
         showToast(error.message || 'Auth xatolik');
+      }
+    });
+
+    requestOtpBtn?.addEventListener('click', async () => {
+      try {
+        await requestOtpCode();
+      } catch (error) {
+        showToast(error.message || 'OTP yuborishda xatolik');
+      }
+    });
+
+    verifyOtpBtn?.addEventListener('click', async () => {
+      try {
+        await verifyOtpCode();
+      } catch (error) {
+        showToast(error.message || 'OTP tekshirishda xatolik');
       }
     });
 

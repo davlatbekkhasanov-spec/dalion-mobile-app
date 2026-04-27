@@ -108,6 +108,8 @@ function loadStateFromDisk() {
           phone,
           name: String(user?.name || '').trim(),
           address: String(user?.address || '').trim(),
+          phoneVerified: Boolean(user?.phoneVerified),
+          otpVerifiedAt: user?.otpVerifiedAt || null,
           createdAt: user?.createdAt || new Date().toISOString(),
           updatedAt: user?.updatedAt || new Date().toISOString()
         });
@@ -135,6 +137,8 @@ function loadStateFromDisk() {
           phone: legacyPhone,
           name: String(parsed.customerProfile.name || '').trim(),
           address: String(parsed.customerProfile.address || '').trim(),
+          phoneVerified: false,
+          otpVerifiedAt: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         });
@@ -334,12 +338,25 @@ function upsertUser(payload = {}) {
     phone,
     name: String(payload.name ?? existing?.name ?? '').trim(),
     address: String(payload.address ?? existing?.address ?? '').trim(),
+    phoneVerified: payload.phoneVerified !== undefined ? Boolean(payload.phoneVerified) : Boolean(existing?.phoneVerified),
+    otpVerifiedAt: payload.otpVerifiedAt !== undefined ? (payload.otpVerifiedAt || null) : (existing?.otpVerifiedAt || null),
     createdAt: existing?.createdAt || now,
     updatedAt: now
   };
   users.set(phone, user);
   persistState();
   return user;
+}
+
+function markPhoneVerified(phone = '') {
+  const existing = getUserByPhone(phone);
+  if (!existing) return null;
+  return upsertUser({
+    ...existing,
+    phone: existing.phone,
+    phoneVerified: true,
+    otpVerifiedAt: new Date().toISOString()
+  });
 }
 
 function getOrCreateCart(phone = '') {
@@ -528,6 +545,12 @@ function createOrder({
     courierPhone: '',
     courierAcceptedAt: null,
     courierDeliveredAt: null,
+    courierLocationLat: null,
+    courierLocationLng: null,
+    courierLocationAccuracy: null,
+    courierLocationUpdatedAt: null,
+    courierTrackingStartedAt: null,
+    courierTrackingStoppedAt: null,
     deliveredAt: null,
     cancelledAt: null,
     paymentMethod: normalizedPaymentMethod,
@@ -619,6 +642,18 @@ function applyStatusTimestamps(order, status) {
   if (status === 'waiting_courier' && !order.courierWaitingAt) order.courierWaitingAt = now;
   if (status === 'delivered' && !order.deliveredAt) order.deliveredAt = now;
   if (status === 'cancelled' && !order.cancelledAt) order.cancelledAt = now;
+  if ((status === 'delivered' || status === 'cancelled') && !order.courierTrackingStoppedAt) order.courierTrackingStoppedAt = now;
+}
+
+function restoreStockForCancelledOrder(order) {
+  if (!order || order.stockRestoredAt) return;
+  for (const item of order.items || []) {
+    const p = getProductById(item.id);
+    if (!p) continue;
+    p.stock = Math.max(0, Number(p.stock || 0) + Math.max(0, Number(item.quantity || 0)));
+    p.updated_at = new Date().toISOString();
+  }
+  order.stockRestoredAt = new Date().toISOString();
 }
 
 function restoreStockForCancelledOrder(order) {
@@ -704,6 +739,8 @@ function courierAccept(token, { courierName = '', courierPhone = '' } = {}) {
   order.courierName = String(courierName || order.courierName || '').trim();
   order.courierPhone = String(courierPhone || order.courierPhone || '').trim();
   order.courierAcceptedAt = new Date().toISOString();
+  order.courierTrackingStartedAt = order.courierTrackingStartedAt || order.courierAcceptedAt;
+  order.courierTrackingStoppedAt = null;
   order.updated_at = order.courierAcceptedAt;
   persistState();
   return { order };
@@ -717,10 +754,33 @@ function courierDeliver(token) {
   order.status = 'delivered';
   order.deliveredAt = new Date().toISOString();
   order.courierDeliveredAt = order.deliveredAt;
+  order.courierTrackingStoppedAt = order.deliveredAt;
   order.courierTokenUsed = true;
   order.updated_at = order.deliveredAt;
   persistState();
   return { order };
+}
+
+function updateCourierLocation(token, { lat = null, lng = null, accuracy = null } = {}) {
+  const order = getOrderByCourierToken(token);
+  if (!order) return { error: 'Invalid token' };
+  if (order.status !== 'out_for_delivery') return { error: 'Buyurtma courierda emas' };
+  if (order.status === 'delivered' || order.status === 'cancelled' || order.courierTokenUsed) {
+    return { error: 'Lokatsiya yuborish mumkin emas' };
+  }
+  const latNum = Number(lat);
+  const lngNum = Number(lng);
+  if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
+    return { error: 'lat/lng noto‘g‘ri' };
+  }
+  order.courierLocationLat = latNum;
+  order.courierLocationLng = lngNum;
+  order.courierLocationAccuracy = Number.isFinite(Number(accuracy)) ? Number(accuracy) : null;
+  order.courierLocationUpdatedAt = new Date().toISOString();
+  order.courierTrackingStartedAt = order.courierTrackingStartedAt || order.courierLocationUpdatedAt;
+  order.updated_at = order.courierLocationUpdatedAt;
+  persistState();
+  return { ok: true, order };
 }
 
 function upsertProducts(items = []) {
@@ -805,6 +865,7 @@ module.exports = {
   deletePromotion,
   updateHomeSettings,
   upsertUser,
+  markPhoneVerified,
   updateCategory,
   updateProduct,
   // cart/order/import
@@ -829,5 +890,6 @@ module.exports = {
   getOrderByCourierToken,
   courierAccept,
   courierDeliver,
+  updateCourierLocation,
   orders
 };
