@@ -4,17 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Courier</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     html,body{min-height:100dvh;overflow-x:hidden}
     body{margin:0;background:#07111f;color:#e8f4ff;font-family:Inter,Segoe UI,Arial,sans-serif}
     .wrap{padding:12px;overflow-y:auto}
-    .card{width:min(100% - 24px,520px);margin:24px auto;background:linear-gradient(180deg,#10213d,#0a172e);backdrop-filter:blur(10px);border:1px solid #2f5078;border-radius:16px;padding:16px}
+    .card{width:min(100% - 24px,560px);margin:16px auto;background:linear-gradient(180deg,#10213d,#0a172e);backdrop-filter:blur(10px);border:1px solid #2f5078;border-radius:16px;padding:16px}
     input,button{width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:1px solid #34567f;background:#0b1830;color:#e8f4ff;margin-top:8px;font-size:17px}
     button{cursor:pointer;font-weight:700}
     .primary{background:linear-gradient(90deg,#2aff9b,#28d8ff);color:#04221c;border:none}
     .muted{color:#9ab8df;font-size:13px}
     .ok{color:#9dffcc;font-size:13px;margin-top:10px}
     .warn{color:#ffcf99;font-size:12px;margin-top:6px}
+    .route-kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    .nav-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    #courierMap{height:260px;border-radius:12px;margin-top:10px}
   </style>
 </head>
 <body>
@@ -28,6 +32,19 @@
       <div id="wakeWarn" class="warn" style="display:none;">Telefon ekranini o‘chirmang, aks holda live kuzatuv vaqtincha to‘xtashi mumkin</div>
       <div id="gpsWarn" class="warn" style="display:none;">GPS ruxsati berilmadi</div>
       <div id="signalWarn" class="warn" style="display:none;">GPS signali vaqtincha yo‘qoldi</div>
+      <h3 style="margin:12px 0 6px;">Yetkazish manzili</h3>
+      <div id="destinationMeta" class="muted"></div>
+      <div id="routeStatus" class="warn" style="display:none;"></div>
+      <div class="route-kpi">
+        <div class="muted" id="routeDistance">Masofa: -</div>
+        <div class="muted" id="routeEta">Taxminiy vaqt: -</div>
+      </div>
+      <div class="muted" id="routeHint">Keyingi yo‘nalish: -</div>
+      <div class="nav-row" style="margin-top:8px;">
+        <button id="openGoogleNav" type="button">Google Maps</button>
+        <button id="openYandexNav" type="button">Yandex Maps</button>
+      </div>
+      <div id="courierMap"></div>
       <input id="courierName" placeholder="Courier name" />
       <input id="courierPhone" placeholder="Courier phone" />
       <button id="acceptBtn" class="primary">Buyurtmani qabul qildim</button>
@@ -35,6 +52,7 @@
       <div id="successMsg" class="muted" style="display:none;margin-top:10px;color:#9dffcc;">Buyurtma yakunlandi</div>
     </div>
   </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const token = location.pathname.split('/').pop();
     let order = null;
@@ -45,6 +63,14 @@
     let wakeLockSupported = 'wakeLock' in navigator;
     let lastLocationSuccessAt = 0;
     let lastKnownPosition = null;
+    let courierMap = null;
+    let courierMarker = null;
+    let destinationMarker = null;
+    let routePolyline = null;
+    let lastRouteFetchAt = 0;
+    let lastRouteStart = null;
+    let lastRouteEnd = null;
+    const ROUTE_REFRESH_MS = 10000;
     async function api(path, options={}) {
       const res = await fetch('/api/v1'+path, { headers: { 'Content-Type':'application/json' }, ...options });
       const data = await res.json().catch(()=>({}));
@@ -60,6 +86,7 @@
     function render(){
       if(!order) return;
       document.getElementById('orderInfo').innerHTML = `#${order.orderNumber} · ${(order.items||[]).length} item · ${Number(order.total||0).toLocaleString('ru-RU')} so'm<br>${order.customerAddress || order.location || '-'}`;
+      document.getElementById('destinationMeta').innerHTML = `#${order.orderNumber || '-'}<br>Manzil: ${order.addressText || order.customerAddress || order.location || '-'}<br>Orientir: ${order.landmarkText || '-'}<br>Jami: ${Number(order.total || 0).toLocaleString('ru-RU')} so'm`;
       document.getElementById('msg').textContent = `Status: ${order.status}`;
       const acceptBtn = document.getElementById('acceptBtn');
       const deliverBtn = document.getElementById('deliverBtn');
@@ -104,6 +131,7 @@
         stopTracking();
       }
       renderGpsStatus();
+      updateNavButtons();
     }
 
     function renderGpsStatus() {
@@ -175,6 +203,7 @@
             gpsEnabled = true;
             lastLocationSuccessAt = Date.now();
             renderGpsStatus();
+            maybeUpdateRoute();
           } catch (e) {
             // no-op to keep delivery flow unblocked
           }
@@ -196,6 +225,105 @@
       await sendCurrentLocation();
       if (gpsPermissionDenied) return;
       trackingInterval = setInterval(() => { sendCurrentLocation(); }, 5000);
+    }
+
+    function hasValidCoords(lat, lng) {
+      const latNum = Number(lat);
+      const lngNum = Number(lng);
+      if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) return false;
+      if (Math.abs(latNum) > 90 || Math.abs(lngNum) > 180) return false;
+      if (latNum === 0 && lngNum === 0) return false;
+      return true;
+    }
+
+    function ensureMap(centerLat = 41.3111, centerLng = 69.2797) {
+      if (courierMap || !window.L) return;
+      courierMap = L.map('courierMap', { zoomControl: true }).setView([centerLat, centerLng], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(courierMap);
+    }
+
+    function setRouteFallback(message) {
+      const routeStatus = document.getElementById('routeStatus');
+      routeStatus.style.display = 'block';
+      routeStatus.textContent = message;
+      if (routePolyline && courierMap) {
+        courierMap.removeLayer(routePolyline);
+        routePolyline = null;
+      }
+    }
+
+    function updateRouteKpi(distanceMeters = 0, durationSec = 0, hint = '-') {
+      document.getElementById('routeDistance').textContent = `Masofa: ${(Number(distanceMeters || 0) / 1000).toFixed(1)} km`;
+      document.getElementById('routeEta').textContent = `Taxminiy vaqt: ${Math.max(1, Math.round(Number(durationSec || 0) / 60))} daqiqa`;
+      document.getElementById('routeHint').textContent = `Keyingi yo‘nalish: ${hint}`;
+    }
+
+    function buildDirectionHint(coords = []) {
+      if (!Array.isArray(coords) || coords.length < 2) return 'to‘g‘ri';
+      const [aLng, aLat] = coords[0];
+      const [bLng, bLat] = coords[1];
+      const dx = Number(bLng) - Number(aLng);
+      const dy = Number(bLat) - Number(aLat);
+      if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? 'o‘ngga' : 'chapga';
+      return 'to‘g‘ri';
+    }
+
+    function updateNavButtons() {
+      const hasDestination = hasValidCoords(order?.locationLat, order?.locationLng);
+      document.getElementById('openGoogleNav').disabled = !hasDestination;
+      document.getElementById('openYandexNav').disabled = !hasDestination;
+    }
+
+    async function maybeUpdateRoute(force = false) {
+      if (!order || order.status !== 'out_for_delivery') return;
+      if (!hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)) return;
+      if (!hasValidCoords(order.locationLat, order.locationLng)) return;
+      const now = Date.now();
+      const start = { lat: Number(lastKnownPosition.lat), lng: Number(lastKnownPosition.lng) };
+      const end = { lat: Number(order.locationLat), lng: Number(order.locationLng) };
+      const movedMinor =
+        lastRouteStart &&
+        Math.abs(lastRouteStart.lat - start.lat) < 0.0004 &&
+        Math.abs(lastRouteStart.lng - start.lng) < 0.0004 &&
+        lastRouteEnd &&
+        Math.abs(lastRouteEnd.lat - end.lat) < 0.0001 &&
+        Math.abs(lastRouteEnd.lng - end.lng) < 0.0001;
+      if (!force && movedMinor && now - lastRouteFetchAt < ROUTE_REFRESH_MS) return;
+      if (!force && now - lastRouteFetchAt < ROUTE_REFRESH_MS) return;
+      lastRouteFetchAt = now;
+      lastRouteStart = start;
+      lastRouteEnd = end;
+
+      ensureMap(start.lat, start.lng);
+      const routeStatus = document.getElementById('routeStatus');
+      routeStatus.style.display = 'none';
+      routeStatus.textContent = '';
+      if (!courierMap) return;
+      if (!courierMarker) courierMarker = L.marker([start.lat, start.lng]).addTo(courierMap).bindPopup('Kurier');
+      else courierMarker.setLatLng([start.lat, start.lng]);
+      if (!destinationMarker) destinationMarker = L.marker([end.lat, end.lng]).addTo(courierMap).bindPopup('Manzil');
+      else destinationMarker.setLatLng([end.lat, end.lng]);
+
+      try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const route = data?.routes?.[0];
+        if (!route?.geometry?.coordinates?.length) {
+          setRouteFallback('Marshrut yuklanmadi');
+          return;
+        }
+        const latLngs = route.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+        if (routePolyline) courierMap.removeLayer(routePolyline);
+        routePolyline = L.polyline(latLngs, { color: '#34d399', weight: 5, opacity: 0.85 }).addTo(courierMap);
+        courierMap.fitBounds(routePolyline.getBounds(), { padding: [28, 28] });
+        updateRouteKpi(route.distance, route.duration, buildDirectionHint(route.geometry.coordinates));
+      } catch {
+        setRouteFallback('Marshrut yuklanmadi');
+      }
     }
 
     function prepareGeolocationPermission() {
@@ -251,6 +379,7 @@
         if (order?.status === 'out_for_delivery') {
           sendCurrentLocation();
           acquireWakeLock();
+          maybeUpdateRoute(true);
         }
       }
     });
@@ -261,7 +390,17 @@
       if (order?.status === 'out_for_delivery') {
         sendCurrentLocation();
         acquireWakeLock();
+        maybeUpdateRoute(true);
       }
+    });
+
+    document.getElementById('openGoogleNav').addEventListener('click', () => {
+      if (!hasValidCoords(order?.locationLat, order?.locationLng)) return;
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${Number(order.locationLat)},${Number(order.locationLng)}`, '_blank');
+    });
+    document.getElementById('openYandexNav').addEventListener('click', () => {
+      if (!hasValidCoords(order?.locationLat, order?.locationLng)) return;
+      window.open(`https://yandex.com/maps/?rtext=~${Number(order.locationLat)},${Number(order.locationLng)}`, '_blank');
     });
   </script>
 </body>
