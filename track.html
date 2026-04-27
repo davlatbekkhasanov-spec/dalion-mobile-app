@@ -45,10 +45,12 @@
     const orderNumber = decodeURIComponent(location.pathname.split('/').pop());
     const steps = [
       { label: 'Buyurtma qabul qilindi', statuses: ['new'] },
-      { label: 'Tovarlar terilmoqda', statuses: ['sent_to_tsd'] },
-      { label: 'Yig‘ildi / Kurier kutilyapti', statuses: ['picked', 'waiting_courier'] },
+      { label: 'Tovar terilmoqda', statuses: ['sent_to_tsd'] },
+      { label: 'Tovar terilmoqda', statuses: ['picking'] },
+      { label: 'Yig‘ildi / kurier kutilmoqda', statuses: ['picked', 'waiting_courier'] },
       { label: 'Kurierda', statuses: ['out_for_delivery'] },
-      { label: 'Yetkazildi', statuses: ['delivered'] }
+      { label: 'Yetkazildi', statuses: ['delivered'] },
+      { label: 'Bekor qilingan', statuses: ['cancelled'] }
     ];
     let order = null;
     async function api(path, options={}) {
