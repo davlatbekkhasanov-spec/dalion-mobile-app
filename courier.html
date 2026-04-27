@@ -388,6 +388,7 @@
       renderGpsStatus();
     };
     refresh();
+    prepareGeolocationPermission();
     setInterval(refresh, 5000);
 
     document.addEventListener('visibilitychange', () => {
