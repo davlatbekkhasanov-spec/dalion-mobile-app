@@ -956,6 +956,25 @@
       margin: 10px 0;
       overflow: hidden;
     }
+    .location-permission-card {
+      width: 100%;
+      border-radius: 18px;
+      border: 1px solid rgba(130, 160, 210, 0.32);
+      background: linear-gradient(180deg, rgba(18, 39, 68, 0.98), rgba(8, 20, 36, 0.98));
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .location-permission-actions {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .location-steps {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
 
     @keyframes drift {
       from { transform: translateY(0) rotate(0deg); }
@@ -1165,6 +1184,20 @@ Oq fonli foto</div>
         <button class="full-btn" id="modalAddBtn">Savatga qo'shish</button>
       </div>
     </div>
+    <div class="overlay" id="locationDeniedOverlay">
+      <div class="location-permission-card" role="dialog" aria-modal="true" aria-labelledby="locationDeniedTitle">
+        <h3 id="locationDeniedTitle" style="margin:0 0 6px;">Lokatsiya ruxsati kerak</h3>
+        <p class="muted" style="margin:0;">Brauzer sozlamalaridan Location ruxsatini yoqing yoki manzilni qo‘lda kiriting.</p>
+        <div class="location-steps">
+          <div><strong>Android Chrome:</strong> Chrome → Site settings → Location → Allow</div>
+          <div><strong>iPhone Safari:</strong> Settings → Safari → Location → Allow</div>
+        </div>
+        <div class="location-permission-actions">
+          <button class="btn btn-secondary" id="retryLocationBtn" type="button">Qayta urinish</button>
+          <button class="btn btn-primary" id="manualLocationBtn" type="button">Manzilni qo‘lda kiritish</button>
+        </div>
+      </div>
+    </div>
 
     <div class="toast" id="toast">Savatga qo'shildi</div>
   </main>
@@ -1257,6 +1290,9 @@ Oq fonli foto</div>
     const modalOldPrice = document.getElementById('modalOldPrice');
     const modalQty = document.getElementById('modalQty');
     const modalAddBtn = document.getElementById('modalAddBtn');
+    const locationDeniedOverlay = document.getElementById('locationDeniedOverlay');
+    const retryLocationBtn = document.getElementById('retryLocationBtn');
+    const manualLocationBtn = document.getElementById('manualLocationBtn');
 
     function money(v) {
       return `${Number(v || 0).toLocaleString('ru-RU')} so'm`;
@@ -1805,6 +1841,36 @@ Oq fonli foto`;
       activeModalProductId = null;
     }
 
+    function closeLocationDeniedModal() {
+      locationDeniedOverlay?.classList.remove('show');
+    }
+
+    function openLocationDeniedModal() {
+      locationDeniedOverlay?.classList.add('show');
+    }
+
+    function requestBrowserLocation() {
+      if (!navigator.geolocation) {
+        customerLocation.permissionDenied = true;
+        renderCheckout();
+        openLocationDeniedModal();
+        return;
+      }
+      navigator.geolocation.getCurrentPosition((pos) => {
+        customerLocation.lat = pos.coords.latitude;
+        customerLocation.lng = pos.coords.longitude;
+        customerLocation.accuracy = pos.coords.accuracy;
+        customerLocation.permissionDenied = false;
+        closeLocationDeniedModal();
+        renderCheckout();
+        showToast('Lokatsiya olindi');
+      }, () => {
+        customerLocation.permissionDenied = true;
+        renderCheckout();
+        openLocationDeniedModal();
+      }, { enableHighAccuracy: true, timeout: 12000 });
+    }
+
     function setView(viewId) {
       document.querySelectorAll('.view').forEach((el) => el.classList.toggle('active', el.id === viewId));
       currentView = viewId;
@@ -2148,25 +2214,14 @@ Oq fonli foto`;
     });
 
 
-    document.getElementById('captureLocationBtn').addEventListener('click', () => {
-      if (!navigator.geolocation) {
-        customerLocation.permissionDenied = true;
-        renderCheckout();
-        showToast('Bu qurilmada GPS mavjud emas. Manzilni qo‘lda kiriting.');
-        return;
-      }
-      navigator.geolocation.getCurrentPosition((pos) => {
-        customerLocation.lat = pos.coords.latitude;
-        customerLocation.lng = pos.coords.longitude;
-        customerLocation.accuracy = pos.coords.accuracy;
-        customerLocation.permissionDenied = false;
-        renderCheckout();
-        showToast('Lokatsiya olindi');
-      }, () => {
-        customerLocation.permissionDenied = true;
-        renderCheckout();
-        showToast("GPS ruxsati berilmadi. Buyurtmani qo‘lda manzil bilan davom ettiring.");
-      }, { enableHighAccuracy: true, timeout: 12000 });
+    document.getElementById('captureLocationBtn').addEventListener('click', requestBrowserLocation);
+    retryLocationBtn?.addEventListener('click', requestBrowserLocation);
+    manualLocationBtn?.addEventListener('click', () => {
+      closeLocationDeniedModal();
+      manualAddress?.focus();
+    });
+    locationDeniedOverlay?.addEventListener('click', (e) => {
+      if (e.target === locationDeniedOverlay) closeLocationDeniedModal();
     });
 
     manualAddress.addEventListener('input', renderCheckout);
