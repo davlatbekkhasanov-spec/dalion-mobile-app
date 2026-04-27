@@ -139,3 +139,68 @@ Current `store.json` fallback is meant as a temporary persistence layer.
 
 - Checkoutdagi naqd to‘lov majburiyati matni hozircha **draft** holatda.
 - Productionga chiqarishdan oldin ushbu matn yuridik (legal) tekshiruvdan o‘tishi shart.
+
+## SMS/OTP foundation (mock mode)
+
+Current implementation provides infrastructure only; real SMS provider is **not connected yet**.
+
+### Endpoints
+
+- `POST /api/v1/auth/request-otp`
+  - body: `{ "phone": "+998..." }`
+  - mock response: `{ "ok": true, "devOtp": "123456" }`
+- `POST /api/v1/auth/verify-otp`
+  - body: `{ "phone": "+998...", "code": "123456" }`
+  - success: marks user `phoneVerified=true`, sets `otpVerifiedAt`, returns user.
+
+### Environment variables
+
+- `SMS_PROVIDER=mock` (default)
+- `SMS_API_KEY` (reserved for future provider adapters)
+- `SMS_SENDER` (reserved for future provider adapters)
+
+### Current behavior
+
+- In `mock` mode, no real SMS is sent.
+- `request-otp` returns `devOtp` for local/dev testing.
+- Existing registration/checkout flow stays non-blocking while provider remains mock.
+
+### Future integration point
+
+Provider adapter integration point: `src/services/sms.service.js` (`sendOtp(phone, code)`).
+When ready, replace mock branch with real provider SDK/API call and keep endpoint contracts unchanged.
+
+## Android Courier App (Native Kotlin)
+
+A professional native Android courier app project is included in `android-courier/`.
+
+### What it includes
+- Token login (manual input + QR scan)
+- Secure token storage (`EncryptedSharedPreferences`)
+- Active order screen (order number, address, orientir, total, item count, status)
+- Accept delivery API call (`POST /api/v1/courier/:token/accept`)
+- Foreground GPS tracking service with 5-second updates (`POST /api/v1/courier/:token/location`)
+- Foreground notification: `Globus Market courier tracking active`
+- Google Maps navigation opening
+- Complete delivery API call (`POST /api/v1/courier/:token/deliver`) and tracking stop
+- Clear permission/error messaging for denied location and invalid token
+
+### Base URLs
+- Current backend: `https://dalion-mobile-app-production.up.railway.app`
+- Future domain (for easy switch): `https://globusmarket.org`
+
+### Build APK locally
+1. Install Android Studio (latest stable).
+2. Open folder: `android-courier/`.
+3. Let Gradle sync complete.
+4. Build debug APK:
+   - Android Studio: **Build > Build Bundle(s) / APK(s) > Build APK(s)**
+   - or terminal:
+     ```bash
+     cd android-courier
+     ./gradlew assembleDebug
+     ```
+5. APK output:
+   `android-courier/app/build/outputs/apk/debug/app-debug.apk`
+
+> Note: In this environment, Android SDK/Gradle wrapper may not be available to produce APK directly.
