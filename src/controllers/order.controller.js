@@ -2,8 +2,13 @@ const store = require('../data/store.js');
 const fs = require('fs');
 const path = require('path');
 
+function resolveUserPhone(req) {
+  return String(req.header('x-user-phone') || req.query?.phone || req.body?.phone || req.body?.userPhone || '').trim();
+}
+
 exports.createOrder = (req, res) => {
-  const result = store.createOrder(req.body || {});
+  const userPhone = resolveUserPhone(req);
+  const result = store.createOrder({ ...(req.body || {}), userPhone });
   if (result.error) {
     return res.status(400).json({ message: result.error });
   }
@@ -12,16 +17,20 @@ exports.createOrder = (req, res) => {
 };
 
 exports.getProfile = (req, res) => {
-  return res.json({ profile: store.getCustomerProfile() });
+  const phone = resolveUserPhone(req);
+  if (!phone) return res.status(400).json({ message: 'phone required' });
+  const profile = store.getUserByPhone(phone);
+  if (!profile) return res.json({ profile: null });
+  return res.json({ profile });
 };
 
 exports.saveProfile = (req, res) => {
   const name = String(req.body?.name || '').trim();
-  const phone = String(req.body?.phone || '').trim();
+  const phone = resolveUserPhone(req);
   if (!name || !phone) {
     return res.status(400).json({ message: 'name va phone majburiy' });
   }
-  const profile = store.saveCustomerProfile(req.body || {});
+  const profile = store.upsertUser({ ...(req.body || {}), phone });
   return res.json({ profile });
 };
 
@@ -47,7 +56,7 @@ exports.getOrderTrack = (req, res) => {
 };
 
 exports.getCustomerOrders = (req, res) => {
-  const phone = String(req.query?.phone || '').trim();
+  const phone = resolveUserPhone(req);
   if (!phone) return res.status(400).json({ message: 'phone query required' });
   return res.json({ orders: store.getCustomerOrders(phone) });
 };
