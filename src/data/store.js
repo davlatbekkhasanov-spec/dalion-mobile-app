@@ -435,7 +435,7 @@ function clearCart(phone = '') {
 
 function createOrder({
   paymentMethod = 'cash',
-  paymentStatus = 'pending',
+  paymentStatus = '',
   cashTermsAccepted = false,
   location = 'Yunusobod, Toshkent',
   locationLat = null,
@@ -489,14 +489,12 @@ function createOrder({
     return { error: "To‘lov cheki screenshotini yuklang" };
   }
   if (normalizedPaymentMethod === 'cash' && !cashAgreementAccepted) {
-    return { error: 'Naqd to‘lov majburiyatini tasdiqlang' };
-  }
-  if (normalizedPaymentMethod === 'cash' && !cashAgreementConfirmed) {
-    return { error: "Naqd to'lov uchun tasdiqlash talab qilinadi" };
+    return { error: 'Naqd to‘lov shartlarini tasdiqlang' };
   }
   const orderItems = summary.items.map((item) => {
     const p = getProductById(item.id) || {};
     return {
+      id: item.id,
       code: p.code || p.sku || p.id || item.id,
       sku: p.sku || p.code || p.id || item.id,
       barcode: p.barcode || p.sku || p.code || p.id || item.id,
@@ -623,10 +621,24 @@ function applyStatusTimestamps(order, status) {
   if (status === 'cancelled' && !order.cancelledAt) order.cancelledAt = now;
 }
 
+function restoreStockForCancelledOrder(order) {
+  if (!order || order.stockRestoredAt) return;
+  for (const item of order.items || []) {
+    const p = getProductById(item.id);
+    if (!p) continue;
+    p.stock = Math.max(0, Number(p.stock || 0) + Math.max(0, Number(item.quantity || 0)));
+    p.updated_at = new Date().toISOString();
+  }
+  order.stockRestoredAt = new Date().toISOString();
+}
+
 function updateOrderStatus(id, status) {
   if (!ORDER_STATUSES.has(status)) return null;
   const order = getOrderById(id);
   if (!order) return null;
+  if (status === 'cancelled' && order.status !== 'delivered' && order.status !== 'cancelled') {
+    restoreStockForCancelledOrder(order);
+  }
   order.status = status;
   order.updated_at = new Date().toISOString();
   applyStatusTimestamps(order, status);

@@ -1116,7 +1116,6 @@
             <input type="checkbox" id="cashAgreementCheckbox" />
             Men buyurtma summasini tovar yetkazib berilganda naqd to‘lash majburiyatini olaman
           </label>
-          <button class="btn btn-secondary" id="cashConfirmBtn" style="display:none; margin-top:8px;">Naqd agreement tasdiqlash</button>
           <p class="checkout-total" id="checkoutTotal">Jami: 0 so'm</p>
           <button class="full-btn" id="confirmOrderBtn">Buyurtmani tasdiqlash</button>
         </div>
@@ -1181,7 +1180,6 @@ Oq fonli foto</div>
     let activeOrderNumber = localStorage.getItem('activeOrderNumber') || '';
     let ordersHistory = JSON.parse(localStorage.getItem('orders_history') || '[]');
     let orderStatusTimer = null;
-    let cashAgreementAuth = { confirmed: false, method: '' };
 
     const phone = document.getElementById('phone');
     const openRegisterBtn = document.getElementById('openRegisterBtn');
@@ -1223,7 +1221,6 @@ Oq fonli foto</div>
     const cashAgreementDetails = document.getElementById('cashAgreementDetails');
     const cashAgreementCheckbox = document.getElementById('cashAgreementCheckbox');
     const cashAgreementLabel = document.getElementById('cashAgreementLabel');
-    const cashConfirmBtn = document.getElementById('cashConfirmBtn');
     const checkoutTime = document.getElementById('checkoutTime');
     const checkoutPrice = document.getElementById('checkoutPrice');
     const successOrderNumber = document.getElementById('successOrderNumber');
@@ -1416,14 +1413,18 @@ Oq fonli foto</div>
     function orderStatusLabel(status) {
       return {
         new: 'Yangi buyurtma',
+        sent_to_tsd: 'Tovar terilmoqda',
         picking: 'Tovar terilmoqda',
-        picked: 'Yig‘ildi / Kurier kutilyapti',
-        waiting_courier: 'Yig‘ildi / Kurier kutilyapti',
-        sent_to_tsd: 'Tovarlar terilmoqda',
-        out_for_delivery: 'Yetkazilmoqda',
+        picked: 'Yig‘ildi / kurier kutilmoqda',
+        waiting_courier: 'Yig‘ildi / kurier kutilmoqda',
+        out_for_delivery: 'Kurierda',
         delivered: 'Yetkazildi',
-        cancelled: 'Bekor qilindi'
+        cancelled: 'Bekor qilingan'
       }[status] || status || '-';
+    }
+
+    function isActiveOrderStatus(status) {
+      return ['new', 'sent_to_tsd', 'picking', 'picked', 'waiting_courier', 'out_for_delivery'].includes(String(status || ''));
     }
 
     function totalQty() {
@@ -1637,7 +1638,6 @@ Oq fonli foto`;
       paymentProofInput.style.display = isOnline ? 'block' : 'none';
       cashAgreementDetails.style.display = selectedPayment === 'cash' ? 'block' : 'none';
       cashAgreementLabel.style.display = selectedPayment === 'cash' ? 'block' : 'none';
-      cashConfirmBtn.style.display = selectedPayment === 'cash' ? 'block' : 'none';
     }
 
     async function loadCustomerOrders() {
@@ -1676,14 +1676,14 @@ Oq fonli foto`;
         const data = await api(`/orders/${encodeURIComponent(activeOrderNumber)}/track`);
         const o = data.order;
         if (!o) { activeOrderCardWrap.innerHTML = ''; return; }
-        if (o.status === 'delivered' && o.feedbackAt) {
+        if (!isActiveOrderStatus(o.status)) {
           pushOrderHistory(o);
           activeOrderNumber = '';
           localStorage.removeItem('activeOrderNumber');
           activeOrderCardWrap.innerHTML = '';
           return;
         }
-        activeOrderCardWrap.innerHTML = `<article class="list-card"><h4 style="margin-bottom:6px;">Faol buyurtma</h4><div class="muted">#${o.orderNumber} · ${orderStatusLabel(o.status)}</div><div class="muted">Jami: ${money(o.total || 0)}</div><div style="display:flex;gap:8px;margin-top:8px;"><a class="btn btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="text-align:center;">Kuzatish</a>${o.status === 'delivered' && !o.feedbackAt ? `<a class="btn btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="text-align:center;">Fikr bildirish</a>` : ''}</div></article>`;
+        activeOrderCardWrap.innerHTML = `<article class="list-card"><h4 style="margin-bottom:6px;">Faol buyurtma</h4><div class="muted">#${o.orderNumber} · ${orderStatusLabel(o.status)}</div><div class="muted">Jami: ${money(o.total || 0)}</div><div style="display:flex;gap:8px;margin-top:8px;"><a class="btn btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="text-align:center;">Kuzatish</a></div></article>`;
       } catch {
         activeOrderCardWrap.innerHTML = '';
       }
@@ -1770,7 +1770,7 @@ Oq fonli foto`;
       try {
         const data = await api(`/orders/${encodeURIComponent(latestOrderNumber)}/track`);
         successOrderStatus.textContent = `Status: ${orderStatusLabel(data.order?.status)}`;
-        if (data.order?.status === 'delivered' && data.order?.feedbackAt) {
+        if (!isActiveOrderStatus(data.order?.status)) {
           pushOrderHistory(data.order);
           activeOrderNumber = '';
           localStorage.removeItem('activeOrderNumber');
@@ -1985,7 +1985,6 @@ Oq fonli foto`;
     document.querySelectorAll('.pay-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         selectedPayment = btn.dataset.payment;
-        if (selectedPayment !== 'cash') cashAgreementAuth = { confirmed: false, method: '' };
         document.querySelectorAll('.pay-btn').forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
         renderCheckout();
@@ -2016,18 +2015,14 @@ Oq fonli foto`;
         if (selectedPayment === 'click' || selectedPayment === 'payme') {
           const file = paymentProofInput.files && paymentProofInput.files[0];
           if (!file) {
-            showToast("To‘lov cheki screenshotini yuklang");
+            showToast("To‘lov chekini ilova qiling");
             return;
           }
           paymentProofUrl = file.name;
         }
         if (selectedPayment === 'cash') {
           if (!cashAgreementCheckbox.checked) {
-            showToast("Naqd to‘lov majburiyatini tasdiqlang");
-            return;
-          }
-          if (!cashAgreementAuth.confirmed) {
-            showToast("Naqd agreement tasdiqlash tugmasini bosing");
+            showToast("Naqd to‘lov shartlarini tasdiqlang");
             return;
           }
         }
@@ -2038,9 +2033,6 @@ Oq fonli foto`;
             paymentStatus: selectedPayment === 'cash' ? 'cash_pending' : 'proof_uploaded',
             cashTermsAccepted: selectedPayment === 'cash',
             paymentProofUrl,
-            cashAgreementConfirmed: selectedPayment === 'cash' ? cashAgreementAuth.confirmed : false,
-            cashAgreementConfirmedAt: selectedPayment === 'cash' ? new Date().toISOString() : null,
-            authMethod: selectedPayment === 'cash' ? cashAgreementAuth.method : '',
             cashAgreementTextVersion: selectedPayment === 'cash' ? 'draft-v1' : '',
             cashAgreementAccepted: selectedPayment === 'cash' ? cashAgreementCheckbox.checked : false,
             cashAgreementAcceptedAt: selectedPayment === 'cash' ? new Date().toISOString() : null,
@@ -2114,33 +2106,6 @@ Oq fonli foto`;
 
     manualAddress.addEventListener('input', renderCheckout);
     landmarkInput.addEventListener('input', renderCheckout);
-    cashConfirmBtn?.addEventListener('click', async () => {
-      try {
-        if (window.PublicKeyCredential && navigator.credentials?.get) {
-          const challenge = new Uint8Array(32);
-          crypto.getRandomValues(challenge);
-          await navigator.credentials.get({ publicKey: { challenge, timeout: 12000, userVerification: 'preferred', allowCredentials: [] } });
-          cashAgreementAuth = { confirmed: true, method: 'webauthn' };
-        } else {
-          const pin = prompt("PIN kiriting (fallback)");
-          if (!pin || String(pin).trim().length < 4) {
-            showToast("PIN noto'g'ri");
-            return;
-          }
-          cashAgreementAuth = { confirmed: true, method: 'pin_fallback' };
-        }
-        showToast("Naqd agreement tasdiqlandi");
-      } catch {
-        const pin = prompt("WebAuthn bo'lmadi. PIN kiriting");
-        if (!pin || String(pin).trim().length < 4) {
-          showToast("Tasdiqlash muvaffaqiyatsiz");
-          return;
-        }
-        cashAgreementAuth = { confirmed: true, method: 'pin_fallback' };
-        showToast("Naqd agreement tasdiqlandi");
-      }
-    });
-
     (async () => {
       await loadProfile();
       if (isAuthed()) {

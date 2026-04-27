@@ -45,9 +45,9 @@
     const orderNumber = decodeURIComponent(location.pathname.split('/').pop());
     const steps = [
       { label: 'Buyurtma qabul qilindi', statuses: ['new'] },
-      { label: 'TSD ga yuborildi', statuses: ['sent_to_tsd'] },
-      { label: 'Tovarlar terilmoqda', statuses: ['picking'] },
-      { label: 'Yig‘ildi / Kurier kutilyapti', statuses: ['picked', 'waiting_courier'] },
+      { label: 'Tovar terilmoqda', statuses: ['sent_to_tsd'] },
+      { label: 'Tovar terilmoqda', statuses: ['picking'] },
+      { label: 'Yig‘ildi / kurier kutilmoqda', statuses: ['picked', 'waiting_courier'] },
       { label: 'Kurierda', statuses: ['out_for_delivery'] },
       { label: 'Yetkazildi', statuses: ['delivered'] },
       { label: 'Bekor qilingan', statuses: ['cancelled'] }
