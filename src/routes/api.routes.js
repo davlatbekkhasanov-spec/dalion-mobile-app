@@ -2,6 +2,7 @@ const express = require('express');
 
 const homeController = require('../controllers/home.controller.js');
 const productController = require('../controllers/product.controller.js');
+const authController = require('../controllers/auth.controller.js');
 const cartController = require('../controllers/cart.controller.js');
 const orderController = require('../controllers/order.controller.js');
 const courierController = require('../controllers/courier.controller.js');
@@ -14,6 +15,8 @@ const router = express.Router();
 
 router.get('/home', homeController.getHome);
 router.get('/products', productController.getProducts);
+router.post('/auth/request-otp', authController.requestOtp);
+router.post('/auth/verify-otp', authController.verifyOtp);
 
 router.get('/cart', cartController.getCart);
 router.put('/cart/items', cartController.setCartItem);
@@ -31,6 +34,7 @@ router.get('/orders/display', orderController.getOrdersDisplay);
 router.get('/courier/:token', courierController.getCourierOrder);
 router.post('/courier/:token/accept', courierController.acceptCourierOrder);
 router.post('/courier/:token/deliver', courierController.deliverCourierOrder);
+router.post('/courier/:token/location', courierController.updateCourierLocation);
 
 router.get('/integrations/status', integrationController.getIntegrationStatus);
 router.post('/integrations/1c/import', integrationController.importFrom1C);

@@ -62,9 +62,17 @@
 
   <script>
     const tokenKey = 'admin_import_token';
+    const STORE_LOCATION = {
+      lat: 39.654572,
+      lng: 66.958871,
+      name: 'GlobusMarket',
+      mapsUrl: 'https://maps.google.com/maps?q=39.654572,66.958871&ll=39.654572,66.958871&z=16'
+    };
     const statusGroups = [
       { key: 'new', label: 'Yangi', statuses: ['new'] },
-      { key: 'ready_waiting', label: 'Tayyor / Kurier kutilyapti', statuses: ['sent_to_tsd', 'picked', 'waiting_courier'] },
+      { key: 'sent_to_tsd', label: 'Tovar terilmoqda', statuses: ['sent_to_tsd'] },
+      { key: 'picking', label: 'Terilmoqda', statuses: ['picking'] },
+      { key: 'picked_waiting', label: 'Tayyor / Kurier kutilyapti', statuses: ['picked', 'waiting_courier'] },
       { key: 'out_for_delivery', label: 'Kurierda', statuses: ['out_for_delivery'] },
       { key: 'delivered', label: 'Yetkazildi', statuses: ['delivered'] },
       { key: 'cancelled', label: 'Bekor qilingan', statuses: ['cancelled'] }
@@ -105,6 +113,7 @@
                 <div class="row"><span>${(o.items||[]).length} item</span><strong>${Number(o.total||0).toLocaleString('ru-RU')} so'm</strong></div>
                 <div class="muted">Status: ${o.status} | To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatus || '-'}</div>
                 <div class="muted">${o.paymentProofUrl ? `<a href="${o.paymentProofUrl}" target="_blank">Payment proof</a>` : 'Payment proof: -'}</div>
+                <div class="muted">${o.courierLocationUpdatedAt ? `Kurier joylashuvi: yangilangan ${fmt(o.courierLocationUpdatedAt)}` : ''}</div>
                 <div class="muted">${fmt(o.created_at)}</div>
               </article>
             `).join('')}
@@ -118,7 +127,9 @@
       document.getElementById('mOrderTitle').textContent = `#${order.orderNumber || order.id}`;
       const mapLink = (Number.isFinite(Number(order.locationLat)) && Number.isFinite(Number(order.locationLng)))
         ? `https://maps.google.com/?q=${order.locationLat},${order.locationLng}` : '';
-      document.getElementById('mMeta').innerHTML = `${order.customerName || 'Mehmon'} | ${order.customerPhone || '-'} | ${order.customerAddress || order.addressText || order.location || '-'}<br>Orientir: ${order.landmarkText || '-'}${mapLink ? ` | <a href="${mapLink}" target="_blank">Map</a>` : ''}<br>To‘lov: ${order.paymentMethod || '-'} / ${order.paymentStatus || '-'}<br>Cash agreement: ${order.cashAgreementAccepted ? 'ha' : 'yo‘q'}<br>${order.paymentProofUrl ? `<a href=\"${order.paymentProofUrl}\" target=\"_blank\">Payment proof</a>` : 'Payment proof: -'}`;
+      const courierMapLink = (Number.isFinite(Number(order.courierLocationLat)) && Number.isFinite(Number(order.courierLocationLng)))
+        ? `https://maps.google.com/?q=${order.courierLocationLat},${order.courierLocationLng}` : '';
+      document.getElementById('mMeta').innerHTML = `${order.customerName || 'Mehmon'} | ${order.customerPhone || '-'} | ${order.customerAddress || order.addressText || order.location || '-'}<br>Orientir: ${order.landmarkText || '-'}${mapLink ? ` | <a href="${mapLink}" target="_blank">Map</a>` : ''}<br>Do‘kon manzili: <a href="${STORE_LOCATION.mapsUrl}" target="_blank">${STORE_LOCATION.name}</a><br>To‘lov: ${order.paymentMethod || '-'} / ${order.paymentStatus || '-'}<br>Cash agreement: ${order.cashAgreementAccepted ? 'ha' : 'yo‘q'}<br>${order.paymentProofUrl ? `<a href=\"${order.paymentProofUrl}\" target=\"_blank\">Payment proof</a>` : 'Payment proof: -'}<br>${order.courierLocationUpdatedAt ? `Kurier joylashuvi: yangilangan ${fmt(order.courierLocationUpdatedAt)}` : 'Kurier joylashuvi: -'}${courierMapLink ? ` | <a href="${courierMapLink}" target="_blank">Xaritada ko‘rish</a>` : ''}`;
       document.getElementById('mItems').innerHTML = (order.items || []).map((it) => `
         <div class="item">
           ${it.image_url ? `<img src="${it.image_url}" alt="${it.name}" />` : `<img alt="" />`}
@@ -136,8 +147,13 @@
         actions.push(`<button class="primary" data-tsd="1">${order.tsdStatus === 'queued' ? 'Tayyorlanmoqda' : 'Tayyorlashni boshlash'}</button>`);
       }
       if (order.status === 'sent_to_tsd') {
-        actions.push('<button disabled>Tayyorlanmoqda</button>');
-        actions.push('<button data-next="waiting_courier">Tayyor</button>');
+        actions.push('<button data-next="picking">Terishni boshlash</button>');
+      }
+      if (order.status === 'picking') {
+        actions.push('<button data-next="picked">Terib bo‘lindi</button>');
+      }
+      if (order.status === 'picked') {
+        actions.push('<button data-next="waiting_courier">Kurierni kutmoqda</button>');
       }
       if (order.status === 'picked' || order.status === 'waiting_courier') {
         actions.push('<button data-print="1">Chek chiqarish</button>');
