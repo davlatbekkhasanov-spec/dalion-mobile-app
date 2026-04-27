@@ -43,6 +43,13 @@ const API_CONFIG = Object.freeze({
   LOCATION_LOST_SECONDS: 60
 });
 
+const STORE_LOCATION = Object.freeze({
+  lat: 39.654572,
+  lng: 66.958871,
+  name: 'GlobusMarket',
+  mapsUrl: 'https://maps.google.com/maps?q=39.654572,66.958871&ll=39.654572,66.958871&z=16'
+});
+
 module.exports = {
   ORDER_STATUSES,
   ORDER_STATUS_LIST,
@@ -50,5 +57,6 @@ module.exports = {
   PAYMENT_METHODS,
   PAYMENT_METHOD_LIST,
   PAYMENT_STATUSES,
-  API_CONFIG
+  API_CONFIG,
+  STORE_LOCATION
 };

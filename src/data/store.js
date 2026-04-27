@@ -500,7 +500,10 @@ function createOrder({
     return { error: 'To‘lov turi noto‘g‘ri' };
   }
   const customerAddress = String(user.address || addressText || location || '').trim();
-  const hasGeo = Number.isFinite(Number(locationLat)) && Number.isFinite(Number(locationLng));
+  const latNum = Number(locationLat);
+  const lngNum = Number(locationLng);
+  const hasGeoInput = locationLat !== null && locationLat !== undefined && locationLat !== '' && locationLng !== null && locationLng !== undefined && locationLng !== '';
+  const hasGeo = hasGeoInput && Number.isFinite(latNum) && Number.isFinite(lngNum) && Math.abs(latNum) <= 90 && Math.abs(lngNum) <= 180;
   const hasManual = String(addressText || customerAddress || location || '').trim();
   if (!hasGeo && !hasManual) {
     return { error: 'Lokatsiya yoki manzil talab qilinadi' };
@@ -568,8 +571,8 @@ function createOrder({
     cashAgreementAccepted: Boolean(cashAgreementAccepted),
     cashAgreementAcceptedAt: cashAgreementAcceptedAt || (cashAgreementAccepted ? now : null),
     location: String(location || addressText || customerAddress || ''),
-    locationLat: hasGeo ? Number(locationLat) : null,
-    locationLng: hasGeo ? Number(locationLng) : null,
+    locationLat: hasGeo ? latNum : null,
+    locationLng: hasGeo ? lngNum : null,
     locationAccuracy: hasGeo && Number.isFinite(Number(locationAccuracy)) ? Number(locationAccuracy) : null,
     addressText: String(addressText || customerAddress || location || ''),
     landmarkText: String(landmarkText || ''),

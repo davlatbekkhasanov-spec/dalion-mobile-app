@@ -62,6 +62,12 @@
 
   <script>
     const tokenKey = 'admin_import_token';
+    const STORE_LOCATION = {
+      lat: 39.654572,
+      lng: 66.958871,
+      name: 'GlobusMarket',
+      mapsUrl: 'https://maps.google.com/maps?q=39.654572,66.958871&ll=39.654572,66.958871&z=16'
+    };
     const statusGroups = [
       { key: 'new', label: 'Yangi', statuses: ['new'] },
       { key: 'sent_to_tsd', label: 'Tovar terilmoqda', statuses: ['sent_to_tsd'] },
@@ -123,7 +129,7 @@
         ? `https://maps.google.com/?q=${order.locationLat},${order.locationLng}` : '';
       const courierMapLink = (Number.isFinite(Number(order.courierLocationLat)) && Number.isFinite(Number(order.courierLocationLng)))
         ? `https://maps.google.com/?q=${order.courierLocationLat},${order.courierLocationLng}` : '';
-      document.getElementById('mMeta').innerHTML = `${order.customerName || 'Mehmon'} | ${order.customerPhone || '-'} | ${order.customerAddress || order.addressText || order.location || '-'}<br>Orientir: ${order.landmarkText || '-'}${mapLink ? ` | <a href="${mapLink}" target="_blank">Map</a>` : ''}<br>To‘lov: ${order.paymentMethod || '-'} / ${order.paymentStatus || '-'}<br>Cash agreement: ${order.cashAgreementAccepted ? 'ha' : 'yo‘q'}<br>${order.paymentProofUrl ? `<a href=\"${order.paymentProofUrl}\" target=\"_blank\">Payment proof</a>` : 'Payment proof: -'}<br>${order.courierLocationUpdatedAt ? `Kurier joylashuvi: yangilangan ${fmt(order.courierLocationUpdatedAt)}` : 'Kurier joylashuvi: -'}${courierMapLink ? ` | <a href="${courierMapLink}" target="_blank">Xaritada ko‘rish</a>` : ''}`;
+      document.getElementById('mMeta').innerHTML = `${order.customerName || 'Mehmon'} | ${order.customerPhone || '-'} | ${order.customerAddress || order.addressText || order.location || '-'}<br>Orientir: ${order.landmarkText || '-'}${mapLink ? ` | <a href="${mapLink}" target="_blank">Map</a>` : ''}<br>Do‘kon manzili: <a href="${STORE_LOCATION.mapsUrl}" target="_blank">${STORE_LOCATION.name}</a><br>To‘lov: ${order.paymentMethod || '-'} / ${order.paymentStatus || '-'}<br>Cash agreement: ${order.cashAgreementAccepted ? 'ha' : 'yo‘q'}<br>${order.paymentProofUrl ? `<a href=\"${order.paymentProofUrl}\" target=\"_blank\">Payment proof</a>` : 'Payment proof: -'}<br>${order.courierLocationUpdatedAt ? `Kurier joylashuvi: yangilangan ${fmt(order.courierLocationUpdatedAt)}` : 'Kurier joylashuvi: -'}${courierMapLink ? ` | <a href="${courierMapLink}" target="_blank">Xaritada ko‘rish</a>` : ''}`;
       document.getElementById('mItems').innerHTML = (order.items || []).map((it) => `
         <div class="item">
           ${it.image_url ? `<img src="${it.image_url}" alt="${it.name}" />` : `<img alt="" />`}

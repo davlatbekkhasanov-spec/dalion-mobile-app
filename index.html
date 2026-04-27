@@ -1104,7 +1104,8 @@
           <p class="muted" id="checkoutLandmark">Orientir: -</p>
           <input id="manualAddress" class="checkout-input" placeholder="Manzil (qo'lda)" />
           <input id="landmarkInput" class="checkout-input" placeholder="Orientir" />
-          <button class="btn btn-secondary location-premium-btn" id="captureLocationBtn">Lokatsiyani aniqlash</button>
+          <button class="btn btn-secondary location-premium-btn" id="captureLocationBtn">GPS orqali manzilni olish (ixtiyoriy)</button>
+          <p class="muted" id="checkoutLocationHint">Lokatsiya ixtiyoriy. Istasangiz manzilni qo‘lda kiriting.</p>
           <p class="muted" id="checkoutTime">Vaqt: 30 daqiqa</p>
           <p class="muted" id="checkoutPrice">Narx: 12 000 so'm</p>
         </div>
@@ -1671,6 +1672,12 @@ Oq fonli foto`;
       checkoutGeo.textContent = Number.isFinite(Number(customerLocation.lat)) && Number.isFinite(Number(customerLocation.lng))
         ? `Geo: ${Number(customerLocation.lat).toFixed(6)}, ${Number(customerLocation.lng).toFixed(6)} (±${Math.round(Number(customerLocation.accuracy || 0))}m)`
         : 'Geo: olinmagan';
+      const checkoutLocationHint = document.getElementById('checkoutLocationHint');
+      if (checkoutLocationHint) {
+        checkoutLocationHint.textContent = customerLocation.permissionDenied
+          ? 'GPS ruxsatisiz ham buyurtma berishingiz mumkin. Manzilni qo‘lda kiriting.'
+          : 'Lokatsiya ixtiyoriy. Istasangiz manzilni qo‘lda kiriting.';
+      }
       if (selectedPayment === 'click') paymentLinks.innerHTML = 'Click: <a href="https://indoor.click.uz/pay?id=081328&t=0" target="_blank">To‘lov havolasi</a>';
       else if (selectedPayment === 'payme') paymentLinks.innerHTML = 'Payme: <a href="https://transfer.paycom.uz/693801c1958777a0164fea76" target="_blank">To‘lov havolasi</a>';
       else paymentLinks.innerHTML = '';
@@ -2144,7 +2151,8 @@ Oq fonli foto`;
     document.getElementById('captureLocationBtn').addEventListener('click', () => {
       if (!navigator.geolocation) {
         customerLocation.permissionDenied = true;
-        showToast('Brauzer geolokatsiyani qo‘llamaydi');
+        renderCheckout();
+        showToast('Bu qurilmada GPS mavjud emas. Manzilni qo‘lda kiriting.');
         return;
       }
       navigator.geolocation.getCurrentPosition((pos) => {
@@ -2156,7 +2164,8 @@ Oq fonli foto`;
         showToast('Lokatsiya olindi');
       }, () => {
         customerLocation.permissionDenied = true;
-        showToast('Geo ruxsati rad etildi. Manzil va orientirni qo‘lda kiriting');
+        renderCheckout();
+        showToast("GPS ruxsati berilmadi. Buyurtmani qo‘lda manzil bilan davom ettiring.");
       }, { enableHighAccuracy: true, timeout: 12000 });
     });
 

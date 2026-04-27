@@ -30,8 +30,9 @@
       <div id="liveMsg" class="ok" style="display:none;">Mijoz sizni kuzatib turibdi</div>
       <div id="liveHint" class="muted" style="display:none;">Yetkazish tugaguncha sahifani yopmang va ekran o‘chmasin</div>
       <div id="wakeWarn" class="warn" style="display:none;">Telefon ekranini o‘chirmang, aks holda live kuzatuv vaqtincha to‘xtashi mumkin</div>
-      <div id="gpsWarn" class="warn" style="display:none;">GPS ruxsati berilmadi</div>
+      <div id="gpsWarn" class="warn" style="display:none;">GPS ruxsati berilmadi. Mijoz live kuzatuvni ko‘rmasligi mumkin.</div>
       <div id="signalWarn" class="warn" style="display:none;">GPS signali vaqtincha yo‘qoldi</div>
+      <button id="enableGpsBtn" type="button">GPS ni yoqish</button>
       <h3 style="margin:12px 0 6px;">Yetkazish manzili</h3>
       <div id="destinationMeta" class="muted"></div>
       <div id="routeStatus" class="warn" style="display:none;"></div>
@@ -58,6 +59,7 @@
     let order = null;
     let trackingInterval = null;
     let gpsEnabled = false;
+    let gpsRequested = false;
     let gpsPermissionDenied = false;
     let wakeLockSentinel = null;
     let wakeLockSupported = 'wakeLock' in navigator;
@@ -71,6 +73,12 @@
     let lastRouteStart = null;
     let lastRouteEnd = null;
     const ROUTE_REFRESH_MS = 10000;
+    const STORE_LOCATION = {
+      lat: 39.654572,
+      lng: 66.958871,
+      name: 'GlobusMarket',
+      mapsUrl: 'https://maps.google.com/maps?q=39.654572,66.958871&ll=39.654572,66.958871&z=16'
+    };
     async function api(path, options={}) {
       const res = await fetch('/api/v1'+path, { headers: { 'Content-Type':'application/json' }, ...options });
       const data = await res.json().catch(()=>({}));
@@ -140,12 +148,18 @@
       const wakeWarn = document.getElementById('wakeWarn');
       const gpsWarn = document.getElementById('gpsWarn');
       const signalWarn = document.getElementById('signalWarn');
+      const enableGpsBtn = document.getElementById('enableGpsBtn');
       if (!liveMsg || !liveHint || !wakeWarn || !gpsWarn || !signalWarn) return;
       liveMsg.style.display = gpsEnabled ? 'block' : 'none';
       liveHint.style.display = gpsEnabled ? 'block' : 'none';
       wakeWarn.style.display = gpsEnabled && !wakeLockSupported ? 'block' : 'none';
       gpsWarn.style.display = gpsPermissionDenied ? 'block' : 'none';
       signalWarn.style.display = (gpsEnabled && lastLocationSuccessAt && (Date.now() - lastLocationSuccessAt > 20000)) ? 'block' : 'none';
+      if (enableGpsBtn) {
+        const canTrack = order?.status === 'out_for_delivery';
+        enableGpsBtn.style.display = canTrack && !gpsEnabled ? 'block' : 'none';
+        enableGpsBtn.disabled = !canTrack;
+      }
     }
 
     async function acquireWakeLock() {
@@ -182,7 +196,7 @@
     }
 
     async function sendCurrentLocation() {
-      if (!navigator.geolocation || !order || order.status !== 'out_for_delivery') return;
+      if (!navigator.geolocation || !order || order.status !== 'out_for_delivery' || !gpsRequested) return;
       return new Promise((resolve) => {
         navigator.geolocation.getCurrentPosition(async (pos) => {
           try {
@@ -219,11 +233,9 @@
 
     async function ensureTracking() {
       if (trackingInterval || !order || order.status !== 'out_for_delivery') return;
-      gpsEnabled = true;
       renderGpsStatus();
       await acquireWakeLock();
       await sendCurrentLocation();
-      if (gpsPermissionDenied) return;
       trackingInterval = setInterval(() => { sendCurrentLocation(); }, 5000);
     }
 
@@ -272,17 +284,19 @@
     }
 
     function updateNavButtons() {
-      const hasDestination = hasValidCoords(order?.locationLat, order?.locationLng);
-      document.getElementById('openGoogleNav').disabled = !hasDestination;
-      document.getElementById('openYandexNav').disabled = !hasDestination;
+      const hasDestinationCoords = hasValidCoords(order?.locationLat, order?.locationLng);
+      const hasAddressFallback = String(order?.addressText || order?.customerAddress || '').trim().length > 0;
+      document.getElementById('openGoogleNav').disabled = !(hasDestinationCoords || hasAddressFallback);
+      document.getElementById('openYandexNav').disabled = !(hasDestinationCoords || hasAddressFallback);
     }
 
     async function maybeUpdateRoute(force = false) {
       if (!order || order.status !== 'out_for_delivery') return;
-      if (!hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)) return;
       if (!hasValidCoords(order.locationLat, order.locationLng)) return;
       const now = Date.now();
-      const start = { lat: Number(lastKnownPosition.lat), lng: Number(lastKnownPosition.lng) };
+      const start = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
+        ? { lat: Number(lastKnownPosition.lat), lng: Number(lastKnownPosition.lng) }
+        : { lat: STORE_LOCATION.lat, lng: STORE_LOCATION.lng };
       const end = { lat: Number(order.locationLat), lng: Number(order.locationLng) };
       const movedMinor =
         lastRouteStart &&
@@ -326,11 +340,6 @@
       }
     }
 
-    function prepareGeolocationPermission() {
-      if (!navigator.geolocation) return;
-      navigator.geolocation.getCurrentPosition(() => {}, () => {}, { timeout: 3000, maximumAge: 60000 });
-    }
-
     function flushLastKnownLocation() {
       if (!lastKnownPosition) return;
       api('/courier/'+token+'/location', {
@@ -354,7 +363,9 @@
         const data = await api('/courier/'+token+'/accept',{method:'POST',body:JSON.stringify({courierName:courierName.value,courierPhone:courierPhone.value})});
         order = data.order; render();
         ensureTracking();
-      }catch(e){alert(e.message)}
+      }catch(e){
+        document.getElementById('msg').textContent = e.message || 'Buyurtmani qabul qilishda xatolik';
+      }
       finally{setBusy(btn,false);}
     };
     document.getElementById('deliverBtn').onclick = async ()=>{
@@ -365,8 +376,16 @@
         order = data.order;
         stopTracking(true);
         render();
-      }catch(e){alert(e.message)}
+      }catch(e){
+        document.getElementById('msg').textContent = e.message || 'Buyurtmani yakunlashda xatolik';
+      }
       finally{setBusy(btn,false);}
+    };
+    document.getElementById('enableGpsBtn').onclick = async () => {
+      gpsRequested = true;
+      gpsPermissionDenied = false;
+      await sendCurrentLocation();
+      renderGpsStatus();
     };
     refresh();
     prepareGeolocationPermission();
@@ -395,12 +414,31 @@
     });
 
     document.getElementById('openGoogleNav').addEventListener('click', () => {
-      if (!hasValidCoords(order?.locationLat, order?.locationLng)) return;
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${Number(order.locationLat)},${Number(order.locationLng)}`, '_blank');
+      if (hasValidCoords(order?.locationLat, order?.locationLng)) {
+        const origin = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
+          ? `${Number(lastKnownPosition.lat)},${Number(lastKnownPosition.lng)}`
+          : `${STORE_LOCATION.lat},${STORE_LOCATION.lng}`;
+        window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${Number(order.locationLat)},${Number(order.locationLng)}`, '_blank');
+        return;
+      }
+      const addr = encodeURIComponent(String(order?.addressText || order?.customerAddress || '').trim());
+      if (!addr) return;
+      const origin = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
+        ? `${Number(lastKnownPosition.lat)},${Number(lastKnownPosition.lng)}`
+        : `${STORE_LOCATION.lat},${STORE_LOCATION.lng}`;
+      window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${addr}`, '_blank');
     });
     document.getElementById('openYandexNav').addEventListener('click', () => {
-      if (!hasValidCoords(order?.locationLat, order?.locationLng)) return;
-      window.open(`https://yandex.com/maps/?rtext=~${Number(order.locationLat)},${Number(order.locationLng)}`, '_blank');
+      const origin = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
+        ? `${Number(lastKnownPosition.lat)},${Number(lastKnownPosition.lng)}`
+        : `${STORE_LOCATION.lat},${STORE_LOCATION.lng}`;
+      if (hasValidCoords(order?.locationLat, order?.locationLng)) {
+        window.open(`https://yandex.com/maps/?rtext=${origin}~${Number(order.locationLat)},${Number(order.locationLng)}`, '_blank');
+        return;
+      }
+      const addr = encodeURIComponent(String(order?.addressText || order?.customerAddress || '').trim());
+      if (!addr) return;
+      window.open(`https://yandex.com/maps/?rtext=${origin}~${addr}`, '_blank');
     });
   </script>
 </body>
