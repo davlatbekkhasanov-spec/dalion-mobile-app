@@ -551,6 +551,7 @@ function createOrder({
     courierLocationUpdatedAt: null,
     courierTrackingStartedAt: null,
     courierTrackingStoppedAt: null,
+    courierTrackingHeartbeatAt: null,
     deliveredAt: null,
     cancelledAt: null,
     paymentMethod: normalizedPaymentMethod,
@@ -767,6 +768,7 @@ function updateCourierLocation(token, { lat = null, lng = null, accuracy = null 
   order.courierLocationAccuracy = Number.isFinite(Number(accuracy)) ? Number(accuracy) : null;
   order.courierLocationUpdatedAt = new Date().toISOString();
   order.courierTrackingStartedAt = order.courierTrackingStartedAt || order.courierLocationUpdatedAt;
+  order.courierTrackingHeartbeatAt = order.courierLocationUpdatedAt;
   order.updated_at = order.courierLocationUpdatedAt;
   persistState();
   return { ok: true, order };

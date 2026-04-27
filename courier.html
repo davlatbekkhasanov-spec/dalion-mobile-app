@@ -24,7 +24,10 @@
       <p id="msg" class="muted"></p>
       <div id="orderInfo" class="muted"></div>
       <div id="liveMsg" class="ok" style="display:none;">Mijoz sizni kuzatib turibdi</div>
+      <div id="liveHint" class="muted" style="display:none;">Yetkazish tugaguncha sahifani yopmang va ekran o‘chmasin</div>
+      <div id="wakeWarn" class="warn" style="display:none;">Telefon ekranini o‘chirmang, aks holda live kuzatuv vaqtincha to‘xtashi mumkin</div>
       <div id="gpsWarn" class="warn" style="display:none;">GPS ruxsati berilmadi</div>
+      <div id="signalWarn" class="warn" style="display:none;">GPS signali vaqtincha yo‘qoldi</div>
       <input id="courierName" placeholder="Courier name" />
       <input id="courierPhone" placeholder="Courier phone" />
       <button id="acceptBtn" class="primary">Buyurtmani qabul qildim</button>
@@ -38,6 +41,10 @@
     let trackingInterval = null;
     let gpsEnabled = false;
     let gpsPermissionDenied = false;
+    let wakeLockSentinel = null;
+    let wakeLockSupported = 'wakeLock' in navigator;
+    let lastLocationSuccessAt = 0;
+    let lastKnownPosition = null;
     async function api(path, options={}) {
       const res = await fetch('/api/v1'+path, { headers: { 'Content-Type':'application/json' }, ...options });
       const data = await res.json().catch(()=>({}));
@@ -101,10 +108,38 @@
 
     function renderGpsStatus() {
       const liveMsg = document.getElementById('liveMsg');
+      const liveHint = document.getElementById('liveHint');
+      const wakeWarn = document.getElementById('wakeWarn');
       const gpsWarn = document.getElementById('gpsWarn');
-      if (!liveMsg || !gpsWarn) return;
+      const signalWarn = document.getElementById('signalWarn');
+      if (!liveMsg || !liveHint || !wakeWarn || !gpsWarn || !signalWarn) return;
       liveMsg.style.display = gpsEnabled ? 'block' : 'none';
+      liveHint.style.display = gpsEnabled ? 'block' : 'none';
+      wakeWarn.style.display = gpsEnabled && !wakeLockSupported ? 'block' : 'none';
       gpsWarn.style.display = gpsPermissionDenied ? 'block' : 'none';
+      signalWarn.style.display = (gpsEnabled && lastLocationSuccessAt && (Date.now() - lastLocationSuccessAt > 20000)) ? 'block' : 'none';
+    }
+
+    async function acquireWakeLock() {
+      if (!wakeLockSupported || wakeLockSentinel || !order || order.status !== 'out_for_delivery') return;
+      try {
+        wakeLockSentinel = await navigator.wakeLock.request('screen');
+        wakeLockSentinel.addEventListener('release', () => {
+          wakeLockSentinel = null;
+        });
+      } catch {
+        // ignore and rely on manual screen-on warning
+      }
+    }
+
+    async function releaseWakeLock() {
+      if (!wakeLockSentinel) return;
+      try {
+        await wakeLockSentinel.release();
+      } catch {
+        // no-op
+      }
+      wakeLockSentinel = null;
     }
 
     function stopTracking(markStopped = false) {
@@ -114,6 +149,7 @@
       }
       gpsEnabled = false;
       if (markStopped && order) order.courierTrackingStoppedAt = new Date().toISOString();
+      releaseWakeLock();
       renderGpsStatus();
     }
 
@@ -131,7 +167,13 @@
               })
             });
             order = out.order || order;
+            lastKnownPosition = {
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              accuracy: pos.coords.accuracy
+            };
             gpsEnabled = true;
+            lastLocationSuccessAt = Date.now();
             renderGpsStatus();
           } catch (e) {
             // no-op to keep delivery flow unblocked
@@ -148,6 +190,9 @@
 
     async function ensureTracking() {
       if (trackingInterval || !order || order.status !== 'out_for_delivery') return;
+      gpsEnabled = true;
+      renderGpsStatus();
+      await acquireWakeLock();
       await sendCurrentLocation();
       if (gpsPermissionDenied) return;
       trackingInterval = setInterval(() => { sendCurrentLocation(); }, 5000);
@@ -156,6 +201,14 @@
     function prepareGeolocationPermission() {
       if (!navigator.geolocation) return;
       navigator.geolocation.getCurrentPosition(() => {}, () => {}, { timeout: 3000, maximumAge: 60000 });
+    }
+
+    function flushLastKnownLocation() {
+      if (!lastKnownPosition) return;
+      api('/courier/'+token+'/location', {
+        method: 'POST',
+        body: JSON.stringify(lastKnownPosition)
+      }).catch(() => null);
     }
     async function refresh(){
       try{
@@ -190,6 +243,26 @@
     refresh();
     prepareGeolocationPermission();
     setInterval(refresh, 5000);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        flushLastKnownLocation();
+      } else {
+        if (order?.status === 'out_for_delivery') {
+          sendCurrentLocation();
+          acquireWakeLock();
+        }
+      }
+    });
+    window.addEventListener('pagehide', () => {
+      flushLastKnownLocation();
+    });
+    window.addEventListener('pageshow', () => {
+      if (order?.status === 'out_for_delivery') {
+        sendCurrentLocation();
+        acquireWakeLock();
+      }
+    });
   </script>
 </body>
 </html>

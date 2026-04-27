@@ -121,11 +121,20 @@
 
       const lat = Number(order.courierLocationLat);
       const lng = Number(order.courierLocationLng);
-      const updatedAt = order.courierLocationUpdatedAt
-        ? new Date(order.courierLocationUpdatedAt).toLocaleTimeString('ru-RU')
-        : '-';
-      meta.textContent = `Oxirgi yangilanish: ${updatedAt}`;
-      mapLink.innerHTML = `<a href="https://maps.google.com/?q=${lat},${lng}" target="_blank">Xaritada ko‘rish</a>`;
+      const updatedMs = order.courierLocationUpdatedAt ? new Date(order.courierLocationUpdatedAt).getTime() : 0;
+      const ageSec = updatedMs ? Math.max(0, Math.floor((Date.now() - updatedMs) / 1000)) : 0;
+      const updatedAt = updatedMs ? new Date(updatedMs).toLocaleTimeString('ru-RU') : '-';
+      let statusText = 'Live';
+      if (ageSec >= 60) statusText = 'Signal vaqtincha yo‘qolgan';
+      else if (ageSec >= 20) statusText = 'Yangilanmoqda';
+      meta.textContent = `Oxirgi yangilanish: ${updatedAt} · ${statusText}`;
+      if (ageSec >= 60) {
+        mapLink.innerHTML = `Kurier signali vaqtincha yo‘qolgan, oxirgi lokatsiya ko‘rsatilmoqda · <a href="https://maps.google.com/?q=${lat},${lng}" target="_blank">Xaritada ko‘rish</a>`;
+      } else if (ageSec >= 20) {
+        mapLink.innerHTML = `Kurier lokatsiyasi yangilanmoqda · <a href="https://maps.google.com/?q=${lat},${lng}" target="_blank">Xaritada ko‘rish</a>`;
+      } else {
+        mapLink.innerHTML = `<a href="https://maps.google.com/?q=${lat},${lng}" target="_blank">Xaritada ko‘rish</a>`;
+      }
       mapWrap.style.display = 'block';
       initCourierMap(lat, lng);
       if (!courierMap) return;

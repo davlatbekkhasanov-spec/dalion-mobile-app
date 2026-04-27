@@ -20,6 +20,7 @@ exports.deliverCourierOrder = (req, res) => {
 };
 
 exports.updateCourierLocation = (req, res) => {
+  // Native-ready endpoint: mobile app background tracker can post same payload here in future.
   const out = store.updateCourierLocation(req.params.token, req.body || {});
   if (out.error) return res.status(400).json({ ok: false, message: out.error });
   return res.json({ ok: true, order: out.order });
