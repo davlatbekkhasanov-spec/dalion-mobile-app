@@ -8,11 +8,13 @@
     html,body{min-height:100dvh;overflow-x:hidden}
     body{margin:0;background:#07111f;color:#e8f4ff;font-family:Inter,Segoe UI,Arial,sans-serif}
     .wrap{padding:12px;overflow-y:auto}
-    .card{width:min(100% - 24px,520px);margin:24px auto;background:#0d1d36;border:1px solid #28466c;border-radius:14px;padding:14px}
-    input,button{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #34567f;background:#0b1830;color:#e8f4ff;margin-top:8px;font-size:16px}
+    .card{width:min(100% - 24px,520px);margin:24px auto;background:linear-gradient(180deg,#10213d,#0a172e);backdrop-filter:blur(10px);border:1px solid #2f5078;border-radius:16px;padding:16px}
+    input,button{width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:1px solid #34567f;background:#0b1830;color:#e8f4ff;margin-top:8px;font-size:17px}
     button{cursor:pointer;font-weight:700}
     .primary{background:linear-gradient(90deg,#2aff9b,#28d8ff);color:#04221c;border:none}
     .muted{color:#9ab8df;font-size:13px}
+    .ok{color:#9dffcc;font-size:13px;margin-top:10px}
+    .warn{color:#ffcf99;font-size:12px;margin-top:6px}
   </style>
 </head>
 <body>
@@ -21,14 +23,13 @@
       <h2 style="margin-top:0;">Courier QR</h2>
       <p id="msg" class="muted"></p>
       <div id="orderInfo" class="muted"></div>
-      <div id="gpsCard" class="muted" style="margin-top:10px;padding:10px;border:1px solid #34567f;border-radius:10px;background:#0b1830;">
-        GPS kuzatuv o‘chiq
-      </div>
+      <div id="liveMsg" class="ok" style="display:none;">Mijoz sizni kuzatib turibdi</div>
+      <div id="gpsWarn" class="warn" style="display:none;">GPS ruxsati berilmadi</div>
       <input id="courierName" placeholder="Courier name" />
       <input id="courierPhone" placeholder="Courier phone" />
       <button id="acceptBtn" class="primary">Buyurtmani qabul qildim</button>
       <button id="deliverBtn" style="display:none;">Mijozga topshirildi</button>
-      <div id="successMsg" class="muted" style="display:none;margin-top:10px;color:#9dffcc;">Buyurtma mijozga topshirildi</div>
+      <div id="successMsg" class="muted" style="display:none;margin-top:10px;color:#9dffcc;">Buyurtma yakunlandi</div>
     </div>
   </div>
   <script>
@@ -98,21 +99,12 @@
       renderGpsStatus();
     }
 
-    function renderGpsStatus(lastSentAt = null) {
-      const gpsCard = document.getElementById('gpsCard');
-      if (!gpsCard) return;
-      if (gpsPermissionDenied) {
-        gpsCard.textContent = 'GPS ruxsati berilmadi, mijoz live trackingni ko‘ra olmaydi';
-        return;
-      }
-      if (gpsEnabled) {
-        const base = 'GPS kuzatuv yoqilgan';
-        gpsCard.textContent = lastSentAt
-          ? `${base}. Oxirgi joylashuv yuborildi: ${new Date(lastSentAt).toLocaleTimeString('ru-RU')}`
-          : base;
-        return;
-      }
-      gpsCard.textContent = 'GPS kuzatuv o‘chiq';
+    function renderGpsStatus() {
+      const liveMsg = document.getElementById('liveMsg');
+      const gpsWarn = document.getElementById('gpsWarn');
+      if (!liveMsg || !gpsWarn) return;
+      liveMsg.style.display = gpsEnabled ? 'block' : 'none';
+      gpsWarn.style.display = gpsPermissionDenied ? 'block' : 'none';
     }
 
     function stopTracking(markStopped = false) {
@@ -140,7 +132,7 @@
             });
             order = out.order || order;
             gpsEnabled = true;
-            renderGpsStatus(order.courierLocationUpdatedAt);
+            renderGpsStatus();
           } catch (e) {
             // no-op to keep delivery flow unblocked
           }
@@ -159,6 +151,11 @@
       await sendCurrentLocation();
       if (gpsPermissionDenied) return;
       trackingInterval = setInterval(() => { sendCurrentLocation(); }, 5000);
+    }
+
+    function prepareGeolocationPermission() {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(() => {}, () => {}, { timeout: 3000, maximumAge: 60000 });
     }
     async function refresh(){
       try{
@@ -191,6 +188,7 @@
       finally{setBusy(btn,false);}
     };
     refresh();
+    prepareGeolocationPermission();
     setInterval(refresh, 5000);
   </script>
 </body>

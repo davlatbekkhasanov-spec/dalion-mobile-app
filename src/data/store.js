@@ -656,17 +656,6 @@ function restoreStockForCancelledOrder(order) {
   order.stockRestoredAt = new Date().toISOString();
 }
 
-function restoreStockForCancelledOrder(order) {
-  if (!order || order.stockRestoredAt) return;
-  for (const item of order.items || []) {
-    const p = getProductById(item.id);
-    if (!p) continue;
-    p.stock = Math.max(0, Number(p.stock || 0) + Math.max(0, Number(item.quantity || 0)));
-    p.updated_at = new Date().toISOString();
-  }
-  order.stockRestoredAt = new Date().toISOString();
-}
-
 function updateOrderStatus(id, status) {
   if (!ORDER_STATUSES.has(status)) return null;
   const order = getOrderById(id);
