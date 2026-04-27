@@ -678,7 +678,8 @@
     };
 
     const orderNext = {
-      new: ['Terishni boshlash', 'picking'],
+      new: ['TSD ga yuborish', 'sent_to_tsd'],
+      sent_to_tsd: ['Terishni boshlash', 'picking'],
       picking: ['Terib bo‘lindi', 'picked'],
       picked: ['Kurierni kutmoqda', 'waiting_courier'],
       waiting_courier: ['Kurierga berildi', 'out_for_delivery'],
@@ -688,7 +689,7 @@
     async function loadOrdersAdmin(){
       const {orders} = await api('/admin/orders');
       const wrap = document.getElementById('ordersAdminBoard');
-      const statuses = ['new','picking','picked','waiting_courier','out_for_delivery','delivered'];
+      const statuses = ['new','sent_to_tsd','picking','picked','waiting_courier','out_for_delivery','delivered','cancelled'];
       const buckets = Object.fromEntries(statuses.map((s)=>[s,[]]));
       (orders || []).forEach((o)=>{ if (buckets[o.status]) buckets[o.status].push(o); });
       wrap.innerHTML = statuses.map((s)=>`

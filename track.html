@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Order Tracking</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     body{margin:0;background:#07111f;color:#e8f4ff;font-family:Inter,Segoe UI,Arial,sans-serif}
     .wrap{max-width:620px;margin:0 auto;padding:14px}
@@ -13,6 +14,7 @@
     .step.active{border-left-color:#2aff9b;background:#0e273f}
     textarea,input,button{width:100%;box-sizing:border-box;margin-top:8px;padding:10px;border-radius:10px;border:1px solid #355b86;background:#0b1830;color:#e8f4ff}
     button{cursor:pointer}
+    #courierMap{height:280px;border-radius:12px;display:none}
   </style>
 </head>
 <body>
@@ -33,6 +35,12 @@
       <div id="items" class="muted"></div>
       <div id="total" style="margin-top:8px;"></div>
     </div>
+    <div class="card" id="liveCourierCard" style="display:none;">
+      <h3 style="margin-top:0;">Kurier live lokatsiyasi</h3>
+      <div id="courierLiveMeta" class="muted" style="margin-bottom:8px;"></div>
+      <div id="courierMap"></div>
+      <div id="courierMapLink" class="muted" style="margin-top:8px;"></div>
+    </div>
     <div class="card" id="feedbackCard" style="display:none;">
       <h3 style="margin-top:0;">Fikr qoldirish</h3>
       <input id="rating" type="number" min="1" max="5" placeholder="Rating 1-5" />
@@ -41,16 +49,22 @@
       <div id="feedbackMsg" class="muted"></div>
     </div>
   </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const orderNumber = decodeURIComponent(location.pathname.split('/').pop());
     const steps = [
       { label: 'Buyurtma qabul qilindi', statuses: ['new'] },
-      { label: 'Tovarlar terilmoqda', statuses: ['sent_to_tsd'] },
-      { label: 'Yig‘ildi / Kurier kutilyapti', statuses: ['picked', 'waiting_courier'] },
+      { label: 'Tovar terilmoqda', statuses: ['sent_to_tsd'] },
+      { label: 'Tovar terilmoqda', statuses: ['picking'] },
+      { label: 'Yig‘ildi / kurier kutilmoqda', statuses: ['picked', 'waiting_courier'] },
       { label: 'Kurierda', statuses: ['out_for_delivery'] },
-      { label: 'Yetkazildi', statuses: ['delivered'] }
+      { label: 'Yetkazildi', statuses: ['delivered'] },
+      { label: 'Bekor qilingan', statuses: ['cancelled'] }
     ];
     let order = null;
+    let courierMap = null;
+    let courierMarker = null;
+    let destinationMarker = null;
     async function api(path, options={}) {
       const res = await fetch('/api/v1'+path,{headers:{'Content-Type':'application/json'},...options});
       const data = await res.json().catch(()=>({}));
@@ -74,6 +88,62 @@
       feedbackCard.style.display = order.status === 'delivered' ? 'block' : 'none';
       document.getElementById('sendFeedback').disabled = already;
       if (already) document.getElementById('feedbackMsg').textContent = 'Rahmat, fikringiz qabul qilindi';
+      renderCourierLiveSection();
+    }
+
+    function initCourierMap(lat, lng) {
+      if (courierMap || !window.L) return;
+      courierMap = L.map('courierMap', { zoomControl: true }).setView([lat, lng], 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(courierMap);
+    }
+
+    function renderCourierLiveSection() {
+      const wrap = document.getElementById('liveCourierCard');
+      const meta = document.getElementById('courierLiveMeta');
+      const mapWrap = document.getElementById('courierMap');
+      const mapLink = document.getElementById('courierMapLink');
+      if (!wrap || !meta || !mapWrap || !mapLink) return;
+
+      const canShow = order?.status === 'out_for_delivery' || order?.status === 'delivered';
+      wrap.style.display = canShow ? 'block' : 'none';
+      if (!canShow) return;
+
+      const hasCourierLoc = Number.isFinite(Number(order.courierLocationLat)) && Number.isFinite(Number(order.courierLocationLng));
+      if (!hasCourierLoc) {
+        meta.textContent = 'Kurier lokatsiyasi kutilmoqda';
+        mapWrap.style.display = 'none';
+        mapLink.innerHTML = '';
+        return;
+      }
+
+      const lat = Number(order.courierLocationLat);
+      const lng = Number(order.courierLocationLng);
+      const updatedAt = order.courierLocationUpdatedAt
+        ? new Date(order.courierLocationUpdatedAt).toLocaleTimeString('ru-RU')
+        : '-';
+      meta.textContent = `Oxirgi yangilanish: ${updatedAt}`;
+      mapLink.innerHTML = `<a href="https://maps.google.com/?q=${lat},${lng}" target="_blank">Xaritada ko‘rish</a>`;
+      mapWrap.style.display = 'block';
+      initCourierMap(lat, lng);
+      if (!courierMap) return;
+      courierMap.invalidateSize();
+
+      if (!courierMarker) courierMarker = L.marker([lat, lng]).addTo(courierMap).bindPopup('Kurier');
+      else courierMarker.setLatLng([lat, lng]);
+
+      const hasDestination = Number.isFinite(Number(order.locationLat)) && Number.isFinite(Number(order.locationLng));
+      if (hasDestination) {
+        const dLat = Number(order.locationLat);
+        const dLng = Number(order.locationLng);
+        if (!destinationMarker) destinationMarker = L.marker([dLat, dLng]).addTo(courierMap).bindPopup('Manzil');
+        else destinationMarker.setLatLng([dLat, dLng]);
+        courierMap.fitBounds([[lat, lng], [dLat, dLng]], { padding: [32, 32] });
+      } else {
+        courierMap.setView([lat, lng], 14);
+      }
     }
     async function refresh(){
       try{

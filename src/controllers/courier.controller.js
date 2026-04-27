@@ -18,3 +18,9 @@ exports.deliverCourierOrder = (req, res) => {
   if (out.error) return res.status(400).json({ message: out.error });
   return res.json({ order: out.order });
 };
+
+exports.updateCourierLocation = (req, res) => {
+  const out = store.updateCourierLocation(req.params.token, req.body || {});
+  if (out.error) return res.status(400).json({ ok: false, message: out.error });
+  return res.json({ ok: true, order: out.order });
+};

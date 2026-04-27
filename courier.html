@@ -8,11 +8,13 @@
     html,body{min-height:100dvh;overflow-x:hidden}
     body{margin:0;background:#07111f;color:#e8f4ff;font-family:Inter,Segoe UI,Arial,sans-serif}
     .wrap{padding:12px;overflow-y:auto}
-    .card{width:min(100% - 24px,520px);margin:24px auto;background:#0d1d36;border:1px solid #28466c;border-radius:14px;padding:14px}
-    input,button{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #34567f;background:#0b1830;color:#e8f4ff;margin-top:8px;font-size:16px}
+    .card{width:min(100% - 24px,520px);margin:24px auto;background:linear-gradient(180deg,#10213d,#0a172e);backdrop-filter:blur(10px);border:1px solid #2f5078;border-radius:16px;padding:16px}
+    input,button{width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:1px solid #34567f;background:#0b1830;color:#e8f4ff;margin-top:8px;font-size:17px}
     button{cursor:pointer;font-weight:700}
     .primary{background:linear-gradient(90deg,#2aff9b,#28d8ff);color:#04221c;border:none}
     .muted{color:#9ab8df;font-size:13px}
+    .ok{color:#9dffcc;font-size:13px;margin-top:10px}
+    .warn{color:#ffcf99;font-size:12px;margin-top:6px}
   </style>
 </head>
 <body>
@@ -21,16 +23,21 @@
       <h2 style="margin-top:0;">Courier QR</h2>
       <p id="msg" class="muted"></p>
       <div id="orderInfo" class="muted"></div>
+      <div id="liveMsg" class="ok" style="display:none;">Mijoz sizni kuzatib turibdi</div>
+      <div id="gpsWarn" class="warn" style="display:none;">GPS ruxsati berilmadi</div>
       <input id="courierName" placeholder="Courier name" />
       <input id="courierPhone" placeholder="Courier phone" />
       <button id="acceptBtn" class="primary">Buyurtmani qabul qildim</button>
       <button id="deliverBtn" style="display:none;">Mijozga topshirildi</button>
-      <div id="successMsg" class="muted" style="display:none;margin-top:10px;color:#9dffcc;">Buyurtma mijozga topshirildi</div>
+      <div id="successMsg" class="muted" style="display:none;margin-top:10px;color:#9dffcc;">Buyurtma yakunlandi</div>
     </div>
   </div>
   <script>
     const token = location.pathname.split('/').pop();
     let order = null;
+    let trackingInterval = null;
+    let gpsEnabled = false;
+    let gpsPermissionDenied = false;
     async function api(path, options={}) {
       const res = await fetch('/api/v1'+path, { headers: { 'Content-Type':'application/json' }, ...options });
       const data = await res.json().catch(()=>({}));
@@ -61,6 +68,7 @@
         phoneInput.readOnly = false;
         acceptBtn.style.display = 'block';
         deliverBtn.style.display = 'none';
+        stopTracking();
       } else if (order.status === 'out_for_delivery') {
         nameInput.style.display = 'block';
         phoneInput.style.display = 'block';
@@ -70,12 +78,14 @@
         phoneInput.readOnly = true;
         acceptBtn.style.display = 'none';
         deliverBtn.style.display = 'block';
+        ensureTracking();
       } else if (order.status === 'delivered') {
         acceptBtn.style.display = 'none';
         deliverBtn.style.display = 'none';
         nameInput.style.display = 'none';
         phoneInput.style.display = 'none';
         successMsg.style.display = 'block';
+        stopTracking(true);
       }
 
       if (order.courierTokenUsed || order.status === 'cancelled') {
@@ -84,7 +94,68 @@
         deliverBtn.style.display = 'none';
         nameInput.style.display = 'none';
         phoneInput.style.display = 'none';
+        stopTracking();
       }
+      renderGpsStatus();
+    }
+
+    function renderGpsStatus() {
+      const liveMsg = document.getElementById('liveMsg');
+      const gpsWarn = document.getElementById('gpsWarn');
+      if (!liveMsg || !gpsWarn) return;
+      liveMsg.style.display = gpsEnabled ? 'block' : 'none';
+      gpsWarn.style.display = gpsPermissionDenied ? 'block' : 'none';
+    }
+
+    function stopTracking(markStopped = false) {
+      if (trackingInterval) {
+        clearInterval(trackingInterval);
+        trackingInterval = null;
+      }
+      gpsEnabled = false;
+      if (markStopped && order) order.courierTrackingStoppedAt = new Date().toISOString();
+      renderGpsStatus();
+    }
+
+    async function sendCurrentLocation() {
+      if (!navigator.geolocation || !order || order.status !== 'out_for_delivery') return;
+      return new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+          try {
+            const out = await api('/courier/'+token+'/location', {
+              method: 'POST',
+              body: JSON.stringify({
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                accuracy: pos.coords.accuracy
+              })
+            });
+            order = out.order || order;
+            gpsEnabled = true;
+            renderGpsStatus();
+          } catch (e) {
+            // no-op to keep delivery flow unblocked
+          }
+          resolve();
+        }, () => {
+          gpsPermissionDenied = true;
+          gpsEnabled = false;
+          renderGpsStatus();
+          resolve();
+        }, { enableHighAccuracy: true, maximumAge: 3000, timeout: 9000 });
+      });
+    }
+
+    async function ensureTracking() {
+      if (trackingInterval || !order || order.status !== 'out_for_delivery') return;
+      await sendCurrentLocation();
+      if (gpsPermissionDenied) return;
+      trackingInterval = setInterval(() => { sendCurrentLocation(); }, 5000);
+    }
+
+    function prepareGeolocationPermission() {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(() => {}, () => {}, { timeout: 3000, maximumAge: 60000 });
     }
     async function refresh(){
       try{
@@ -101,6 +172,7 @@
       try{
         const data = await api('/courier/'+token+'/accept',{method:'POST',body:JSON.stringify({courierName:courierName.value,courierPhone:courierPhone.value})});
         order = data.order; render();
+        ensureTracking();
       }catch(e){alert(e.message)}
       finally{setBusy(btn,false);}
     };
@@ -109,11 +181,14 @@
       setBusy(btn, true);
       try{
         const data = await api('/courier/'+token+'/deliver',{method:'POST'});
-        order = data.order; render();
+        order = data.order;
+        stopTracking(true);
+        render();
       }catch(e){alert(e.message)}
       finally{setBusy(btn,false);}
     };
     refresh();
+    prepareGeolocationPermission();
     setInterval(refresh, 5000);
   </script>
 </body>
