@@ -1,8 +1,12 @@
-const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DATA_FILE = path.join(DATA_DIR, 'store.json');
+const storageAdapter = require('../storage/file-storage.adapter.js');
+const {
+  ORDER_STATUS_LIST,
+  ORDER_STATUSES,
+  PAYMENT_METHOD_LIST,
+  PAYMENT_METHODS,
+  PAYMENT_STATUSES
+} = require('../constants/domain.constants.js');
 
 const products = [
   { id: 'coca', code: 'DAL-COCA-1L', sku: 'DAL-COCA-1L', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 12000, oldPrice: 13400, stock: 100, image: '', image_url: '', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
@@ -48,11 +52,11 @@ const carts = new Map();
 const orders = [];
 let lastUpdated = null;
 let orderSequence = 1;
-const ORDER_STATUSES = new Set(['new', 'sent_to_tsd', 'picking', 'picked', 'waiting_courier', 'out_for_delivery', 'delivered', 'cancelled']);
+const ORDER_STATUS_SET = new Set(ORDER_STATUS_LIST);
 
 function normalizeOrderStatus(status = '') {
   const raw = String(status || '').trim();
-  if (ORDER_STATUSES.has(raw)) return raw;
+  if (ORDER_STATUS_SET.has(raw)) return raw;
   const legacyMap = {
     queued: 'sent_to_tsd',
     accepted: 'sent_to_tsd',
@@ -62,12 +66,11 @@ function normalizeOrderStatus(status = '') {
     in_delivery: 'out_for_delivery',
     done: 'delivered'
   };
-  return legacyMap[raw] || 'new';
+  return legacyMap[raw] || ORDER_STATUSES.NEW;
 }
 
 function persistState() {
   try {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
     const data = {
       products,
       categories,
@@ -83,7 +86,7 @@ function persistState() {
       orderSequence,
       savedAt: new Date().toISOString()
     };
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+    storageAdapter.writeJson(data);
     lastUpdated = data.savedAt;
   } catch (e) {
     // no-op for demo mode
@@ -92,8 +95,8 @@ function persistState() {
 
 function loadStateFromDisk() {
   try {
-    if (!fs.existsSync(DATA_FILE)) return false;
-    const parsed = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    const parsed = storageAdapter.readJson();
+    if (!parsed) return false;
     if (Array.isArray(parsed.products)) { products.splice(0, products.length, ...parsed.products); }
     if (Array.isArray(parsed.categories)) { categories.splice(0, categories.length, ...parsed.categories); }
     if (Array.isArray(parsed.banners)) { banners.splice(0, banners.length, ...parsed.banners); }
@@ -492,7 +495,7 @@ function createOrder({
 
   const now = new Date().toISOString();
   const normalizedPaymentMethod = String(paymentMethod || '').toLowerCase();
-  const acceptedPaymentMethods = new Set(['cash', 'click', 'payme']);
+  const acceptedPaymentMethods = new Set(PAYMENT_METHOD_LIST);
   if (!acceptedPaymentMethods.has(normalizedPaymentMethod)) {
     return { error: 'To‘lov turi noto‘g‘ri' };
   }
@@ -502,10 +505,10 @@ function createOrder({
   if (!hasGeo && !hasManual) {
     return { error: 'Lokatsiya yoki manzil talab qilinadi' };
   }
-  if ((normalizedPaymentMethod === 'click' || normalizedPaymentMethod === 'payme') && !String(paymentProofUrl || '').trim()) {
+  if ((normalizedPaymentMethod === PAYMENT_METHODS.CLICK || normalizedPaymentMethod === PAYMENT_METHODS.PAYME) && !String(paymentProofUrl || '').trim()) {
     return { error: "To‘lov cheki screenshotini yuklang" };
   }
-  if (normalizedPaymentMethod === 'cash' && !cashAgreementAccepted) {
+  if (normalizedPaymentMethod === PAYMENT_METHODS.CASH && !cashAgreementAccepted) {
     return { error: 'Naqd to‘lov shartlarini tasdiqlang' };
   }
   const orderItems = summary.items.map((item) => {
@@ -533,7 +536,7 @@ function createOrder({
     customerSelfieUrl: String(customerSelfieUrl || ''),
     created_at: now,
     updated_at: now,
-    status: 'new',
+    status: ORDER_STATUSES.NEW,
     sentToTsdAt: null,
     tsdStatus: '',
     dalionPicked: false,
@@ -555,7 +558,7 @@ function createOrder({
     deliveredAt: null,
     cancelledAt: null,
     paymentMethod: normalizedPaymentMethod,
-    paymentStatus: String(paymentStatus || (normalizedPaymentMethod === 'cash' ? 'cash_pending' : 'pending')),
+    paymentStatus: String(paymentStatus || (normalizedPaymentMethod === PAYMENT_METHODS.CASH ? PAYMENT_STATUSES.CASH_PENDING : PAYMENT_STATUSES.PENDING)),
     cashTermsAccepted: Boolean(cashTermsAccepted),
     paymentProofUrl: String(paymentProofUrl || ''),
     cashAgreementConfirmed: Boolean(cashAgreementConfirmed),
@@ -603,7 +606,7 @@ function attachPaymentProof(orderNumber, { paymentProofUrl = '' } = {}) {
   const order = getOrderByNumber(orderNumber);
   if (!order) return null;
   order.paymentProofUrl = String(paymentProofUrl || '');
-  order.paymentStatus = 'proof_uploaded';
+  order.paymentStatus = PAYMENT_STATUSES.PROOF_UPLOADED;
   order.updated_at = new Date().toISOString();
   persistState();
   return order;
@@ -636,14 +639,14 @@ function saveOrderFeedback(orderNumber, { rating = 0, comment = '' } = {}) {
 
 function applyStatusTimestamps(order, status) {
   const now = new Date().toISOString();
-  if (status === 'picking' && !order.pickerStartedAt) order.pickerStartedAt = now;
-  if (status === 'picked' && !order.pickedAt) order.pickedAt = now;
-  if (status === 'sent_to_tsd' && !order.sentToTsdAt) order.sentToTsdAt = now;
-  if (status === 'waiting_courier' && !order.waitingCourierAt) order.waitingCourierAt = now;
-  if (status === 'waiting_courier' && !order.courierWaitingAt) order.courierWaitingAt = now;
-  if (status === 'delivered' && !order.deliveredAt) order.deliveredAt = now;
-  if (status === 'cancelled' && !order.cancelledAt) order.cancelledAt = now;
-  if ((status === 'delivered' || status === 'cancelled') && !order.courierTrackingStoppedAt) order.courierTrackingStoppedAt = now;
+  if (status === ORDER_STATUSES.PICKING && !order.pickerStartedAt) order.pickerStartedAt = now;
+  if (status === ORDER_STATUSES.PICKED && !order.pickedAt) order.pickedAt = now;
+  if (status === ORDER_STATUSES.SENT_TO_TSD && !order.sentToTsdAt) order.sentToTsdAt = now;
+  if (status === ORDER_STATUSES.WAITING_COURIER && !order.waitingCourierAt) order.waitingCourierAt = now;
+  if (status === ORDER_STATUSES.WAITING_COURIER && !order.courierWaitingAt) order.courierWaitingAt = now;
+  if (status === ORDER_STATUSES.DELIVERED && !order.deliveredAt) order.deliveredAt = now;
+  if (status === ORDER_STATUSES.CANCELLED && !order.cancelledAt) order.cancelledAt = now;
+  if ((status === ORDER_STATUSES.DELIVERED || status === ORDER_STATUSES.CANCELLED) && !order.courierTrackingStoppedAt) order.courierTrackingStoppedAt = now;
 }
 
 function restoreStockForCancelledOrder(order) {
@@ -658,10 +661,10 @@ function restoreStockForCancelledOrder(order) {
 }
 
 function updateOrderStatus(id, status) {
-  if (!ORDER_STATUSES.has(status)) return null;
+  if (!ORDER_STATUS_SET.has(status)) return null;
   const order = getOrderById(id);
   if (!order) return null;
-  if (status === 'cancelled' && order.status !== 'delivered' && order.status !== 'cancelled') {
+  if (status === ORDER_STATUSES.CANCELLED && order.status !== ORDER_STATUSES.DELIVERED && order.status !== ORDER_STATUSES.CANCELLED) {
     restoreStockForCancelledOrder(order);
   }
   order.status = status;
@@ -672,7 +675,7 @@ function updateOrderStatus(id, status) {
 }
 
 function cancelOrder(id) {
-  return updateOrderStatus(id, 'cancelled');
+  return updateOrderStatus(id, ORDER_STATUSES.CANCELLED);
 }
 
 function getOrderPicklist(id) {
@@ -694,7 +697,7 @@ function getOrderPicklist(id) {
 function sendOrderToTsd(id) {
   const order = getOrderById(id);
   if (!order) return null;
-  order.status = 'sent_to_tsd';
+  order.status = ORDER_STATUSES.SENT_TO_TSD;
   order.tsdStatus = 'queued';
   order.tsdQueuedAt = new Date().toISOString();
   order.sentToTsdAt = order.sentToTsdAt || order.tsdQueuedAt;
@@ -707,7 +710,7 @@ function sendOrderToTsd(id) {
 function markDalionPicked(id) {
   const order = getOrderById(id);
   if (!order) return null;
-  order.status = 'waiting_courier';
+  order.status = ORDER_STATUSES.WAITING_COURIER;
   order.dalionPicked = true;
   order.pickedAt = new Date().toISOString();
   order.waitingCourierAt = order.pickedAt;
@@ -724,8 +727,8 @@ function courierAccept(token, { courierName = '', courierPhone = '' } = {}) {
   const order = getOrderByCourierToken(token);
   if (!order) return { error: 'Invalid token' };
   if (order.courierTokenUsed) return { error: 'Bu QR kod allaqachon ishlatilgan' };
-  if (order.status !== 'waiting_courier') return { error: 'Buyurtma hali courier qabul bosqichida emas' };
-  order.status = 'out_for_delivery';
+  if (order.status !== ORDER_STATUSES.WAITING_COURIER) return { error: 'Buyurtma hali courier qabul bosqichida emas' };
+  order.status = ORDER_STATUSES.OUT_FOR_DELIVERY;
   order.courierName = String(courierName || order.courierName || '').trim();
   order.courierPhone = String(courierPhone || order.courierPhone || '').trim();
   order.courierAcceptedAt = new Date().toISOString();
@@ -740,8 +743,8 @@ function courierDeliver(token) {
   const order = getOrderByCourierToken(token);
   if (!order) return { error: 'Invalid token' };
   if (order.courierTokenUsed) return { error: 'Bu QR kod allaqachon ishlatilgan' };
-  if (order.status !== 'out_for_delivery') return { error: 'Buyurtma courierda emas' };
-  order.status = 'delivered';
+  if (order.status !== ORDER_STATUSES.OUT_FOR_DELIVERY) return { error: 'Buyurtma courierda emas' };
+  order.status = ORDER_STATUSES.DELIVERED;
   order.deliveredAt = new Date().toISOString();
   order.courierDeliveredAt = order.deliveredAt;
   order.courierTrackingStoppedAt = order.deliveredAt;
@@ -754,8 +757,8 @@ function courierDeliver(token) {
 function updateCourierLocation(token, { lat = null, lng = null, accuracy = null } = {}) {
   const order = getOrderByCourierToken(token);
   if (!order) return { error: 'Invalid token' };
-  if (order.status !== 'out_for_delivery') return { error: 'Buyurtma courierda emas' };
-  if (order.status === 'delivered' || order.status === 'cancelled' || order.courierTokenUsed) {
+  if (order.status !== ORDER_STATUSES.OUT_FOR_DELIVERY) return { error: 'Buyurtma courierda emas' };
+  if (order.status === ORDER_STATUSES.DELIVERED || order.status === ORDER_STATUSES.CANCELLED || order.courierTokenUsed) {
     return { error: 'Lokatsiya yuborish mumkin emas' };
   }
   const latNum = Number(lat);

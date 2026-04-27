@@ -62,6 +62,21 @@
       { label: 'Bekor qilingan', statuses: ['cancelled'] }
     ];
     let order = null;
+    const mapProviders = {
+      leaflet: {
+        ensure(containerId, lat, lng) {
+          if (!window.L) return null;
+          const map = L.map(containerId, { zoomControl: true }).setView([lat, lng], 14);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap'
+          }).addTo(map);
+          return map;
+        }
+      }
+      // future providers: google/yandex should implement same ensure/update contract
+    };
+    const activeMapProvider = mapProviders.leaflet;
     let courierMap = null;
     let courierMarker = null;
     let destinationMarker = null;
@@ -92,12 +107,8 @@
     }
 
     function initCourierMap(lat, lng) {
-      if (courierMap || !window.L) return;
-      courierMap = L.map('courierMap', { zoomControl: true }).setView([lat, lng], 14);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
-      }).addTo(courierMap);
+      if (courierMap) return;
+      courierMap = activeMapProvider.ensure('courierMap', lat, lng);
     }
 
     function renderCourierLiveSection() {
