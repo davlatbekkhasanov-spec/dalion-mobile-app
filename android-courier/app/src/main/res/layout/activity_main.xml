@@ -1,247 +1,448 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg"
-    android:fillViewport="true"
+    android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Globus Courier"
-            android:textColor="@color/text"
-            android:textSize="24sp"
-            android:textStyle="bold" />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/card_glass"
             android:orientation="vertical"
-            android:padding="14dp">
-
-            <Button
-                android:id="@+id/scanQrBtn"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:background="@drawable/button_secondary"
-                android:text="QR scan"
-                android:textAllCaps="false"
-                android:textColor="@color/text" />
-
-            <Button
-                android:id="@+id/toggleAdvancedBtn"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/button_secondary"
-                android:text="Advanced"
-                android:textAllCaps="false"
-                android:textColor="@color/text" />
+            android:padding="16dp">
 
             <LinearLayout
-                android:id="@+id/advancedSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Globus Courier"
+                    android:textColor="@color/text"
+                    android:textSize="30sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Yetkazib berish xizmati"
+                    android:textColor="@color/muted"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/authScreen"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:background="@drawable/card_glass"
                 android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ro'yxatdan o'tish"
+                    android:textColor="@color/text"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/courierNameInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="12dp"
+                    android:autofillHints="name"
+                    android:background="@drawable/button_secondary"
+                    android:hint="Kuryer to'liq ismi"
+                    android:inputType="textPersonName"
+                    android:paddingHorizontal="14dp"
+                    android:textColor="@color/text"
+                    android:textColorHint="@color/muted" />
+
+                <EditText
+                    android:id="@+id/courierPhoneInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="8dp"
+                    android:autofillHints="phone"
+                    android:background="@drawable/button_secondary"
+                    android:hint="+998 XX XXX XX XX"
+                    android:inputType="phone"
+                    android:paddingHorizontal="14dp"
+                    android:textColor="@color/text"
+                    android:textColorHint="@color/muted" />
+
+                <EditText
+                    android:id="@+id/vehicleTypeInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/button_secondary"
+                    android:hint="Transport turi (Cobalt, moto...)"
+                    android:inputType="text"
+                    android:paddingHorizontal="14dp"
+                    android:textColor="@color/text"
+                    android:textColorHint="@color/muted" />
+
+                <EditText
+                    android:id="@+id/vehiclePlateInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/button_secondary"
+                    android:hint="Davlat raqami (01A123AA)"
+                    android:inputType="text"
+                    android:paddingHorizontal="14dp"
+                    android:textColor="@color/text"
+                    android:textColorHint="@color/muted" />
+
+                <TextView
+                    android:id="@+id/authValidationText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:textColor="@android:color/holo_red_light"
+                    android:visibility="gone" />
+
+                <Button
+                    android:id="@+id/registerBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/button_primary"
+                    android:text="Davom etish"
+                    android:textAllCaps="false"
+                    android:textColor="#031E26"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/dashboardScreen"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/card_glass"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/profileSummaryText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text"
+                        android:textSize="16sp"
+                        tools:text="Azizbek • +998901234567\nCobalt • 01A123AA" />
+
+                    <Button
+                        android:id="@+id/shiftToggleBtn"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/button_primary"
+                        android:text="Shift: OFFLINE"
+                        android:textAllCaps="false"
+                        android:textColor="#031E26"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/shiftStatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textColor="@color/muted"
+                        tools:text="OFFLINE" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/card_glass"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Bugungi ko'rsatkichlar"
+                        android:textColor="@color/text"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/statsText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textColor="@color/muted"
+                        tools:text="Yetkazildi: 0 | Active: yo'q | Tracking: OFF" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/card_glass"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Quick actions"
+                        android:textColor="@color/text"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/scanQrBtn"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/button_secondary"
+                        android:text="QR skan qilish"
+                        android:textAllCaps="false"
+                        android:textColor="@color/text" />
+
+                    <Button
+                        android:id="@+id/loadOrderBtn"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/button_secondary"
+                        android:text="Aktiv orderni yuklash"
+                        android:textAllCaps="false"
+                        android:textColor="@color/text" />
+
+                    <Button
+                        android:id="@+id/callCustomerBtn"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/button_secondary"
+                        android:text="Mijozga qo'ng'iroq"
+                        android:textAllCaps="false"
+                        android:textColor="@color/text" />
+
+                    <Button
+                        android:id="@+id/openMapsBtn"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/button_secondary"
+                        android:text="Navigatsiyani ochish"
+                        android:textAllCaps="false"
+                        android:textColor="@color/text" />
+
+                    <Button
+                        android:id="@+id/deliverBtn"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/button_primary"
+                        android:text="Yetkazildi"
+                        android:textAllCaps="false"
+                        android:textColor="#031E26"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/activeOrderScreen"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:background="@drawable/card_glass"
+                android:orientation="vertical"
+                android:padding="16dp"
                 android:visibility="gone">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:text="Aktiv buyurtma"
+                    android:textColor="@color/text"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/orderInfoText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:textColor="@color/text"
+                    tools:text="#ORD-001\nMijoz: Ali\n+998901112233\nYunusobod" />
+
+                <TextView
+                    android:id="@+id/statusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="Courier token yoki QR link"
+                    android:textColor="@color/muted"
+                    tools:text="Status: waiting_courier" />
+
+                <TextView
+                    android:id="@+id/trackingStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/muted"
+                    tools:text="Tracking active" />
+
+                <Button
+                    android:id="@+id/acceptBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/button_primary"
+                    android:text="Buyurtmani qabul qilish"
+                    android:textAllCaps="false"
+                    android:textColor="#031E26"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/profileScreen"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:background="@drawable/card_glass"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Profil sozlamalari"
+                    android:textColor="@color/text"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Token / QR link (UI da yashirin saqlanadi)"
                     android:textColor="@color/muted" />
 
                 <EditText
                     android:id="@+id/tokenInput"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="6dp"
                     android:autofillHints="password"
                     android:background="@drawable/button_secondary"
-                    android:hint="Token yoki QR link"
+                    android:hint="Token yoki https://.../courier/TOKEN"
                     android:inputType="textPassword"
-                    android:maxLines="1"
-                    android:minHeight="48dp"
-                    android:padding="12dp"
+                    android:paddingHorizontal="14dp"
                     android:textColor="@color/text"
                     android:textColorHint="@color/muted" />
+
+                <Button
+                    android:id="@+id/saveTokenBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/button_secondary"
+                    android:text="Profil va tokenni saqlash"
+                    android:textAllCaps="false"
+                    android:textColor="@color/text" />
             </LinearLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Kuryer ismi"
-                android:textColor="@color/muted" />
-
-            <EditText
-                android:id="@+id/courierNameInput"
+            <LinearLayout
+                android:id="@+id/historyScreen"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:autofillHints="name"
-                android:background="@drawable/button_secondary"
-                android:hint="Kuryer ismini kiriting"
-                android:inputType="textPersonName"
-                android:maxLines="1"
-                android:minHeight="48dp"
-                android:padding="12dp"
-                android:textColor="@color/text"
-                android:textColorHint="@color/muted" />
+                android:layout_marginTop="14dp"
+                android:background="@drawable/card_glass"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Kuryer telefoni"
-                android:textColor="@color/muted" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tarix"
+                    android:textColor="@color/text"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
 
-            <EditText
-                android:id="@+id/courierPhoneInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:autofillHints="phone"
-                android:background="@drawable/button_secondary"
-                android:hint="+998..."
-                android:inputType="phone"
-                android:maxLines="1"
-                android:minHeight="48dp"
-                android:padding="12dp"
-                android:textColor="@color/text"
-                android:textColorHint="@color/muted" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Transport turi"
-                android:textColor="@color/muted" />
-
-            <EditText
-                android:id="@+id/vehicleTypeInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:background="@drawable/button_secondary"
-                android:hint="Masalan: Matiz, Cobalt, moto"
-                android:inputType="text"
-                android:maxLines="1"
-                android:minHeight="48dp"
-                android:padding="12dp"
-                android:textColor="@color/text"
-                android:textColorHint="@color/muted" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Transport raqami"
-                android:textColor="@color/muted" />
-
-            <EditText
-                android:id="@+id/vehiclePlateInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:background="@drawable/button_secondary"
-                android:hint="Masalan: 01A123AA"
-                android:inputType="text"
-                android:maxLines="1"
-                android:minHeight="48dp"
-                android:padding="12dp"
-                android:textColor="@color/text"
-                android:textColorHint="@color/muted" />
-
-            <Button
-                android:id="@+id/saveTokenBtn"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/button_secondary"
-                android:text="Tokenni saqlash"
-                android:textAllCaps="false"
-                android:textColor="@color/text" />
-
-            <Button
-                android:id="@+id/loadOrderBtn"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/button_primary"
-                android:text="Aktiv buyurtmani yuklash"
-                android:textAllCaps="false"
-                android:textColor="#041D23"
-                android:textStyle="bold" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="History moduli keyingi versiyada backend bilan to'ldiriladi."
+                    android:textColor="@color/muted" />
+            </LinearLayout>
         </LinearLayout>
+    </ScrollView>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/card_glass"
-            android:orientation="vertical"
-            android:padding="14dp">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/card"
+        android:orientation="horizontal"
+        android:padding="8dp">
 
-            <TextView
-                android:id="@+id/orderInfoText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Buyurtma ma'lumotlari shu yerda ko'rsatiladi"
-                android:textColor="@color/text"
-                android:textSize="16sp" />
+        <Button
+            android:id="@+id/navDashboardBtn"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:background="@drawable/button_secondary"
+            android:text="Dashboard"
+            android:textAllCaps="false"
+            android:textColor="@color/text" />
 
-            <TextView
-                android:id="@+id/statusText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Status: -"
-                android:textColor="@color/muted" />
+        <Button
+            android:id="@+id/navActiveBtn"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/button_secondary"
+            android:text="Order"
+            android:textAllCaps="false"
+            android:textColor="@color/text" />
 
-            <Button
-                android:id="@+id/openMapsBtn"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/button_secondary"
-                android:text="Google Maps’da ochish"
-                android:textAllCaps="false"
-                android:textColor="@color/text" />
+        <Button
+            android:id="@+id/navProfileBtn"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/button_secondary"
+            android:text="Profil"
+            android:textAllCaps="false"
+            android:textColor="@color/text" />
 
-            <Button
-                android:id="@+id/acceptBtn"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/button_primary"
-                android:text="Buyurtmani qabul qildim"
-                android:textAllCaps="false"
-                android:textColor="#041D23"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/deliverBtn"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/button_secondary"
-                android:text="Mijozga topshirildi"
-                android:textAllCaps="false"
-                android:textColor="@color/text" />
-        </LinearLayout>
-
+        <Button
+            android:id="@+id/navHistoryBtn"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/button_secondary"
+            android:text="Tarix"
+            android:textAllCaps="false"
+            android:textColor="@color/text" />
     </LinearLayout>
-</ScrollView>
+
+</LinearLayout>
