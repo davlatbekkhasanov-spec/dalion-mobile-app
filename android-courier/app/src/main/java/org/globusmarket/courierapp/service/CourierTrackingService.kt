@@ -8,7 +8,9 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.*
@@ -21,15 +23,23 @@ import org.globusmarket.courierapp.api.LocationRequest
 
 class CourierTrackingService : Service() {
     private lateinit var fusedClient: FusedLocationProviderClient
+    private lateinit var notificationManager: NotificationManager
     private var callback: LocationCallback? = null
     private var token: String = ""
     private var baseUrl: String = ""
+    private val retryHandler = Handler(Looper.getMainLooper())
+    private val retryRunnable = Runnable {
+        if (::fusedClient.isInitialized) {
+            startLocationUpdates()
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
         fusedClient = LocationServices.getFusedLocationProviderClient(this)
+        notificationManager = getSystemService(NotificationManager::class.java)
         createChannel()
-        startForeground(NOTIFICATION_ID, createNotification())
+        startForeground(NOTIFICATION_ID, createNotification(getString(R.string.location_resolving)))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -51,6 +61,7 @@ class CourierTrackingService : Service() {
     }
 
     private fun startLocationUpdates() {
+        callback?.let { fusedClient.removeLocationUpdates(it) }
         val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000L)
             .setMinUpdateIntervalMillis(5000L)
             .setWaitForAccurateLocation(false)
@@ -59,6 +70,7 @@ class CourierTrackingService : Service() {
         callback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
                 val location = result.lastLocation ?: return
+                updateNotificationText(getString(R.string.tracking_notification_text))
                 val api = ApiProvider.create(baseUrl)
                 CoroutineScope(Dispatchers.IO).launch {
                     runCatching {
@@ -73,8 +85,17 @@ class CourierTrackingService : Service() {
                     }
                 }
             }
+
+            override fun onLocationAvailability(availability: LocationAvailability) {
+                if (!availability.isLocationAvailable) {
+                    updateNotificationText(getString(R.string.location_resolving))
+                    retryHandler.removeCallbacks(retryRunnable)
+                    retryHandler.postDelayed(retryRunnable, 4000L)
+                }
+            }
         }
 
+        updateNotificationText(getString(R.string.location_resolving))
         fusedClient.requestLocationUpdates(request, callback as LocationCallback, mainLooper)
     }
 
@@ -91,22 +112,26 @@ class CourierTrackingService : Service() {
                 "Courier Tracking",
                 NotificationManager.IMPORTANCE_LOW
             )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
+            notificationManager.createNotificationChannel(channel)
         }
     }
 
-    private fun createNotification(): Notification {
+    private fun createNotification(contentText: String): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentTitle(getString(R.string.tracking_notification_title))
-            .setContentText(getString(R.string.tracking_notification_text))
+            .setContentText(contentText)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
     }
 
+    private fun updateNotificationText(text: String) {
+        notificationManager.notify(NOTIFICATION_ID, createNotification(text))
+    }
+
     override fun onDestroy() {
+        retryHandler.removeCallbacks(retryRunnable)
         callback?.let { fusedClient.removeLocationUpdates(it) }
         super.onDestroy()
     }

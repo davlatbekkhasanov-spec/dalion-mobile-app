@@ -27,7 +27,20 @@ class TokenStore(context: Context) {
         prefs.edit().remove(KEY_TOKEN).apply()
     }
 
+    fun saveCourierProfile(name: String, phone: String) {
+        prefs.edit()
+            .putString(KEY_COURIER_NAME, name.trim())
+            .putString(KEY_COURIER_PHONE, phone.trim())
+            .apply()
+    }
+
+    fun getCourierName(): String = prefs.getString(KEY_COURIER_NAME, "") ?: ""
+
+    fun getCourierPhone(): String = prefs.getString(KEY_COURIER_PHONE, "") ?: ""
+
     companion object {
         private const val KEY_TOKEN = "courier_token"
+        private const val KEY_COURIER_NAME = "courier_name"
+        private const val KEY_COURIER_PHONE = "courier_phone"
     }
 }
