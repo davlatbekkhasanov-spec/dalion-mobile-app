@@ -47,11 +47,25 @@ class TokenStore(context: Context) {
 
     fun getCourierPhone(): String = getCourierProfile().phone
 
+    fun setShiftOnline(value: Boolean) {
+        prefs.edit().putBoolean(KEY_SHIFT_ONLINE, value).apply()
+    }
+
+    fun getShiftOnline(): Boolean = prefs.getBoolean(KEY_SHIFT_ONLINE, false)
+
+    fun setTrackingActive(value: Boolean) {
+        prefs.edit().putBoolean(KEY_TRACKING_ACTIVE, value).apply()
+    }
+
+    fun isTrackingActive(): Boolean = prefs.getBoolean(KEY_TRACKING_ACTIVE, false)
+
     companion object {
         private const val KEY_TOKEN = "courier_token"
         private const val KEY_COURIER_NAME = "courier_name"
         private const val KEY_COURIER_PHONE = "courier_phone"
         private const val KEY_COURIER_VEHICLE_TYPE = "courier_vehicle_type"
         private const val KEY_COURIER_VEHICLE_PLATE = "courier_vehicle_plate"
+        private const val KEY_SHIFT_ONLINE = "shift_online"
+        private const val KEY_TRACKING_ACTIVE = "tracking_active"
     }
 }
