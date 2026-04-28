@@ -31,7 +31,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Courier token"
+                android:hint="Courier token yoki QR link"
                 app:boxBackgroundMode="outline"
                 app:boxStrokeColor="@color/primary"
                 app:hintTextColor="@color/muted">
