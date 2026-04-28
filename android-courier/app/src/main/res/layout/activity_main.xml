@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg"
@@ -54,74 +53,86 @@
                 android:orientation="vertical"
                 android:visibility="gone">
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:hint="Courier token yoki QR link"
-                    app:boxBackgroundMode="outline"
-                    app:boxStrokeColor="@color/primary"
-                    app:hintTextColor="@color/muted">
+                    android:text="Courier token yoki QR link"
+                    android:textColor="@color/muted" />
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/tokenInput"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="textPassword"
-                        android:textColor="@color/text" />
-                </com.google.android.material.textfield.TextInputLayout>
+                <EditText
+                    android:id="@+id/tokenInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/button_secondary"
+                    android:inputType="textPassword"
+                    android:padding="12dp"
+                    android:textColor="@color/text" />
             </LinearLayout>
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:hint="Kuryer ismi"
-                app:boxBackgroundMode="outline"
-                app:boxStrokeColor="@color/primary"
-                app:hintTextColor="@color/muted">
+                android:text="Kuryer ismi"
+                android:textColor="@color/muted" />
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/courierNameInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textPersonName"
-                    android:textColor="@color/text" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
+            <EditText
+                android:id="@+id/courierNameInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:hint="Kuryer telefoni"
-                app:boxBackgroundMode="outline"
-                app:boxStrokeColor="@color/primary"
-                app:hintTextColor="@color/muted">
+                android:background="@drawable/button_secondary"
+                android:inputType="textPersonName"
+                android:padding="12dp"
+                android:textColor="@color/text" />
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/courierPhoneInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="phone"
-                    android:textColor="@color/text" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:hint="Transport turi"
-                app:boxBackgroundMode="outline"
-                app:boxStrokeColor="@color/primary"
-                app:hintTextColor="@color/muted">
+                android:text="Kuryer telefoni"
+                android:textColor="@color/muted" />
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/vehicleTypeInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="text"
-                    android:textColor="@color/text" />
-            </com.google.android.material.textfield.TextInputLayout>
+            <EditText
+                android:id="@+id/courierPhoneInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_secondary"
+                android:inputType="phone"
+                android:padding="12dp"
+                android:textColor="@color/text" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Transport turi"
+                android:textColor="@color/muted" />
+
+            <EditText
+                android:id="@+id/vehicleTypeInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_secondary"
+                android:inputType="text"
+                android:padding="12dp"
+                android:textColor="@color/text" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Transport raqami"
+                android:textColor="@color/muted" />
+
+            <EditText
+                android:id="@+id/vehiclePlateInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_secondary"
+                android:inputType="text"
+                android:padding="12dp"
+                android:textColor="@color/text" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
