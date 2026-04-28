@@ -28,16 +28,112 @@
             android:orientation="vertical"
             android:padding="14dp">
 
+            <Button
+                android:id="@+id/scanQrBtn"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:background="@drawable/button_secondary"
+                android:text="QR scan"
+                android:textAllCaps="false"
+                android:textColor="@color/text" />
+
+            <Button
+                android:id="@+id/toggleAdvancedBtn"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/button_secondary"
+                android:text="Advanced"
+                android:textAllCaps="false"
+                android:textColor="@color/text" />
+
+            <LinearLayout
+                android:id="@+id/advancedSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="Courier token yoki QR link"
+                    app:boxBackgroundMode="outline"
+                    app:boxStrokeColor="@color/primary"
+                    app:hintTextColor="@color/muted">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/tokenInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPassword"
+                        android:textColor="@color/text" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Courier token yoki QR link"
+                android:layout_marginTop="8dp"
+                android:hint="Kuryer ismi"
                 app:boxBackgroundMode="outline"
                 app:boxStrokeColor="@color/primary"
                 app:hintTextColor="@color/muted">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/tokenInput"
+                    android:id="@+id/courierNameInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPersonName"
+                    android:textColor="@color/text" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="Kuryer telefoni"
+                app:boxBackgroundMode="outline"
+                app:boxStrokeColor="@color/primary"
+                app:hintTextColor="@color/muted">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/courierPhoneInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="phone"
+                    android:textColor="@color/text" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="Transport turi"
+                app:boxBackgroundMode="outline"
+                app:boxStrokeColor="@color/primary"
+                app:hintTextColor="@color/muted">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/vehicleTypeInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:textColor="@color/text" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="Transport raqami"
+                app:boxBackgroundMode="outline"
+                app:boxStrokeColor="@color/primary"
+                app:hintTextColor="@color/muted">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/vehiclePlateInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="textPassword"
@@ -91,17 +187,6 @@
                     android:layout_weight="1"
                     android:background="@drawable/button_secondary"
                     android:text="Tokenni saqlash"
-                    android:textAllCaps="false"
-                    android:textColor="@color/text" />
-
-                <Button
-                    android:id="@+id/scanQrBtn"
-                    android:layout_width="0dp"
-                    android:layout_height="50dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/button_secondary"
-                    android:text="QR scan"
                     android:textAllCaps="false"
                     android:textColor="@color/text" />
             </LinearLayout>

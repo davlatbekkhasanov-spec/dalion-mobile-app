@@ -19,8 +19,11 @@ import kotlinx.coroutines.withContext
 import org.globusmarket.courierapp.api.AcceptRequest
 import org.globusmarket.courierapp.api.ApiProvider
 import org.globusmarket.courierapp.api.OrderDto
+import org.globusmarket.courierapp.data.CourierProfileLocal
 import org.globusmarket.courierapp.data.TokenStore
 import org.globusmarket.courierapp.databinding.ActivityMainBinding
+import org.globusmarket.courierapp.domain.state.CourierAction
+import org.globusmarket.courierapp.domain.state.CourierStateManager
 import org.globusmarket.courierapp.service.CourierTrackingService
 
 class MainActivity : AppCompatActivity() {
@@ -28,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tokenStore: TokenStore
     private val api by lazy { ApiProvider.create(BuildConfig.API_BASE_URL) }
     private var activeOrder: OrderDto? = null
+    private val stateManager = CourierStateManager()
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -63,9 +67,9 @@ class MainActivity : AppCompatActivity() {
 
         tokenStore = TokenStore(this)
         parseAndApplyToken(tokenStore.getToken()) ?: binding.tokenInput.setText("")
-        binding.courierNameInput.setText(tokenStore.getCourierName())
-        binding.courierPhoneInput.setText(tokenStore.getCourierPhone())
+        bindSavedProfile()
         updateUiForOrderState()
+        stateManager.dispatch(CourierAction.SessionAuthenticated)
 
         binding.saveTokenBtn.setOnClickListener {
             val token = parseAndApplyToken(binding.tokenInput.text?.toString())
@@ -73,10 +77,7 @@ class MainActivity : AppCompatActivity() {
                 showInvalidTokenMessage()
                 return@setOnClickListener
             }
-            tokenStore.saveCourierProfile(
-                binding.courierNameInput.text?.toString().orEmpty(),
-                binding.courierPhoneInput.text?.toString().orEmpty()
-            )
+            tokenStore.saveCourierProfile(readProfileFromInputs())
             tokenStore.saveToken(token)
             toast("Token va kuryer profili saqlandi")
         }
@@ -93,6 +94,11 @@ class MainActivity : AppCompatActivity() {
         binding.acceptBtn.setOnClickListener { acceptDelivery() }
         binding.deliverBtn.setOnClickListener { completeDelivery() }
         binding.openMapsBtn.setOnClickListener { openInGoogleMaps() }
+        binding.toggleAdvancedBtn.setOnClickListener {
+            val showAdvanced = binding.advancedSection.visibility != android.view.View.VISIBLE
+            binding.advancedSection.visibility = if (showAdvanced) android.view.View.VISIBLE else android.view.View.GONE
+            binding.toggleAdvancedBtn.text = if (showAdvanced) "Advanced yashirish" else "Advanced"
+        }
     }
 
     private fun loadOrder(explicitToken: String? = null) {
@@ -113,6 +119,7 @@ class MainActivity : AppCompatActivity() {
                         return@withContext
                     }
                     activeOrder = order
+                    stateManager.dispatch(CourierAction.ActiveOrderLoaded(order.orderNumber, order.status))
                     renderOrder(order)
                 }
             } catch (_: Exception) {
@@ -156,7 +163,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 val courierName = binding.courierNameInput.text?.toString()?.trim().orEmpty()
                 val courierPhone = binding.courierPhoneInput.text?.toString()?.trim().orEmpty()
-                tokenStore.saveCourierProfile(courierName, courierPhone)
+                tokenStore.saveCourierProfile(readProfileFromInputs())
                 val response = api.acceptOrder(
                     token,
                     AcceptRequest(
@@ -167,6 +174,7 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     activeOrder = response.order
                     response.order?.let { renderOrder(it) }
+                    stateManager.dispatch(CourierAction.OrderAccepted)
                     startTrackingService(token)
                     toast("Buyurtma qabul qilindi")
                 }
@@ -192,6 +200,7 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     activeOrder = response.order
                     response.order?.let { renderOrder(it) }
+                    stateManager.dispatch(CourierAction.OrderDelivered)
                     stopService(Intent(this@MainActivity, CourierTrackingService::class.java))
                     toast("Buyurtma topshirildi")
                 }
@@ -257,6 +266,7 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, "Token noto‘g‘ri yoki buyurtma topilmadi", Toast.LENGTH_LONG).show()
         binding.statusText.text = "Token noto‘g‘ri yoki buyurtma topilmadi"
         activeOrder = null
+        stateManager.dispatch(CourierAction.ErrorOccurred("invalid_token"))
         updateUiForOrderState()
     }
 
@@ -305,4 +315,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+
+    private fun readProfileFromInputs(): CourierProfileLocal {
+        return CourierProfileLocal(
+            fullName = binding.courierNameInput.text?.toString().orEmpty(),
+            phone = binding.courierPhoneInput.text?.toString().orEmpty(),
+            vehicleType = binding.vehicleTypeInput.text?.toString().orEmpty(),
+            vehiclePlate = binding.vehiclePlateInput.text?.toString().orEmpty()
+        )
+    }
+
+    private fun bindSavedProfile() {
+        val profile = tokenStore.getCourierProfile()
+        binding.courierNameInput.setText(profile.fullName)
+        binding.courierPhoneInput.setText(profile.phone)
+        binding.vehicleTypeInput.setText(profile.vehicleType)
+        binding.vehiclePlateInput.setText(profile.vehiclePlate)
+    }
 }
