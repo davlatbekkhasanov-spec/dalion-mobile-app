@@ -134,6 +134,57 @@
                 android:padding="12dp"
                 android:textColor="@color/text" />
 
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="Transport raqami"
+                app:boxBackgroundMode="outline"
+                app:boxStrokeColor="@color/primary"
+                app:hintTextColor="@color/muted">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/vehiclePlateInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPassword"
+                    android:textColor="@color/text" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="Kuryer ismi"
+                app:boxBackgroundMode="outline"
+                app:boxStrokeColor="@color/primary"
+                app:hintTextColor="@color/muted">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/courierNameInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPersonName"
+                    android:textColor="@color/text" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="Kuryer telefoni"
+                app:boxBackgroundMode="outline"
+                app:boxStrokeColor="@color/primary"
+                app:hintTextColor="@color/muted">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/courierPhoneInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="phone"
+                    android:textColor="@color/text" />
+            </com.google.android.material.textfield.TextInputLayout>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
