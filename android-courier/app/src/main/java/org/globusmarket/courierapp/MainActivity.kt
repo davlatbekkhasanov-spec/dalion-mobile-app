@@ -215,15 +215,11 @@ class MainActivity : AppCompatActivity() {
             toast("Avval buyurtmani yuklang")
             return
         }
-        val destination = if (hasValidCoords(order.locationLat, order.locationLng)) {
-            "${order.locationLat},${order.locationLng}"
-        } else {
-            Uri.encode(order.addressText ?: order.customerAddress ?: "")
-        }
-        if (destination.isBlank()) {
-            toast("Manzil topilmadi")
+        if (!hasValidCoords(order.locationLat, order.locationLng)) {
+            toast("Manzil koordinatasi topilmadi")
             return
         }
+        val destination = "${order.locationLat},${order.locationLng}"
         val uri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$destination")
         startActivity(Intent(Intent.ACTION_VIEW, uri))
     }

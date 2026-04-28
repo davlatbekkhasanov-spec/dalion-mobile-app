@@ -13,13 +13,19 @@ import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import com.google.android.gms.location.*
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationAvailability
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.globusmarket.courierapp.R
 import org.globusmarket.courierapp.api.ApiProvider
-import org.globusmarket.courierapp.api.LocationRequest
+import org.globusmarket.courierapp.api.LocationRequest as ApiLocationRequest
 
 class CourierTrackingService : Service() {
     private lateinit var fusedClient: FusedLocationProviderClient
@@ -76,7 +82,7 @@ class CourierTrackingService : Service() {
                     runCatching {
                         api.updateLocation(
                             token,
-                            LocationRequest(
+                            ApiLocationRequest(
                                 lat = location.latitude,
                                 lng = location.longitude,
                                 accuracy = location.accuracy
