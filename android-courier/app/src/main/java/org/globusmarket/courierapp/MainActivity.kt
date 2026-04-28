@@ -19,8 +19,11 @@ import kotlinx.coroutines.withContext
 import org.globusmarket.courierapp.api.AcceptRequest
 import org.globusmarket.courierapp.api.ApiProvider
 import org.globusmarket.courierapp.api.OrderDto
+import org.globusmarket.courierapp.data.CourierProfileLocal
 import org.globusmarket.courierapp.data.TokenStore
 import org.globusmarket.courierapp.databinding.ActivityMainBinding
+import org.globusmarket.courierapp.domain.state.CourierAction
+import org.globusmarket.courierapp.domain.state.CourierStateManager
 import org.globusmarket.courierapp.service.CourierTrackingService
 
 class MainActivity : AppCompatActivity() {
@@ -28,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tokenStore: TokenStore
     private val api by lazy { ApiProvider.create(BuildConfig.API_BASE_URL) }
     private var activeOrder: OrderDto? = null
+    private val stateManager = CourierStateManager()
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -45,8 +49,13 @@ class MainActivity : AppCompatActivity() {
             if (parsed.contents.isNullOrBlank()) {
                 toast("QR/token o‘qilmadi")
             } else {
-                binding.tokenInput.setText(parsed.contents.trim())
+                val token = parseAndApplyToken(parsed.contents)
+                if (token == null) {
+                    showInvalidTokenMessage()
+                    return@registerForActivityResult
+                }
                 toast("Token QR orqali olindi")
+                loadOrder(token)
             }
         }
     }
@@ -57,16 +66,20 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         tokenStore = TokenStore(this)
-        binding.tokenInput.setText(tokenStore.getToken())
+        parseAndApplyToken(tokenStore.getToken()) ?: binding.tokenInput.setText("")
+        bindSavedProfile()
+        updateUiForOrderState()
+        stateManager.dispatch(CourierAction.SessionAuthenticated)
 
         binding.saveTokenBtn.setOnClickListener {
-            val token = binding.tokenInput.text?.toString()?.trim().orEmpty()
-            if (token.isEmpty()) {
-                toast("Token kiriting")
+            val token = parseAndApplyToken(binding.tokenInput.text?.toString())
+            if (token.isNullOrBlank()) {
+                showInvalidTokenMessage()
                 return@setOnClickListener
             }
+            tokenStore.saveCourierProfile(readProfileFromInputs())
             tokenStore.saveToken(token)
-            toast("Token saqlandi")
+            toast("Token va kuryer profili saqlandi")
         }
 
         binding.scanQrBtn.setOnClickListener {
@@ -81,12 +94,17 @@ class MainActivity : AppCompatActivity() {
         binding.acceptBtn.setOnClickListener { acceptDelivery() }
         binding.deliverBtn.setOnClickListener { completeDelivery() }
         binding.openMapsBtn.setOnClickListener { openInGoogleMaps() }
+        binding.toggleAdvancedBtn.setOnClickListener {
+            val showAdvanced = binding.advancedSection.visibility != android.view.View.VISIBLE
+            binding.advancedSection.visibility = if (showAdvanced) android.view.View.VISIBLE else android.view.View.GONE
+            binding.toggleAdvancedBtn.text = if (showAdvanced) "Advanced yashirish" else "Advanced"
+        }
     }
 
-    private fun loadOrder() {
-        val token = binding.tokenInput.text?.toString()?.trim().orEmpty()
-        if (token.isBlank()) {
-            toast("Token kiriting yoki QR scan qiling")
+    private fun loadOrder(explicitToken: String? = null) {
+        val token = explicitToken ?: parseAndApplyToken(binding.tokenInput.text?.toString())
+        if (token.isNullOrBlank()) {
+            showInvalidTokenMessage()
             return
         }
         tokenStore.saveToken(token)
@@ -97,15 +115,16 @@ class MainActivity : AppCompatActivity() {
                 val order = response.order
                 withContext(Dispatchers.Main) {
                     if (order == null) {
-                        showInvalidTokenMessage(response.message)
+                        showInvalidTokenMessage()
                         return@withContext
                     }
                     activeOrder = order
+                    stateManager.dispatch(CourierAction.ActiveOrderLoaded(order.orderNumber, order.status))
                     renderOrder(order)
                 }
             } catch (_: Exception) {
                 withContext(Dispatchers.Main) {
-                    showInvalidTokenMessage("Token noto‘g‘ri yoki yaroqsiz")
+                    showInvalidTokenMessage()
                 }
             }
         }
@@ -116,26 +135,46 @@ class MainActivity : AppCompatActivity() {
         val itemCount = order.items?.sumOf { it.qty ?: 0 } ?: 0
         val total = String.format("%,.0f", order.total ?: 0.0)
         binding.orderInfoText.text = "#${order.orderNumber ?: "-"}\nManzil: $address\nOrientir: ${order.landmarkText ?: "-"}\nJami: $total so'm\nItems: $itemCount"
-        binding.statusText.text = "Status: ${order.status ?: "-"}"
+        binding.statusText.text = if (order.status == "delivered") {
+            "Buyurtma yakunlandi"
+        } else {
+            "Status: ${order.status ?: "-"}"
+        }
+        updateUiForOrderState()
     }
 
     private fun acceptDelivery() {
-        val token = tokenStore.getToken().ifBlank { binding.tokenInput.text?.toString()?.trim().orEmpty() }
-        if (token.isBlank()) {
-            toast("Token topilmadi")
+        if (!canAccept()) {
+            toast("Avval waiting_courier statusdagi buyurtmani yuklang")
+            return
+        }
+        val token = parseAndApplyToken(tokenStore.getToken().ifBlank { binding.tokenInput.text?.toString() })
+        if (token.isNullOrBlank()) {
+            showInvalidTokenMessage()
             return
         }
         if (!hasLocationPermission()) {
             requestLocationPermission()
             return
         }
+        binding.statusText.text = "Lokatsiya aniqlanmoqda..."
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = api.acceptOrder(token, AcceptRequest())
+                val courierName = binding.courierNameInput.text?.toString()?.trim().orEmpty()
+                val courierPhone = binding.courierPhoneInput.text?.toString()?.trim().orEmpty()
+                tokenStore.saveCourierProfile(readProfileFromInputs())
+                val response = api.acceptOrder(
+                    token,
+                    AcceptRequest(
+                        courierName = courierName.ifBlank { "Android Courier" },
+                        courierPhone = courierPhone.ifBlank { "-" }
+                    )
+                )
                 withContext(Dispatchers.Main) {
                     activeOrder = response.order
                     response.order?.let { renderOrder(it) }
+                    stateManager.dispatch(CourierAction.OrderAccepted)
                     startTrackingService(token)
                     toast("Buyurtma qabul qilindi")
                 }
@@ -146,9 +185,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun completeDelivery() {
-        val token = tokenStore.getToken().ifBlank { binding.tokenInput.text?.toString()?.trim().orEmpty() }
-        if (token.isBlank()) {
-            toast("Token topilmadi")
+        if (!canDeliver()) {
+            toast("Mijozga topshirish uchun status accepted yoki out_for_delivery bo‘lishi kerak")
+            return
+        }
+        val token = parseAndApplyToken(tokenStore.getToken().ifBlank { binding.tokenInput.text?.toString() })
+        if (token.isNullOrBlank()) {
+            showInvalidTokenMessage()
             return
         }
         CoroutineScope(Dispatchers.IO).launch {
@@ -157,6 +200,7 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     activeOrder = response.order
                     response.order?.let { renderOrder(it) }
+                    stateManager.dispatch(CourierAction.OrderDelivered)
                     stopService(Intent(this@MainActivity, CourierTrackingService::class.java))
                     toast("Buyurtma topshirildi")
                 }
@@ -171,15 +215,11 @@ class MainActivity : AppCompatActivity() {
             toast("Avval buyurtmani yuklang")
             return
         }
-        val destination = if (order.locationLat != null && order.locationLng != null) {
-            "${order.locationLat},${order.locationLng}"
-        } else {
-            Uri.encode(order.addressText ?: order.customerAddress ?: "")
-        }
-        if (destination.isBlank()) {
-            toast("Manzil topilmadi")
+        if (!hasValidCoords(order.locationLat, order.locationLng)) {
+            toast("Manzil koordinatasi topilmadi")
             return
         }
+        val destination = "${order.locationLat},${order.locationLng}"
         val uri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$destination")
         startActivity(Intent(Intent.ACTION_VIEW, uri))
     }
@@ -218,10 +258,74 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showInvalidTokenMessage(message: String?) {
-        Toast.makeText(this, message ?: "Invalid QR/token", Toast.LENGTH_LONG).show()
-        binding.statusText.text = "Status: Token yaroqsiz"
+    private fun showInvalidTokenMessage() {
+        Toast.makeText(this, "Token noto‘g‘ri yoki buyurtma topilmadi", Toast.LENGTH_LONG).show()
+        binding.statusText.text = "Token noto‘g‘ri yoki buyurtma topilmadi"
+        activeOrder = null
+        stateManager.dispatch(CourierAction.ErrorOccurred("invalid_token"))
+        updateUiForOrderState()
+    }
+
+    private fun parseAndApplyToken(rawInput: String?): String? {
+        val parsed = parseCourierToken(rawInput).orEmpty()
+        if (parsed.isBlank()) return null
+        binding.tokenInput.setText(parsed)
+        tokenStore.saveToken(parsed)
+        return parsed
+    }
+
+    private fun parseCourierToken(rawInput: String?): String {
+        val value = rawInput?.trim().orEmpty()
+        if (value.isBlank()) return ""
+
+        val courierPathRegex = Regex("""(?:^|/)courier/([^/?#]+)""", RegexOption.IGNORE_CASE)
+        val pathMatch = courierPathRegex.find(value)?.groupValues?.getOrNull(1)?.trim().orEmpty()
+        if (pathMatch.isNotBlank()) return pathMatch
+
+        val looksLikeUrl = value.startsWith("http://", true) || value.startsWith("https://", true)
+        if (looksLikeUrl) return ""
+
+        return value
+    }
+
+    private fun canAccept(): Boolean = activeOrder?.status == "waiting_courier"
+
+    private fun canDeliver(): Boolean {
+        val status = activeOrder?.status
+        return status == "accepted" || status == "out_for_delivery"
+    }
+
+    private fun updateUiForOrderState() {
+        val status = activeOrder?.status
+        val hasNavigableOrder = activeOrder != null && status != "delivered"
+        binding.openMapsBtn.isEnabled = hasNavigableOrder
+        binding.acceptBtn.isEnabled = canAccept()
+        binding.deliverBtn.isEnabled = canDeliver()
+    }
+
+    private fun hasValidCoords(lat: Double?, lng: Double?): Boolean {
+        val latNum = lat ?: return false
+        val lngNum = lng ?: return false
+        if (!latNum.isFinite() || !lngNum.isFinite()) return false
+        return latNum in -90.0..90.0 && lngNum in -180.0..180.0
     }
 
     private fun toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+
+    private fun readProfileFromInputs(): CourierProfileLocal {
+        return CourierProfileLocal(
+            fullName = binding.courierNameInput.text?.toString().orEmpty(),
+            phone = binding.courierPhoneInput.text?.toString().orEmpty(),
+            vehicleType = binding.vehicleTypeInput.text?.toString().orEmpty(),
+            vehiclePlate = binding.vehiclePlateInput.text?.toString().orEmpty()
+        )
+    }
+
+    private fun bindSavedProfile() {
+        val profile = tokenStore.getCourierProfile()
+        binding.courierNameInput.setText(profile.fullName)
+        binding.courierPhoneInput.setText(profile.phone)
+        binding.vehicleTypeInput.setText(profile.vehicleType)
+        binding.vehiclePlateInput.setText(profile.vehiclePlate)
+    }
 }

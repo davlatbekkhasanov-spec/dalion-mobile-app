@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    tools:context=".MainActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -28,49 +30,150 @@
             android:orientation="vertical"
             android:padding="14dp">
 
-            <com.google.android.material.textfield.TextInputLayout
+            <Button
+                android:id="@+id/scanQrBtn"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:background="@drawable/button_secondary"
+                android:text="QR scan"
+                android:textAllCaps="false"
+                android:textColor="@color/text" />
+
+            <Button
+                android:id="@+id/toggleAdvancedBtn"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/button_secondary"
+                android:text="Advanced"
+                android:textAllCaps="false"
+                android:textColor="@color/text" />
+
+            <LinearLayout
+                android:id="@+id/advancedSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Courier token"
-                app:boxBackgroundMode="outline"
-                app:boxStrokeColor="@color/primary"
-                app:hintTextColor="@color/muted">
+                android:orientation="vertical"
+                android:visibility="gone">
 
-                <com.google.android.material.textfield.TextInputEditText
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Courier token yoki QR link"
+                    android:textColor="@color/muted" />
+
+                <EditText
                     android:id="@+id/tokenInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text"
-                    android:textColor="@color/text" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:layout_marginTop="4dp"
+                    android:autofillHints="password"
+                    android:background="@drawable/button_secondary"
+                    android:hint="Token yoki QR link"
+                    android:inputType="textPassword"
+                    android:maxLines="1"
+                    android:minHeight="48dp"
+                    android:padding="12dp"
+                    android:textColor="@color/text"
+                    android:textColorHint="@color/muted" />
+            </LinearLayout>
 
-            <LinearLayout
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Kuryer ismi"
+                android:textColor="@color/muted" />
+
+            <EditText
+                android:id="@+id/courierNameInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:autofillHints="name"
+                android:background="@drawable/button_secondary"
+                android:hint="Kuryer ismini kiriting"
+                android:inputType="textPersonName"
+                android:maxLines="1"
+                android:minHeight="48dp"
+                android:padding="12dp"
+                android:textColor="@color/text"
+                android:textColorHint="@color/muted" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Kuryer telefoni"
+                android:textColor="@color/muted" />
+
+            <EditText
+                android:id="@+id/courierPhoneInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:autofillHints="phone"
+                android:background="@drawable/button_secondary"
+                android:hint="+998..."
+                android:inputType="phone"
+                android:maxLines="1"
+                android:minHeight="48dp"
+                android:padding="12dp"
+                android:textColor="@color/text"
+                android:textColorHint="@color/muted" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Transport turi"
+                android:textColor="@color/muted" />
+
+            <EditText
+                android:id="@+id/vehicleTypeInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/button_secondary"
+                android:hint="Masalan: Matiz, Cobalt, moto"
+                android:inputType="text"
+                android:maxLines="1"
+                android:minHeight="48dp"
+                android:padding="12dp"
+                android:textColor="@color/text"
+                android:textColorHint="@color/muted" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Transport raqami"
+                android:textColor="@color/muted" />
+
+            <EditText
+                android:id="@+id/vehiclePlateInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/button_secondary"
+                android:hint="Masalan: 01A123AA"
+                android:inputType="text"
+                android:maxLines="1"
+                android:minHeight="48dp"
+                android:padding="12dp"
+                android:textColor="@color/text"
+                android:textColorHint="@color/muted" />
+
+            <Button
+                android:id="@+id/saveTokenBtn"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
                 android:layout_marginTop="10dp"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/saveTokenBtn"
-                    android:layout_width="0dp"
-                    android:layout_height="50dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/button_secondary"
-                    android:text="Tokenni saqlash"
-                    android:textAllCaps="false"
-                    android:textColor="@color/text" />
-
-                <Button
-                    android:id="@+id/scanQrBtn"
-                    android:layout_width="0dp"
-                    android:layout_height="50dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/button_secondary"
-                    android:text="QR scan"
-                    android:textAllCaps="false"
-                    android:textColor="@color/text" />
-            </LinearLayout>
+                android:background="@drawable/button_secondary"
+                android:text="Tokenni saqlash"
+                android:textAllCaps="false"
+                android:textColor="@color/text" />
 
             <Button
                 android:id="@+id/loadOrderBtn"
