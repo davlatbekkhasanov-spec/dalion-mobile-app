@@ -12,6 +12,14 @@ process.on('unhandledRejection', (reason) => {
   });
 });
 
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT:', err.message);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED:', err);
+});
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -30,11 +38,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 
 // Frontend preview
 app.get('/', (req, res) => {
-  const indexFile = path.join(__dirname, 'index.html');
-  if (fs.existsSync(indexFile)) {
-    return res.sendFile(indexFile);
+  try {
+    return res.sendFile(path.join(__dirname, 'index.html'));
+  } catch (e) {
+    return res.status(200).json({ ok: true, message: 'Server running' });
   }
-  return res.status(200).json({ ok: true, service: 'dalion-mobile-app' });
 });
 
 app.get('/admin', (req, res) => {
@@ -69,6 +77,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({ ok: true, service: 'dalion-mobile-app' });
 });
 
+console.log('PORT:', process.env.PORT);
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
