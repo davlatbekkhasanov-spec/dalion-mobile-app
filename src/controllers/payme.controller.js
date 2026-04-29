@@ -307,6 +307,8 @@ async function paymeRpc(req, res) {
   }
 
   try {
+    let scenario = 'default';
+    let responseBody = null;
     if (method === 'CheckPerformTransaction') {
       const order = getOrder(params.account, params.amount);
 
@@ -356,7 +358,19 @@ async function paymeRpc(req, res) {
         create_time: tx.create_time,
         transaction: tx.transaction_id,
         state: tx.state
-      }));
+      });
+      sandboxLog(method, params, 'create-success', responseBody);
+      return res.status(200).json(responseBody);
+    }
+
+    if (method === 'CheckTransaction') {
+      const tx = transactions.get(getPaymeTxId(params));
+
+      if (!tx) {
+        return send(res, errorResponse(id, ERRORS.TRANSACTION_NOT_FOUND, MSG.transactionNotFound, 'id'));
+      }
+
+      return send(res, response(id, transactionResult(tx)));
     }
 
     if (method === 'CheckTransaction') {
