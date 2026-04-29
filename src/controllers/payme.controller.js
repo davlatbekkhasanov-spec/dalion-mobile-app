@@ -57,19 +57,6 @@ function isAmountValid(order, amount) {
   return Number(order.total) === Number(amount);
 }
 
-function checkMerchantAuth(req) {
-  const merchantId = process.env.PAYME_MERCHANT_ID;
-  const secretKey = process.env.PAYME_SECRET_KEY || process.env.PAYME_TEST_KEY;
-  if (!merchantId || !secretKey) return true; // TODO: configure PAYME_MERCHANT_ID and PAYME_SECRET_KEY in Railway variables.
-
-  const header = String(req.header('authorization') || '');
-  if (!header.startsWith('Basic ')) return false;
-  const encoded = header.slice(6).trim();
-  const decoded = Buffer.from(encoded, 'base64').toString('utf8');
-  const [login, password] = decoded.split(':');
-  return login === merchantId && password === secretKey;
-}
-
 exports.paymeHealth = (req, res) => {
   res.json({ ok: true, message: 'Payme endpoint expects POST JSON-RPC' });
 };
@@ -78,14 +65,6 @@ exports.paymeRpc = (req, res) => {
   const body = req.body || {};
   const { id, method, params = {} } = body;
   console.info('[Payme] RPC request', { id, method });
-
-  if (!checkMerchantAuth(req)) {
-    return res.json(responseError(id, -32504, {
-      ru: 'Авторизациядан ўтилмаган',
-      uz: 'Avtorizatsiyadan o‘tilmagan',
-      en: 'Unauthorized'
-    }, 'authorization'));
-  }
 
   if (!method || typeof method !== 'string') {
     return res.json(responseError(id, PAYME_ERROR.INVALID_REQUEST, {
