@@ -15,6 +15,7 @@ const TX_STATE = {
   CANCELED: -1
 };
 
+// TODO(payme): move transactions to persistent DB storage for multi-instance/runtime safety.
 const transactions = new Map();
 
 function parseAuthorization(header = '') {
@@ -129,8 +130,7 @@ async function paymeRpc(req, res) {
         tx.perform_time = Date.now();
         const order = store.getOrderById(tx.order_id);
         if (order) {
-          store.updateOrderStatus(order.id, 'delivered');
-          order.paymentStatus = 'paid';
+          store.markOrderPaid(order.id);
         }
       }
       return res.status(200).json(formatResponse(id, {
@@ -149,7 +149,7 @@ async function paymeRpc(req, res) {
       const order = store.getOrderById(tx.order_id);
       if (order) {
         store.cancelOrder(order.id);
-        order.paymentStatus = 'cancelled';
+        store.markOrderPaymentCancelled(order.id);
       }
       return res.status(200).json(formatResponse(id, {
         transaction: tx.transaction_id,

@@ -43,6 +43,9 @@ app.get('/track/:orderNumber', (req, res) => {
 });
 
 // API routes
+app.get('/api/payme', (req, res) => {
+  res.status(200).json({ ok: true, message: 'Payme endpoint expects POST JSON-RPC' });
+});
 app.post('/api/payme', paymeController.paymeRpc);
 app.use('/api/v1', homeRoutes);
 app.get('/api/payme', paymeController.paymeHealth);
