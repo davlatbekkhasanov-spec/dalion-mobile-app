@@ -5,6 +5,7 @@ const ERRORS = {
   INVALID_AMOUNT: -31001,
   TRANSACTION_NOT_FOUND: -31003,
   ORDER_NOT_FOUND: -31050,
+  TRANSACTION_EXISTS: -31099,
   METHOD_NOT_FOUND: -32601,
   INTERNAL_ERROR: -32400
 };
@@ -23,23 +24,28 @@ function response(id, result) {
 }
 
 function errorResponse(id, code, message, data) {
-  return {
-    jsonrpc: '2.0',
-    error: { code, message, data },
-    id: id ?? null
-  };
+  return { jsonrpc: '2.0', error: { code, message, data }, id: id ?? null };
 }
 
 function send(res, body) {
   return res.status(200).json(body);
 }
 
-// ================= AUTH =================
 function parseAuthorization(header = '') {
-  if (!header.startsWith('Basic ')) return null;
-  const decoded = Buffer.from(header.slice(6), 'base64').toString();
-  const [username, password] = decoded.split(':');
-  return { username, password };
+  if (!String(header).startsWith('Basic ')) return null;
+
+  try {
+    const decoded = Buffer.from(String(header).slice(6), 'base64').toString('utf8');
+    const separator = decoded.indexOf(':');
+    if (separator === -1) return null;
+
+    return {
+      username: decoded.slice(0, separator),
+      password: decoded.slice(separator + 1)
+    };
+  } catch {
+    return null;
+  }
 }
 
 function isAuthorized(req) {
@@ -47,35 +53,74 @@ function isAuthorized(req) {
   if (!auth) return false;
   if (auth.username !== 'Paycom') return false;
 
-  return (
-    auth.password === process.env.PAYME_TEST_KEY ||
-    auth.password === process.env.PAYME_SECRET_KEY
-  );
+  const testKey = String(process.env.PAYME_TEST_KEY || '').trim();
+  const secretKey = String(process.env.PAYME_SECRET_KEY || '').trim();
+
+  return [testKey, secretKey].filter(Boolean).includes(auth.password);
 }
 
-// ================= HELPERS =================
+function normalizeOrderId(value = '') {
+  return String(value || '').trim().replace(/^"+|"+$/g, '');
+}
+
 function getOrder(account = {}, amount = 0) {
-  const id = String(account.order_id || '');
+  const orderId = normalizeOrderId(account.order_id);
+  if (!orderId) return null;
 
-  // sandbox
-  if (!id) return null;
+  const realOrder = store.getOrderById(orderId) || store.getOrderByNumber(orderId);
+  if (realOrder) return realOrder;
 
-  return (
-    store.getOrderById(id) ||
-    store.getOrderByNumber(id) || {
-      id,
-      total: amount / 100,
-      paymentStatus: 'pending',
-      status: 'new'
-    }
-  );
+  return {
+    id: orderId,
+    orderNumber: orderId,
+    total: Number(amount || 0) / 100,
+    paymentStatus: 'pending',
+    status: 'new',
+    sandbox: true
+  };
 }
 
 function expectedAmount(order) {
-  return Math.round(order.total * 100);
+  return Math.round(Number(order.total || 0) * 100);
 }
 
-// ================= MAIN =================
+function isOrderPayable(order) {
+  const paymentStatus = String(order.paymentStatus || '').toLowerCase();
+  const status = String(order.status || '').toLowerCase();
+
+  if (paymentStatus === 'paid') return false;
+  if (paymentStatus === 'cancelled' || paymentStatus === 'canceled') return false;
+  if (status === 'cancelled' || status === 'canceled') return false;
+  if (status === 'blocked') return false;
+
+  return true;
+}
+
+function findActiveTransactionByOrder(orderId, currentTxId = '') {
+  for (const tx of transactions.values()) {
+    if (
+      tx.order_id === orderId &&
+      tx.id !== currentTxId &&
+      tx.state === TX_STATE.CREATED
+    ) {
+      return tx;
+    }
+  }
+
+  return null;
+}
+
+function transactionResult(tx) {
+  return {
+    create_time: tx.create_time,
+    perform_time: tx.perform_time || 0,
+    cancel_time: tx.cancel_time || 0,
+    transaction: tx.id,
+    state: tx.state,
+    reason: tx.reason ?? null
+  };
+}
+
 async function paymeRpc(req, res) {
   const { method, params = {}, id } = req.body || {};
 
@@ -84,7 +129,6 @@ async function paymeRpc(req, res) {
   }
 
   try {
-    // ================= CHECK =================
     if (method === 'CheckPerformTransaction') {
       const order = getOrder(params.account, params.amount);
 
@@ -96,12 +140,20 @@ async function paymeRpc(req, res) {
         return send(res, errorResponse(id, ERRORS.INVALID_AMOUNT, 'Invalid amount', 'amount'));
       }
 
+      if (!isOrderPayable(order)) {
+        return send(res, errorResponse(id, ERRORS.ORDER_NOT_FOUND, 'Order not found', 'order_id'));
+      }
+
       return send(res, response(id, { allow: true }));
     }
 
-    // ================= CREATE =================
     if (method === 'CreateTransaction') {
       const order = getOrder(params.account, params.amount);
+      const txId = String(params.id || '').trim();
+
+      if (!txId) {
+        return send(res, errorResponse(id, ERRORS.TRANSACTION_NOT_FOUND, 'Transaction not found', 'id'));
+      }
 
       if (!order) {
         return send(res, errorResponse(id, ERRORS.ORDER_NOT_FOUND, 'Order not found', 'order_id'));
@@ -111,15 +163,37 @@ async function paymeRpc(req, res) {
         return send(res, errorResponse(id, ERRORS.INVALID_AMOUNT, 'Invalid amount', 'amount'));
       }
 
+      if (!isOrderPayable(order)) {
+        return send(res, errorResponse(id, ERRORS.ORDER_NOT_FOUND, 'Order not found', 'order_id'));
+      }
+
+      const existingSameTx = transactions.get(txId);
+      if (existingSameTx) {
+        return send(res, response(id, {
+          create_time: existingSameTx.create_time,
+          transaction: existingSameTx.id,
+          state: existingSameTx.state
+        }));
+      }
+
+      const activeTx = findActiveTransactionByOrder(order.id, txId);
+      if (activeTx) {
+        return send(res, errorResponse(id, ERRORS.TRANSACTION_EXISTS, 'Transaction already exists', 'order_id'));
+      }
+
       const tx = {
-        id: params.id,
+        id: txId,
         order_id: order.id,
-        amount: params.amount,
+        amount: Number(params.amount || 0),
         state: TX_STATE.CREATED,
-        create_time: params.time || Date.now()
+        create_time: Number(params.time || 0) || Date.now(),
+        perform_time: 0,
+        cancel_time: 0,
+        reason: null,
+        sandbox: Boolean(order.sandbox)
       };
 
-      transactions.set(params.id, tx);
+      transactions.set(tx.id, tx);
 
       return send(res, response(id, {
         create_time: tx.create_time,
@@ -128,36 +202,36 @@ async function paymeRpc(req, res) {
       }));
     }
 
-    // ================= CHECK TX =================
     if (method === 'CheckTransaction') {
-      const tx = transactions.get(params.id);
+      const tx = transactions.get(String(params.id || '').trim());
 
       if (!tx) {
         return send(res, errorResponse(id, ERRORS.TRANSACTION_NOT_FOUND, 'Transaction not found', 'id'));
       }
 
-      return send(res, response(id, {
-        create_time: tx.create_time,
-        perform_time: tx.perform_time || 0,
-        cancel_time: tx.cancel_time || 0,
-        transaction: tx.id,
-        state: tx.state
-      }));
+      return send(res, response(id, transactionResult(tx)));
     }
 
-    // ================= PERFORM =================
     if (method === 'PerformTransaction') {
-      const tx = transactions.get(params.id);
+      const tx = transactions.get(String(params.id || '').trim());
 
       if (!tx) {
         return send(res, errorResponse(id, ERRORS.TRANSACTION_NOT_FOUND, 'Transaction not found', 'id'));
       }
 
-      tx.state = TX_STATE.PERFORMED;
-      tx.perform_time = Date.now();
+      if (tx.state < 0) {
+        return send(res, errorResponse(id, ERRORS.ORDER_NOT_FOUND, 'Transaction cancelled', 'id'));
+      }
 
-      const order = store.getOrderById(tx.order_id);
-      if (order) store.markOrderPaid(order.id);
+      if (tx.state !== TX_STATE.PERFORMED) {
+        tx.state = TX_STATE.PERFORMED;
+        tx.perform_time = Date.now();
+
+        if (!tx.sandbox) {
+          const order = store.getOrderById(tx.order_id);
+          if (order) store.markOrderPaid(order.id);
+        }
+      }
 
       return send(res, response(id, {
         transaction: tx.id,
@@ -166,19 +240,25 @@ async function paymeRpc(req, res) {
       }));
     }
 
-    // ================= CANCEL =================
     if (method === 'CancelTransaction') {
-      const tx = transactions.get(params.id);
+      const tx = transactions.get(String(params.id || '').trim());
 
       if (!tx) {
         return send(res, errorResponse(id, ERRORS.TRANSACTION_NOT_FOUND, 'Transaction not found', 'id'));
       }
 
-      tx.state = TX_STATE.CANCELED_BEFORE_PERFORM;
-      tx.cancel_time = Date.now();
+      if (tx.state !== TX_STATE.CANCELED_BEFORE_PERFORM && tx.state !== TX_STATE.CANCELED_AFTER_PERFORM) {
+        tx.cancel_time = Date.now();
+        tx.reason = params.reason ?? null;
+        tx.state = tx.state === TX_STATE.PERFORMED
+          ? TX_STATE.CANCELED_AFTER_PERFORM
+          : TX_STATE.CANCELED_BEFORE_PERFORM;
 
-      const order = store.getOrderById(tx.order_id);
-      if (order) store.markOrderPaymentCancelled(order.id);
+        if (!tx.sandbox) {
+          const order = store.getOrderById(tx.order_id);
+          if (order) store.markOrderPaymentCancelled(order.id);
+        }
+      }
 
       return send(res, response(id, {
         transaction: tx.id,
@@ -188,11 +268,13 @@ async function paymeRpc(req, res) {
     }
 
     return send(res, errorResponse(id, ERRORS.METHOD_NOT_FOUND, 'Method not found', 'method'));
-
-  } catch (e) {
-    console.error(e);
+  } catch (error) {
+    console.error('[PAYME ERROR]', error);
     return send(res, errorResponse(id, ERRORS.INTERNAL_ERROR, 'Internal error', 'internal'));
   }
 }
 
-module.exports = { paymeRpc };
+module.exports = {
+  paymeRpc,
+  parseAuthorization
+};
