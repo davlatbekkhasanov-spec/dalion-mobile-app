@@ -1,9 +1,247 @@
-body {
-  background:#071324;
-  color:white;
-  font-family:Arial;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
+:root {
+  --gm-color-primary: #5B4CFF;
+  --gm-color-delivery: #FF7A00;
+  --gm-color-success: #12B76A;
+  --gm-color-warning: #F79009;
+  --gm-color-error: #D92D20;
+  --gm-color-info: #0EA5E9;
+  --gm-color-text-primary: #101828;
+  --gm-color-text-secondary: #475467;
+  --gm-color-border: #E4E7EC;
+  --gm-color-surface: #FFFFFF;
+  --gm-color-surface-alt: #F8FAFC;
+  --gm-space-1: 4px;
+  --gm-space-2: 8px;
+  --gm-space-3: 12px;
+  --gm-space-4: 16px;
+  --gm-space-5: 20px;
+  --gm-space-6: 24px;
+  --gm-radius-xs: 8px;
+  --gm-radius-sm: 12px;
+  --gm-radius-md: 16px;
+  --gm-radius-lg: 24px;
+  --gm-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --gm-shadow-md: 0 8px 24px rgba(16, 24, 40, 0.12);
+  --gm-shadow-lg: 0 18px 42px rgba(16, 24, 40, 0.18);
+  --gm-font-family: "Inter", "Segoe UI", Arial, sans-serif;
+  --gm-font-sm: 14px;
+  --gm-font-md: 16px;
+  --gm-font-lg: 20px;
+  --gm-font-xl: 24px;
+  --gm-line-tight: 1.2;
+  --gm-mobile-padding: 16px;
+  --gm-tap-target-min: 48px;
+  --gm-z-sticky-cta: 60;
 }
+
+.gm-btn,
+.btn,
+.full-btn {
+  min-height: var(--gm-tap-target-min);
+  padding: 0 var(--gm-space-4);
+  border-radius: var(--gm-radius-md);
+  font-family: var(--gm-font-family);
+  font-size: var(--gm-font-md);
+  font-weight: 700;
+}
+
+.gm-btn-primary,
+.gm-btn--primary,
+.btn.btn-primary,
+.full-btn {
+  background: linear-gradient(90deg, var(--gm-color-primary), #7a6fff);
+  color: #fff;
+  box-shadow: var(--gm-shadow-sm);
+}
+
+.gm-btn-secondary,
+.gm-btn--secondary,
+.btn.btn-secondary {
+  border: 1px solid rgba(228, 231, 236, 0.45);
+  color: #e6efff;
+}
+
+.gm-icon-btn,
+.bell { min-width: var(--gm-tap-target-min); min-height: var(--gm-tap-target-min); border-radius: 999px; }
+
+.gm-card,
+.list-card,
+.product,
+.category-card,
+.promo,
+.bonus,
+.cat {
+  border-radius: var(--gm-radius-md);
+  box-shadow: var(--gm-shadow-sm);
+}
+
+.gm-section-header,
+.section-head { margin: var(--gm-space-4) 0 var(--gm-space-3); }
+.gm-section-header h4,
+.section-head h4 { font-size: var(--gm-font-md); line-height: var(--gm-line-tight); }
+
+.gm-chip,
+.badge,
+.cat-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.gm-chip--delivery { background: rgba(255, 122, 0, 0.18); color: #ffd8ba; }
+.gm-chip--warning { background: rgba(247, 144, 9, 0.2); color: #ffe1b8; }
+.gm-chip--success { background: rgba(18, 183, 106, 0.2); color: #c3f8dd; }
+
+.gm-title-md,
+.title { font-size: var(--gm-font-lg); }
+
+.empty,
+.gm-empty-state { border-radius: var(--gm-radius-md); border: 1px dashed rgba(228,231,236,.35); padding: var(--gm-space-4); }
+.gm-error-state { border-radius: var(--gm-radius-md); border: 1px solid rgba(217,45,32,.4); background: rgba(217,45,32,.12); color:#ffd1cd; padding: var(--gm-space-4); }
+
+.gm-skeleton { position: relative; overflow: hidden; background: rgba(255,255,255,.08); }
+.gm-skeleton::after { content:""; position:absolute; inset:0; transform:translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.2), transparent); animation: gm-shimmer 1.35s infinite; }
+#homeProducts.loading .product,
+#searchResults.loading .product,
+#homeProducts:empty::before,
+#searchResults:empty::before {
+  content: "";
+  display: block;
+  height: 120px;
+  border-radius: var(--gm-radius-md);
+  background: rgba(255,255,255,.08);
+}
+
+.gm-sticky-cta { position: sticky; bottom: 0; z-index: var(--gm-z-sticky-cta); padding: var(--gm-space-3) var(--gm-mobile-padding); backdrop-filter: blur(8px); }
+
+/* Phase 2A Home-only upgrade */
+#homeView {
+  padding-top: 8px;
+}
+.home-top-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, rgba(4,11,22,.95), rgba(4,11,22,.72));
+  padding: var(--gm-space-2) 0;
+}
+.home-search-lg {
+  min-height: 52px;
+  font-size: var(--gm-font-md);
+}
+#bannerCarousel .promo {
+  background: linear-gradient(118deg, #3322c5 0%, #5B4CFF 45%, #7d65ff 100%);
+  border: 1px solid rgba(255,255,255,.28);
+}
+#bannerCarousel .promo p { color: rgba(255,255,255,.86); }
+#bannerCarousel .promo .gm-chip { background: rgba(255,255,255,.18); color: #fff; }
+.cats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--gm-space-2);
+  overflow: visible;
+}
+.cat {
+  width: 100%;
+  height: 104px;
+  flex: 1 1 auto;
+}
+.products-grid {
+  gap: var(--gm-space-3);
+}
+.product {
+  position: relative;
+  padding: var(--gm-space-2);
+}
+.product-discount {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+}
+.product h5 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 31px;
+}
+.quick-add-btn {
+  margin-top: var(--gm-space-2);
+}
+@media (min-width: 768px) {
+  .products-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cats { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+/* Phase 2B PDP modal redesign */
+.modal {
+  max-height: min(92vh, 860px);
+  overflow-y: auto;
+  padding-bottom: 90px;
+}
+.modal-image {
+  height: 250px;
+  margin-bottom: 10px;
+}
+.modal-price-main {
+  font-size: 26px;
+  font-weight: 800;
+  margin-top: 8px;
+}
+.modal-rating-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.modal-trust {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid rgba(228,231,236,.25);
+  border-radius: 12px;
+  background: rgba(255,255,255,.04);
+}
+.modal-trust p {
+  font-size: var(--gm-font-sm);
+  margin: 0 0 6px;
+}
+.modal-specs {
+  border-top: 1px solid rgba(228,231,236,.2);
+  margin-top: 8px;
+  padding-top: 8px;
+}
+.spec-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: var(--gm-font-sm);
+}
+.modal-reco-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.modal-sticky-cta {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  background: rgba(3, 10, 20, 0.95);
+  border-top: 1px solid rgba(228,231,236,.2);
+}
+.modal-sticky-price {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+@keyframes gm-shimmer { 100% { transform: translateX(100%); } }
