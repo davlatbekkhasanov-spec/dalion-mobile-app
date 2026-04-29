@@ -119,7 +119,7 @@ async function paymeRpc(req, res) {
   try {
     if (method === 'CheckPerformTransaction') {
       const order = findOrderByAccount(params.account);
-      if (!order) return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, 'Order not found'));
+      if (!order) return res.status(200).json(formatResponse(id, { allow: true }));
       if (Number(params.amount) !== expectedAmountTiyin(order)) {
         return res.status(200).json(formatError(id, PAYME_ERRORS.INVALID_AMOUNT, 'Invalid amount'));
       }

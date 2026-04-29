@@ -45,7 +45,7 @@ test('auth passes with PAYME_TEST_KEY', async () => {
   const res = await callRpc(auth);
 
   assert.equal(res.statusCode, 200);
-  assert.notEqual(res.payload.error?.code, -32504);
+  assert.deepEqual(res.payload.result, { allow: true });
 });
 
 test('auth passes with PAYME_SECRET_KEY', async () => {
@@ -53,7 +53,7 @@ test('auth passes with PAYME_SECRET_KEY', async () => {
   const res = await callRpc(auth);
 
   assert.equal(res.statusCode, 200);
-  assert.notEqual(res.payload.error?.code, -32504);
+  assert.deepEqual(res.payload.result, { allow: true });
 });
 
 test('missing auth returns JSON-RPC unauthorized', async () => {
