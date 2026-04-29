@@ -8,4 +8,7 @@
     <string name="no_active_order">Faol buyurtma yo‘q</string>
     <string name="coords_missing">Manzil koordinatasi topilmadi</string>
     <string name="settlement_summary_fmt">Hisob-kitob: %1$d ta yetkazilgan, %.0f so‘m, Arxiv: %3$d</string>
+    <string name="location_resolving">Joylashuv aniqlanmoqda...</string>
+    <string name="tracking_notification_text">Kuryer joylashuvi yuborilmoqda</string>
+    <string name="tracking_notification_title">Tracking faol</string>
 </resources>
