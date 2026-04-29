@@ -133,7 +133,8 @@ function getOrCreateTx(paymeId, order, amount, time) {
   if (existing) return existing;
   const tx = {
     transaction_id: paymeId,
-    order_id: order.id,
+    order_id: order?.id || null,
+    time: Number(time || 0),
     amount: Number(amount || 0),
     state: TX_STATE.CREATED,
     create_time: Number(time || 0) > 0 ? Number(time) : Date.now(),
