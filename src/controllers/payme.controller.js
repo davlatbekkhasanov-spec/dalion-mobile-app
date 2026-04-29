@@ -90,12 +90,13 @@ function expectedAmountTiyin(order) {
   return Math.round(Number(order?.total || 0) * 100);
 }
 
-function getOrCreateTx(paymeId, order, amount) {
+function getOrCreateTx(paymeId, order, amount, time) {
   const existing = transactions.get(paymeId);
   if (existing) return existing;
   const tx = {
     transaction_id: paymeId,
-    order_id: order.id,
+    order_id: order?.id || null,
+    time: Number(time || 0),
     amount: Number(amount || 0),
     state: TX_STATE.CREATED,
     create_time: Date.now(),
@@ -153,7 +154,7 @@ async function paymeRpc(req, res) {
       if (Number(params.amount) !== expectedAmountTiyin(order)) {
         return res.status(200).json(formatError(id, PAYME_ERRORS.INVALID_AMOUNT, 'Invalid amount'));
       }
-      const tx = getOrCreateTx(String(params.id || ''), order, params.amount);
+      const tx = getOrCreateTx(String(params.id || ''), order, params.amount, params.time);
       return res.status(200).json(formatResponse(id, {
         create_time: tx.create_time,
         transaction: tx.transaction_id,
