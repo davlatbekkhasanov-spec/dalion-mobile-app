@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Globus Courier</string>
+    <string name="invalid_token">Неверный токен или заказ не найден</string>
+    <string name="stats_fmt">Активные: %1$d • Доставлено: %2$d • Общая сумма доставки: %.0f</string>
+    <string name="shift_online">Смена: ONLINE</string>
+    <string name="shift_offline">Смена: OFFLINE</string>
+    <string name="delivery_fee">Стоимость доставки</string>
+    <string name="no_active_order">Нет активных заказов</string>
+    <string name="coords_missing">Координаты адреса не найдены</string>
+    <string name="settlement_summary_fmt">Расчёт: %1$d доставлено, %.0f, Архив: %3$d</string>
+</resources>

@@ -1,6 +1,11 @@
 <resources>
     <string name="app_name">Globus Courier</string>
-    <string name="tracking_notification_title">Globus Market courier tracking active</string>
-    <string name="tracking_notification_text">Kurier lokatsiyasi har 5 soniyada yuborilmoqda</string>
-    <string name="location_resolving">Lokatsiya aniqlanmoqda...</string>
+    <string name="invalid_token">Token noto‘g‘ri yoki buyurtma topilmadi</string>
+    <string name="stats_fmt">Faol: %1$d • Yetkazilgan: %2$d • Jami dostavka puli: %.0f</string>
+    <string name="shift_online">Shift: ONLINE</string>
+    <string name="shift_offline">Shift: OFFLINE</string>
+    <string name="delivery_fee">Dostavka narxi</string>
+    <string name="no_active_order">Faol buyurtma yo‘q</string>
+    <string name="coords_missing">Manzil koordinatasi topilmadi</string>
+    <string name="settlement_summary_fmt">Hisob-kitob: %1$d ta yetkazilgan, %.0f so‘m, Arxiv: %3$d</string>
 </resources>
