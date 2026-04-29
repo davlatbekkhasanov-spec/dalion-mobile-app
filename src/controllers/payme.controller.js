@@ -98,6 +98,7 @@ function isSandboxMode() {
 function getSandboxOrder(account = {}, amount = 0) {
   if (!isSandboxMode()) return null;
   const orderId = String(account.order_id || '').trim().toLowerCase();
+  if (orderId === 'test' || orderId === 'test-1') return { id: orderId, total: Number(amount || 0) / 100 };
   if (!orderId.startsWith('test-')) return null;
   if (orderId === 'test-missing') return null;
   if (orderId === 'test-invalid-amount') return { id: orderId, total: 1 };
@@ -106,6 +107,15 @@ function getSandboxOrder(account = {}, amount = 0) {
 }
 function getOrderOrSandbox(account = {}, amount = 0) {
   return findOrderByAccount(account) || getSandboxOrder(account, amount);
+}
+function sandboxLog(method, params, scenario, responseBody) {
+  if (!isSandboxMode()) return;
+  console.log('[PAYME][SANDBOX]', {
+    method,
+    params,
+    scenario,
+    response: responseBody
+  });
 }
 function findActiveTxByOrderId(orderId, paymeId) {
   for (const tx of transactions.values()) {
@@ -163,18 +173,28 @@ async function paymeRpc(req, res) {
   if (!validation.ok) return res.status(200).json(validation.error);
 
   try {
+    let scenario = 'default';
+    let responseBody = null;
     if (method === 'CheckPerformTransaction') {
       const order = getOrderOrSandbox(params.account, params.amount);
       if (!order) {
-        return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, ORDER_NOT_FOUND_MESSAGE, 'order_id'));
+        scenario = 'checkperform-order-not-found';
+        responseBody = formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, ORDER_NOT_FOUND_MESSAGE, 'order_id');
+        sandboxLog(method, params, scenario, responseBody);
+        return res.status(200).json(responseBody);
       }
       if (Number(params.amount) !== expectedAmountTiyin(order)) {
-        return res.status(200).json(formatError(id, PAYME_ERRORS.INVALID_AMOUNT, INVALID_AMOUNT_MESSAGE, 'amount'));
+        scenario = 'checkperform-invalid-amount';
+        responseBody = formatError(id, PAYME_ERRORS.INVALID_AMOUNT, INVALID_AMOUNT_MESSAGE, 'amount');
+        sandboxLog(method, params, scenario, responseBody);
+        return res.status(200).json(responseBody);
       }
       if (String(order.paymentStatus || '').toLowerCase() === 'paid' || String(order.status || '').toLowerCase() === 'cancelled' || String(order.status || '').toLowerCase() === 'blocked') {
         return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, ORDER_NOT_FOUND_MESSAGE, 'order_id'));
       }
-      return res.status(200).json(formatResponse(id, { allow: true }));
+      responseBody = formatResponse(id, { allow: true });
+      sandboxLog(method, params, 'checkperform-allow', responseBody);
+      return res.status(200).json(responseBody);
     }
 
     if (method === 'CreateTransaction') {
@@ -192,11 +212,13 @@ async function paymeRpc(req, res) {
         return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, ORDER_NOT_FOUND_MESSAGE, 'order_id'));
       }
       const tx = getOrCreateTx(String(params.id || ''), order, params.amount, params.time);
-      return res.status(200).json(formatResponse(id, {
+      responseBody = formatResponse(id, {
         create_time: tx.create_time,
         transaction: tx.transaction_id,
         state: tx.state
-      }));
+      });
+      sandboxLog(method, params, 'create-success', responseBody);
+      return res.status(200).json(responseBody);
     }
 
     if (method === 'PerformTransaction') {
@@ -238,14 +260,16 @@ async function paymeRpc(req, res) {
     if (method === 'CheckTransaction') {
       const tx = transactions.get(String(params.id || ''));
       if (!tx) return res.status(200).json(formatError(id, -31003, TRANSACTION_NOT_FOUND_MESSAGE, 'id'));
-      return res.status(200).json(formatResponse(id, {
+      responseBody = formatResponse(id, {
         create_time: tx.create_time,
         perform_time: tx.perform_time,
         cancel_time: tx.cancel_time,
         transaction: tx.transaction_id,
         state: tx.state,
         reason: tx.reason
-      }));
+      });
+      sandboxLog(method, params, 'checktx-success', responseBody);
+      return res.status(200).json(responseBody);
     }
 
     return res.status(200).json(formatError(id, PAYME_ERRORS.METHOD_NOT_FOUND, 'Method not found'));
