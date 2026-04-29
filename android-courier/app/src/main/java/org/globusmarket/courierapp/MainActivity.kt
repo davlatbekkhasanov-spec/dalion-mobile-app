@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.google.zxing.integration.android.IntentIntegrator
 import org.globusmarket.courierapp.api.ApiProvider
 import org.globusmarket.courierapp.data.CourierProfileLocal
@@ -16,6 +17,9 @@ import org.globusmarket.courierapp.databinding.ActivityMainBinding
 import org.globusmarket.courierapp.domain.model.OrderState
 import org.globusmarket.courierapp.domain.repository.OrderRepository
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -86,16 +90,27 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadOrderByToken(raw: String) {
         val token = parseToken(raw)
-        if (token.isBlank()) return toast(getString(R.string.invalid_token))
-        Thread {
+
+        if (token.isBlank()) {
+            toast(getString(R.string.invalid_token))
+            return
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val dto = api.getCourierOrder(token).order ?: return@Thread
+                val dto = api.getCourierOrder(token).order ?: return@launch
                 orderRepository.addOrder(dto.toLocalOrder(token))
-                runOnUiThread { refreshAll(); show(binding.activeOrderScreen) }
+
+                withContext(Dispatchers.Main) {
+                    refreshAll()
+                    show(binding.activeOrderScreen)
+                }
             } catch (_: Exception) {
-                runOnUiThread { toast(getString(R.string.invalid_token)) }
+                withContext(Dispatchers.Main) {
+                    toast(getString(R.string.invalid_token))
+                }
             }
-        }.start()
+        }
     }
 
     private fun updateCurrentState(state: OrderState, backend: String, autoNavigate: Boolean = false) {
