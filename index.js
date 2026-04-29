@@ -1,5 +1,32 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
+
+process.on('uncaughtException', (error) => {
+  console.error('[PROCESS] uncaughtException', { message: error?.message });
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[PROCESS] unhandledRejection', {
+    message: reason instanceof Error ? reason.message : String(reason)
+  });
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT:', err.message);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED:', err);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT ERROR:', err);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED REJECTION:', err);
+});
 
 process.on('uncaughtException', (err) => {
   console.error('UNCAUGHT ERROR:', err);
@@ -57,7 +84,7 @@ app.use('/api/v1', homeRoutes);
 
 // Simple health route for hosting platforms
 app.get('/health', (req, res) => {
-  res.status(200).json({ ok: true });
+  res.status(200).json({ ok: true, service: 'dalion-mobile-app' });
 });
 
 console.log('STARTING SERVER...');
