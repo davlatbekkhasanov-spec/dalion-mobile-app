@@ -21,6 +21,12 @@ const UNAUTHORIZED_MESSAGE = {
   en: 'Unauthorized'
 };
 
+const ORDER_NOT_FOUND_MESSAGE = {
+  ru: 'Заказ не найден',
+  uz: 'Buyurtma topilmadi',
+  en: 'Order not found'
+};
+
 // TODO(payme): move transactions to persistent DB storage for multi-instance/runtime safety.
 const transactions = new Map();
 
@@ -67,6 +73,11 @@ function findOrderByAccount(account = {}) {
   const orderId = String(account.order_id || '').trim();
   if (!orderId) return null;
   return store.getOrderById(orderId) || store.getOrderByNumber(orderId);
+}
+
+function isSandboxPlaceholderOrder(account = {}) {
+  const orderId = String(account.order_id || '').trim().toLowerCase();
+  return orderId.startsWith('test-');
 }
 
 function expectedAmountTiyin(order) {
@@ -129,7 +140,10 @@ async function paymeRpc(req, res) {
 
     if (method === 'CreateTransaction') {
       const order = findOrderByAccount(params.account);
-      if (order && Number(params.amount) !== expectedAmountTiyin(order)) {
+      if (!order || isSandboxPlaceholderOrder(params.account)) {
+        return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, ORDER_NOT_FOUND_MESSAGE));
+      }
+      if (Number(params.amount) !== expectedAmountTiyin(order)) {
         return res.status(200).json(formatError(id, PAYME_ERRORS.INVALID_AMOUNT, 'Invalid amount'));
       }
       const tx = getOrCreateTx(String(params.id || ''), order, params.amount, params.time);
