@@ -48,8 +48,6 @@ app.get('/api/payme', (req, res) => {
 });
 app.post('/api/payme', paymeController.paymeRpc);
 app.use('/api/v1', homeRoutes);
-app.get('/api/payme', paymeController.paymeHealth);
-app.post('/api/payme', paymeAuthMiddleware, paymeController.paymeRpc);
 
 // Simple health route for hosting platforms
 app.get('/health', (req, res) => {

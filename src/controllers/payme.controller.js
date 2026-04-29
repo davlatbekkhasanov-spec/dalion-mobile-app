@@ -52,9 +52,10 @@ function validateRequest(body = {}) {
 }
 
 function getAuthSecret() {
-  return process.env.NODE_ENV === 'production'
-    ? String(process.env.PAYME_SECRET_KEY || '')
-    : String(process.env.PAYME_TEST_KEY || process.env.PAYME_SECRET_KEY || '');
+  if (process.env.NODE_ENV === 'production') {
+    return String(process.env.PAYME_SECRET_KEY || '').trim();
+  }
+  return String(process.env.PAYME_TEST_KEY || '').trim();
 }
 
 function findOrderByAccount(account = {}) {
@@ -89,8 +90,17 @@ async function paymeRpc(req, res) {
   console.log('[PAYME] request', { method, id, params });
 
   const auth = parseAuthorization(req.headers.authorization || '');
-  const secret = getAuthSecret();
-  if (!auth || auth.username !== 'Paycom' || auth.password !== secret) {
+  const login = auth?.username || '';
+  const password = auth?.password || '';
+  const expected = getAuthSecret();
+
+  console.log({
+    login,
+    password,
+    expected: process.env.PAYME_TEST_KEY
+  });
+
+  if (!auth || login !== 'Paycom' || password !== expected) {
     console.error('[PAYME] unauthorized request');
     return res.status(200).json(formatError(id, PAYME_ERRORS.UNAUTHORIZED, 'Unauthorized'));
   }
