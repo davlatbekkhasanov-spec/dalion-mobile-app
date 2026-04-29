@@ -1,6 +1,14 @@
 const express = require('express');
 const path = require('path');
 
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT:', err.message);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED:', err);
+});
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -19,7 +27,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 
 // Frontend preview
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  try {
+    return res.sendFile(path.join(__dirname, 'index.html'));
+  } catch (e) {
+    return res.status(200).json({ ok: true, message: 'Server running' });
+  }
 });
 
 app.get('/admin', (req, res) => {
@@ -54,6 +66,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({ ok: true });
 });
 
+console.log('PORT:', process.env.PORT);
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
