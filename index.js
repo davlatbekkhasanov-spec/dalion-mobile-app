@@ -5,6 +5,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const homeRoutes = require('./src/routes/home.routes.js');
+const paymeController = require('./src/controllers/payme.controller.js');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -42,6 +43,7 @@ app.get('/track/:orderNumber', (req, res) => {
 });
 
 // API routes
+app.post('/api/payme', paymeController.paymeRpc);
 app.use('/api/v1', homeRoutes);
 
 // Simple health route for hosting platforms

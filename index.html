@@ -996,6 +996,7 @@
       to { transform: rotate(343deg); }
     }
   </style>
+  <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
   <main class="phone" id="phone">
@@ -1012,7 +1013,7 @@
         <h2 class="headline">Хуш келибсиз!</h2>
         <p class="subtitle">Дунёча танлов, тез етказиб бериш ва премиум харид тажрибаси энди бир жойда.</p>
 
-        <button class="btn btn-primary" id="openRegisterBtn">Ro‘yxatdan o‘tish</button>
+        <button class="btn gm-btn gm-btn-primary btn-primary" id="openRegisterBtn">Ro‘yxatdan o‘tish</button>
       </div>
     </section>
 
@@ -1024,22 +1025,22 @@
         </div>
         <input id="authName" class="auth-input" placeholder="Ismingiz" />
         <input id="authPhone" class="auth-input" placeholder="Telefon raqamingiz" />
-        <div class="list-card" style="margin-top:10px;padding:10px;">
+        <div class="list-card gm-card" style="margin-top:10px;padding:10px;">
           <div class="muted" style="margin-bottom:8px;">OTP tasdiqlash (ixtiyoriy)</div>
           <div style="display:flex;gap:8px;">
-            <button class="btn btn-secondary" id="requestOtpBtn" style="flex:1;">OTP olish</button>
+            <button class="btn gm-btn gm-btn-secondary btn-secondary" id="requestOtpBtn">OTP olish</button>
           </div>
           <input id="otpCodeInput" class="auth-input" placeholder="OTP kod" style="margin-top:8px;" />
-          <button class="btn btn-secondary" id="verifyOtpBtn" style="margin-top:8px;width:100%;">OTP ni tekshirish</button>
+          <button class="btn gm-btn gm-btn-secondary btn-secondary" id="verifyOtpBtn">OTP ni tekshirish</button>
           <div id="devOtpHint" class="muted" style="margin-top:8px;display:none;"></div>
         </div>
-        <button class="btn btn-primary" id="submitAuthBtn" style="margin-top:10px;">Tasdiqlash</button>
+        <button class="btn gm-btn gm-btn-primary btn-primary" id="submitAuthBtn" style="margin-top:10px;">Tasdiqlash</button>
       </div>
     </div>
 
     <section class="screen app" id="appScreen">
       <section class="view active" id="homeView">
-        <header class="top">
+        <header class="top home-top-sticky">
           <div>
             <div class="logo-row">
               <span class="logo-mark" aria-hidden="true"></span>
@@ -1047,29 +1048,49 @@
             </div>
             <p class="location" id="homeLocation">📍 Тошкент, Чилонзор тумани</p>
           </div>
-          <button class="bell" aria-label="Bildirishnomalar">🔔<span class="badge">3</span></button>
+          <button class="bell gm-icon-btn" aria-label="Savatga o'tish" id="homeCartShortcut">🛒<span class="badge gm-chip gm-chip--warning" id="homeCartShortcutBadge">0</span></button>
         </header>
 
-        <button class="search" id="openSearchBtn">🔎&nbsp; Маҳсулот, бренд ёки тоифани қидиринг</button>
+        <button class="search home-search-lg" id="openSearchBtn">🔎&nbsp; Маҳсулот, бренд ёки тоифани қидиринг</button>
 
-        <div class="section-head">
+        <div class="section-head gm-section-header">
           <h4 id="bannerSectionTitle">Bannerlar</h4>
         </div>
         <section class="home-scroll" id="bannerCarousel"></section>
 
-        <div class="section-head">
+        <div class="section-head gm-section-header">
           <h4>Категориялар</h4>
           <a href="#" id="homeAllCategoriesLink">Барчаси</a>
         </div>
         <section class="cats" id="homeCategories"></section>
 
-        <div class="section-head">
-          <h4>Оммабоп маҳсулотлар</h4>
+        <div class="section-head gm-section-header">
+          <h4>Siz uchun</h4>
           <a href="#" id="homeMoreProductsLink">Кўпроқ</a>
         </div>
         <section class="products-grid" id="homeProducts"></section>
 
-        <div class="section-head">
+        <div class="section-head gm-section-header">
+          <h4>Bugungi chegirmalar</h4>
+        </div>
+        <section class="products-grid" id="homeDiscountProducts"></section>
+
+        <div class="section-head gm-section-header">
+          <h4>Tez yetkaziladi</h4>
+        </div>
+        <section class="products-grid" id="homeFastProducts"></section>
+
+        <div class="section-head gm-section-header">
+          <h4>Ko‘p sotilgan</h4>
+        </div>
+        <section class="products-grid" id="homeBestSellerProducts"></section>
+
+        <div class="section-head gm-section-header">
+          <h4>Qayta buyurtma</h4>
+        </div>
+        <section class="products-grid" id="homeReorderProducts"></section>
+
+        <div class="section-head gm-section-header">
           <h4 id="promoSectionTitle">Aksiyalar</h4>
         </div>
         <section class="home-scroll" id="promoCarousel"></section>
@@ -1077,9 +1098,9 @@
       </section>
 
       <section class="view" id="searchView">
-        <h2 class="title">Katalog</h2>
+        <h2 class="title gm-title-md">Katalog</h2>
         <input class="search" id="searchInput" placeholder="Mahsulotlar va turkumlar qidirish" />
-        <button class="btn btn-secondary" id="categoryBackBtn" style="display:none; margin-bottom:10px; padding:10px 12px;">← Katalog</button>
+        <button class="btn gm-btn gm-btn-secondary btn-secondary" id="categoryBackBtn" style="display:none;">← Katalog</button>
         <section class="category-grid" id="categoryResults"></section>
         <p class="muted" id="catalogProductResultsTitle" style="display:none; margin-bottom:8px;"></p>
         <section class="products-grid" id="searchResults"></section>
@@ -1087,34 +1108,34 @@
       </section>
 
       <section class="view" id="cartView">
-        <h2 class="title">Savat</h2>
+        <h2 class="title gm-title-md">Savat</h2>
         <div id="cartItems"></div>
         <div class="empty" id="cartEmpty">Savatingiz hozircha bo'sh.</div>
-        <div class="list-card" id="cartSummary" style="display:none;">
+        <div class="list-card gm-card gm-sticky-cta" id="cartSummary" style="display:none;">
           <div class="list-row"><span class="muted">Jami:</span><strong id="cartTotalPrice">0 so'm</strong></div>
-          <button class="full-btn" id="orderBtn">Buyurtma berish</button>
+          <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="orderBtn">Buyurtma berish</button>
         </div>
       </section>
 
       <section class="view" id="profileView">
         <h2 class="title">Profil</h2>
-        <div class="list-card" id="profileUserCard">
+        <div class="list-card gm-card" id="profileUserCard">
           <h3 style="margin-bottom:6px;" id="profileName">Foydalanuvchi</h3>
           <p class="muted" id="profilePhone">Telefon: -</p>
-          <button class="btn btn-secondary" id="logoutBtn" style="margin-top:10px;">Chiqish</button>
+          <button class="btn gm-btn gm-btn-secondary btn-secondary" id="logoutBtn" style="margin-top:10px;">Chiqish</button>
         </div>
-        <div class="list-card" id="profileOrdersCard">
+        <div class="list-card gm-card" id="profileOrdersCard">
           <h3 style="margin-bottom:6px;">Buyurtmalarim</h3>
           <div id="profileOrders"></div>
         </div>
-        <div class="list-card" id="profileGuestCard" style="display:none;">
+        <div class="list-card gm-card" id="profileGuestCard" style="display:none;">
           <h3 style="margin-bottom:6px;">Mehmon foydalanuvchi</h3>
-          <button class="btn btn-primary" id="profileRegisterBtn">Ro‘yxatdan o‘tish</button>
+          <button class="btn gm-btn gm-btn-primary btn-primary" id="profileRegisterBtn">Ro‘yxatdan o‘tish</button>
         </div>
       </section>
 
       <section class="view" id="checkoutView">
-        <h2 class="title">Buyurtma preview</h2>
+        <h2 class="title gm-title-md">Buyurtma preview</h2>
         <div id="checkoutItems"></div>
         <div class="list-card checkout-delivery-card">
           <h4 style="margin-bottom:10px;">Yetkazib berish</h4>
@@ -1128,7 +1149,7 @@
           <p class="muted" id="checkoutTime">Vaqt: 30 daqiqa</p>
           <p class="muted" id="checkoutPrice">Narx: 12 000 so'm</p>
         </div>
-        <div class="list-card">
+        <div class="list-card gm-card">
           <h4 style="margin-bottom:8px;">To'lov turi</h4>
           <div class="payment-grid">
             <button class="pay-btn" data-payment="cash">Naqd</button>
@@ -1146,18 +1167,18 @@
             Men buyurtma summasini tovar yetkazib berilganda naqd to‘lash majburiyatini olaman
           </label>
           <p class="checkout-total" id="checkoutTotal">Jami: 0 so'm</p>
-          <button class="full-btn" id="confirmOrderBtn">Buyurtmani tasdiqlash</button>
+          <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="confirmOrderBtn">Buyurtmani tasdiqlash</button>
         </div>
       </section>
 
       <section class="view" id="successView">
-        <div class="list-card" style="margin-top:24px; text-align:center;">
+        <div class="list-card gm-card" style="margin-top:24px; text-align:center;">
           <h2 style="margin-bottom:8px;">Buyurtma qabul qilindi</h2>
           <p class="muted">Operator tez orada bog'lanadi</p>
           <p class="muted" id="successOrderNumber">Buyurtma: -</p>
           <p class="muted" id="successOrderStatus">Status: Yangi buyurtma</p>
-          <a id="trackOrderBtn" class="btn btn-secondary" style="display:none;margin-top:10px;">Buyurtmani kuzatish</a>
-          <button class="full-btn" id="backHomeBtn">Homega qaytish</button>
+          <a id="trackOrderBtn" class="btn gm-btn gm-btn-secondary btn-secondary" style="display:none;">Buyurtmani kuzatish</a>
+          <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="backHomeBtn">Homega qaytish</button>
         </div>
       </section>
     </section>
@@ -1178,10 +1199,27 @@
         <p class="muted" id="modalCategory">Kategoriya</p>
         <div class="image-box modal-image">DALION
 Oq fonli foto</div>
-        <p class="price" id="modalPrice">0 so'm</p>
+        <div class="modal-rating-row">
+          <span class="gm-chip gm-chip--warning" id="modalRating">⭐ 4.7 · 0 baho</span>
+          <span class="gm-chip gm-chip--delivery" id="modalEta">🚚 20 daqiqa</span>
+          <span class="gm-chip gm-chip--success" id="modalAvailability">Mavjud</span>
+        </div>
+        <p class="price modal-price-main" id="modalPrice">0 so'm</p>
         <p class="old-price" id="modalOldPrice">0 so'm</p>
+        <div class="modal-trust">
+          <p id="modalTrustDelivery">🚚 20 daqiqada yetkazib beramiz</p>
+          <p>🔁 Qaytarish kafolati</p>
+          <p>✅ Tekshirilgan mahsulot</p>
+        </div>
+        <p class="muted" id="modalDescription">Mahsulot tavsifi tez orada yangilanadi.</p>
+        <div class="modal-specs" id="modalSpecs"></div>
+        <h4 class="gm-title-md" style="margin-top:10px;">O‘xshash mahsulotlar</h4>
+        <section class="products-grid modal-reco-grid" id="modalRecommendations"></section>
+        <div class="gm-sticky-cta modal-sticky-cta">
+          <div class="modal-sticky-price" id="modalStickyPrice">0 so'm</div>
+          <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="modalAddBtn">Savatga qo'shish</button>
+        </div>
         <div class="qty" id="modalQty"></div>
-        <button class="full-btn" id="modalAddBtn">Savatga qo'shish</button>
       </div>
     </div>
     <div class="overlay" id="locationDeniedOverlay">
@@ -1193,8 +1231,8 @@ Oq fonli foto</div>
           <div><strong>iPhone Safari:</strong> Settings → Safari → Location → Allow</div>
         </div>
         <div class="location-permission-actions">
-          <button class="btn btn-secondary" id="retryLocationBtn" type="button">Qayta urinish</button>
-          <button class="btn btn-primary" id="manualLocationBtn" type="button">Manzilni qo‘lda kiritish</button>
+          <button class="btn gm-btn gm-btn-secondary btn-secondary" id="retryLocationBtn" type="button">Qayta urinish</button>
+          <button class="btn gm-btn gm-btn-primary btn-primary" id="manualLocationBtn" type="button">Manzilni qo‘lda kiritish</button>
         </div>
       </div>
     </div>
@@ -1237,6 +1275,10 @@ Oq fonli foto</div>
     const submitAuthBtn = document.getElementById('submitAuthBtn');
     const toast = document.getElementById('toast');
     const homeProducts = document.getElementById('homeProducts');
+    const homeDiscountProducts = document.getElementById('homeDiscountProducts');
+    const homeFastProducts = document.getElementById('homeFastProducts');
+    const homeBestSellerProducts = document.getElementById('homeBestSellerProducts');
+    const homeReorderProducts = document.getElementById('homeReorderProducts');
     const searchResults = document.getElementById('searchResults');
     const searchInput = document.getElementById('searchInput');
     const searchEmpty = document.getElementById('searchEmpty');
@@ -1255,6 +1297,8 @@ Oq fonli foto</div>
     const homeBrandName = document.getElementById('homeBrandName');
     const homeLocation = document.getElementById('homeLocation');
     const openSearchBtn = document.getElementById('openSearchBtn');
+    const homeCartShortcut = document.getElementById('homeCartShortcut');
+    const homeCartShortcutBadge = document.getElementById('homeCartShortcutBadge');
     const bannerCarousel = document.getElementById('bannerCarousel');
     const promoCarousel = document.getElementById('promoCarousel');
     const activeOrderCardWrap = document.getElementById('activeOrderCardWrap');
@@ -1288,6 +1332,14 @@ Oq fonli foto</div>
     const modalCategory = document.getElementById('modalCategory');
     const modalPrice = document.getElementById('modalPrice');
     const modalOldPrice = document.getElementById('modalOldPrice');
+    const modalStickyPrice = document.getElementById('modalStickyPrice');
+    const modalRating = document.getElementById('modalRating');
+    const modalEta = document.getElementById('modalEta');
+    const modalAvailability = document.getElementById('modalAvailability');
+    const modalDescription = document.getElementById('modalDescription');
+    const modalSpecs = document.getElementById('modalSpecs');
+    const modalRecommendations = document.getElementById('modalRecommendations');
+    const modalTrustDelivery = document.getElementById('modalTrustDelivery');
     const modalQty = document.getElementById('modalQty');
     const modalAddBtn = document.getElementById('modalAddBtn');
     const locationDeniedOverlay = document.getElementById('locationDeniedOverlay');
@@ -1356,11 +1408,11 @@ Oq fonli foto</div>
       };
       const bannerItems = banners.length ? banners : [fallbackBanner];
       bannerCarousel.innerHTML = bannerItems.map((b) => `
-        <article class="promo">
+        <article class="promo gm-card">
           <div>
             <h3>${b.title || fallbackBanner.title}</h3>
             <p>${b.subtitle || fallbackBanner.subtitle}</p>
-            <span>${b.badge || settings.heroBadgeText || fallbackBanner.badge}</span>
+            <span class="gm-chip gm-chip--delivery">${b.badge || settings.heroBadgeText || fallbackBanner.badge}</span>
           </div>
           <div class="truck">${b.image_url ? `<img src="${b.image_url}" alt="${b.title || 'banner'}" style="width:100%;height:100%;object-fit:cover;border-radius:16px;" />` : '🚚'}</div>
         </article>
@@ -1373,7 +1425,7 @@ Oq fonli foto</div>
       };
       const promoItems = promotions.length ? promotions : [fallbackPromo];
       promoCarousel.innerHTML = promoItems.map((p) => `
-        <article class="bonus">
+        <article class="bonus gm-card">
           <div>
             <h5>${p.title || fallbackPromo.title}</h5>
             <p>${p.description || p.discount_text || fallbackPromo.description}</p>
@@ -1544,19 +1596,29 @@ Oq fonli foto</div>
     function productCardTemplate(p) {
       const categoryName = normalizedCategoryName(p.categoryDisplayName || p.category);
       const stock = Number(p.stock ?? 0);
+      const oldPrice = Number(p.oldPrice || 0);
+      const price = Number(p.price || 0);
+      const hasDiscount = oldPrice > price && price > 0;
+      const discountPercent = hasDiscount ? Math.max(1, Math.round(((oldPrice - price) / oldPrice) * 100)) : 0;
+      const rating = Number(p.rating || 0) > 0 ? Number(p.rating).toFixed(1) : '4.7';
       const priceText = Number(p.price) > 0 ? money(p.price) : 'Narx aniqlanmoqda';
+      const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || '30 daqiqa';
       const imageHtml = p.image_url
         ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />`
         : `DALION
 Oq fonli foto`;
       return `
-        <article class="product" data-open-product="${p.id}">
+        <article class="product gm-card" data-open-product="${p.id}">
+          ${hasDiscount ? `<span class="gm-chip gm-chip--delivery product-discount">-${discountPercent}%</span>` : ''}
           <div class="image-box">${imageHtml}</div>
           <h5>${p.name}</h5>
           <p class="meta">${categoryName}</p>
+          <p class="meta">⭐ ${rating} · ${Number(p.reviewCount || 0) || 0} baho</p>
+          <p class="meta"><span class="gm-chip gm-chip--delivery">🚚 ${etaText}</span> ${stock > 0 ? `<span class="gm-chip gm-chip--success">Mavjud</span>` : `<span class="gm-chip gm-chip--warning">Tugagan</span>`}</p>
           <p class="price">${priceText}</p>
           <p class="meta">${stock > 0 ? `Ostatka: ${stock}` : "Omborda yo'q"}</p>
-          <p class="old-price">${money(p.oldPrice)}</p>
+          <p class="old-price">${oldPrice > 0 ? money(oldPrice) : ''}</p>
+          <button class="btn gm-btn gm-btn-primary quick-add-btn" data-add-one="${p.id}" ${stock <= 0 ? 'disabled' : ''}>Tez qo‘shish</button>
           <div class="qty" data-qty-wrap="${p.id}">${makeQtyControls(p.id)}</div>
         </article>
       `;
@@ -1575,7 +1637,18 @@ Oq fonli foto`;
           return String(a.name || '').localeCompare(String(b.name || ''), 'uz');
         })
         .slice(0, 8);
-      homeProducts.innerHTML = popular.map(productCardTemplate).join('');
+      const discounts = products.filter((p) => Number(p.oldPrice || 0) > Number(p.price || 0)).slice(0, 6);
+      const fast = products.filter((p) => Number(p.stock || 0) > 0).slice(0, 6);
+      const bestSeller = popular.slice(0, 6);
+      const reorder = cartItemsSnapshot.length
+        ? products.filter((p) => cartItemsSnapshot.some((c) => c.id === p.id)).slice(0, 6)
+        : products.slice(0, 4);
+
+      homeProducts.innerHTML = popular.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Mahsulotlar yuklanmoqda...</div>';
+      homeDiscountProducts.innerHTML = discounts.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Hozircha chegirmali mahsulotlar yo‘q.</div>';
+      homeFastProducts.innerHTML = fast.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Tez yetkaziladigan mahsulotlar topilmadi.</div>';
+      homeBestSellerProducts.innerHTML = bestSeller.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Ko‘p sotilgan mahsulotlar topilmadi.</div>';
+      homeReorderProducts.innerHTML = reorder.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Qayta buyurtma uchun tarix topilmadi.</div>';
     }
 
     function normalizedCategoryName(categoryName) {
@@ -1619,9 +1692,9 @@ Oq fonli foto`;
     function renderHomeCategories() {
       const entries = getCategoryEntries();
       homeCategories.innerHTML = entries.map((c) => `
-        <article class="cat" data-home-category="${c.key}" data-home-category-label="${c.displayName}">
+        <article class="cat gm-card" data-home-category="${c.key}" data-home-category-label="${c.displayName}">
           <i>${c.image_url ? `<img src="${c.image_url}" alt="${c.displayName}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />` : c.icon}</i>
-          <span class="cat-label">${c.displayName}</span>
+          <span class="cat-label gm-chip">${c.displayName}</span>
         </article>
       `).join('');
     }
@@ -1631,7 +1704,7 @@ Oq fonli foto`;
       if (catalogMode === 'categories') {
         const categories = getCategoryEntries().filter((c) => c.displayName.toLowerCase().includes(query));
         categoryResults.innerHTML = categories.map((c) => `
-          <article class="category-card" data-category="${c.key}" data-category-label="${c.displayName}">
+          <article class="category-card gm-card" data-category="${c.key}" data-category-label="${c.displayName}">
             <span class="icon">${c.image_url ? `<img src="${c.image_url}" alt="${c.displayName}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />` : c.icon}</span>
             <div><b>${c.displayName}</b><small>${c.count} ta mahsulot</small></div>
             <span>›</span>
@@ -1671,7 +1744,7 @@ Oq fonli foto`;
       cartItems.innerHTML = cartItemsSnapshot.map((item) => {
         const imageHtml = item.image_url ? `<img src="${item.image_url}" alt="${item.name}" loading="lazy" decoding="async" style="width:42px;height:42px;border-radius:10px;object-fit:contain;background:#fff;" />` : '';
         return `
-          <article class="list-card">
+          <article class="list-card gm-card">
             <div class="list-row" style="margin-bottom:6px;">
               <div style="display:flex;align-items:center;gap:8px;">${imageHtml}<strong>${item.name}</strong></div>
               <span class="muted">${money(item.price)}</span>
@@ -1692,7 +1765,7 @@ Oq fonli foto`;
       checkoutItems.innerHTML = selected.map((p) => {
         const qty = qtyOf(p.id);
         return `
-          <article class="list-card">
+          <article class="list-card gm-card">
             <div class="list-row">
               <span>${p.name} × ${qty}</span>
               <strong>${money(p.price * qty)}</strong>
@@ -1766,7 +1839,7 @@ Oq fonli foto`;
           activeOrderCardWrap.innerHTML = '';
           return;
         }
-        activeOrderCardWrap.innerHTML = `<article class="list-card"><h4 style="margin-bottom:6px;">Faol buyurtma</h4><div class="muted">#${o.orderNumber} · ${orderStatusLabel(o.status)}</div><div class="muted">Jami: ${money(o.total || 0)}</div><div style="display:flex;gap:8px;margin-top:8px;"><a class="btn btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="text-align:center;">Kuzatish</a></div></article>`;
+        activeOrderCardWrap.innerHTML = `<article class="list-card gm-card"><h4 style="margin-bottom:6px;">Faol buyurtma</h4><div class="muted">#${o.orderNumber} · ${orderStatusLabel(o.status)}</div><div class="muted">Jami: ${money(o.total || 0)}</div><div style="display:flex;gap:8px;margin-top:8px;"><a class="btn gm-btn gm-btn-secondary btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="text-align:center;">Kuzatish</a></div></article>`;
       } catch {
         activeOrderCardWrap.innerHTML = '';
       }
@@ -1793,28 +1866,58 @@ Oq fonli foto`;
         profileOrders.innerHTML = '<div class="empty">Hozircha buyurtmalar yo‘q</div>';
         return;
       }
-      profileOrders.innerHTML = merged.map((o) => `<article class="list-card"><div><b>#${o.orderNumber || '-'}</b></div><div class="muted">${new Date(o.created_at || Date.now()).toLocaleString('ru-RU')}</div><div class="muted">Status: ${orderStatusLabel(o.status)}</div><div class="muted">Jami: ${money(o.total || 0)}</div><div class="muted">To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatus || '-'}</div><div class="muted">Feedback: ${o.feedbackAt ? 'Yuborilgan' : 'Kutilmoqda'}</div><a class="btn btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="margin-top:8px;text-align:center;">Kuzatish</a></article>`).join('');
+      profileOrders.innerHTML = merged.map((o) => `<article class="list-card gm-card"><div><b>#${o.orderNumber || '-'}</b></div><div class="muted">${new Date(o.created_at || Date.now()).toLocaleString('ru-RU')}</div><div class="muted">Status: ${orderStatusLabel(o.status)}</div><div class="muted">Jami: ${money(o.total || 0)}</div><div class="muted">To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatus || '-'}</div><div class="muted">Feedback: ${o.feedbackAt ? 'Yuborilgan' : 'Kutilmoqda'}</div><a class="btn gm-btn gm-btn-secondary btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="margin-top:8px;text-align:center;">Kuzatish</a></article>`).join('');
     }
 
     function renderCartBadge() {
       const q = totalQty();
       cartBadge.textContent = q;
       cartBadge.classList.toggle('hidden', q === 0);
+      if (homeCartShortcutBadge) {
+        homeCartShortcutBadge.textContent = q;
+      }
     }
 
     function renderModal() {
       if (!activeModalProductId) return;
       const p = products.find((x) => x.id === activeModalProductId);
       if (!p) return;
+      const stock = Number(p.stock ?? 0);
+      const oldPrice = Number(p.oldPrice || 0);
+      const price = Number(p.price || 0);
+      const hasDiscount = oldPrice > price && price > 0;
+      const discountPercent = hasDiscount ? Math.max(1, Math.round(((oldPrice - price) / oldPrice) * 100)) : 0;
+      const rating = Number(p.rating || 0) > 0 ? Number(p.rating).toFixed(1) : '4.7';
+      const reviews = Number(p.reviewCount || 0) || 0;
+      const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || '20 daqiqa';
       modalName.textContent = p.name;
       modalCategory.textContent = normalizedCategoryName(p.categoryDisplayName || p.category);
       modalPrice.textContent = money(p.price);
-      modalOldPrice.textContent = money(p.oldPrice);
+      modalStickyPrice.textContent = money(p.price);
+      modalOldPrice.textContent = oldPrice > 0 ? money(oldPrice) : '';
+      modalOldPrice.style.display = oldPrice > 0 ? 'block' : 'none';
+      modalRating.textContent = `⭐ ${rating} · ${reviews} baho`;
+      modalEta.textContent = `🚚 ${etaText}`;
+      modalAvailability.textContent = stock > 0 ? 'Mavjud' : "Omborda yo'q";
+      modalAvailability.className = `gm-chip ${stock > 0 ? 'gm-chip--success' : 'gm-chip--warning'}`;
+      modalTrustDelivery.textContent = `🚚 ${etaText}da yetkazib beramiz`;
+      modalDescription.textContent = p.description || p.subtitle || `${p.name} - sifatli va tekshirilgan mahsulot.`;
+      modalSpecs.innerHTML = `
+        <div class="spec-row"><span>Narx</span><strong>${money(p.price)}</strong></div>
+        ${hasDiscount ? `<div class="spec-row"><span>Chegirma</span><strong>-${discountPercent}%</strong></div>` : ''}
+        <div class="spec-row"><span>Kategoriya</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
+        <div class="spec-row"><span>Qoldiq</span><strong>${stock > 0 ? stock : 0} ta</strong></div>
+      `;
       const modalImageBox = document.querySelector('.modal-image');
       modalImageBox.innerHTML = p.image_url
         ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />`
         : `DALION
 Oq fonli foto`;
+      if (hasDiscount) {
+        modalImageBox.insertAdjacentHTML('beforeend', `<span class="gm-chip gm-chip--delivery product-discount">-${discountPercent}%</span>`);
+      }
+      const related = products.filter((item) => item.id !== p.id && normalizedCategoryName(item.category) === normalizedCategoryName(p.category)).slice(0, 4);
+      modalRecommendations.innerHTML = related.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">O‘xshash mahsulot topilmadi.</div>';
       modalQty.innerHTML = makeQtyControls(p.id);
     }
 
@@ -1974,6 +2077,7 @@ Oq fonli foto`;
       renderSearch();
       searchInput.focus();
     });
+    homeCartShortcut?.addEventListener('click', () => setView('cartView'));
 
     searchInput.addEventListener('input', renderSearch);
     categoryBackBtn.addEventListener('click', () => {
@@ -2030,8 +2134,16 @@ Oq fonli foto`;
 
       const plus = e.target.closest('.qty-plus');
       const minus = e.target.closest('.qty-minus');
+      const quickAdd = e.target.closest('[data-add-one]');
 
       try {
+        if (quickAdd) {
+          e.stopPropagation();
+          const id = quickAdd.getAttribute('data-add-one');
+          const current = qtyOf(id);
+          await setQty(id, current + 1, true);
+          return;
+        }
         if (plus) {
           e.stopPropagation();
           const id = plus.dataset.id;
