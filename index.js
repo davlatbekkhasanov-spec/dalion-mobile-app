@@ -20,6 +20,14 @@ process.on('unhandledRejection', (err) => {
   console.error('UNHANDLED:', err);
 });
 
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT ERROR:', err);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED REJECTION:', err);
+});
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -29,8 +37,6 @@ const paymeController = require('./src/controllers/payme.controller.js');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static files from project root
-app.use(express.static(__dirname));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   maxAge: '30d',
   immutable: true
@@ -38,11 +44,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 
 // Frontend preview
 app.get('/', (req, res) => {
-  try {
-    return res.sendFile(path.join(__dirname, 'index.html'));
-  } catch (e) {
-    return res.status(200).json({ ok: true, message: 'Server running' });
-  }
+  res.status(200).send('OK');
 });
 
 app.get('/admin', (req, res) => {
@@ -77,6 +79,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({ ok: true, service: 'dalion-mobile-app' });
 });
 
+console.log('STARTING SERVER...');
 console.log('PORT:', process.env.PORT);
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
