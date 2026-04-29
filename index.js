@@ -1,5 +1,16 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
+
+process.on('uncaughtException', (error) => {
+  console.error('[PROCESS] uncaughtException', { message: error?.message });
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[PROCESS] unhandledRejection', {
+    message: reason instanceof Error ? reason.message : String(reason)
+  });
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,7 +30,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 
 // Frontend preview
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  const indexFile = path.join(__dirname, 'index.html');
+  if (fs.existsSync(indexFile)) {
+    return res.sendFile(indexFile);
+  }
+  return res.status(200).json({ ok: true, service: 'dalion-mobile-app' });
 });
 
 app.get('/admin', (req, res) => {
@@ -51,7 +66,7 @@ app.use('/api/v1', homeRoutes);
 
 // Simple health route for hosting platforms
 app.get('/health', (req, res) => {
-  res.status(200).json({ ok: true });
+  res.status(200).json({ ok: true, service: 'dalion-mobile-app' });
 });
 
 app.listen(PORT, () => {
