@@ -181,4 +181,67 @@
   .cats { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
 
+/* Phase 2B PDP modal redesign */
+.modal {
+  max-height: min(92vh, 860px);
+  overflow-y: auto;
+  padding-bottom: 90px;
+}
+.modal-image {
+  height: 250px;
+  margin-bottom: 10px;
+}
+.modal-price-main {
+  font-size: 26px;
+  font-weight: 800;
+  margin-top: 8px;
+}
+.modal-rating-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.modal-trust {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid rgba(228,231,236,.25);
+  border-radius: 12px;
+  background: rgba(255,255,255,.04);
+}
+.modal-trust p {
+  font-size: var(--gm-font-sm);
+  margin: 0 0 6px;
+}
+.modal-specs {
+  border-top: 1px solid rgba(228,231,236,.2);
+  margin-top: 8px;
+  padding-top: 8px;
+}
+.spec-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: var(--gm-font-sm);
+}
+.modal-reco-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.modal-sticky-cta {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  background: rgba(3, 10, 20, 0.95);
+  border-top: 1px solid rgba(228,231,236,.2);
+}
+.modal-sticky-price {
+  font-size: 20px;
+  font-weight: 800;
+}
+
 @keyframes gm-shimmer { 100% { transform: translateX(100%); } }

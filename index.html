@@ -1199,10 +1199,27 @@
         <p class="muted" id="modalCategory">Kategoriya</p>
         <div class="image-box modal-image">DALION
 Oq fonli foto</div>
-        <p class="price" id="modalPrice">0 so'm</p>
+        <div class="modal-rating-row">
+          <span class="gm-chip gm-chip--warning" id="modalRating">⭐ 4.7 · 0 baho</span>
+          <span class="gm-chip gm-chip--delivery" id="modalEta">🚚 20 daqiqa</span>
+          <span class="gm-chip gm-chip--success" id="modalAvailability">Mavjud</span>
+        </div>
+        <p class="price modal-price-main" id="modalPrice">0 so'm</p>
         <p class="old-price" id="modalOldPrice">0 so'm</p>
+        <div class="modal-trust">
+          <p id="modalTrustDelivery">🚚 20 daqiqada yetkazib beramiz</p>
+          <p>🔁 Qaytarish kafolati</p>
+          <p>✅ Tekshirilgan mahsulot</p>
+        </div>
+        <p class="muted" id="modalDescription">Mahsulot tavsifi tez orada yangilanadi.</p>
+        <div class="modal-specs" id="modalSpecs"></div>
+        <h4 class="gm-title-md" style="margin-top:10px;">O‘xshash mahsulotlar</h4>
+        <section class="products-grid modal-reco-grid" id="modalRecommendations"></section>
+        <div class="gm-sticky-cta modal-sticky-cta">
+          <div class="modal-sticky-price" id="modalStickyPrice">0 so'm</div>
+          <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="modalAddBtn">Savatga qo'shish</button>
+        </div>
         <div class="qty" id="modalQty"></div>
-        <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="modalAddBtn">Savatga qo'shish</button>
       </div>
     </div>
     <div class="overlay" id="locationDeniedOverlay">
@@ -1315,6 +1332,14 @@ Oq fonli foto</div>
     const modalCategory = document.getElementById('modalCategory');
     const modalPrice = document.getElementById('modalPrice');
     const modalOldPrice = document.getElementById('modalOldPrice');
+    const modalStickyPrice = document.getElementById('modalStickyPrice');
+    const modalRating = document.getElementById('modalRating');
+    const modalEta = document.getElementById('modalEta');
+    const modalAvailability = document.getElementById('modalAvailability');
+    const modalDescription = document.getElementById('modalDescription');
+    const modalSpecs = document.getElementById('modalSpecs');
+    const modalRecommendations = document.getElementById('modalRecommendations');
+    const modalTrustDelivery = document.getElementById('modalTrustDelivery');
     const modalQty = document.getElementById('modalQty');
     const modalAddBtn = document.getElementById('modalAddBtn');
     const locationDeniedOverlay = document.getElementById('locationDeniedOverlay');
@@ -1857,15 +1882,42 @@ Oq fonli foto`;
       if (!activeModalProductId) return;
       const p = products.find((x) => x.id === activeModalProductId);
       if (!p) return;
+      const stock = Number(p.stock ?? 0);
+      const oldPrice = Number(p.oldPrice || 0);
+      const price = Number(p.price || 0);
+      const hasDiscount = oldPrice > price && price > 0;
+      const discountPercent = hasDiscount ? Math.max(1, Math.round(((oldPrice - price) / oldPrice) * 100)) : 0;
+      const rating = Number(p.rating || 0) > 0 ? Number(p.rating).toFixed(1) : '4.7';
+      const reviews = Number(p.reviewCount || 0) || 0;
+      const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || '20 daqiqa';
       modalName.textContent = p.name;
       modalCategory.textContent = normalizedCategoryName(p.categoryDisplayName || p.category);
       modalPrice.textContent = money(p.price);
-      modalOldPrice.textContent = money(p.oldPrice);
+      modalStickyPrice.textContent = money(p.price);
+      modalOldPrice.textContent = oldPrice > 0 ? money(oldPrice) : '';
+      modalOldPrice.style.display = oldPrice > 0 ? 'block' : 'none';
+      modalRating.textContent = `⭐ ${rating} · ${reviews} baho`;
+      modalEta.textContent = `🚚 ${etaText}`;
+      modalAvailability.textContent = stock > 0 ? 'Mavjud' : "Omborda yo'q";
+      modalAvailability.className = `gm-chip ${stock > 0 ? 'gm-chip--success' : 'gm-chip--warning'}`;
+      modalTrustDelivery.textContent = `🚚 ${etaText}da yetkazib beramiz`;
+      modalDescription.textContent = p.description || p.subtitle || `${p.name} - sifatli va tekshirilgan mahsulot.`;
+      modalSpecs.innerHTML = `
+        <div class="spec-row"><span>Narx</span><strong>${money(p.price)}</strong></div>
+        ${hasDiscount ? `<div class="spec-row"><span>Chegirma</span><strong>-${discountPercent}%</strong></div>` : ''}
+        <div class="spec-row"><span>Kategoriya</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
+        <div class="spec-row"><span>Qoldiq</span><strong>${stock > 0 ? stock : 0} ta</strong></div>
+      `;
       const modalImageBox = document.querySelector('.modal-image');
       modalImageBox.innerHTML = p.image_url
         ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />`
         : `DALION
 Oq fonli foto`;
+      if (hasDiscount) {
+        modalImageBox.insertAdjacentHTML('beforeend', `<span class="gm-chip gm-chip--delivery product-discount">-${discountPercent}%</span>`);
+      }
+      const related = products.filter((item) => item.id !== p.id && normalizedCategoryName(item.category) === normalizedCategoryName(p.category)).slice(0, 4);
+      modalRecommendations.innerHTML = related.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">O‘xshash mahsulot topilmadi.</div>';
       modalQty.innerHTML = makeQtyControls(p.id);
     }
 
