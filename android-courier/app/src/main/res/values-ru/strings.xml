@@ -8,4 +8,7 @@
     <string name="no_active_order">Нет активных заказов</string>
     <string name="coords_missing">Координаты адреса не найдены</string>
     <string name="settlement_summary_fmt">Расчёт: %1$d доставлено, %.0f, Архив: %3$d</string>
+    <string name="location_resolving">Определение местоположения...</string>
+    <string name="tracking_notification_text">Отправка геолокации курьера</string>
+    <string name="tracking_notification_title">Отслеживание активно</string>
 </resources>
