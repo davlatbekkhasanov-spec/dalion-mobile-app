@@ -30,12 +30,15 @@ class CourierStateReducer {
                 lastErrorMessage = null
             )
 
-            is CourierAction.ActiveOrderLoaded -> previous.copy(
-                orderState = mapOrderState(action.status),
-                activeOrderId = action.orderId,
-                driverState = if (action.orderId.isNullOrBlank()) DriverState.ONLINE_IDLE else DriverState.ONLINE_BUSY,
-                lastErrorMessage = null
-            )
+            is CourierAction.ActiveOrderLoaded -> {
+                val orderState = mapOrderState(action.status)
+                previous.copy(
+                    orderState = orderState,
+                    activeOrderId = action.orderId,
+                    driverState = resolveDriverState(orderState),
+                    lastErrorMessage = null
+                )
+            }
 
             CourierAction.OrderAccepted -> previous.copy(
                 orderState = OrderState.ACCEPTED_EN_ROUTE_PICKUP,
@@ -83,6 +86,8 @@ class CourierStateReducer {
             OrderState.NO_ACTIVE_ORDER,
             OrderState.ASSIGNED_PENDING_ACCEPT,
             OrderState.DELIVERED,
+            OrderState.SETTLEMENT_PENDING,
+            OrderState.SETTLED,
             OrderState.CANCELED -> TrackingMode.IDLE
         }
     }
@@ -93,8 +98,23 @@ class CourierStateReducer {
             "accepted" -> OrderState.ACCEPTED_EN_ROUTE_PICKUP
             "out_for_delivery" -> OrderState.OUT_FOR_DELIVERY
             "delivered" -> OrderState.DELIVERED
+            "settlement_pending" -> OrderState.SETTLEMENT_PENDING
+            "settled" -> OrderState.SETTLED
             "cancelled" -> OrderState.CANCELED
             else -> OrderState.NO_ACTIVE_ORDER
+        }
+    }
+
+    private fun resolveDriverState(orderState: OrderState): DriverState {
+        return when (orderState) {
+            OrderState.ACCEPTED_EN_ROUTE_PICKUP,
+            OrderState.OUT_FOR_DELIVERY -> DriverState.ONLINE_BUSY
+            OrderState.ASSIGNED_PENDING_ACCEPT,
+            OrderState.NO_ACTIVE_ORDER,
+            OrderState.DELIVERED,
+            OrderState.SETTLEMENT_PENDING,
+            OrderState.SETTLED,
+            OrderState.CANCELED -> DriverState.ONLINE_IDLE
         }
     }
 }
