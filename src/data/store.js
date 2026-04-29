@@ -615,6 +615,27 @@ function attachPaymentProof(orderNumber, { paymentProofUrl = '' } = {}) {
   return order;
 }
 
+function markOrderPaid(id) {
+  const order = getOrderById(id);
+  if (!order) return null;
+  const now = new Date().toISOString();
+  order.paymentStatus = 'paid';
+  order.paidAt = order.paidAt || now;
+  order.updated_at = now;
+  persistState();
+  return order;
+}
+
+function markOrderPaymentCancelled(id) {
+  const order = getOrderById(id);
+  if (!order) return null;
+  const now = new Date().toISOString();
+  order.paymentStatus = 'cancelled';
+  order.updated_at = now;
+  persistState();
+  return order;
+}
+
 function getOrders() {
   return orders
     .slice()
@@ -874,6 +895,8 @@ module.exports = {
   getStoreSummary,
   reloadStoreFromDisk,
   getOrders,
+  markOrderPaid,
+  markOrderPaymentCancelled,
   getCustomerOrders,
   getOrderById,
   getOrderByNumber,
