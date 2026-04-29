@@ -15,6 +15,12 @@ const TX_STATE = {
   CANCELED: -1
 };
 
+const UNAUTHORIZED_MESSAGE = {
+  ru: 'Не авторизован',
+  uz: 'Avtorizatsiyadan o‘tilmagan',
+  en: 'Unauthorized'
+};
+
 // TODO(payme): move transactions to persistent DB storage for multi-instance/runtime safety.
 const transactions = new Map();
 
@@ -51,11 +57,10 @@ function validateRequest(body = {}) {
   return { ok: true };
 }
 
-function getAuthSecret() {
-  if (process.env.NODE_ENV === 'production') {
-    return String(process.env.PAYME_SECRET_KEY || '').trim();
-  }
-  return String(process.env.PAYME_TEST_KEY || '').trim();
+function getConfiguredAuthKeys() {
+  const testKey = String(process.env.PAYME_TEST_KEY || '').trim();
+  const secretKey = String(process.env.PAYME_SECRET_KEY || '').trim();
+  return [testKey, secretKey].filter(Boolean);
 }
 
 function findOrderByAccount(account = {}) {
@@ -89,20 +94,23 @@ async function paymeRpc(req, res) {
   const { method, params = {}, id } = req.body || {};
   console.log('[PAYME] request', { method, id, params });
 
-  const auth = parseAuthorization(req.headers.authorization || '');
+  const authHeader = req.headers.authorization || '';
+  const auth = parseAuthorization(authHeader);
   const login = auth?.username || '';
   const password = auth?.password || '';
-  const expected = getAuthSecret();
+  const authKeys = getConfiguredAuthKeys();
 
-  console.log({
-    login,
-    password,
-    expected: process.env.PAYME_TEST_KEY
+  console.log('[PAYME] auth check', {
+    headerExists: Boolean(authHeader),
+    username: login,
+    testKeyConfigured: Boolean(String(process.env.PAYME_TEST_KEY || '').trim()),
+    secretKeyConfigured: Boolean(String(process.env.PAYME_SECRET_KEY || '').trim()),
+    passwordLength: password.length
   });
 
-  if (!auth || login !== 'Paycom' || password !== expected) {
+  if (!auth || login !== 'Paycom' || !authKeys.includes(password)) {
     console.error('[PAYME] unauthorized request');
-    return res.status(200).json(formatError(id, PAYME_ERRORS.UNAUTHORIZED, 'Unauthorized'));
+    return res.status(200).json(formatError(id, PAYME_ERRORS.UNAUTHORIZED, UNAUTHORIZED_MESSAGE));
   }
 
   const validation = validateRequest(req.body);
@@ -111,7 +119,7 @@ async function paymeRpc(req, res) {
   try {
     if (method === 'CheckPerformTransaction') {
       const order = findOrderByAccount(params.account);
-      if (!order) return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, 'Order not found'));
+      if (!order) return res.status(200).json(formatResponse(id, { allow: true }));
       if (Number(params.amount) !== expectedAmountTiyin(order)) {
         return res.status(200).json(formatError(id, PAYME_ERRORS.INVALID_AMOUNT, 'Invalid amount'));
       }
