@@ -1,11 +1,15 @@
 package org.globusmarket.courierapp.domain.repository
 
-import org.globusmarket.courierapp.api.OrderDto
+import org.globusmarket.courierapp.data.LocalOrder
+import org.globusmarket.courierapp.domain.model.OrderState
 
 interface OrderRepository {
-    suspend fun loadActiveOrder(): Result<OrderDto?>
-    suspend fun loadQueue(): Result<List<OrderDto>>
-    suspend fun acceptOrder(orderId: String): Result<OrderDto>
-    suspend fun declineOrder(orderId: String): Result<Unit>
-    suspend fun deliverOrder(orderId: String): Result<OrderDto>
+    fun getActiveOrders(): List<LocalOrder>
+    fun getDeliveredOrders(): List<LocalOrder>
+    fun getSettlementPendingOrders(): List<LocalOrder>
+    fun getSettledOrders(): List<LocalOrder>
+    fun addOrder(order: LocalOrder)
+    fun updateOrderState(token: String, state: OrderState, backendStatus: String? = null)
+    fun calculateTotalDeliveryFee(orders: List<LocalOrder>): Double
+    fun getMostRecentOrderForActions(): LocalOrder?
 }
