@@ -18,9 +18,11 @@
 Add these variables in Railway **Variables** section:
 
 - `PAYME_MERCHANT_ID`
-- `PAYME_SECRET_KEY` (or `PAYME_TEST_KEY` for test mode)
+- `PAYME_TEST_KEY`
+- `PAYME_SECRET_KEY`
 
-If variables are not set, endpoint still works for development, but production should configure auth before go-live.
+`POST /api/payme` now requires Basic authorization in test mode using `PAYME_MERCHANT_ID:PAYME_TEST_KEY`.
+If credentials are missing, the endpoint returns configuration error until variables are set.
 
 Endpoint:
 
