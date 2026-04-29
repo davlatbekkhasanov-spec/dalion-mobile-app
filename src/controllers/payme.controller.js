@@ -1,209 +1,187 @@
 const store = require('../data/store.js');
 
-const PAYME_METHODS = new Set([
-  'CheckPerformTransaction',
-  'CreateTransaction',
-  'PerformTransaction',
-  'CancelTransaction',
-  'CheckTransaction'
-]);
-
-const paymeTransactions = new Map();
-
-const PAYME_ERROR = Object.freeze({
+const PAYME_ERRORS = {
+  UNAUTHORIZED: -32504,
+  ORDER_NOT_FOUND: -31050,
+  INVALID_AMOUNT: -31001,
   INVALID_REQUEST: -32600,
   METHOD_NOT_FOUND: -32601,
-  INVALID_PARAMS: -32602,
-  ORDER_NOT_FOUND: -31050,
-  AMOUNT_INVALID: -31001,
-  TRANSACTION_NOT_FOUND: -31003
-});
+  INTERNAL_ERROR: -32400
+};
 
-function nowMs() {
-  return Date.now();
+const TX_STATE = {
+  CREATED: 1,
+  DONE: 2,
+  CANCELED: -1
+};
+
+const transactions = new Map();
+
+function parseAuthorization(header = '') {
+  if (!header || typeof header !== 'string') return null;
+  const [type, token] = header.split(' ');
+  if (String(type || '').toLowerCase() !== 'basic' || !token) return null;
+  try {
+    const decoded = Buffer.from(token, 'base64').toString('utf8');
+    const idx = decoded.indexOf(':');
+    if (idx === -1) return null;
+    return { username: decoded.slice(0, idx), password: decoded.slice(idx + 1) };
+  } catch {
+    return null;
+  }
 }
 
-function responseResult(id, result) {
+function formatResponse(id, result) {
   return { jsonrpc: '2.0', result, id: id ?? null };
 }
 
-function responseError(id, code, messages, data = null) {
+function formatError(id, code, message, data = null) {
   return {
     jsonrpc: '2.0',
-    error: {
-      code,
-      message: {
-        ru: messages.ru,
-        uz: messages.uz,
-        en: messages.en
-      },
-      data
-    },
+    error: { code, message, data },
     id: id ?? null
   };
 }
 
-function getOrderByAccount(account = {}) {
+function validateRequest(body = {}) {
+  if (!body || body.jsonrpc !== '2.0' || !body.method) {
+    return { ok: false, error: formatError(body?.id, PAYME_ERRORS.INVALID_REQUEST, 'Invalid JSON-RPC request') };
+  }
+  return { ok: true };
+}
+
+function getAuthSecret() {
+  return process.env.NODE_ENV === 'production'
+    ? String(process.env.PAYME_SECRET_KEY || '')
+    : String(process.env.PAYME_TEST_KEY || process.env.PAYME_SECRET_KEY || '');
+}
+
+function findOrderByAccount(account = {}) {
   const orderId = String(account.order_id || '').trim();
-  if (!orderId) return { error: 'order_id required' };
-  const order = store.getOrderByNumber(orderId) || store.getOrderById(orderId);
-  if (!order) return { error: 'order not found', orderId };
-  return { order, orderId };
+  if (!orderId) return null;
+  return store.getOrderById(orderId) || store.getOrderByNumber(orderId);
 }
 
-function isAmountValid(order, amount) {
-  if (!Number.isFinite(Number(amount))) return false;
-  if (!Number.isFinite(Number(order?.total))) return true;
-  return Number(order.total) === Number(amount);
+function expectedAmountTiyin(order) {
+  return Math.round(Number(order?.total || 0) * 100);
 }
 
-exports.paymeHealth = (req, res) => {
-  res.json({ ok: true, message: 'Payme endpoint expects POST JSON-RPC' });
-};
+function getOrCreateTx(paymeId, order, amount) {
+  const existing = transactions.get(paymeId);
+  if (existing) return existing;
+  const tx = {
+    transaction_id: paymeId,
+    order_id: order.id,
+    amount: Number(amount || 0),
+    state: TX_STATE.CREATED,
+    create_time: Date.now(),
+    perform_time: 0,
+    cancel_time: 0,
+    reason: null
+  };
+  transactions.set(paymeId, tx);
+  return tx;
+}
 
-exports.paymeRpc = (req, res) => {
-  const body = req.body || {};
-  const { id, method, params = {} } = body;
-  console.info('[Payme] RPC request', { id, method });
+async function paymeRpc(req, res) {
+  const { method, params = {}, id } = req.body || {};
+  console.log('[PAYME] request', { method, id, params });
 
-  if (!method || typeof method !== 'string') {
-    return res.json(responseError(id, PAYME_ERROR.INVALID_REQUEST, {
-      ru: 'Неверный JSON-RPC запрос',
-      uz: 'Noto‘g‘ri JSON-RPC so‘rovi',
-      en: 'Invalid JSON-RPC request'
-    }));
+  const auth = parseAuthorization(req.headers.authorization || '');
+  const secret = getAuthSecret();
+  if (!auth || auth.username !== 'Paycom' || auth.password !== secret) {
+    console.error('[PAYME] unauthorized request');
+    return res.status(200).json(formatError(id, PAYME_ERRORS.UNAUTHORIZED, 'Unauthorized'));
   }
 
-  if (!PAYME_METHODS.has(method)) {
-    return res.json(responseError(id, PAYME_ERROR.METHOD_NOT_FOUND, {
-      ru: 'Метод не найден',
-      uz: 'Metod topilmadi',
-      en: 'Method not found'
-    }, method));
-  }
+  const validation = validateRequest(req.body);
+  if (!validation.ok) return res.status(200).json(validation.error);
 
-  const txId = String(params.id || '').trim();
+  try {
+    if (method === 'CheckPerformTransaction') {
+      const order = findOrderByAccount(params.account);
+      if (!order) return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, 'Order not found'));
+      if (Number(params.amount) !== expectedAmountTiyin(order)) {
+        return res.status(200).json(formatError(id, PAYME_ERRORS.INVALID_AMOUNT, 'Invalid amount'));
+      }
+      return res.status(200).json(formatResponse(id, { allow: true }));
+    }
 
-  if (method === 'CheckPerformTransaction') {
-    const { order, error, orderId } = getOrderByAccount(params.account || {});
-    if (error) {
-      return res.json(responseError(id, PAYME_ERROR.ORDER_NOT_FOUND, {
-        ru: 'Заказ не найден',
-        uz: 'Buyurtma topilmadi',
-        en: 'Order not found'
-      }, orderId || 'order_id'));
-    }
-    if (!isAmountValid(order, params.amount)) {
-      return res.json(responseError(id, PAYME_ERROR.AMOUNT_INVALID, {
-        ru: 'Неверная сумма',
-        uz: 'Noto‘g‘ri summa',
-        en: 'Invalid amount'
-      }, 'amount'));
-    }
-    return res.json(responseResult(id, { allow: true }));
-  }
-
-  if (method === 'CreateTransaction') {
-    const { order, error, orderId } = getOrderByAccount(params.account || {});
-    if (error) {
-      return res.json(responseError(id, PAYME_ERROR.ORDER_NOT_FOUND, {
-        ru: 'Заказ не найден',
-        uz: 'Buyurtma topilmadi',
-        en: 'Order not found'
-      }, orderId || 'order_id'));
-    }
-    if (!isAmountValid(order, params.amount)) {
-      return res.json(responseError(id, PAYME_ERROR.AMOUNT_INVALID, {
-        ru: 'Неверная сумма',
-        uz: 'Noto‘g‘ri summa',
-        en: 'Invalid amount'
-      }, 'amount'));
-    }
-    const existing = paymeTransactions.get(txId);
-    if (existing) {
-      return res.json(responseResult(id, {
-        create_time: existing.create_time,
-        transaction: existing.transaction,
-        state: existing.state
+    if (method === 'CreateTransaction') {
+      const order = findOrderByAccount(params.account);
+      if (!order) return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, 'Order not found'));
+      if (Number(params.amount) !== expectedAmountTiyin(order)) {
+        return res.status(200).json(formatError(id, PAYME_ERRORS.INVALID_AMOUNT, 'Invalid amount'));
+      }
+      const tx = getOrCreateTx(String(params.id || ''), order, params.amount);
+      return res.status(200).json(formatResponse(id, {
+        create_time: tx.create_time,
+        transaction: tx.transaction_id,
+        state: tx.state
       }));
     }
-    const transaction = {
-      transaction: txId,
-      orderId,
-      amount: Number(params.amount),
-      create_time: nowMs(),
-      perform_time: 0,
-      cancel_time: 0,
-      state: 1,
-      reason: null
-    };
-    paymeTransactions.set(txId, transaction);
-    return res.json(responseResult(id, {
-      create_time: transaction.create_time,
-      transaction: transaction.transaction,
-      state: transaction.state
-    }));
-  }
 
-  if (method === 'PerformTransaction') {
-    const tx = paymeTransactions.get(txId);
-    if (!tx) {
-      return res.json(responseError(id, PAYME_ERROR.TRANSACTION_NOT_FOUND, {
-        ru: 'Транзакция не найдена',
-        uz: 'Tranzaksiya topilmadi',
-        en: 'Transaction not found'
-      }, txId));
+    if (method === 'PerformTransaction') {
+      const tx = transactions.get(String(params.id || ''));
+      if (!tx) return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, 'Transaction not found'));
+      if (tx.state !== TX_STATE.DONE) {
+        tx.state = TX_STATE.DONE;
+        tx.perform_time = Date.now();
+        const order = store.getOrderById(tx.order_id);
+        if (order) {
+          store.updateOrderStatus(order.id, 'delivered');
+          order.paymentStatus = 'paid';
+        }
+      }
+      return res.status(200).json(formatResponse(id, {
+        transaction: tx.transaction_id,
+        perform_time: tx.perform_time,
+        state: tx.state
+      }));
     }
-    if (tx.state < 0) {
-      return res.json(responseError(id, PAYME_ERROR.INVALID_PARAMS, {
-        ru: 'Отмененную транзакцию нельзя выполнить',
-        uz: 'Bekor qilingan tranzaksiyani bajarib bo‘lmaydi',
-        en: 'Cancelled transaction cannot be performed'
-      }, txId));
-    }
-    tx.state = 2;
-    tx.perform_time = tx.perform_time || nowMs();
-    store.markOrderPaymentPaid?.(tx.orderId);
-    return res.json(responseResult(id, {
-      transaction: tx.transaction,
-      perform_time: tx.perform_time,
-      state: tx.state
-    }));
-  }
 
-  if (method === 'CancelTransaction') {
-    const tx = paymeTransactions.get(txId);
-    if (!tx) {
-      return res.json(responseError(id, PAYME_ERROR.TRANSACTION_NOT_FOUND, {
-        ru: 'Транзакция не найдена',
-        uz: 'Tranzaksiya topilmadi',
-        en: 'Transaction not found'
-      }, txId));
+    if (method === 'CancelTransaction') {
+      const tx = transactions.get(String(params.id || ''));
+      if (!tx) return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, 'Transaction not found'));
+      tx.state = TX_STATE.CANCELED;
+      tx.cancel_time = Date.now();
+      tx.reason = params.reason ?? null;
+      const order = store.getOrderById(tx.order_id);
+      if (order) {
+        store.cancelOrder(order.id);
+        order.paymentStatus = 'cancelled';
+      }
+      return res.status(200).json(formatResponse(id, {
+        transaction: tx.transaction_id,
+        cancel_time: tx.cancel_time,
+        state: tx.state
+      }));
     }
-    tx.reason = params.reason ?? null;
-    tx.cancel_time = tx.cancel_time || nowMs();
-    tx.state = tx.perform_time ? -2 : -1;
-    return res.json(responseResult(id, {
-      transaction: tx.transaction,
-      cancel_time: tx.cancel_time,
-      state: tx.state
-    }));
-  }
 
-  const tx = paymeTransactions.get(txId);
-  if (!tx) {
-    return res.json(responseError(id, PAYME_ERROR.TRANSACTION_NOT_FOUND, {
-      ru: 'Транзакция не найдена',
-      uz: 'Tranzaksiya topilmadi',
-      en: 'Transaction not found'
-    }, txId));
+    if (method === 'CheckTransaction') {
+      const tx = transactions.get(String(params.id || ''));
+      if (!tx) return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, 'Transaction not found'));
+      return res.status(200).json(formatResponse(id, {
+        create_time: tx.create_time,
+        perform_time: tx.perform_time,
+        cancel_time: tx.cancel_time,
+        transaction: tx.transaction_id,
+        state: tx.state,
+        reason: tx.reason
+      }));
+    }
+
+    return res.status(200).json(formatError(id, PAYME_ERRORS.METHOD_NOT_FOUND, 'Method not found'));
+  } catch (error) {
+    console.error('[PAYME] error', { method, message: error.message });
+    return res.status(200).json(formatError(id, PAYME_ERRORS.INTERNAL_ERROR, 'Internal error'));
   }
-  return res.json(responseResult(id, {
-    create_time: tx.create_time,
-    perform_time: tx.perform_time,
-    cancel_time: tx.cancel_time,
-    transaction: tx.transaction,
-    state: tx.state,
-    reason: tx.reason
-  }));
+}
+
+module.exports = {
+  paymeRpc,
+  parseAuthorization,
+  validateRequest,
+  formatResponse,
+  formatError
 };
