@@ -780,6 +780,15 @@ function updateCourierLocation(token, { lat = null, lng = null, accuracy = null 
   return { ok: true, order };
 }
 
+function markOrderPaymentPaid(orderRef) {
+  const order = getOrderByNumber(orderRef) || getOrderById(orderRef);
+  if (!order) return null;
+  order.paymentStatus = 'paid';
+  order.updated_at = new Date().toISOString();
+  persistState();
+  return order;
+}
+
 function upsertProducts(items = []) {
   const touched = [];
 
@@ -888,5 +897,6 @@ module.exports = {
   courierAccept,
   courierDeliver,
   updateCourierLocation,
+  markOrderPaymentPaid,
   orders
 };

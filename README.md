@@ -2,6 +2,26 @@
 
 ## Admin-protected Excel XLSX import
 
+## Payme Merchant API endpoint
+
+- `GET /api/payme` returns health JSON for browser checks.
+- `POST /api/payme` accepts Payme JSON-RPC (Merchant API) with `account.order_id`.
+- Implemented methods:
+  - `CheckPerformTransaction`
+  - `CreateTransaction`
+  - `PerformTransaction`
+  - `CancelTransaction`
+  - `CheckTransaction`
+
+### Railway variables for Payme auth
+
+Add these variables in Railway **Variables** section:
+
+- `PAYME_MERCHANT_ID`
+- `PAYME_SECRET_KEY` (or `PAYME_TEST_KEY` for test mode)
+
+If variables are not set, endpoint still works for development, but production should configure auth before go-live.
+
 Endpoint:
 
 `POST /api/v1/integrations/excel/import/products-xlsx`
