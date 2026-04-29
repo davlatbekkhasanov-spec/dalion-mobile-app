@@ -1040,7 +1040,7 @@
 
     <section class="screen app" id="appScreen">
       <section class="view active" id="homeView">
-        <header class="top">
+        <header class="top home-top-sticky">
           <div>
             <div class="logo-row">
               <span class="logo-mark" aria-hidden="true"></span>
@@ -1048,10 +1048,10 @@
             </div>
             <p class="location" id="homeLocation">📍 Тошкент, Чилонзор тумани</p>
           </div>
-          <button class="bell gm-icon-btn" aria-label="Bildirishnomalar">🔔<span class="badge gm-chip gm-chip--warning">3</span></button>
+          <button class="bell gm-icon-btn" aria-label="Savatga o'tish" id="homeCartShortcut">🛒<span class="badge gm-chip gm-chip--warning" id="homeCartShortcutBadge">0</span></button>
         </header>
 
-        <button class="search" id="openSearchBtn">🔎&nbsp; Маҳсулот, бренд ёки тоифани қидиринг</button>
+        <button class="search home-search-lg" id="openSearchBtn">🔎&nbsp; Маҳсулот, бренд ёки тоифани қидиринг</button>
 
         <div class="section-head gm-section-header">
           <h4 id="bannerSectionTitle">Bannerlar</h4>
@@ -1065,10 +1065,30 @@
         <section class="cats" id="homeCategories"></section>
 
         <div class="section-head gm-section-header">
-          <h4>Оммабоп маҳсулотлар</h4>
+          <h4>Siz uchun</h4>
           <a href="#" id="homeMoreProductsLink">Кўпроқ</a>
         </div>
         <section class="products-grid" id="homeProducts"></section>
+
+        <div class="section-head gm-section-header">
+          <h4>Bugungi chegirmalar</h4>
+        </div>
+        <section class="products-grid" id="homeDiscountProducts"></section>
+
+        <div class="section-head gm-section-header">
+          <h4>Tez yetkaziladi</h4>
+        </div>
+        <section class="products-grid" id="homeFastProducts"></section>
+
+        <div class="section-head gm-section-header">
+          <h4>Ko‘p sotilgan</h4>
+        </div>
+        <section class="products-grid" id="homeBestSellerProducts"></section>
+
+        <div class="section-head gm-section-header">
+          <h4>Qayta buyurtma</h4>
+        </div>
+        <section class="products-grid" id="homeReorderProducts"></section>
 
         <div class="section-head gm-section-header">
           <h4 id="promoSectionTitle">Aksiyalar</h4>
@@ -1238,6 +1258,10 @@ Oq fonli foto</div>
     const submitAuthBtn = document.getElementById('submitAuthBtn');
     const toast = document.getElementById('toast');
     const homeProducts = document.getElementById('homeProducts');
+    const homeDiscountProducts = document.getElementById('homeDiscountProducts');
+    const homeFastProducts = document.getElementById('homeFastProducts');
+    const homeBestSellerProducts = document.getElementById('homeBestSellerProducts');
+    const homeReorderProducts = document.getElementById('homeReorderProducts');
     const searchResults = document.getElementById('searchResults');
     const searchInput = document.getElementById('searchInput');
     const searchEmpty = document.getElementById('searchEmpty');
@@ -1256,6 +1280,8 @@ Oq fonli foto</div>
     const homeBrandName = document.getElementById('homeBrandName');
     const homeLocation = document.getElementById('homeLocation');
     const openSearchBtn = document.getElementById('openSearchBtn');
+    const homeCartShortcut = document.getElementById('homeCartShortcut');
+    const homeCartShortcutBadge = document.getElementById('homeCartShortcutBadge');
     const bannerCarousel = document.getElementById('bannerCarousel');
     const promoCarousel = document.getElementById('promoCarousel');
     const activeOrderCardWrap = document.getElementById('activeOrderCardWrap');
@@ -1545,19 +1571,29 @@ Oq fonli foto</div>
     function productCardTemplate(p) {
       const categoryName = normalizedCategoryName(p.categoryDisplayName || p.category);
       const stock = Number(p.stock ?? 0);
+      const oldPrice = Number(p.oldPrice || 0);
+      const price = Number(p.price || 0);
+      const hasDiscount = oldPrice > price && price > 0;
+      const discountPercent = hasDiscount ? Math.max(1, Math.round(((oldPrice - price) / oldPrice) * 100)) : 0;
+      const rating = Number(p.rating || 0) > 0 ? Number(p.rating).toFixed(1) : '4.7';
       const priceText = Number(p.price) > 0 ? money(p.price) : 'Narx aniqlanmoqda';
+      const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || '30 daqiqa';
       const imageHtml = p.image_url
         ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />`
         : `DALION
 Oq fonli foto`;
       return `
         <article class="product gm-card" data-open-product="${p.id}">
+          ${hasDiscount ? `<span class="gm-chip gm-chip--delivery product-discount">-${discountPercent}%</span>` : ''}
           <div class="image-box">${imageHtml}</div>
           <h5>${p.name}</h5>
           <p class="meta">${categoryName}</p>
+          <p class="meta">⭐ ${rating} · ${Number(p.reviewCount || 0) || 0} baho</p>
+          <p class="meta"><span class="gm-chip gm-chip--delivery">🚚 ${etaText}</span> ${stock > 0 ? `<span class="gm-chip gm-chip--success">Mavjud</span>` : `<span class="gm-chip gm-chip--warning">Tugagan</span>`}</p>
           <p class="price">${priceText}</p>
           <p class="meta">${stock > 0 ? `Ostatka: ${stock}` : "Omborda yo'q"}</p>
-          <p class="old-price">${money(p.oldPrice)}</p>
+          <p class="old-price">${oldPrice > 0 ? money(oldPrice) : ''}</p>
+          <button class="btn gm-btn gm-btn-primary quick-add-btn" data-add-one="${p.id}" ${stock <= 0 ? 'disabled' : ''}>Tez qo‘shish</button>
           <div class="qty" data-qty-wrap="${p.id}">${makeQtyControls(p.id)}</div>
         </article>
       `;
@@ -1576,7 +1612,18 @@ Oq fonli foto`;
           return String(a.name || '').localeCompare(String(b.name || ''), 'uz');
         })
         .slice(0, 8);
-      homeProducts.innerHTML = popular.map(productCardTemplate).join('');
+      const discounts = products.filter((p) => Number(p.oldPrice || 0) > Number(p.price || 0)).slice(0, 6);
+      const fast = products.filter((p) => Number(p.stock || 0) > 0).slice(0, 6);
+      const bestSeller = popular.slice(0, 6);
+      const reorder = cartItemsSnapshot.length
+        ? products.filter((p) => cartItemsSnapshot.some((c) => c.id === p.id)).slice(0, 6)
+        : products.slice(0, 4);
+
+      homeProducts.innerHTML = popular.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Mahsulotlar yuklanmoqda...</div>';
+      homeDiscountProducts.innerHTML = discounts.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Hozircha chegirmali mahsulotlar yo‘q.</div>';
+      homeFastProducts.innerHTML = fast.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Tez yetkaziladigan mahsulotlar topilmadi.</div>';
+      homeBestSellerProducts.innerHTML = bestSeller.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Ko‘p sotilgan mahsulotlar topilmadi.</div>';
+      homeReorderProducts.innerHTML = reorder.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Qayta buyurtma uchun tarix topilmadi.</div>';
     }
 
     function normalizedCategoryName(categoryName) {
@@ -1801,6 +1848,9 @@ Oq fonli foto`;
       const q = totalQty();
       cartBadge.textContent = q;
       cartBadge.classList.toggle('hidden', q === 0);
+      if (homeCartShortcutBadge) {
+        homeCartShortcutBadge.textContent = q;
+      }
     }
 
     function renderModal() {
@@ -1975,6 +2025,7 @@ Oq fonli foto`;
       renderSearch();
       searchInput.focus();
     });
+    homeCartShortcut?.addEventListener('click', () => setView('cartView'));
 
     searchInput.addEventListener('input', renderSearch);
     categoryBackBtn.addEventListener('click', () => {
@@ -2031,8 +2082,16 @@ Oq fonli foto`;
 
       const plus = e.target.closest('.qty-plus');
       const minus = e.target.closest('.qty-minus');
+      const quickAdd = e.target.closest('[data-add-one]');
 
       try {
+        if (quickAdd) {
+          e.stopPropagation();
+          const id = quickAdd.getAttribute('data-add-one');
+          const current = qtyOf(id);
+          await setQty(id, current + 1, true);
+          return;
+        }
         if (plus) {
           e.stopPropagation();
           const id = plus.dataset.id;
