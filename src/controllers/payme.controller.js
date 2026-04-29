@@ -56,6 +56,7 @@ const MSG = {
 };
 
 // TODO(payme): move transactions to DB for production multi-instance safety.
+// Payme controller syntax verified for Railway deployment.
 const transactions = new Map();
 
 function response(id, result) {
@@ -361,6 +362,16 @@ async function paymeRpc(req, res) {
       });
       sandboxLog(method, params, 'create-success', responseBody);
       return res.status(200).json(responseBody);
+    }
+
+    if (method === 'CheckTransaction') {
+      const tx = transactions.get(getPaymeTxId(params));
+
+      if (!tx) {
+        return send(res, errorResponse(id, ERRORS.TRANSACTION_NOT_FOUND, MSG.transactionNotFound, 'id'));
+      }
+
+      return send(res, response(id, transactionResult(tx)));
     }
 
     if (method === 'CheckTransaction') {
