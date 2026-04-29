@@ -27,6 +27,12 @@ const ORDER_NOT_FOUND_MESSAGE = {
   en: 'Order not found'
 };
 
+const TRANSACTION_NOT_FOUND_MESSAGE = {
+  ru: 'Транзакция не найдена',
+  uz: 'Tranzaksiya topilmadi',
+  en: 'Transaction not found'
+};
+
 // TODO(payme): move transactions to persistent DB storage for multi-instance/runtime safety.
 const transactions = new Map();
 
@@ -131,7 +137,9 @@ async function paymeRpc(req, res) {
   try {
     if (method === 'CheckPerformTransaction') {
       const order = findOrderByAccount(params.account);
-      if (!order) return res.status(200).json(formatResponse(id, { allow: true }));
+      if (!order || isSandboxPlaceholderOrder(params.account)) {
+        return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, ORDER_NOT_FOUND_MESSAGE, 'order_id'));
+      }
       if (Number(params.amount) !== expectedAmountTiyin(order)) {
         return res.status(200).json(formatError(id, PAYME_ERRORS.INVALID_AMOUNT, 'Invalid amount'));
       }
@@ -141,7 +149,7 @@ async function paymeRpc(req, res) {
     if (method === 'CreateTransaction') {
       const order = findOrderByAccount(params.account);
       if (!order || isSandboxPlaceholderOrder(params.account)) {
-        return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, ORDER_NOT_FOUND_MESSAGE));
+        return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, ORDER_NOT_FOUND_MESSAGE, 'order_id'));
       }
       if (Number(params.amount) !== expectedAmountTiyin(order)) {
         return res.status(200).json(formatError(id, PAYME_ERRORS.INVALID_AMOUNT, 'Invalid amount'));
@@ -156,7 +164,7 @@ async function paymeRpc(req, res) {
 
     if (method === 'PerformTransaction') {
       const tx = transactions.get(String(params.id || ''));
-      if (!tx) return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, 'Transaction not found'));
+      if (!tx) return res.status(200).json(formatError(id, -31003, TRANSACTION_NOT_FOUND_MESSAGE, 'id'));
       if (tx.state !== TX_STATE.DONE) {
         tx.state = TX_STATE.DONE;
         tx.perform_time = Date.now();
@@ -174,7 +182,7 @@ async function paymeRpc(req, res) {
 
     if (method === 'CancelTransaction') {
       const tx = transactions.get(String(params.id || ''));
-      if (!tx) return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, 'Transaction not found'));
+      if (!tx) return res.status(200).json(formatError(id, -31003, TRANSACTION_NOT_FOUND_MESSAGE, 'id'));
       tx.state = TX_STATE.CANCELED;
       tx.cancel_time = Date.now();
       tx.reason = params.reason ?? null;
@@ -192,7 +200,7 @@ async function paymeRpc(req, res) {
 
     if (method === 'CheckTransaction') {
       const tx = transactions.get(String(params.id || ''));
-      if (!tx) return res.status(200).json(formatError(id, PAYME_ERRORS.ORDER_NOT_FOUND, 'Transaction not found'));
+      if (!tx) return res.status(200).json(formatError(id, -31003, TRANSACTION_NOT_FOUND_MESSAGE, 'id'));
       return res.status(200).json(formatResponse(id, {
         create_time: tx.create_time,
         perform_time: tx.perform_time,
