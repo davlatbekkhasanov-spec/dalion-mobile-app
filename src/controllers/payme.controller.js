@@ -206,43 +206,6 @@ function getOrder(account = {}, amount = 0) {
   return findRealOrder(account) || getSandboxOrder(account, amount);
 }
 
-function isSandboxPlaceholderOrder(account = {}) {
-  const orderId = String(account.order_id || '').trim().toLowerCase();
-  return orderId.startsWith('test-');
-}
-function isSandboxMode() {
-  return String(process.env.NODE_ENV || '').toLowerCase() !== 'production'
-    || String(process.env.PAYME_SANDBOX_MODE || '').toLowerCase() === 'true';
-}
-function getSandboxOrder(account = {}, amount = 0) {
-  if (!isSandboxMode()) return null;
-  const orderId = String(account.order_id || '').trim().toLowerCase();
-  if (orderId === 'test' || orderId === 'test-1') return { id: orderId, total: Number(amount || 0) / 100 };
-  if (!orderId.startsWith('test-')) return null;
-  if (orderId === 'test-missing') return null;
-  if (orderId === 'test-invalid-amount') return { id: orderId, total: 1 };
-  if (orderId === 'test-paid' || orderId === 'test-cancelled' || orderId === 'test-blocked') return { id: orderId, total: Number(amount || 0) / 100, paymentStatus: 'paid' };
-  return { id: orderId, total: Number(amount || 0) / 100 };
-}
-function getOrderOrSandbox(account = {}, amount = 0) {
-  return findOrderByAccount(account) || getSandboxOrder(account, amount);
-}
-function sandboxLog(method, params, scenario, responseBody) {
-  if (!isSandboxMode()) return;
-  console.log('[PAYME][SANDBOX]', {
-    method,
-    params,
-    scenario,
-    response: responseBody
-  });
-}
-function findActiveTxByOrderId(orderId, paymeId) {
-  for (const tx of transactions.values()) {
-    if (tx.order_id === orderId && tx.transaction_id !== paymeId && tx.state > 0) return tx;
-  }
-  return null;
-}
-
 function expectedAmountTiyin(order) {
   return Math.round(Number(order?.total || 0) * 100);
 }
@@ -398,6 +361,16 @@ async function paymeRpc(req, res) {
       });
       sandboxLog(method, params, 'create-success', responseBody);
       return res.status(200).json(responseBody);
+    }
+
+    if (method === 'CheckTransaction') {
+      const tx = transactions.get(getPaymeTxId(params));
+
+      if (!tx) {
+        return send(res, errorResponse(id, ERRORS.TRANSACTION_NOT_FOUND, MSG.transactionNotFound, 'id'));
+      }
+
+      return send(res, response(id, transactionResult(tx)));
     }
 
     if (method === 'CheckTransaction') {
