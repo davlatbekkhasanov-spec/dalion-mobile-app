@@ -45,6 +45,8 @@ app.get('/track/:orderNumber', (req, res) => {
 // API routes
 app.post('/api/payme', paymeController.paymeRpc);
 app.use('/api/v1', homeRoutes);
+app.get('/api/payme', paymeController.paymeHealth);
+app.post('/api/payme', paymeAuthMiddleware, paymeController.paymeRpc);
 
 // Simple health route for hosting platforms
 app.get('/health', (req, res) => {
