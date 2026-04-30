@@ -52,6 +52,10 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 
 // Frontend preview
 app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/ping', (req, res) => {
   res.status(200).send('OK');
 });
 
