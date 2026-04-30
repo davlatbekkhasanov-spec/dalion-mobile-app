@@ -80,6 +80,12 @@ function getOrder(account = {}, amount = 0) {
   const realOrder = store.getOrderById(orderId) || store.getOrderByNumber(orderId);
   if (realOrder) return realOrder;
 
+  // Sandbox faqat test-* orderlarni qabul qiladi.
+  // not-found-1, missing, wrong va boshqa orderlar -31050 qaytarishi kerak.
+  if (!orderId.toLowerCase().startsWith('test-')) {
+    return null;
+  }
+
   const expectedTiyin = sandboxExpectedAmount(orderId, amount);
 
   return {
