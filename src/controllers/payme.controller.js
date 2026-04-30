@@ -65,10 +65,11 @@ function normalizeOrderId(value = '') {
 
 function sandboxExpectedAmount(orderId, fallbackAmount) {
   const id = String(orderId || '').toLowerCase();
+  const match = id.match(/^test-(\d+)$/);
 
-  if (id === 'test-1') return 10000;
-  if (id === 'test-2') return 15000;
-  if (id === 'test-3') return 20000;
+  if (match) {
+    return Number(match[1]) * 10000;
+  }
 
   return Number(fallbackAmount || 0);
 }
@@ -80,8 +81,6 @@ function getOrder(account = {}, amount = 0) {
   const realOrder = store.getOrderById(orderId) || store.getOrderByNumber(orderId);
   if (realOrder) return realOrder;
 
-  // Sandbox faqat test-* orderlarni qabul qiladi.
-  // not-found-1, missing, wrong va boshqa orderlar -31050 qaytarishi kerak.
   if (!orderId.toLowerCase().startsWith('test-')) {
     return null;
   }
@@ -137,6 +136,33 @@ function transactionResult(tx) {
     state: tx.state,
     reason: tx.reason ?? null
   };
+}
+
+function getStatementResult(from = 0, to = Date.now()) {
+  const fromMs = Number(from || 0);
+  const toMs = Number(to || Date.now());
+
+  const filtered = Array.from(transactions.values())
+    .filter((tx) => {
+      const created = Number(tx.create_time || 0);
+      return created >= fromMs && created <= toMs;
+    })
+    .map((tx) => ({
+      id: tx.id,
+      time: tx.create_time,
+      amount: tx.amount,
+      account: {
+        order_id: tx.order_id
+      },
+      create_time: tx.create_time,
+      perform_time: tx.perform_time || 0,
+      cancel_time: tx.cancel_time || 0,
+      transaction: tx.id,
+      state: tx.state,
+      reason: tx.reason ?? null
+    }));
+
+  return { transactions: filtered };
 }
 
 async function paymeRpc(req, res) {
@@ -283,6 +309,10 @@ async function paymeRpc(req, res) {
         cancel_time: tx.cancel_time,
         state: tx.state
       }));
+    }
+
+    if (method === 'GetStatement') {
+      return send(res, response(id, getStatementResult(params.from, params.to)));
     }
 
     return send(res, errorResponse(id, ERRORS.METHOD_NOT_FOUND, 'Method not found', 'method'));
