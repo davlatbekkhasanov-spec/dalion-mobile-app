@@ -709,7 +709,60 @@
       box-shadow: 0 12px 24px rgba(12, 62, 120, 0.35);
     }
 
-    .auth-sheet-overlay {
+
+    .cart-item-card { padding: 12px; }
+    .cart-item-top { display:flex; gap:10px; align-items:flex-start; }
+    .cart-item-thumb { width:56px; height:56px; border-radius:12px; object-fit:cover; background:#fff; border:1px solid rgba(126,155,207,.22); }
+    .cart-item-title { font-size:14px; font-weight:700; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .cart-item-meta { display:flex; justify-content:space-between; align-items:center; margin-top:8px; gap:8px; }
+    .cart-item-warn { margin-top:8px; color:#ffd89a; font-size:12px; }
+    .icon-btn { border:1px solid rgba(255,134,134,.4); color:#ffb0b0; background:rgba(68,20,26,.45); border-radius:12px; min-height:48px; padding:0 12px; font-weight:700; }
+    .cart-summary-grid .list-row { margin-bottom:6px; }
+    .cart-summary-grid .list-row:last-child { margin-bottom:0; }
+    .empty-cta { margin-top:12px; }
+    .checkout-section-title { font-size:15px; font-weight:800; margin-bottom:8px; }
+    .checkout-stack > .list-card { margin-bottom:12px; }
+    .checkout-delivery-mini { border:1px solid rgba(120,175,255,.28); background:rgba(14,29,52,.62); border-radius:12px; padding:10px; margin-top:10px; }
+    .checkout-trust { margin-top:10px; color:#9dffd0; font-size:13px; }
+    .field-error { color:#ffb3b3; font-size:12px; margin-top:6px; display:none; }
+    .checkout-sticky-cta { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .checkout-sticky-cta .checkout-total { margin:0; }
+
+
+    .gm-btn, .quick-add-btn, .tab, .pay-btn, .icon-btn { transition: transform .12s ease, filter .18s ease, box-shadow .18s ease; }
+    .gm-btn:active, .quick-add-btn:active, .tab:active, .pay-btn:active, .icon-btn:active { transform: scale(0.96); }
+    .product, .list-card, .category-card { transition: transform .16s ease, box-shadow .2s ease, background .2s ease; }
+    .product:active, .list-card:active, .category-card:active { transform: translateY(-1px) scale(0.995); }
+    .quick-add-btn.bounce { animation: addBounce .42s ease; }
+    @keyframes addBounce { 0%{transform:scale(1)} 35%{transform:scale(0.95)} 72%{transform:scale(1.06)} 100%{transform:scale(1)} }
+    .modal-image { min-height: 220px; cursor: zoom-in; }
+    .modal-image.zoomed { position: fixed; inset: 20px; z-index: 70; max-width: min(94vw,520px); max-height: min(80vh,540px); margin: auto; border-radius: 18px; box-shadow: 0 30px 80px rgba(0,0,0,.55); cursor: zoom-out; }
+    .modal-image.zoomed img { object-fit: contain; }
+    .product-discount { font-weight: 900; box-shadow: 0 8px 18px rgba(28,130,78,.45); }
+    .gm-empty-state { animation: fadeIn .25s ease; }
+    @keyframes fadeIn { from { opacity:0; transform: translateY(6px);} to {opacity:1; transform:none;} }
+
+    
+    html, body { overflow-x: hidden; }
+    .gm-btn, .btn, .quick-add-btn, .pay-btn, .icon-btn, .tab { min-height: 48px; }
+    .title, .gm-title-md { line-height: 1.3; }
+    .price, .modal-price-main, #cartTotalPrice, #checkoutTotal { letter-spacing: .2px; }
+    .muted { font-size: 13px; line-height: 1.45; }
+    .products-grid, .home-scroll, .modal-reco-grid { overflow-x: clip; }
+    .list-row { flex-wrap: wrap; }
+    @media (max-width: 430px) {
+      .shell { padding: 10px; }
+      .modal { width: calc(100% - 12px); max-height: calc(100dvh - 10px); }
+      .modal-reco-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .checkout-sticky-cta { gap: 8px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+      .checkout-sticky-cta .checkout-total { font-size: 15px; }
+      .cart-item-meta { gap: 6px; }
+      .cart-item-title { font-size: 13px; }
+      .qty button { min-width: 38px; min-height: 38px; }
+      #homeCartShortcut { min-height: 48px; min-width: 48px; }
+    }
+
+.auth-sheet-overlay {
       position: absolute;
       inset: 0;
       background: rgba(2, 8, 20, 0.72);
@@ -1110,10 +1163,17 @@
       <section class="view" id="cartView">
         <h2 class="title gm-title-md">Savat</h2>
         <div id="cartItems"></div>
-        <div class="empty" id="cartEmpty">Savatingiz hozircha bo'sh.</div>
-        <div class="list-card gm-card gm-sticky-cta" id="cartSummary" style="display:none;">
+        <div class="empty" id="cartEmpty">
+          <h3 style="margin-bottom:6px;">Savatingiz bo'sh</h3>
+          <p class="muted">Yoqtirgan mahsulotlaringizni qo‘shing va buyurtmani tez yakunlang.</p>
+          <button class="btn gm-btn gm-btn-primary empty-cta" id="cartEmptyCta">Katalogga o‘tish</button>
+        </div>
+        <div class="list-card gm-card gm-sticky-cta cart-summary-grid" id="cartSummary" style="display:none;">
+          <div class="list-row"><span class="muted">Subtotal:</span><strong id="cartSubtotal">0 so'm</strong></div>
+          <div class="list-row"><span class="muted">Yetkazib berish:</span><span id="cartDelivery">30 daqiqa · 12 000 so'm</span></div>
+          <div class="list-row"><span class="muted">Promo kod:</span><span class="muted">Tez orada</span></div>
           <div class="list-row"><span class="muted">Jami:</span><strong id="cartTotalPrice">0 so'm</strong></div>
-          <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="orderBtn">Buyurtma berish</button>
+          <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="orderBtn">Checkoutga o‘tish</button>
         </div>
       </section>
 
@@ -1135,8 +1195,8 @@
       </section>
 
       <section class="view" id="checkoutView">
-        <h2 class="title gm-title-md">Buyurtma preview</h2>
-        <div id="checkoutItems"></div>
+        <h2 class="title gm-title-md">Checkout</h2>
+        <div id="checkoutItems" class="checkout-stack"></div>
         <div class="list-card checkout-delivery-card">
           <h4 style="margin-bottom:10px;">Yetkazib berish</h4>
           <p class="muted" id="checkoutLocation">Manzil: Yunusobod, Toshkent</p>
@@ -1166,8 +1226,12 @@
             <input type="checkbox" id="cashAgreementCheckbox" />
             Men buyurtma summasini tovar yetkazib berilganda naqd to‘lash majburiyatini olaman
           </label>
-          <p class="checkout-total" id="checkoutTotal">Jami: 0 so'm</p>
-          <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="confirmOrderBtn">Buyurtmani tasdiqlash</button>
+          <p class="checkout-trust">Buyurtma tasdiqlangandan keyin operator bog‘lanadi.</p>
+          <div class="list-card gm-card gm-sticky-cta checkout-sticky-cta">
+            <p class="checkout-total" id="checkoutTotal">Jami: 0 so'm</p>
+            <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="confirmOrderBtn">Buyurtmani tasdiqlash</button>
+            <p class="muted" id="checkoutValidationHint" style="margin:4px 0 0;">Maydonlarni to‘liq to‘ldiring va to‘lov turini tanlang.</p>
+          </div>
         </div>
       </section>
 
@@ -1288,6 +1352,9 @@ Oq fonli foto</div>
     const cartEmpty = document.getElementById('cartEmpty');
     const cartSummary = document.getElementById('cartSummary');
     const cartTotalPrice = document.getElementById('cartTotalPrice');
+    const cartSubtotal = document.getElementById('cartSubtotal');
+    const cartDelivery = document.getElementById('cartDelivery');
+    const cartEmptyCta = document.getElementById('cartEmptyCta');
     const cartBadge = document.getElementById('cartBadge');
     const bottomNav = document.getElementById('bottomNav');
     const checkoutItems = document.getElementById('checkoutItems');
@@ -1342,6 +1409,7 @@ Oq fonli foto</div>
     const modalTrustDelivery = document.getElementById('modalTrustDelivery');
     const modalQty = document.getElementById('modalQty');
     const modalAddBtn = document.getElementById('modalAddBtn');
+    const modalImageBox = document.querySelector('.modal-image');
     const locationDeniedOverlay = document.getElementById('locationDeniedOverlay');
     const retryLocationBtn = document.getElementById('retryLocationBtn');
     const manualLocationBtn = document.getElementById('manualLocationBtn');
@@ -1742,22 +1810,36 @@ Oq fonli foto`;
       cartEmpty.style.display = 'none';
       cartSummary.style.display = 'block';
       cartItems.innerHTML = cartItemsSnapshot.map((item) => {
-        const imageHtml = item.image_url ? `<img src="${item.image_url}" alt="${item.name}" loading="lazy" decoding="async" style="width:42px;height:42px;border-radius:10px;object-fit:contain;background:#fff;" />` : '';
+        const imageHtml = item.image_url ? `<img class="cart-item-thumb" src="${item.image_url}" alt="${item.name}" loading="lazy" decoding="async" />` : '<div class="cart-item-thumb"></div>';
+        const stockInfo = Number(item.stock ?? item.available_stock ?? item.availableQuantity);
+        const hasWarn = Number.isFinite(stockInfo) && stockInfo <= 0;
         return `
-          <article class="list-card gm-card">
-            <div class="list-row" style="margin-bottom:6px;">
-              <div style="display:flex;align-items:center;gap:8px;">${imageHtml}<strong>${item.name}</strong></div>
-              <span class="muted">${money(item.price)}</span>
+          <article class="list-card gm-card cart-item-card">
+            <div class="cart-item-top">
+              ${imageHtml}
+              <div style="flex:1;">
+                <div class="cart-item-title">${item.name}</div>
+                <div class="cart-item-meta">
+                  <strong>${money(item.price)}</strong>
+                  <button class="icon-btn" data-remove-cart="${item.id}">Olib tashlash</button>
+                </div>
+              </div>
             </div>
-            <div class="list-row">
-              <div class="qty" data-qty-wrap="${item.id}" style="width:110px; margin:0;">${makeQtyControls(item.id)}</div>
+            <div class="list-row" style="margin-top:10px;">
+              <div class="qty" data-qty-wrap="${item.id}" style="width:116px; margin:0;">${makeQtyControls(item.id)}</div>
               <strong>${money(item.subtotal)}</strong>
             </div>
+            ${hasWarn ? '<p class="cart-item-warn">Ushbu mahsulot hozircha mavjud emas.</p>' : ''}
           </article>
         `;
       }).join('');
 
-      cartTotalPrice.textContent = money(totalPrice());
+      const subtotal = totalPrice();
+      const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
+      const deliveryEta = homePayload?.settings?.deliveryTimeText || homePayload?.delivery_info?.time || '30 daqiqa';
+      cartSubtotal.textContent = money(subtotal);
+      cartDelivery.textContent = `${deliveryEta} · ${money(deliveryPrice)}`;
+      cartTotalPrice.textContent = money(subtotal + deliveryPrice);
     }
 
     function renderCheckout() {
@@ -1774,13 +1856,17 @@ Oq fonli foto`;
         `;
       }).join('');
 
-      const orderTotal = totalPrice() + 12000;
+      const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
+      const deliveryEta = homePayload?.settings?.deliveryTimeText || homePayload?.delivery_info?.time || "30 daqiqa";
+      const orderTotal = totalPrice() + deliveryPrice;
       checkoutTotal.textContent = `Jami: ${money(orderTotal)}`;
       checkoutLocation.textContent = `Manzil: ${customerLocation.addressText || manualAddress.value || '' || homePayload?.delivery_info?.location || 'Yunusobod, Toshkent'}`;
       checkoutLandmark.textContent = `Orientir: ${customerLocation.landmarkText || landmarkInput.value || '-'}`;
       checkoutGeo.textContent = Number.isFinite(Number(customerLocation.lat)) && Number.isFinite(Number(customerLocation.lng))
         ? `Geo: ${Number(customerLocation.lat).toFixed(6)}, ${Number(customerLocation.lng).toFixed(6)} (±${Math.round(Number(customerLocation.accuracy || 0))}m)`
         : 'Geo: olinmagan';
+      checkoutTime.textContent = `Vaqt: ${deliveryEta}`;
+      checkoutPrice.textContent = `Narx: ${money(deliveryPrice)}`;
       const checkoutLocationHint = document.getElementById('checkoutLocationHint');
       if (checkoutLocationHint) {
         checkoutLocationHint.textContent = customerLocation.permissionDenied
@@ -1908,7 +1994,7 @@ Oq fonli foto`;
         <div class="spec-row"><span>Kategoriya</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
         <div class="spec-row"><span>Qoldiq</span><strong>${stock > 0 ? stock : 0} ta</strong></div>
       `;
-      const modalImageBox = document.querySelector('.modal-image');
+      
       modalImageBox.innerHTML = p.image_url
         ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />`
         : `DALION
@@ -2115,6 +2201,15 @@ Oq fonli foto`;
       searchInput.value = '';
       renderSearch();
     });
+    cartEmptyCta?.addEventListener('click', () => {
+      setView('searchView');
+      catalogMode = 'categories';
+      selectedCategory = null;
+      selectedCategoryLabel = '';
+      searchInput.value = '';
+      renderSearch();
+    });
+
     document.getElementById('homeMoreProductsLink')?.addEventListener('click', (e) => {
       e.preventDefault();
       setView('searchView');
@@ -2135,12 +2230,22 @@ Oq fonli foto`;
       const plus = e.target.closest('.qty-plus');
       const minus = e.target.closest('.qty-minus');
       const quickAdd = e.target.closest('[data-add-one]');
+      const removeCart = e.target.closest('[data-remove-cart]');
 
       try {
+        if (removeCart) {
+          e.stopPropagation();
+          await setCartQty(removeCart.dataset.removeCart, 0);
+          await syncCart();
+          render();
+          return;
+        }
         if (quickAdd) {
           e.stopPropagation();
           const id = quickAdd.getAttribute('data-add-one');
           const current = qtyOf(id);
+          quickAdd.classList.add('bounce');
+          setTimeout(() => quickAdd.classList.remove('bounce'), 450);
           await setQty(id, current + 1, true);
           return;
         }
