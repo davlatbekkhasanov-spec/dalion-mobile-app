@@ -231,7 +231,7 @@
 
     async function refresh(){
       try{
-        document.getElementById('refreshHint').classList.add('updating');
+        document.getElementById('refreshHint')?.classList.add('updating');
         if (!firstLoadDone) renderState('loading');
         const data = await api(`/orders/${encodeURIComponent(orderNumber)}/track`);
         order = data.order;
@@ -239,7 +239,7 @@
         firstLoadDone = true;
         render();
       }catch(e){ if (!firstLoadDone) renderState('error'); }
-      finally { document.getElementById('refreshHint').classList.remove('updating'); }
+      finally { document.getElementById('refreshHint')?.classList.remove('updating'); }
     }
 
     document.getElementById('sendFeedback').onclick = async ()=>{
