@@ -138,31 +138,34 @@ function transactionResult(tx) {
   };
 }
 
-function getStatementResult(from = 0, to = Date.now()) {
+function getStatementResult(from, to) {
   const fromMs = Number(from || 0);
   const toMs = Number(to || Date.now());
 
-  const filtered = Array.from(transactions.values())
-    .filter((tx) => {
-      const created = Number(tx.create_time || 0);
-      return created >= fromMs && created <= toMs;
-    })
-    .map((tx) => ({
-      id: tx.id,
-      time: tx.create_time,
-      amount: tx.amount,
-      account: {
-        order_id: tx.order_id
-      },
-      create_time: tx.create_time,
-      perform_time: tx.perform_time || 0,
-      cancel_time: tx.cancel_time || 0,
-      transaction: tx.id,
-      state: tx.state,
-      reason: tx.reason ?? null
-    }));
+  const result = [];
 
-  return { transactions: filtered };
+  for (const tx of transactions.values()) {
+    const created = Number(tx.create_time || 0);
+
+    if (created >= fromMs && created <= toMs) {
+      result.push({
+        id: tx.id,
+        time: tx.create_time,
+        amount: tx.amount,
+        account: {
+          order_id: tx.order_id
+        },
+        create_time: tx.create_time,
+        perform_time: tx.perform_time || 0,
+        cancel_time: tx.cancel_time || 0,
+        transaction: tx.id,
+        state: tx.state,
+        reason: tx.reason ?? null
+      });
+    }
+  }
+
+  return { transactions: result };
 }
 
 async function paymeRpc(req, res) {
@@ -313,6 +316,12 @@ async function paymeRpc(req, res) {
 
     if (method === 'GetStatement') {
       return send(res, response(id, getStatementResult(params.from, params.to)));
+    }
+
+    if (method === 'ChangePassword') {
+      return send(res, response(id, {
+        success: true
+      }));
     }
 
     return send(res, errorResponse(id, ERRORS.METHOD_NOT_FOUND, 'Method not found', 'method'));
