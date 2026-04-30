@@ -728,6 +728,20 @@
     .checkout-sticky-cta { display:flex; justify-content:space-between; align-items:center; gap:10px; }
     .checkout-sticky-cta .checkout-total { margin:0; }
 
+
+    .gm-btn, .quick-add-btn, .tab, .pay-btn, .icon-btn { transition: transform .12s ease, filter .18s ease, box-shadow .18s ease; }
+    .gm-btn:active, .quick-add-btn:active, .tab:active, .pay-btn:active, .icon-btn:active { transform: scale(0.96); }
+    .product, .list-card, .category-card { transition: transform .16s ease, box-shadow .2s ease, background .2s ease; }
+    .product:active, .list-card:active, .category-card:active { transform: translateY(-1px) scale(0.995); }
+    .quick-add-btn.bounce { animation: addBounce .42s ease; }
+    @keyframes addBounce { 0%{transform:scale(1)} 35%{transform:scale(0.95)} 72%{transform:scale(1.06)} 100%{transform:scale(1)} }
+    .modal-image { min-height: 220px; cursor: zoom-in; }
+    .modal-image.zoomed { position: fixed; inset: 20px; z-index: 70; max-width: min(94vw,520px); max-height: min(80vh,540px); margin: auto; border-radius: 18px; box-shadow: 0 30px 80px rgba(0,0,0,.55); cursor: zoom-out; }
+    .modal-image.zoomed img { object-fit: contain; }
+    .product-discount { font-weight: 900; box-shadow: 0 8px 18px rgba(28,130,78,.45); }
+    .gm-empty-state { animation: fadeIn .25s ease; }
+    @keyframes fadeIn { from { opacity:0; transform: translateY(6px);} to {opacity:1; transform:none;} }
+
     .auth-sheet-overlay {
       position: absolute;
       inset: 0;
@@ -1374,6 +1388,7 @@ Oq fonli foto</div>
     const modalTrustDelivery = document.getElementById('modalTrustDelivery');
     const modalQty = document.getElementById('modalQty');
     const modalAddBtn = document.getElementById('modalAddBtn');
+    const modalImageBox = document.querySelector('.modal-image');
     const locationDeniedOverlay = document.getElementById('locationDeniedOverlay');
     const retryLocationBtn = document.getElementById('retryLocationBtn');
     const manualLocationBtn = document.getElementById('manualLocationBtn');
@@ -1958,7 +1973,7 @@ Oq fonli foto`;
         <div class="spec-row"><span>Kategoriya</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
         <div class="spec-row"><span>Qoldiq</span><strong>${stock > 0 ? stock : 0} ta</strong></div>
       `;
-      const modalImageBox = document.querySelector('.modal-image');
+      
       modalImageBox.innerHTML = p.image_url
         ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />`
         : `DALION
@@ -2208,6 +2223,8 @@ Oq fonli foto`;
           e.stopPropagation();
           const id = quickAdd.getAttribute('data-add-one');
           const current = qtyOf(id);
+          quickAdd.classList.add('bounce');
+          setTimeout(() => quickAdd.classList.remove('bounce'), 450);
           await setQty(id, current + 1, true);
           return;
         }
