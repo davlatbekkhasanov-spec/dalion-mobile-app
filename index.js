@@ -1,6 +1,5 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
 
 process.on('uncaughtException', (error) => {
   console.error('[PROCESS] uncaughtException', { message: error?.message });
@@ -12,34 +11,10 @@ process.on('unhandledRejection', (reason) => {
   });
 });
 
-process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT:', err.message);
-});
-
-process.on('unhandledRejection', (err) => {
-  console.error('UNHANDLED:', err);
-});
-
-process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT ERROR:', err);
-});
-
-process.on('unhandledRejection', (err) => {
-  console.error('UNHANDLED REJECTION:', err);
-});
-
-process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT ERROR:', err);
-});
-
-process.on('unhandledRejection', (err) => {
-  console.error('UNHANDLED REJECTION:', err);
-});
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const homeRoutes = require('./src/routes/home.routes.js');
+const apiRoutes = require('./src/routes/api.routes.js');
 const paymeController = require('./src/controllers/payme.controller.js');
 
 app.use(express.json());
@@ -84,7 +59,7 @@ app.get('/api/payme', (req, res) => {
   res.status(200).json({ ok: true, message: 'Payme endpoint expects POST JSON-RPC' });
 });
 app.post('/api/payme', paymeController.paymeRpc);
-app.use('/api/v1', homeRoutes);
+app.use('/api/v1', apiRoutes);
 
 // Simple health route for hosting platforms
 app.get('/health', (req, res) => {
