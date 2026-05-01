@@ -82,129 +82,31 @@
       transition: opacity 600ms ease, transform 600ms ease, visibility 600ms ease;
     }
 
-    .intro {
-      z-index: 20;
-      overflow: hidden;
-      background:
-        radial-gradient(circle at 50% 30%, rgba(76, 106, 255, 0.2), transparent 40%),
-        radial-gradient(circle at 50% 80%, rgba(18, 244, 148, 0.15), transparent 45%),
-        linear-gradient(170deg, #01030a 0%, #061025 42%, #03060f 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .stars,
-    .stars::before,
-    .stars::after {
-      content: "";
-      position: absolute;
-      inset: -35%;
-      background-image:
-        radial-gradient(2px 2px at 15% 22%, rgba(255, 255, 255, 0.95), transparent 55%),
-        radial-gradient(1.6px 1.6px at 80% 30%, rgba(158, 203, 255, 0.95), transparent 58%),
-        radial-gradient(1.2px 1.2px at 70% 72%, rgba(194, 237, 255, 0.9), transparent 55%),
-        radial-gradient(1.4px 1.4px at 35% 64%, rgba(172, 227, 255, 0.95), transparent 58%),
-        radial-gradient(1.8px 1.8px at 56% 42%, rgba(212, 241, 255, 0.92), transparent 60%);
-      animation: drift 28s linear infinite;
-      opacity: 0.7;
-      pointer-events: none;
-    }
-
-    .stars::before { animation-duration: 38s; transform: scale(1.08) rotate(8deg); opacity: 0.5; }
-    .stars::after { animation-duration: 20s; transform: scale(0.88) rotate(-6deg); opacity: 0.34; }
+    .intro { z-index: 20; overflow: hidden; background: #f8f9fb; display: flex; align-items: center; justify-content: center; }
 
     .intro-inner {
       position: relative;
       z-index: 2;
       width: 100%;
       max-width: 356px;
-      padding: 20px 18px 28px;
-      text-align: center;
+      padding: 16px 16px max(18px, env(safe-area-inset-bottom));
+      text-align: left;
       display: flex;
       flex-direction: column;
-      align-items: center;
       gap: 14px;
     }
-
-    .globe-wrap {
-      width: 258px;
-      height: 258px;
-      position: relative;
-      display: grid;
-      place-items: center;
-      margin-bottom: 8px;
-      filter: drop-shadow(0 24px 45px rgba(35, 113, 255, 0.35));
-    }
-
-    .globe-aura {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(79, 125, 255, 0.25) 0%, rgba(37, 244, 143, 0.2) 35%, rgba(37, 244, 143, 0) 68%);
-      animation: pulse 4.5s ease-in-out infinite;
-    }
-
-    .globe {
-      width: 176px;
-      height: 176px;
-      border-radius: 50%;
-      position: relative;
-      overflow: hidden;
-      background:
-        radial-gradient(circle at 30% 25%, rgba(225, 246, 255, 0.95) 0%, rgba(118, 203, 255, 0.8) 25%, rgba(35, 87, 172, 0.95) 68%),
-        linear-gradient(150deg, #1f56b6 0%, #0d3f8f 45%, #0a263f 100%);
-      box-shadow:
-        inset -20px -25px 36px rgba(1, 10, 26, 0.7),
-        inset 12px 14px 28px rgba(178, 232, 255, 0.32),
-        0 0 35px rgba(59, 132, 255, 0.45);
-      animation: globeFloat 8s ease-in-out infinite;
-    }
-
-    .globe::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(48px 38px at 26% 56%, rgba(102, 215, 170, 0.66), transparent 75%),
-        radial-gradient(64px 44px at 62% 42%, rgba(90, 210, 150, 0.52), transparent 78%),
-        radial-gradient(46px 30px at 64% 70%, rgba(74, 185, 131, 0.48), transparent 77%),
-        radial-gradient(42px 28px at 42% 28%, rgba(65, 168, 118, 0.44), transparent 75%);
-      mix-blend-mode: screen;
-    }
-
-    .orbit {
-      position: absolute;
-      width: 226px;
-      height: 118px;
-      border: 3px solid rgba(37, 244, 143, 0.93);
-      border-radius: 50%;
-      transform: rotate(-17deg);
-      box-shadow: 0 0 24px rgba(37, 244, 143, 0.58), inset 0 0 18px rgba(37, 244, 143, 0.18);
-      animation: orbitTurn 8.4s linear infinite;
-    }
-
-    .brand {
-      font-size: 34px;
-      font-weight: 800;
-      letter-spacing: 0.4px;
-      background: linear-gradient(90deg, #f4fbff 0%, #adfcdb 55%, #7ae7ff 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 28px rgba(89, 191, 255, 0.24);
-    }
+    .brand { font-size: 34px; font-weight: 800; letter-spacing: 0.2px; color:#111827; }
 
     .headline {
       font-size: 40px;
       line-height: 1.03;
       font-weight: 800;
       margin-top: 2px;
-      text-shadow: 0 12px 30px rgba(0, 0, 0, 0.46);
+      color:#1f2937;
     }
 
     .subtitle {
-      color: #b3c6e6;
+      color: #6b7280;
       font-size: 14px;
       line-height: 1.5;
       max-width: 300px;
@@ -223,11 +125,14 @@
     }
     .btn:active { transform: translateY(1px) scale(0.992); }
 
-    .btn-primary {
-      color: #042418;
-      background: linear-gradient(95deg, #1fff8f 0%, #2ce5ff 100%);
-      box-shadow: 0 14px 24px rgba(17, 244, 154, 0.34), inset 0 0 0 1px rgba(225, 255, 242, 0.7);
-    }
+    .btn-primary { color:#fff; background: linear-gradient(90deg,#6d5dff,#8b5cf6); box-shadow:0 10px 24px rgba(109,93,255,.3); border-radius:18px; }
+    .onb-card{background:#fff;border:1px solid #eceff5;border-radius:18px;padding:12px;box-shadow:0 8px 24px rgba(16,24,40,.08)}
+    .onb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .onb-prod{background:#fff;border:1px solid #eef1f6;border-radius:14px;padding:8px}
+    .onb-img{height:74px;border-radius:10px;background:#f3f5f9;display:grid;place-items:center;font-size:24px}
+    .onb-title{font-size:12px;color:#374151;margin-top:6px}
+    .onb-bullets{display:grid;gap:8px}
+    .onb-bullets span{font-size:14px;color:#374151}
 
     .btn-secondary {
       color: #d9e8ff;
@@ -1177,19 +1082,24 @@
   <main class="phone" id="phone">
     <button id="appBackBtn" aria-label="Orqaga" style="position:absolute;top:12px;left:12px;z-index:50;min-width:44px;min-height:44px;border-radius:12px;border:1px solid rgba(140,170,220,.35);background:rgba(10,20,36,.78);color:#eaf3ff;display:none;">←</button>
     <section class="screen intro" id="introScreen">
-      <div class="stars"></div>
       <div class="intro-inner">
-        <div class="globe-wrap">
-          <div class="globe-aura"></div>
-          <div class="orbit"></div>
-          <div class="globe"></div>
-        </div>
-
+        <p class="muted">📍 Samarqand, Shohruh Mirzo 33</p>
         <h1 class="brand">GlobusMarket</h1>
-        <h2 class="headline">GlobusMarket</h2>
         <p class="subtitle">Tez, qulay va ishonchli xarid</p>
-
-        <button class="btn gm-btn gm-btn-primary btn-primary" id="openRegisterBtn">Boshlash</button>
+        <div class="onb-card">
+          <div class="onb-grid">
+            <div class="onb-prod"><div class="onb-img">🥛</div><div class="onb-title">Sut mahsulotlari</div></div>
+            <div class="onb-prod"><div class="onb-img">🍎</div><div class="onb-title">Meva-sabzavot</div></div>
+            <div class="onb-prod"><div class="onb-img">🥤</div><div class="onb-title">Ichimliklar</div></div>
+            <div class="onb-prod"><div class="onb-img">🧴</div><div class="onb-title">Gigiyena</div></div>
+          </div>
+        </div>
+        <div class="onb-bullets">
+          <span>✓ Tez yetkazib berish</span>
+          <span>✓ Keng assortiment</span>
+          <span>✓ Qulay xarid</span>
+        </div>
+        <button class="btn gm-btn gm-btn-primary btn-primary" id="openRegisterBtn" style="margin-top:auto;">Xaridni boshlash</button>
       </div>
     </section>
 
