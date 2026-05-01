@@ -61,6 +61,13 @@ exports.importProductsXlsx = async (req, res) => {
     if (!req.file?.buffer) {
       return res.status(400).json({ ok: false, message: 'xlsx file is required (multipart/form-data, field: file)' });
     }
+    const filename = String(req.file.originalname || '').toLowerCase();
+    const mime = String(req.file.mimetype || '').toLowerCase();
+    const isXlsxName = filename.endsWith('.xlsx');
+    const isKnownMime = mime.includes('spreadsheetml') || mime === 'application/octet-stream' || mime === '';
+    if (!isXlsxName || !isKnownMime) {
+      return res.status(400).json({ ok: false, message: 'Only .xlsx files are allowed for product import' });
+    }
 
     const overwriteFromQuery = req.query?.overwriteImages;
     const overwriteFromBody = req.body?.overwriteImages;
@@ -71,7 +78,11 @@ exports.importProductsXlsx = async (req, res) => {
     const result = await xlsxImportService.importProductsFromXlsxBuffer(req.file.buffer, { overwriteImages, processImages, updateOnlyStockPrice });
     return res.json({ ok: true, ...result });
   } catch (error) {
-    return res.status(400).json({ ok: false, message: error.message || 'XLSX import failed' });
+    const message = String(error?.message || 'XLSX import failed');
+    if (message.startsWith('Excel header missing:')) {
+      return res.status(400).json({ ok: false, message, code: 'INVALID_HEADERS' });
+    }
+    return res.status(400).json({ ok: false, message });
   }
 };
 
