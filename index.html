@@ -369,6 +369,45 @@
       font-size: 14px;
       width: 100%;
     }
+    .catalog-search-sticky {
+      position: sticky;
+      top: 0;
+      z-index: 8;
+      padding: 8px 0;
+      background: linear-gradient(180deg, rgba(246, 248, 252, 0.98), rgba(246, 248, 252, 0.86));
+      backdrop-filter: blur(6px);
+    }
+    .search-wrap { position: relative; }
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: #8892aa;
+    }
+    .search-input-lg {
+      width: 100%;
+      min-height: 52px;
+      border-radius: 16px;
+      border: 1px solid #dbe2ee;
+      padding: 12px 44px 12px 38px;
+      font-size: 15px;
+      outline: none;
+    }
+    .search-clear-btn {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      border: 1px solid #e1e6f0;
+      background: #fff;
+      display: none;
+    }
+    .search-clear-btn.show { display: grid; place-items: center; }
 
     .promo {
       border-radius: 18px;
@@ -1154,7 +1193,7 @@
 
         <button class="search home-search-lg" id="openSearchBtn">🔎&nbsp; Маҳсулот, бренд ёки тоифани қидиринг</button>
 
-        <div class="section-head gm-section-header">
+        <div class="section-head gm-section-header" id="popularSectionHead">
           <h4 id="bannerSectionTitle">Bannerlar</h4>
         </div>
         <section class="home-scroll" id="bannerCarousel"></section>
@@ -1171,22 +1210,22 @@
         </div>
         <section class="products-grid" id="homeProducts"></section>
 
-        <div class="section-head gm-section-header">
-          <h4>Bugungi chegirmalar</h4>
+        <div class="section-head gm-section-header" id="discountSectionHead">
+          <h4>Chegirmalar</h4>
         </div>
         <section class="products-grid" id="homeDiscountProducts"></section>
 
-        <div class="section-head gm-section-header">
+        <div class="section-head gm-section-header" id="fastSectionHead">
           <h4>Tez yetkaziladi</h4>
         </div>
         <section class="products-grid" id="homeFastProducts"></section>
 
-        <div class="section-head gm-section-header">
-          <h4>Ko‘p sotilgan</h4>
+        <div class="section-head gm-section-header" id="bestSectionHead">
+          <h4>Ommabop</h4>
         </div>
         <section class="products-grid" id="homeBestSellerProducts"></section>
 
-        <div class="section-head gm-section-header">
+        <div class="section-head gm-section-header" id="reorderSectionHead">
           <h4>Qayta buyurtma</h4>
         </div>
         <section class="products-grid" id="homeReorderProducts"></section>
@@ -1200,12 +1239,18 @@
 
       <section class="view" id="searchView">
         <h2 class="title gm-title-md">Katalog</h2>
-        <input class="search" id="searchInput" placeholder="Mahsulotlar va turkumlar qidirish" />
+        <div class="catalog-search-sticky">
+          <div class="search-wrap">
+            <span class="search-icon">🔎</span>
+            <input class="search-input-lg" id="searchInput" placeholder="Mahsulot qidirish..." />
+            <button type="button" class="search-clear-btn" id="searchClearBtn" aria-label="Qidiruvni tozalash">✕</button>
+          </div>
+        </div>
         <button class="btn gm-btn gm-btn-secondary btn-secondary" id="categoryBackBtn" style="display:none;">← Katalog</button>
         <section class="category-grid" id="categoryResults"></section>
         <p class="muted" id="catalogProductResultsTitle" style="display:none; margin-bottom:8px;"></p>
         <section class="products-grid" id="searchResults"></section>
-        <div class="empty" id="searchEmpty" style="display:none;">Hech narsa topilmadi. Boshqa so'z kiriting.</div>
+        <div class="empty" id="searchEmpty" style="display:none;"><h3>Mahsulot topilmadi</h3><p class="muted">Boshqa nom bilan qidirib ko‘ring</p></div>
       </section>
 
       <section class="view" id="cartView">
@@ -1405,6 +1450,7 @@ Oq fonli foto</div>
     const homeReorderProducts = document.getElementById('homeReorderProducts');
     const searchResults = document.getElementById('searchResults');
     const searchInput = document.getElementById('searchInput');
+    const searchClearBtn = document.getElementById('searchClearBtn');
     const searchEmpty = document.getElementById('searchEmpty');
     const categoryResults = document.getElementById('categoryResults');
     const categoryBackBtn = document.getElementById('categoryBackBtn');
@@ -1453,6 +1499,23 @@ Oq fonli foto</div>
     const profileMenuCard = document.getElementById('profileMenuCard');
     const logoutBtn = document.getElementById('logoutBtn');
     const profileRegisterBtn = document.getElementById('profileRegisterBtn');
+    const discountSectionHead = document.getElementById('discountSectionHead');
+    const fastSectionHead = document.getElementById('fastSectionHead');
+    const bestSectionHead = document.getElementById('bestSectionHead');
+    const reorderSectionHead = document.getElementById('reorderSectionHead');
+
+    const CURATED_CATEGORIES = [
+      { key: 'Ichimliklar', displayName: 'Ichimliklar', icon: '🥤', match: ['ichim', 'suv', 'sharbat'] },
+      { key: 'Shirinliklar', displayName: 'Shirinliklar', icon: '🍫', match: ['shirin', 'konfet', 'shokolad'] },
+      { key: 'Sut mahsulotlari', displayName: 'Sut mahsulotlari', icon: '🥛', match: ['sut', 'qatiq', 'pishloq'] },
+      { key: 'Non mahsulotlari', displayName: 'Non mahsulotlari', icon: '🍞', match: ['non', 'buloch', 'un'] },
+      { key: 'Meva-sabzavot', displayName: 'Meva-sabzavot', icon: '🍎', match: ['meva', 'sabz', 'ko‘kat', 'kokat'] },
+      { key: 'Go‘sht', displayName: 'Go‘sht', icon: '🥩', match: ['go', 'gosht', 'tovuq'] },
+      { key: 'Uy-ro‘zg‘or', displayName: 'Uy-ro‘zg‘or', icon: '🏠', match: ['uy', 'xojalik', 'tozalash'] },
+      { key: 'Gigiyena', displayName: 'Gigiyena', icon: '🧴', match: ['gigiyen', 'shampun', 'sovun'] },
+      { key: 'Muzlatilgan', displayName: 'Muzlatilgan', icon: '🧊', match: ['muzlat', 'frozen'] },
+      { key: 'Boshqa', displayName: 'Boshqa', icon: '📦', match: [] }
+    ];
 
     const modalOverlay = document.getElementById('productModalOverlay');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -1759,6 +1822,11 @@ Oq fonli foto`;
       `;
     }
 
+    function setSectionVisibility(sectionEl, headEl, hasItems) {
+      sectionEl.style.display = hasItems ? 'grid' : 'none';
+      if (headEl) headEl.style.display = hasItems ? 'flex' : 'none';
+    }
+
     function renderHome() {
       const popular = products
         .slice()
@@ -1777,13 +1845,17 @@ Oq fonli foto`;
       const bestSeller = popular.slice(0, 6);
       const reorder = cartItemsSnapshot.length
         ? products.filter((p) => cartItemsSnapshot.some((c) => c.id === p.id)).slice(0, 6)
-        : products.slice(0, 4);
+        : [];
 
       homeProducts.innerHTML = popular.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Mahsulotlar yuklanmoqda...</div>';
-      homeDiscountProducts.innerHTML = discounts.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Hozircha chegirmali mahsulotlar yo‘q.</div>';
-      homeFastProducts.innerHTML = fast.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Tez yetkaziladigan mahsulotlar topilmadi.</div>';
-      homeBestSellerProducts.innerHTML = bestSeller.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Ko‘p sotilgan mahsulotlar topilmadi.</div>';
-      homeReorderProducts.innerHTML = reorder.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Qayta buyurtma uchun tarix topilmadi.</div>';
+      homeDiscountProducts.innerHTML = discounts.map(productCardTemplate).join('');
+      homeFastProducts.innerHTML = fast.map(productCardTemplate).join('');
+      homeBestSellerProducts.innerHTML = bestSeller.map(productCardTemplate).join('');
+      homeReorderProducts.innerHTML = reorder.map(productCardTemplate).join('');
+      setSectionVisibility(homeDiscountProducts, discountSectionHead, discounts.length > 0);
+      setSectionVisibility(homeFastProducts, fastSectionHead, fast.length > 0);
+      setSectionVisibility(homeBestSellerProducts, bestSectionHead, bestSeller.length > 0);
+      setSectionVisibility(homeReorderProducts, reorderSectionHead, reorder.length > 0);
     }
 
     function normalizedCategoryName(categoryName) {
@@ -1809,19 +1881,21 @@ Oq fonli foto`;
     }
 
     function getCategoryEntries() {
-      const categoryMap = new Map();
+      const curated = CURATED_CATEGORIES.map((c) => ({ ...c, count: 0 }));
       products.forEach((p) => {
-        const key = normalizedCategoryName(p.category);
-        const displayName = normalizedCategoryName(p.categoryDisplayName || p.category);
-        const icon = p.categoryIcon || getCategoryIcon(displayName);
-        const image_url = p.categoryImageUrl || '';
-        const current = categoryMap.get(key) || { key, displayName, icon, image_url, count: 0 };
-        current.count += 1;
-        if (!current.image_url && image_url) current.image_url = image_url;
-        if (!current.icon && icon) current.icon = icon;
-        categoryMap.set(key, current);
+        const text = `${normalizedCategoryName(p.categoryDisplayName || p.category)} ${p.name}`.toLowerCase();
+        const found = curated.find((c) => c.match.some((m) => text.includes(m.toLowerCase()))) || curated[curated.length - 1];
+        found.count += 1;
       });
-      return [...categoryMap.values()].sort((a, b) => a.displayName.localeCompare(b.displayName, 'uz'));
+      return curated.filter((c) => c.count > 0).slice(0, 10);
+    }
+
+    function productMatchesCategory(product, categoryKey) {
+      const rule = CURATED_CATEGORIES.find((c) => c.key === categoryKey);
+      if (!rule) return normalizedCategoryName(product.category) === categoryKey;
+      if (rule.key === 'Boshqa') return true;
+      const text = `${normalizedCategoryName(product.categoryDisplayName || product.category)} ${product.name}`.toLowerCase();
+      return rule.match.some((m) => text.includes(m.toLowerCase()));
     }
 
     function renderHomeCategories() {
@@ -1836,6 +1910,7 @@ Oq fonli foto`;
 
     function renderSearch() {
       const query = searchInput.value.trim().toLowerCase();
+      searchClearBtn.classList.toggle('show', Boolean(query));
       if (catalogMode === 'categories') {
         const categories = getCategoryEntries().filter((c) => c.displayName.toLowerCase().includes(query));
         categoryResults.innerHTML = categories.map((c) => `
@@ -1855,7 +1930,7 @@ Oq fonli foto`;
         return;
       }
 
-      const byCategory = products.filter((p) => normalizedCategoryName(p.category) === selectedCategory);
+      const byCategory = products.filter((p) => productMatchesCategory(p, selectedCategory));
       const filteredProducts = byCategory.filter((p) => p.name.toLowerCase().includes(query));
       categoryResults.style.display = 'none';
       categoryResults.innerHTML = '';
@@ -2242,6 +2317,11 @@ Oq fonli foto`;
     homeCartShortcut?.addEventListener('click', () => setView('cartView'));
 
     searchInput.addEventListener('input', renderSearch);
+    searchClearBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      renderSearch();
+      searchInput.focus();
+    });
     categoryBackBtn.addEventListener('click', () => {
       selectedCategory = null;
       selectedCategoryLabel = '';
