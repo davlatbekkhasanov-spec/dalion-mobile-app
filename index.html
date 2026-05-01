@@ -536,7 +536,7 @@
       box-shadow: 0 0 0 2px rgba(127, 86, 255, 0.18), 0 10px 22px rgba(127, 86, 255, 0.12);
     }
 
-    .product h5 { font-size: 13px; margin-bottom: 4px; color: #eaf4ff; line-height: 1.3; min-height: 34px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .product h5 { font-size: 13px; margin-bottom: 4px; color: #1d2939; line-height: 1.3; min-height: 34px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .meta { font-size: 11px; color: #8fb0d8; margin-bottom: 5px; }
     .price { font-size: 16px; color: #69ffbd; font-weight: 800; }
     .old-price { font-size: 11px; color: #7e96bc; text-decoration: line-through; margin-bottom: 8px; min-height:14px; }
@@ -583,17 +583,17 @@
       border: 1px solid rgba(126, 155, 207, 0.24);
       border-radius: 12px;
       padding: 8px;
-      background: linear-gradient(180deg, rgba(12, 23, 41, 0.95), rgba(8, 16, 30, 0.94));
+      background: #fff;
       display: grid;
       gap: 6px;
     }
-    .upsell-card h6 { font-size: 12px; line-height: 1.3; }
-    .upsell-card .price { font-size: 12px; }
+    .upsell-card h6 { font-size: 12px; line-height: 1.3; color:#1d2939; }
+    .upsell-card .price { font-size: 12px; color:#5b4cff; }
     .upsell-quick-btn {
       border: 1px solid rgba(105, 240, 184, 0.35);
       border-radius: 9px;
-      background: rgba(37, 244, 143, 0.14);
-      color: #cffff0;
+      background: #eef4ff;
+      color: #344054;
       font-size: 11px;
       font-weight: 800;
       padding: 6px 8px;
@@ -957,7 +957,7 @@
       width: 100%;
       border-radius: 18px;
       border: 1px solid rgba(130, 160, 210, 0.32);
-      background: linear-gradient(180deg, rgba(10, 22, 40, 0.98), rgba(7, 16, 30, 0.98));
+      background: #fff;
       padding: 14px;
       box-shadow: var(--shadow);
       position: relative;
@@ -972,7 +972,7 @@
       top: -86px;
       right: -40px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(39, 213, 255, 0.2), rgba(39, 213, 255, 0));
+      background: radial-gradient(circle, rgba(91, 76, 255, 0.08), rgba(39, 213, 255, 0));
       pointer-events: none;
     }
 
@@ -996,7 +996,7 @@
       width: 100%;
       border-radius: 18px;
       border: 1px solid rgba(130, 160, 210, 0.32);
-      background: linear-gradient(180deg, rgba(18, 39, 68, 0.98), rgba(8, 20, 36, 0.98));
+      background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.98));
       padding: 16px;
       box-shadow: var(--shadow);
     }
@@ -1084,7 +1084,7 @@
 </head>
 <body>
   <main class="phone" id="phone">
-    <button id="appBackBtn" aria-label="Orqaga" style="position:absolute;top:12px;left:12px;z-index:50;width:44px;height:44px;border-radius:50%;border:1px solid #e5e7eb;background:rgba(255,255,255,.92);color:#334155;box-shadow:0 4px 14px rgba(15,23,42,.10);display:none;">←</button>
+    <button id="appBackBtn" aria-label="Orqaga" style="display:none;">←</button>
     <section class="screen intro" id="introScreen">
       <div class="intro-inner">
         <p class="muted">📍 Samarqand, Shohruh Mirzo 33</p>
@@ -1337,7 +1337,7 @@
           <button class="close" id="closeModalBtn">✕</button>
         </div>
         <p class="muted" id="modalCategory">Kategoriya</p>
-        <div class="image-box modal-image">DALION
+        <div class="image-box modal-image">
 Oq fonli foto</div>
         <div class="modal-rating-row">
           <span class="gm-chip gm-chip--warning" id="modalRating">⭐ 4.7 · 0 baho</span>
@@ -1409,6 +1409,11 @@ Oq fonli foto</div>
 
     const phone = document.getElementById('phone');
     const appBackBtn = document.getElementById('appBackBtn');
+    const viewTitles = {
+      searchView: 'Katalog',
+      cartView: 'Savat',
+      checkoutView: 'Checkout'
+    };
     const openRegisterBtn = document.getElementById('openRegisterBtn');
     const authSheetOverlay = document.getElementById('authSheetOverlay');
     const closeAuthSheetBtn = document.getElementById('closeAuthSheetBtn');
@@ -1815,9 +1820,7 @@ Oq fonli foto</div>
       const priceText = Number(p.price) > 0 ? money(p.price) : 'Narx aniqlanmoqda';
       const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || '30 daqiqa';
       const hasFastDelivery = Boolean(p.etaText || homePayload?.home_settings?.deliveryTimeText);
-      const imageHtml = p.image_url
-        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.remove()" />`
-        : `<div class="image-ph">Rasm mavjud emas</div>`;
+      const imageHtml = `<img src="${p.image_url || ''}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://dummyimage.com/600x600/f2f4f7/98a2b3&text=DALION+DEMO';" />`;
       return `
         <article class="product gm-card" data-open-product="${p.id}">
           <div class="product-top-row">
@@ -2241,6 +2244,7 @@ Oq fonli foto</div>
     function upsellCardTemplate(p) {
       return `
         <article class="upsell-card" data-open-product="${p.id}">
+          <img class="cart-item-thumb" src="${p.image_url || ''}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://dummyimage.com/300x300/f2f4f7/98a2b3&text=DEMO';" />
           <h6>${p.name}</h6>
           <div class="list-row"><span class="price">${money(p.price)}</span><button class="upsell-quick-btn" data-quick-add="${p.id}">+ Qo‘shish</button></div>
         </article>
@@ -2294,10 +2298,7 @@ Oq fonli foto</div>
         <div class="spec-row"><span>Qoldiq</span><strong>${stock > 0 ? stock : 0} ta</strong></div>
       `;
       
-      modalImageBox.innerHTML = p.image_url
-        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />`
-        : `DALION
-Oq fonli foto`;
+      modalImageBox.innerHTML = `<img src="${p.image_url || ''}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://dummyimage.com/700x700/f2f4f7/98a2b3&text=DALION+DEMO';" />`;
       if (hasDiscount) {
         modalImageBox.insertAdjacentHTML('beforeend', `<span class="gm-chip gm-chip--delivery product-discount">-${discountPercent}%</span>`);
       }
@@ -2371,6 +2372,17 @@ Oq fonli foto`;
       }, { enableHighAccuracy: true, timeout: 12000 });
     }
 
+    function updateInlineBackTitle() {
+      document.querySelectorAll('.view .title').forEach((el) => {
+        const base = viewTitles[el.closest('.view')?.id];
+        if (base) el.textContent = base;
+      });
+      if (activeModalProductId) return;
+      const currentTitle = document.querySelector(`#${currentView} .title`);
+      const canGoBack = currentView !== 'homeView' && (appNavStack.length > 1 || currentView === 'checkoutView' || currentView === 'cartView' || currentView === 'searchView');
+      if (currentTitle && canGoBack && viewTitles[currentView]) currentTitle.textContent = `← ${viewTitles[currentView]}`;
+    }
+
     function setView(viewId, { push = false } = {}) {
       document.querySelectorAll('.view').forEach((el) => el.classList.toggle('active', el.id === viewId));
       currentView = viewId;
@@ -2380,7 +2392,8 @@ Oq fonli foto`;
         appNavStack.push(viewId);
         history.pushState({ type: 'view', viewId }, '');
       }
-      appBackBtn.style.display = (activeModalProductId || appNavStack.length > 1 || viewId === 'checkoutView') ? 'inline-grid' : 'none';
+      appBackBtn.style.display = 'none';
+      updateInlineBackTitle();
     }
 
     function appGoBack() {
@@ -2851,5 +2864,3 @@ Oq fonli foto`;
   </script>
 </body>
 </html>
-    #searchView .title { margin-top: 54px; margin-bottom: 10px; }
-    #searchView .catalog-search-sticky { margin-top: 0; }
