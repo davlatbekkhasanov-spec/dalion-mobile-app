@@ -1048,6 +1048,46 @@
       from { transform: rotate(-17deg); }
       to { transform: rotate(343deg); }
     }
+  
+    /* Frontend premium light refresh */
+    body { background: #f6f7fb; color: #1a1f36; }
+    .phone { background: #f6f7fb; border-color: #e4e7ec; box-shadow: 0 20px 55px rgba(35,42,70,.15); }
+    .app { background: #f6f7fb; }
+    .home-top-sticky { background: rgba(246,247,251,.94); border-bottom: 1px solid #eceff5; }
+    .logo-mark { background: linear-gradient(140deg,#7f56ff,#5b4cff); border: 0; box-shadow: 0 10px 26px rgba(91,76,255,.3); }
+    .title, .section-head h4, .logo-text h3, .cart-item-title, .product h5 { color: #1d2440; }
+    .muted, .meta { color: #667085; }
+    .search, .checkout-input { background: #fff; color:#1d2440; border:1px solid #e4e7ec; }
+    .promo, .list-card, .product, .category-card, .cat { background:#fff; border:1px solid #edf0f5; box-shadow:0 8px 24px rgba(16,24,40,.08); }
+    .promo { background: linear-gradient(130deg,#6f54ff,#8c6bff); color:#fff; }
+    .promo p, .promo .muted { color: rgba(255,255,255,.88); }
+    .image-box { height: 170px; background:#f8f9ff; border:1px solid #ecefff; }
+    .product { padding: 10px; }
+    .product h5 { font-size: 13px; min-height: 34px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .price { color:#1d2440; font-size:15px; font-weight:800; }
+    .old-price { color:#98a2b3; min-height: 14px; }
+    .product-top-row { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+    .fav-btn { width:30px; height:30px; border-radius:10px; border:1px solid #e8eaf2; background:#fff; color:#b42318; display:grid; place-items:center; font-size:14px; }
+    .stock-chip { background:#ecfdf3; color:#027a48; }
+    .discount-chip { background:#ffe4ea; color:#c11574; }
+    .delivery-chip { background:#f5f3ff; color:#5b4cff; }
+    .quick-add-btn,.full-btn,.btn.btn-primary,.gm-btn-primary { background: linear-gradient(90deg,#5b4cff,#7f56ff); color:#fff; border:none; }
+    .qty button { background:#f2f4f7; color:#1d2440; border:1px solid #dde3ee; }
+    .qty span { background:#fff; color:#1d2440; border:1px solid #e4e7ec; }
+    .icon-btn { background:#fff1f3; color:#b42318; border:1px solid #fbcfe8; min-height:40px; }
+    .cart-item-thumb { width:72px; height:72px; }
+    .cart-item-card { border-radius:18px; }
+    .checkout-delivery-card { background:#fff; border:1px solid #eceff5; }
+    .payment-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+    .pay-btn { background:#fff; color:#344054; border:1px solid #d0d5dd; }
+    .pay-btn.active { background:#f5f3ff; border-color:#7f56d9; color:#5b21b6; box-shadow:0 0 0 2px rgba(127,86,217,.14); }
+    .bottom { background:#fff; border-top:1px solid #e8ebf2; }
+    .tab { color:#667085; font-size:11px; min-height:52px; justify-content:center; }
+    .tab b { background:#f4f4ff; border:1px solid #e5e7ff; color:#5b4cff; }
+    .tab.active { color:#5b4cff; }
+    .tab.active b { background:linear-gradient(130deg,#ede9fe,#ddd6fe); border-color:#c4b5fd; box-shadow:none; }
+    .cart-badge { background:#ef4444; color:#fff; }
+
   </style>
   <link rel="stylesheet" href="/styles.css" />
 </head>
@@ -1226,7 +1266,7 @@
             <input type="checkbox" id="cashAgreementCheckbox" />
             Men buyurtma summasini tovar yetkazib berilganda naqd to‘lash majburiyatini olaman
           </label>
-          <p class="checkout-trust">Buyurtma tasdiqlangandan keyin operator bog‘lanadi.</p>
+          <p class="checkout-trust">Buyurtma tasdiqlangandan keyin operator bog‘lanadi</p>
           <div class="list-card gm-card gm-sticky-cta checkout-sticky-cta">
             <p class="checkout-total" id="checkoutTotal">Jami: 0 so'm</p>
             <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="confirmOrderBtn">Buyurtmani tasdiqlash</button>
@@ -1668,25 +1708,31 @@ Oq fonli foto</div>
       const price = Number(p.price || 0);
       const hasDiscount = oldPrice > price && price > 0;
       const discountPercent = hasDiscount ? Math.max(1, Math.round(((oldPrice - price) / oldPrice) * 100)) : 0;
-      const rating = Number(p.rating || 0) > 0 ? Number(p.rating).toFixed(1) : '4.7';
+      const ratingValue = Number(p.rating || 0);
+      const hasRating = ratingValue > 0;
+      const rating = hasRating ? ratingValue.toFixed(1) : '';
+      const reviews = Number(p.reviewCount || 0);
       const priceText = Number(p.price) > 0 ? money(p.price) : 'Narx aniqlanmoqda';
       const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || '30 daqiqa';
+      const hasFastDelivery = Boolean(p.etaText || homePayload?.home_settings?.deliveryTimeText);
       const imageHtml = p.image_url
         ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />`
         : `DALION
 Oq fonli foto`;
       return `
         <article class="product gm-card" data-open-product="${p.id}">
-          ${hasDiscount ? `<span class="gm-chip gm-chip--delivery product-discount">-${discountPercent}%</span>` : ''}
+          <div class="product-top-row">
+            ${hasDiscount ? `<span class="gm-chip discount-chip product-discount">Chegirma -${discountPercent}%</span>` : '<span></span>'}
+            <button class="fav-btn" type="button" aria-label="Saralanganlar">♡</button>
+          </div>
           <div class="image-box">${imageHtml}</div>
           <h5>${p.name}</h5>
           <p class="meta">${categoryName}</p>
-          <p class="meta">⭐ ${rating} · ${Number(p.reviewCount || 0) || 0} baho</p>
-          <p class="meta"><span class="gm-chip gm-chip--delivery">🚚 ${etaText}</span> ${stock > 0 ? `<span class="gm-chip gm-chip--success">Mavjud</span>` : `<span class="gm-chip gm-chip--warning">Tugagan</span>`}</p>
+          ${hasRating ? `<p class="meta">⭐ ${rating}${reviews ? ` · ${reviews} baho` : ''}</p>` : ''}
+          <p class="meta">${stock > 0 ? `<span class="gm-chip stock-chip">Mavjud</span>` : `<span class="gm-chip gm-chip--warning">Mavjud emas</span>`} ${hasFastDelivery ? `<span class="gm-chip delivery-chip">Tez yetkaziladi</span>` : ''}</p>
           <p class="price">${priceText}</p>
-          <p class="meta">${stock > 0 ? `Ostatka: ${stock}` : "Omborda yo'q"}</p>
           <p class="old-price">${oldPrice > 0 ? money(oldPrice) : ''}</p>
-          <button class="btn gm-btn gm-btn-primary quick-add-btn" data-add-one="${p.id}" ${stock <= 0 ? 'disabled' : ''}>Tez qo‘shish</button>
+          <button class="btn gm-btn gm-btn-primary quick-add-btn" data-add-one="${p.id}" ${stock <= 0 ? 'disabled' : ''}>Savatga qo‘shish</button>
           <div class="qty" data-qty-wrap="${p.id}">${makeQtyControls(p.id)}</div>
         </article>
       `;
@@ -1846,11 +1892,15 @@ Oq fonli foto`;
       const selected = products.filter((p) => qtyOf(p.id) > 0);
       checkoutItems.innerHTML = selected.map((p) => {
         const qty = qtyOf(p.id);
+        const imageHtml = p.image_url ? `<img class="cart-item-thumb" src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '<div class="cart-item-thumb"></div>';
         return `
-          <article class="list-card gm-card">
-            <div class="list-row">
-              <span>${p.name} × ${qty}</span>
-              <strong>${money(p.price * qty)}</strong>
+          <article class="list-card gm-card cart-item-card">
+            <div class="cart-item-top">
+              ${imageHtml}
+              <div style="flex:1;">
+                <div class="cart-item-title">${p.name}</div>
+                <div class="cart-item-meta"><span>${qty} dona</span><strong>${money(p.price * qty)}</strong></div>
+              </div>
             </div>
           </article>
         `;
