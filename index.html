@@ -1499,16 +1499,11 @@ Oq fonli foto</div>
     const reorderSectionHead = document.getElementById('reorderSectionHead');
 
     const CURATED_CATEGORIES = [
-      { key: 'Ichimliklar', displayName: 'Ichimliklar', icon: '🥤', match: ['ichim', 'suv', 'sharbat'] },
-      { key: 'Shirinliklar', displayName: 'Shirinliklar', icon: '🍫', match: ['shirin', 'konfet', 'shokolad'] },
-      { key: 'Sut mahsulotlari', displayName: 'Sut mahsulotlari', icon: '🥛', match: ['sut', 'qatiq', 'pishloq'] },
-      { key: 'Non mahsulotlari', displayName: 'Non mahsulotlari', icon: '🍞', match: ['non', 'buloch', 'un'] },
-      { key: 'Meva-sabzavot', displayName: 'Meva-sabzavot', icon: '🍎', match: ['meva', 'sabz', 'ko‘kat', 'kokat'] },
-      { key: 'Go‘sht', displayName: 'Go‘sht', icon: '🥩', match: ['go', 'gosht', 'tovuq'] },
-      { key: 'Uy-ro‘zg‘or', displayName: 'Uy-ro‘zg‘or', icon: '🏠', match: ['uy', 'xojalik', 'tozalash'] },
-      { key: 'Gigiyena', displayName: 'Gigiyena', icon: '🧴', match: ['gigiyen', 'shampun', 'sovun'] },
-      { key: 'Muzlatilgan', displayName: 'Muzlatilgan', icon: '🧊', match: ['muzlat', 'frozen'] },
-      { key: 'Boshqa', displayName: 'Boshqa', icon: '📦', match: [] }
+      { key: 'Kanselyariya', displayName: 'Kanselyariya', icon: '✏️', match: ['kanselyariya'] },
+      { key: 'Ofis jihozlari', displayName: 'Ofis jihozlari', icon: '🪑', match: ['ofis jihozlari'] },
+      { key: 'Kompyuter aksessuarlari', displayName: 'Kompyuter aksessuarlari', icon: '🖱️', match: ['kompyuter aksessuarlari'] },
+      { key: 'USB va kabellar', displayName: 'USB va kabellar', icon: '🔌', match: ['usb va kabellar'] },
+      { key: 'Ichimliklar', displayName: 'Ichimliklar', icon: '🥤', match: ['ichimliklar'] }
     ];
 
     const modalOverlay = document.getElementById('productModalOverlay');
@@ -1820,7 +1815,7 @@ Oq fonli foto</div>
       const priceText = Number(p.price) > 0 ? money(p.price) : 'Narx aniqlanmoqda';
       const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || '30 daqiqa';
       const hasFastDelivery = Boolean(p.etaText || homePayload?.home_settings?.deliveryTimeText);
-      const imageHtml = `<img src="${p.image_url || ''}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://dummyimage.com/600x600/f2f4f7/98a2b3&text=DALION+DEMO';" />`;
+      const imageHtml = p.image_url ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '';
       return `
         <article class="product gm-card" data-open-product="${p.id}">
           <div class="product-top-row">
@@ -1910,9 +1905,8 @@ Oq fonli foto</div>
         const found = curated.find((c) => c.key === key);
         if (found) found.count += 1;
       });
-      const nonEmpty = curated.filter((c) => c.count > 0).slice(0, 10);
-      const total = nonEmpty.reduce((sum, c) => sum + c.count, 0);
-      return [{ key: 'all', displayName: 'Hammasi', icon: '🛍️', count: total }, ...nonEmpty];
+      const total = curated.reduce((sum, c) => sum + c.count, 0);
+      return [{ key: 'all', displayName: 'Hammasi', icon: '🛍️', count: total }, ...curated];
     }
 
     function productMatchesCategory(product, categoryKey) {
@@ -1976,7 +1970,7 @@ Oq fonli foto</div>
       cartEmpty.style.display = 'none';
       cartSummary.style.display = 'block';
       cartItems.innerHTML = cartItemsSnapshot.map((item) => {
-        const imageHtml = item.image_url ? `<img class="cart-item-thumb" src="${item.image_url}" alt="${item.name}" loading="lazy" decoding="async" />` : '<div class="cart-item-thumb"></div>';
+        const imageHtml = item.image_url ? `<img class="cart-item-thumb" src="${item.image_url}" alt="${item.name}" loading="lazy" decoding="async" />` : '';
         const stockInfo = Number(item.stock ?? item.available_stock ?? item.availableQuantity);
         const hasWarn = Number.isFinite(stockInfo) && stockInfo <= 0;
         return `
@@ -2023,7 +2017,7 @@ Oq fonli foto</div>
       document.getElementById('checkoutUserPhone').textContent = currentUser?.phone ? `Telefon: ${currentUser.phone}` : "Telefon mavjud emas";
       checkoutItems.innerHTML = selected.map((p) => {
         const qty = qtyOf(p.id);
-        const imageHtml = p.image_url ? `<img class="cart-item-thumb" src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '<div class="cart-item-thumb"></div>';
+        const imageHtml = p.image_url ? `<img class="cart-item-thumb" src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '';
         return `
           <article class="list-card gm-card cart-item-card">
             <div class="cart-item-top">
@@ -2244,7 +2238,7 @@ Oq fonli foto</div>
     function upsellCardTemplate(p) {
       return `
         <article class="upsell-card" data-open-product="${p.id}">
-          <img class="cart-item-thumb" src="${p.image_url || ''}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://dummyimage.com/300x300/f2f4f7/98a2b3&text=DEMO';" />
+          <img class="cart-item-thumb" src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />
           <h6>${p.name}</h6>
           <div class="list-row"><span class="price">${money(p.price)}</span><button class="upsell-quick-btn" data-quick-add="${p.id}">+ Qo‘shish</button></div>
         </article>
@@ -2298,7 +2292,7 @@ Oq fonli foto</div>
         <div class="spec-row"><span>Qoldiq</span><strong>${stock > 0 ? stock : 0} ta</strong></div>
       `;
       
-      modalImageBox.innerHTML = `<img src="${p.image_url || ''}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://dummyimage.com/700x700/f2f4f7/98a2b3&text=DALION+DEMO';" />`;
+      modalImageBox.innerHTML = p.image_url ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '';
       if (hasDiscount) {
         modalImageBox.insertAdjacentHTML('beforeend', `<span class="gm-chip gm-chip--delivery product-discount">-${discountPercent}%</span>`);
       }
@@ -2398,7 +2392,7 @@ Oq fonli foto</div>
 
     function appGoBack() {
       if (activeModalProductId) return closeProductModal();
-      if (currentView === 'checkoutView') return setView('cartView', { push: true });
+      if (currentView === 'checkoutView') return setView('cartView');
       if (currentView === 'successView') return setView('homeView');
       if (appNavStack.length > 1) {
         appNavStack.pop();
@@ -2679,7 +2673,7 @@ Oq fonli foto</div>
     modalOverlay.addEventListener('click', (e) => {
       if (e.target === modalOverlay) closeProductModal();
     });
-    appBackBtn?.addEventListener('click', appGoBack);
+    appBackBtn?.addEventListener('click', () => window.history.back());
     window.addEventListener('popstate', () => appGoBack());
 
     modalAddBtn.addEventListener('click', async () => {
