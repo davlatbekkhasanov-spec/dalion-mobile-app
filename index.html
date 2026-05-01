@@ -1447,6 +1447,7 @@ Oq fonli foto</div>
     let latestOrderNumber = '';
     let activeOrderNumber = localStorage.getItem('activeOrderNumber') || '';
     let ordersHistory = JSON.parse(localStorage.getItem('orders_history') || '[]');
+    let mergedCustomerOrders = [];
     let orderStatusTimer = null;
     let lastOrderData = null;
 
@@ -2108,10 +2109,77 @@ Oq fonli foto`;
           paymentMethod: order.paymentMethod,
           paymentStatus: order.paymentStatus,
           feedbackAt: order.feedbackAt || null,
-          created_at: order.created_at
+          created_at: order.created_at,
+          items: Array.isArray(order.items) ? order.items : [],
+          customerAddress: order.customerAddress || order.addressText || order.location || ''
         });
         localStorage.setItem('orders_history', JSON.stringify(ordersHistory.slice(0, 100)));
       }
+    }
+
+    function compactOrderItemsPreview(items = []) {
+      const names = (items || []).slice(0, 2).map((item) => item?.name).filter(Boolean);
+      const extraCount = Math.max(0, Number(items?.length || 0) - names.length);
+      const preview = names.join(', ');
+      if (!preview && !extraCount) return 'Mahsulotlar ko‘rsatilmagan';
+      return extraCount > 0 ? `${preview} +${extraCount} ta` : preview;
+    }
+
+    function mergeCustomerOrders(apiOrders = []) {
+      const mergedMap = new Map();
+      [...apiOrders, ...ordersHistory].forEach((order) => {
+        const orderNumber = String(order?.orderNumber || '').trim();
+        if (!orderNumber) return;
+        const existing = mergedMap.get(orderNumber) || {};
+        mergedMap.set(orderNumber, {
+          ...existing,
+          ...order,
+          orderNumber,
+          items: Array.isArray(order?.items) && order.items.length ? order.items : (existing.items || [])
+        });
+      });
+      return Array.from(mergedMap.values()).sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+    }
+
+    async function reorderFromOrder(orderNumber) {
+      if (!requireAuthOrIntro()) return;
+      const order = mergedCustomerOrders.find((item) => String(item.orderNumber) === String(orderNumber));
+      if (!order) {
+        showToast("Buyurtma topilmadi");
+        return;
+      }
+      const orderItems = Array.isArray(order.items) ? order.items : [];
+      if (!orderItems.length) {
+        showToast("Qayta buyurtma uchun mahsulot yo‘q");
+        return;
+      }
+
+      let addedAny = false;
+      let adjustedCount = 0;
+      for (const item of orderItems) {
+        const product = products.find((p) => p.id === item.id);
+        if (!product) { adjustedCount += 1; continue; }
+        const stock = Math.max(0, Number(product.stock || 0));
+        if (stock <= 0) { adjustedCount += 1; continue; }
+        const requestedQty = Math.max(0, Number(item.quantity || 0));
+        const finalQty = Math.min(requestedQty, stock);
+        if (finalQty <= 0) { adjustedCount += 1; continue; }
+        await api('/cart/items', {
+          method: 'PUT',
+          body: JSON.stringify({ productId: item.id, quantity: finalQty })
+        });
+        addedAny = true;
+        if (finalQty < requestedQty) adjustedCount += 1;
+      }
+
+      await loadCart();
+      renderAll();
+      setView('cartView');
+      if (!addedAny) {
+        showToast("Mahsulotlar hozircha mavjud emas");
+        return;
+      }
+      showToast(adjustedCount > 0 ? "Qisman qayta buyurtma savatga qo‘shildi" : "Buyurtma savatga qayta qo‘shildi");
     }
 
     async function renderActiveOrderCard() {
@@ -2151,15 +2219,32 @@ Oq fonli foto`;
       profileName.textContent = currentUser?.name || 'Foydalanuvchi';
       profilePhone.textContent = `Telefon: ${currentUser?.phone || '-'}`;
       const orders = await loadCustomerOrders();
-      const merged = [...orders];
-      ordersHistory.forEach((h) => {
-        if (!merged.some((o) => o.orderNumber === h.orderNumber)) merged.push(h);
-      });
-      if (!merged.length) {
-        profileOrders.innerHTML = '<div class="empty">Hozircha buyurtmalar yo‘q</div>';
+      mergedCustomerOrders = mergeCustomerOrders(orders);
+      if (!mergedCustomerOrders.length) {
+        profileOrders.innerHTML = '<div class="empty">Sizda hali buyurtmalar yo‘q</div>';
         return;
       }
-      profileOrders.innerHTML = merged.map((o) => `<article class="list-card gm-card"><div><b>#${o.orderNumber || '-'}</b></div><div class="muted">${new Date(o.created_at || Date.now()).toLocaleString('ru-RU')}</div><div class="muted">Status: ${orderStatusLabel(o.status)}</div><div class="muted">Jami: ${money(o.total || 0)}</div><div class="muted">To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatus || '-'}</div><div class="muted">Feedback: ${o.feedbackAt ? 'Yuborilgan' : 'Kutilmoqda'}</div><a class="btn gm-btn gm-btn-secondary btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="margin-top:8px;text-align:center;">Kuzatish</a></article>`).join('');
+      profileOrders.innerHTML = mergedCustomerOrders.map((o) => `
+        <article class="list-card gm-card" style="margin-bottom:10px;">
+          <div><b>#${o.orderNumber || '-'}</b></div>
+          <div class="muted">${new Date(o.created_at || Date.now()).toLocaleString('ru-RU')}</div>
+          <div class="muted">Status: ${orderStatusLabel(o.status)}</div>
+          <div class="muted">Jami: ${money(o.total || 0)}</div>
+          <div class="muted">Mahsulotlar: ${compactOrderItemsPreview(o.items || [])}</div>
+          <details style="margin-top:8px;">
+            <summary style="cursor:pointer;color:#bfe3ff;">Buyurtma tafsiloti</summary>
+            <div style="margin-top:8px;display:grid;gap:6px;">
+              ${(o.items || []).length ? (o.items || []).map((item) => `<div class="muted">${item.name || '-'} · ${item.quantity || 0} ta · ${money(item.price || 0)}</div>`).join('') : '<div class="muted">Mahsulotlar topilmadi</div>'}
+              <div class="muted">Manzil: ${o.customerAddress || o.addressText || o.location || '-'}</div>
+              <div class="muted">To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatus || '-'}</div>
+            </div>
+          </details>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn gm-btn gm-btn-primary btn-primary" data-reorder="${o.orderNumber}" style="flex:1;">Yana buyurtma berish</button>
+            <a class="btn gm-btn gm-btn-secondary btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="text-align:center;flex:1;">Kuzatish</a>
+          </div>
+        </article>
+      `).join('');
     }
 
     function renderCartBadge() {
@@ -2360,6 +2445,16 @@ Oq fonli foto`;
 
     profileRegisterBtn?.addEventListener('click', () => {
       authSheetOverlay.classList.add('show');
+    });
+
+    profileOrders?.addEventListener('click', async (e) => {
+      const reorderBtn = e.target.closest('[data-reorder]');
+      if (!reorderBtn) return;
+      try {
+        await reorderFromOrder(reorderBtn.dataset.reorder);
+      } catch (error) {
+        showToast(error.message || 'Qayta buyurtmada xatolik');
+      }
     });
 
     document.getElementById('openSearchBtn').addEventListener('click', () => {
