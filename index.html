@@ -764,6 +764,9 @@
     .checkout-delivery-mini { border:1px solid rgba(120,175,255,.28); background:rgba(14,29,52,.62); border-radius:12px; padding:10px; margin-top:10px; }
     .checkout-trust { margin-top:10px; color:#9dffd0; font-size:13px; }
     .field-error { color:#ffb3b3; font-size:12px; margin-top:6px; display:none; }
+    .checkout-summary-rows { margin-top:10px; border-top:1px solid rgba(130,160,210,.25); padding-top:10px; display:grid; gap:6px; }
+    .checkout-summary-rows .list-row strong { font-size:15px; }
+    .payment-hint { font-size:12px; color:var(--muted); margin-top:4px; display:inline-block; }
     .checkout-sticky-cta { display:flex; justify-content:space-between; align-items:center; gap:10px; }
     .checkout-sticky-cta .checkout-total { margin:0; }
 
@@ -1304,6 +1307,7 @@
         <div id="checkoutItems" class="checkout-stack"></div>
         <div class="list-card checkout-delivery-card">
           <h4 style="margin-bottom:10px;">Yetkazib berish</h4>
+          <p class="muted" id="checkoutSavedAddress">Saqlangan manzil: -</p>
           <p class="muted" id="checkoutLocation">Manzil: Yunusobod, Toshkent</p>
           <p class="muted" id="checkoutGeo">Geo: olinmagan</p>
           <p class="muted" id="checkoutLandmark">Orientir: -</p>
@@ -1311,15 +1315,17 @@
           <input id="landmarkInput" class="checkout-input" placeholder="Orientir" />
           <button class="btn btn-secondary location-premium-btn" id="captureLocationBtn">GPS orqali manzilni olish (ixtiyoriy)</button>
           <p class="muted" id="checkoutLocationHint">Lokatsiya ixtiyoriy. Istasangiz manzilni qo‘lda kiriting.</p>
-          <p class="muted" id="checkoutTime">Vaqt: 30 daqiqa</p>
+          <p class="muted" id="checkoutDistance">Masofa: aniqlanmagan</p>
+          <p class="muted" id="checkoutTime">ETA: 30 daqiqa</p>
           <p class="muted" id="checkoutPrice">Narx: 12 000 so'm</p>
+          <p class="field-error" id="addressValidationError"></p>
         </div>
         <div class="list-card gm-card">
           <h4 style="margin-bottom:8px;">To'lov turi</h4>
           <div class="payment-grid">
-            <button class="pay-btn" data-payment="cash">Naqd</button>
-            <button class="pay-btn" data-payment="click">Click</button>
-            <button class="pay-btn" data-payment="payme">Payme</button>
+            <button class="pay-btn" data-payment="cash">💵 Naqd<br><span class="payment-hint">Yetkazilganda to‘lov</span><br><small>Ishonchli va qulay</small></button>
+            <button class="pay-btn" data-payment="click">🟦 Click<br><span class="payment-hint">Ilova orqali xavfsiz</span><br><small>Rasmiy to‘lov havolasi</small></button>
+            <button class="pay-btn" data-payment="payme">🟩 Payme<br><span class="payment-hint">Tezkor onlayn to‘lov</span><br><small>Rasmiy to‘lov havolasi</small></button>
           </div>
           <div id="paymentLinks" class="muted" style="margin-top:8px;"></div>
           <input id="paymentProofInput" class="checkout-input" type="file" accept="image/*,.pdf" style="display:none;" />
@@ -1329,13 +1335,22 @@
           </details>
           <label id="cashAgreementLabel" class="muted" style="display:none; margin-top:8px;">
             <input type="checkbox" id="cashAgreementCheckbox" />
-            Men buyurtma summasini tovar yetkazib berilganda naqd to‘lash majburiyatini olaman
+            Buyurtma yetkazilganda summani naqd to‘lashga roziman
           </label>
           <p class="checkout-trust">Buyurtma tasdiqlangandan keyin operator bog‘lanadi</p>
+          <p class="checkout-trust">To‘lov ma’lumotlari xavfsiz qayta ishlanadi</p>
+          <p class="checkout-trust">Yetkazib berish narxi masofaga qarab hisoblanadi</p>
+          <div class="checkout-summary-rows">
+            <div class="list-row"><span class="muted">Mahsulotlar:</span><span id="checkoutSubtotal">0 so'm</span></div>
+            <div class="list-row"><span class="muted">Yetkazib berish:</span><span id="checkoutDeliveryPrice">0 so'm</span></div>
+            <div class="list-row" id="checkoutDiscountRow" style="display:none;"><span class="muted">Chegirma:</span><span id="checkoutDiscount">-</span></div>
+            <div class="list-row"><span class="muted">Yakuniy jami:</span><strong id="checkoutGrandTotal">0 so'm</strong></div>
+          </div>
           <div class="list-card gm-card gm-sticky-cta checkout-sticky-cta">
             <p class="checkout-total" id="checkoutTotal">Jami: 0 so'm</p>
             <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="confirmOrderBtn">Buyurtmani tasdiqlash</button>
             <p class="muted" id="checkoutValidationHint" style="margin:4px 0 0;">Maydonlarni to‘liq to‘ldiring va to‘lov turini tanlang.</p>
+            <p class="field-error" id="paymentValidationError"></p>
           </div>
         </div>
       </section>
@@ -1345,9 +1360,12 @@
           <h2 style="margin-bottom:8px;">Buyurtma qabul qilindi</h2>
           <p class="muted">Operator tez orada bog'lanadi</p>
           <p class="muted" id="successOrderNumber">Buyurtma: -</p>
+          <p class="muted" id="successPaymentMethod">To‘lov turi: -</p>
+          <p class="muted" id="successAddress">Manzil: -</p>
+          <p class="muted" id="successTotal">Jami: -</p>
           <p class="muted" id="successOrderStatus">Status: Yangi buyurtma</p>
           <a id="trackOrderBtn" class="btn gm-btn gm-btn-secondary btn-secondary" style="display:none;">Buyurtmani kuzatish</a>
-          <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="backHomeBtn">Homega qaytish</button>
+          <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="backHomeBtn">Bosh sahifaga qaytish</button>
         </div>
       </section>
     </section>
@@ -1476,8 +1494,10 @@ Oq fonli foto</div>
     const promoCarousel = document.getElementById('promoCarousel');
     const activeOrderCardWrap = document.getElementById('activeOrderCardWrap');
     const checkoutLocation = document.getElementById('checkoutLocation');
+    const checkoutSavedAddress = document.getElementById('checkoutSavedAddress');
     const checkoutGeo = document.getElementById('checkoutGeo');
     const checkoutLandmark = document.getElementById('checkoutLandmark');
+    const checkoutDistance = document.getElementById('checkoutDistance');
     const manualAddress = document.getElementById('manualAddress');
     const landmarkInput = document.getElementById('landmarkInput');
     const paymentLinks = document.getElementById('paymentLinks');
@@ -1487,8 +1507,16 @@ Oq fonli foto</div>
     const cashAgreementLabel = document.getElementById('cashAgreementLabel');
     const checkoutTime = document.getElementById('checkoutTime');
     const checkoutPrice = document.getElementById('checkoutPrice');
+    const checkoutSubtotal = document.getElementById('checkoutSubtotal');
+    const checkoutDeliveryPrice = document.getElementById('checkoutDeliveryPrice');
+    const checkoutGrandTotal = document.getElementById('checkoutGrandTotal');
+    const addressValidationError = document.getElementById('addressValidationError');
+    const paymentValidationError = document.getElementById('paymentValidationError');
     const successOrderNumber = document.getElementById('successOrderNumber');
     const successOrderStatus = document.getElementById('successOrderStatus');
+    const successPaymentMethod = document.getElementById('successPaymentMethod');
+    const successAddress = document.getElementById('successAddress');
+    const successTotal = document.getElementById('successTotal');
     const trackOrderBtn = document.getElementById('trackOrderBtn');
     const profileName = document.getElementById('profileName');
     const profilePhone = document.getElementById('profilePhone');
@@ -2006,19 +2034,26 @@ Oq fonli foto`;
 
       const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
       const deliveryEta = homePayload?.settings?.deliveryTimeText || homePayload?.delivery_info?.time || "30 daqiqa";
-      const orderTotal = totalPrice() + deliveryPrice;
+      const subtotal = totalPrice();
+      const orderTotal = subtotal + deliveryPrice;
       checkoutTotal.textContent = `Jami: ${money(orderTotal)}`;
+      checkoutSubtotal.textContent = money(subtotal);
+      checkoutDeliveryPrice.textContent = money(deliveryPrice);
+      checkoutGrandTotal.textContent = money(orderTotal);
+      checkoutSavedAddress.textContent = `Saqlangan manzil: ${currentUser?.address || 'saqlanmagan'}`;
       checkoutLocation.textContent = `Manzil: ${customerLocation.addressText || manualAddress.value || '' || homePayload?.delivery_info?.location || 'Yunusobod, Toshkent'}`;
       checkoutLandmark.textContent = `Orientir: ${customerLocation.landmarkText || landmarkInput.value || '-'}`;
       checkoutGeo.textContent = Number.isFinite(Number(customerLocation.lat)) && Number.isFinite(Number(customerLocation.lng))
         ? `Geo: ${Number(customerLocation.lat).toFixed(6)}, ${Number(customerLocation.lng).toFixed(6)} (±${Math.round(Number(customerLocation.accuracy || 0))}m)`
         : 'Geo: olinmagan';
-      checkoutTime.textContent = `Vaqt: ${deliveryEta}`;
+      const distanceKm = Number(homePayload?.delivery_info?.distanceKm);
+      checkoutDistance.textContent = Number.isFinite(distanceKm) ? `Masofa: ${distanceKm.toFixed(1)} km` : 'Masofa: aniqlanmagan';
+      checkoutTime.textContent = `ETA: ${deliveryEta}`;
       checkoutPrice.textContent = `Narx: ${money(deliveryPrice)}`;
       const checkoutLocationHint = document.getElementById('checkoutLocationHint');
       if (checkoutLocationHint) {
         checkoutLocationHint.textContent = customerLocation.permissionDenied
-          ? 'GPS ruxsatisiz ham buyurtma berishingiz mumkin. Manzilni qo‘lda kiriting.'
+          ? 'Manzilni qo‘lda kiriting yoki lokatsiyani yoqing'
           : 'Lokatsiya ixtiyoriy. Istasangiz manzilni qo‘lda kiriting.';
       }
       if (selectedPayment === 'click') paymentLinks.innerHTML = 'Click: <a href="https://indoor.click.uz/pay?id=081328&t=0" target="_blank">To‘lov havolasi</a>';
@@ -2028,6 +2063,8 @@ Oq fonli foto`;
       paymentProofInput.style.display = isOnline ? 'block' : 'none';
       cashAgreementDetails.style.display = selectedPayment === 'cash' ? 'block' : 'none';
       cashAgreementLabel.style.display = selectedPayment === 'cash' ? 'block' : 'none';
+      addressValidationError.style.display = 'none';
+      paymentValidationError.style.display = 'none';
     }
 
     async function loadCustomerOrders() {
@@ -2494,18 +2531,30 @@ Oq fonli foto`;
     });
 
     document.getElementById('confirmOrderBtn').addEventListener('click', async () => {
+      addressValidationError.style.display = 'none';
+      paymentValidationError.style.display = 'none';
       if (totalQty() === 0) {
         showToast("Savat bo'sh");
         return;
       }
+      if (!currentUser?.phone) {
+        showToast("Avval ro‘yxatdan o‘ting");
+        paymentValidationError.textContent = "Avval ro‘yxatdan o‘ting";
+        paymentValidationError.style.display = 'block';
+        return;
+      }
       if (!requireAuthOrIntro()) return;
       if (!selectedPayment) {
+        paymentValidationError.textContent = "To‘lov turini tanlang";
+        paymentValidationError.style.display = 'block';
         showToast("To'lov turini tanlang");
         return;
       }
       customerLocation.addressText = manualAddress.value.trim() || '' || '';
       customerLocation.landmarkText = landmarkInput.value.trim();
       if (!Number.isFinite(Number(customerLocation.lat)) && !customerLocation.addressText) {
+        addressValidationError.textContent = "Manzilni kiriting yoki lokatsiyani yoqing";
+        addressValidationError.style.display = 'block';
         showToast("Lokatsiyani kiriting yoki manzilni to‘ldiring");
         return;
       }
@@ -2524,6 +2573,8 @@ Oq fonli foto`;
         }
         if (selectedPayment === 'cash') {
           if (!cashAgreementCheckbox.checked) {
+            paymentValidationError.textContent = "Naqd to‘lov uchun rozilikni tasdiqlang";
+            paymentValidationError.style.display = 'block';
             showToast("Naqd to‘lov shartlarini tasdiqlang");
             return;
           }
@@ -2561,6 +2612,9 @@ Oq fonli foto`;
         activeOrderNumber = latestOrderNumber;
         localStorage.setItem('activeOrderNumber', activeOrderNumber);
         successOrderNumber.textContent = `Buyurtma: ${latestOrderNumber || '-'}`;
+        successPaymentMethod.textContent = `To‘lov turi: ${selectedPayment || '-'}`;
+        successAddress.textContent = `Manzil: ${customerLocation.addressText || homePayload?.delivery_info?.location || '-'}`;
+        successTotal.textContent = `Jami: ${money(totalPrice() + Number(homePayload?.delivery_info?.price || 12000))}`;
         successOrderStatus.textContent = `Status: ${orderStatusLabel(order.status)}`;
         if (latestOrderNumber) {
           trackOrderBtn.style.display = 'inline-flex';
