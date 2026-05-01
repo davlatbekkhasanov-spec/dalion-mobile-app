@@ -357,6 +357,9 @@
           <div class="metric"><span class="muted">Imported</span><b>${data.imported ?? 0}</b></div>
           <div class="metric"><span class="muted">Skipped</span><b>${data.skipped ?? 0}</b></div>
           <div class="metric"><span class="muted">Invalid rows</span><b>${data.invalidRows ?? data.skipped ?? 0}</b></div>
+          <div class="metric"><span class="muted">Categories detected</span><b>${data.categoriesDetected ?? 0}</b></div>
+          <div class="metric"><span class="muted">Products with category</span><b>${data.productsAssignedCategory ?? 0}</b></div>
+          <div class="metric"><span class="muted">Fallback Boshqa</span><b>${data.productsWithoutCategoryFallback ?? 0}</b></div>
           <div class="metric"><span class="muted">Image extracted</span><b>${data.imageExtracted ?? 0}</b></div>
           <div class="metric"><span class="muted">Image processed</span><b>${data.imageProcessed ?? 0}</b></div>
           <div class="metric"><span class="muted">Image warnings</span><b>${data.imageWarnings ?? 0}</b></div>

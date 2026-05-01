@@ -96,16 +96,30 @@ function parseNumber(raw) {
 function normalizeImportedCategory(raw = '') {
   const text = String(raw || '').trim().toLowerCase();
   if (!text) return 'Boshqa';
-  if (/(ichim|suv|sharbat)/i.test(text)) return 'Ichimliklar';
+  if (/(ichim|suv|sharbat|напит)/i.test(text)) return 'Ichimliklar';
   if (/(shirin|konfet|shokolad)/i.test(text)) return 'Shirinliklar';
   if (/(sut|qatiq|pishloq)/i.test(text)) return 'Sut mahsulotlari';
   if (/(non|buloch|un)/i.test(text)) return 'Non mahsulotlari';
   if (/(meva|sabz|ko'kat|ko‘kat)/i.test(text)) return 'Meva-sabzavot';
   if (/(go.sht|gosht|tovuq)/i.test(text)) return 'Go‘sht';
   if (/(uy|ro.zg.or|xojalik|tozalash)/i.test(text)) return 'Uy-ro‘zg‘or';
-  if (/(gigiy|shampun|sovun)/i.test(text)) return 'Gigiyena';
+  if (/(gigiy|shampun|sovun|шампун|гигиен)/i.test(text)) return 'Gigiyena';
   if (/(muzlat|frozen)/i.test(text)) return 'Muzlatilgan';
   return 'Boshqa';
+}
+function isCategoryHeaderName(name = '') {
+  return /^[■◼▪●]\s*/u.test(String(name || '').trim());
+}
+function cleanCategoryHeaderName(name = '') {
+  return String(name || '').replace(/^[■◼▪●]\s*/u, '').trim();
+}
+function resolveRowCategory({ nameRaw = '', explicitCategory = '', currentCategory = 'Boshqa' } = {}) {
+  if (isCategoryHeaderName(nameRaw)) {
+    const cleaned = cleanCategoryHeaderName(nameRaw);
+    return { isCategoryHeader: true, nextCategory: cleaned || currentCategory || 'Boshqa', assignedCategory: null };
+  }
+  const assigned = normalizeImportedCategory(explicitCategory || currentCategory || 'Boshqa');
+  return { isCategoryHeader: false, nextCategory: currentCategory || 'Boshqa', assignedCategory: assigned };
 }
 
 function parseDrawingImages(files) {
@@ -503,6 +517,9 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
   let imageUpscaled = 0;
   let imageSkippedExisting = 0;
   let imageMissing = 0;
+  const detectedCategories = new Set();
+  let productsAssignedCategory = 0;
+  let productsWithoutCategoryFallback = 0;
   const imageProcessingWarnings = [];
   const imageDetectionWarnings = [];
   const startedAt = Date.now();
@@ -518,8 +535,11 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
 
     if (!codeRaw && !nameRaw) continue;
 
-    if (nameRaw.startsWith('◼')) {
-      currentCategory = nameRaw.replace(/^◼\s*/, '').trim() || currentCategory;
+    const categoryFromRow = categoryHeader ? String(row.get(headersByName[categoryHeader]) || '').trim() : '';
+    const categoryState = resolveRowCategory({ nameRaw, explicitCategory: categoryFromRow, currentCategory });
+    if (categoryState.isCategoryHeader) {
+      currentCategory = categoryState.nextCategory;
+      if (cleanCategoryHeaderName(nameRaw)) detectedCategories.add(currentCategory);
       continue;
     }
 
@@ -532,7 +552,6 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
     const stock = parseNumber(row.get(headersByName[stockHeader]) || '0');
     const price = parseNumber(row.get(headersByName[priceHeader]) || '0');
     const oldPrice = oldPriceHeader ? parseNumber(row.get(headersByName[oldPriceHeader]) || '') : NaN;
-    const categoryFromRow = categoryHeader ? String(row.get(headersByName[categoryHeader]) || '').trim() : '';
     const imageUrlRaw = imageUrlHeader ? String(row.get(headersByName[imageUrlHeader]) || '').trim() : '';
     if (Number.isNaN(price) || price < 0) {
       skipped += 1;
@@ -550,7 +569,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
       codeRaw,
       nameRaw,
       safeCode: sanitizeCode(codeRaw || nameRaw.toLowerCase().replace(/\s+/g, '-')),
-      currentCategory: normalizeImportedCategory(categoryFromRow || currentCategory),
+      currentCategory: categoryState.assignedCategory,
       stock,
       price,
       oldPrice: Number.isFinite(oldPrice) && oldPrice >= 0 ? oldPrice : price,
@@ -634,6 +653,8 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
       active: existing ? existing.active !== false : true,
       orderCount: existing?.orderCount || 0
     });
+    if (item.currentCategory && item.currentCategory !== 'Boshqa') productsAssignedCategory += 1;
+    else productsWithoutCategoryFallback += 1;
   });
 
   store.upsertProducts(upsertRows);
@@ -644,6 +665,9 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
     imported: upsertRows.length,
     skipped,
     invalidRows: skipped,
+    categoriesDetected: detectedCategories.size,
+    productsAssignedCategory,
+    productsWithoutCategoryFallback,
     imageExtracted,
     imageProcessed,
     imageObjectDetected,
@@ -660,5 +684,11 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
 }
 
 module.exports = {
-  importProductsFromXlsxBuffer
+  importProductsFromXlsxBuffer,
+  __test: {
+    isCategoryHeaderName,
+    cleanCategoryHeaderName,
+    normalizeImportedCategory,
+    resolveRowCategory
+  }
 };
