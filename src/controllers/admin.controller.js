@@ -5,6 +5,20 @@ const sharp = require('sharp');
 const DEMO_CATEGORIES = ['Ofis jihozlari', 'Kanselyariya', 'Qog‘oz mahsulotlari', 'Printer va kartrijlar', 'Kompyuterlar', 'Noutbuklar', 'Monitorlar', 'Klaviatura va sichqoncha', 'USB va aksessuarlar', 'Tarmoq qurilmalari', 'Tozalash vositalari', 'Arxiv va papkalar'];
 
 function buildDemoProducts() {
+  const imageByCategory = {
+    'Ofis jihozlari': 'Office+Supplies',
+    Kanselyariya: 'Stationery',
+    'Qog‘oz mahsulotlari': 'Paper+Products',
+    'Printer va kartrijlar': 'Printer+Cartridge',
+    Kompyuterlar: 'Desktop+Computer',
+    Noutbuklar: 'Laptop',
+    Monitorlar: 'Monitor',
+    'Klaviatura va sichqoncha': 'Keyboard+Mouse',
+    'USB va aksessuarlar': 'USB+Accessories',
+    'Tarmoq qurilmalari': 'Network+Devices',
+    'Tozalash vositalari': 'Cleaning+Supplies',
+    'Arxiv va papkalar': 'Archive+Folders'
+  };
   const names = ['Premium', 'Standart', 'Office', 'Pro', 'Mini', 'Max'];
   const out = [];
   let idx = 1;
@@ -12,6 +26,8 @@ function buildDemoProducts() {
     for (let i = 0; i < 9; i += 1) {
       const base = 35000 + (idx * 2700);
       const old = i % 3 === 0 ? base + 12000 : 0;
+      const imageText = imageByCategory[cat] || 'Product+Image';
+      const placeholder = `https://dummyimage.com/640x640/f8fafc/334155&text=${imageText}`;
       out.push({
         id: `demo-${idx}`,
         code: `DEMO-${String(idx).padStart(4, '0')}`,
@@ -21,8 +37,8 @@ function buildDemoProducts() {
         price: base,
         oldPrice: old,
         stock: 5 + (idx % 40),
-        image_url: `https://picsum.photos/seed/dalion-demo-${idx}/640/640`,
-        image: `https://picsum.photos/seed/dalion-demo-${idx}/640/640`,
+        image_url: placeholder,
+        image: placeholder,
         source: 'demo',
         active: true
       });
