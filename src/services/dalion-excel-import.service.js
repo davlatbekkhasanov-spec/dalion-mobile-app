@@ -93,6 +93,20 @@ function parseNumber(raw) {
   const n = Number(cleaned || '0');
   return Number.isFinite(n) ? n : NaN;
 }
+function normalizeImportedCategory(raw = '') {
+  const text = String(raw || '').trim().toLowerCase();
+  if (!text) return 'Boshqa';
+  if (/(ichim|suv|sharbat)/i.test(text)) return 'Ichimliklar';
+  if (/(shirin|konfet|shokolad)/i.test(text)) return 'Shirinliklar';
+  if (/(sut|qatiq|pishloq)/i.test(text)) return 'Sut mahsulotlari';
+  if (/(non|buloch|un)/i.test(text)) return 'Non mahsulotlari';
+  if (/(meva|sabz|ko'kat|ko‘kat)/i.test(text)) return 'Meva-sabzavot';
+  if (/(go.sht|gosht|tovuq)/i.test(text)) return 'Go‘sht';
+  if (/(uy|ro.zg.or|xojalik|tozalash)/i.test(text)) return 'Uy-ro‘zg‘or';
+  if (/(gigiy|shampun|sovun)/i.test(text)) return 'Gigiyena';
+  if (/(muzlat|frozen)/i.test(text)) return 'Muzlatilgan';
+  return 'Boshqa';
+}
 
 function parseDrawingImages(files) {
   const drawingXml = (files['xl/drawings/drawing1.xml'] || Buffer.from('')).toString('utf8');
@@ -467,7 +481,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
   const stockHeader = findHeader('Штук', 'stock', 'Stock', 'quantity', 'Quantity');
   const priceHeader = findHeader('Цена', 'price', 'Price');
   const oldPriceHeader = findHeader('old_price', 'oldPrice', 'Old Price', 'Старая цена');
-  const categoryHeader = findHeader('category', 'Category', 'Категория');
+  const categoryHeader = findHeader('category', 'category_name', 'Category', 'Kategoriya', 'Категория', 'folder', 'group');
   const imageUrlHeader = findHeader('image_url', 'imageUrl', 'Image URL', 'Картинка', 'Ссылка картинки');
 
   const requiredMissing = [];
@@ -536,7 +550,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
       codeRaw,
       nameRaw,
       safeCode: sanitizeCode(codeRaw || nameRaw.toLowerCase().replace(/\s+/g, '-')),
-      currentCategory: categoryFromRow || currentCategory,
+      currentCategory: normalizeImportedCategory(categoryFromRow || currentCategory),
       stock,
       price,
       oldPrice: Number.isFinite(oldPrice) && oldPrice >= 0 ? oldPrice : price,

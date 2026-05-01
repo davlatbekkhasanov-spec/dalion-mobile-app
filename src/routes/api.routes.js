@@ -57,12 +57,6 @@ router.post(
   parseMultipartSingleFile('file', { maxBytes: XLSX_IMPORT_MAX_BYTES }),
   integrationController.importProductsXlsx
 );
-router.post(
-  '/admin/products/import',
-  requireAdminImportToken,
-  parseMultipartSingleFile('file'),
-  integrationController.importProductsXlsx
-);
 
 router.get('/admin/banners', requireAdminImportToken, adminController.getBanners);
 router.post('/admin/banners', requireAdminImportToken, adminController.createBanner);
