@@ -659,6 +659,34 @@
       place-items: center;
     }
 
+
+    .upsell-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin: 8px 0 14px;
+    }
+    .upsell-card {
+      border: 1px solid rgba(126, 155, 207, 0.24);
+      border-radius: 12px;
+      padding: 8px;
+      background: linear-gradient(180deg, rgba(12, 23, 41, 0.95), rgba(8, 16, 30, 0.94));
+      display: grid;
+      gap: 6px;
+    }
+    .upsell-card h6 { font-size: 12px; line-height: 1.3; }
+    .upsell-card .price { font-size: 12px; }
+    .upsell-quick-btn {
+      border: 1px solid rgba(105, 240, 184, 0.35);
+      border-radius: 9px;
+      background: rgba(37, 244, 143, 0.14);
+      color: #cffff0;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 6px 8px;
+      cursor: pointer;
+    }
+
     .bonus {
       border-radius: 16px;
       border: 1px solid rgba(106, 159, 230, 0.26);
@@ -1259,6 +1287,12 @@
       <section class="view" id="cartView">
         <h2 class="title gm-title-md">Savat</h2>
         <div id="cartItems"></div>
+
+        <div id="cartUpsellWrap" style="display:none; margin:8px 0 12px;">
+          <h4 class="gm-title-md" style="margin-bottom:8px;">Yana qo‘shib oling</h4>
+          <section class="upsell-grid" id="cartUpsellGrid"></section>
+        </div>
+
         <div class="empty" id="cartEmpty">
           <h3 style="margin-bottom:6px;">Savatingiz bo'sh</h3>
           <p class="muted">Yoqtirgan mahsulotlaringizni qo‘shing va buyurtmani tez yakunlang.</p>
@@ -1400,7 +1434,7 @@ Oq fonli foto</div>
         </div>
         <p class="muted" id="modalDescription">Mahsulot tavsifi tez orada yangilanadi.</p>
         <div class="modal-specs" id="modalSpecs"></div>
-        <h4 class="gm-title-md" style="margin-top:10px;">O‘xshash mahsulotlar</h4>
+        <h4 class="gm-title-md" id="modalUpsellTitle" style="margin-top:10px; display:none;">Shu mahsulot bilan birga olishadi</h4>
         <section class="products-grid modal-reco-grid" id="modalRecommendations"></section>
         <div class="gm-sticky-cta modal-sticky-cta">
           <div class="modal-sticky-price" id="modalStickyPrice">0 so'm</div>
@@ -1482,6 +1516,8 @@ Oq fonli foto</div>
     const cartDelivery = document.getElementById('cartDelivery');
     const cartEmptyCta = document.getElementById('cartEmptyCta');
     const cartBadge = document.getElementById('cartBadge');
+    const cartUpsellWrap = document.getElementById('cartUpsellWrap');
+    const cartUpsellGrid = document.getElementById('cartUpsellGrid');
     const bottomNav = document.getElementById('bottomNav');
     const checkoutItems = document.getElementById('checkoutItems');
     const checkoutTotal = document.getElementById('checkoutTotal');
@@ -1548,6 +1584,7 @@ Oq fonli foto</div>
     ];
 
     const modalOverlay = document.getElementById('productModalOverlay');
+    const modalUpsellTitle = document.getElementById('modalUpsellTitle');
     const closeModalBtn = document.getElementById('closeModalBtn');
     const modalName = document.getElementById('modalName');
     const modalCategory = document.getElementById('modalCategory');
@@ -1995,6 +2032,8 @@ Oq fonli foto`;
         cartItems.innerHTML = '';
         cartEmpty.style.display = 'block';
         cartSummary.style.display = 'none';
+        cartUpsellWrap.style.display = 'none';
+        cartUpsellGrid.innerHTML = '';
         return;
       }
 
@@ -2031,6 +2070,15 @@ Oq fonli foto`;
       cartSubtotal.textContent = money(subtotal);
       cartDelivery.textContent = `${deliveryEta} · ${money(deliveryPrice)}`;
       cartTotalPrice.textContent = money(subtotal + deliveryPrice);
+
+      const cartUpsell = getCartUpsellProducts();
+      if (cartUpsell.length) {
+        cartUpsellWrap.style.display = 'block';
+        cartUpsellGrid.innerHTML = cartUpsell.map(upsellCardTemplate).join('');
+      } else {
+        cartUpsellWrap.style.display = 'none';
+        cartUpsellGrid.innerHTML = '';
+      }
     }
 
     function renderCheckout() {
@@ -2256,6 +2304,31 @@ Oq fonli foto`;
       }
     }
 
+    function upsellCardTemplate(p) {
+      return `
+        <article class="upsell-card" data-open-product="${p.id}">
+          <h6>${p.name}</h6>
+          <div class="list-row"><span class="price">${money(p.price)}</span><button class="upsell-quick-btn" data-quick-add="${p.id}">+ Qo‘shish</button></div>
+        </article>
+      `;
+    }
+
+    function getRelatedProducts(product) {
+      const sameCategory = products.filter((item) => item.id !== product.id && normalizedCategoryName(item.category) === normalizedCategoryName(product.category));
+      const fallback = products.filter((item) => item.id !== product.id);
+      const source = sameCategory.length ? sameCategory : fallback;
+      return source.slice(0, 4);
+    }
+
+    function getCartUpsellProducts() {
+      if (!cartItemsSnapshot.length) return [];
+      const inCart = new Set(cartItemsSnapshot.map((item) => item.id));
+      return products
+        .filter((p) => !inCart.has(p.id) && Number(p.stock || 0) > 0)
+        .sort((a, b) => Number(a.price || 0) - Number(b.price || 0))
+        .slice(0, 4);
+    }
+
     function renderModal() {
       if (!activeModalProductId) return;
       const p = products.find((x) => x.id === activeModalProductId);
@@ -2294,8 +2367,16 @@ Oq fonli foto`;
       if (hasDiscount) {
         modalImageBox.insertAdjacentHTML('beforeend', `<span class="gm-chip gm-chip--delivery product-discount">-${discountPercent}%</span>`);
       }
-      const related = products.filter((item) => item.id !== p.id && normalizedCategoryName(item.category) === normalizedCategoryName(p.category)).slice(0, 4);
-      modalRecommendations.innerHTML = related.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">O‘xshash mahsulot topilmadi.</div>';
+      const related = getRelatedProducts(p);
+      if (related.length) {
+        modalRecommendations.innerHTML = related.map(upsellCardTemplate).join('');
+        modalRecommendations.style.display = 'grid';
+        modalUpsellTitle.style.display = 'block';
+      } else {
+        modalRecommendations.innerHTML = '';
+        modalRecommendations.style.display = 'none';
+        modalUpsellTitle.style.display = 'none';
+      }
       modalQty.innerHTML = makeQtyControls(p.id);
     }
 
@@ -2538,6 +2619,7 @@ Oq fonli foto`;
       const plus = e.target.closest('.qty-plus');
       const minus = e.target.closest('.qty-minus');
       const quickAdd = e.target.closest('[data-add-one]');
+      const upsellQuickAdd = e.target.closest('[data-quick-add]');
       const removeCart = e.target.closest('[data-remove-cart]');
 
       try {
@@ -2546,6 +2628,12 @@ Oq fonli foto`;
           await setCartQty(removeCart.dataset.removeCart, 0);
           await syncCart();
           render();
+          return;
+        }
+        if (upsellQuickAdd) {
+          e.stopPropagation();
+          const id = upsellQuickAdd.getAttribute('data-quick-add');
+          await setQty(id, qtyOf(id) + 1, true);
           return;
         }
         if (quickAdd) {
