@@ -383,7 +383,7 @@
       try{
         const data = await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          xhr.open('POST', `/api/v1/integrations/excel/import/products-xlsx?overwriteImages=${overwriteImages}&processImages=${processImages}&updateOnlyStockPrice=${updateOnlyStockPrice}`);
+          xhr.open('POST', `/api/v1/admin/products/import?overwriteImages=${overwriteImages}&processImages=${processImages}&updateOnlyStockPrice=${updateOnlyStockPrice}`);
           xhr.setRequestHeader('x-admin-token', getToken());
 
           xhr.upload.onprogress = (e) => {
