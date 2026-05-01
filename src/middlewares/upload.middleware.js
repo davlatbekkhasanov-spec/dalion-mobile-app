@@ -1,4 +1,4 @@
-function parseMultipartSingleFile(fieldName = 'file') {
+function parseMultipartSingleFile(fieldName = 'file', { maxBytes = 0 } = {}) {
   return (req, res, next) => {
     const contentType = req.headers['content-type'] || '';
     if (!contentType.startsWith('multipart/form-data')) {
@@ -14,9 +14,22 @@ function parseMultipartSingleFile(fieldName = 'file') {
     const boundary = `--${boundaryMatch[1]}`;
     const chunks = [];
 
-    req.on('data', (chunk) => chunks.push(chunk));
+    let totalBytes = 0;
+    let limitHit = false;
+    req.on('data', (chunk) => {
+      if (limitHit) return;
+      totalBytes += chunk.length;
+      if (maxBytes > 0 && totalBytes > maxBytes) {
+        limitHit = true;
+        chunks.length = 0;
+        req.removeAllListeners('end');
+        return res.status(413).json({ ok: false, message: `Uploaded file is too large. Max allowed: ${maxBytes} bytes` });
+      }
+      chunks.push(chunk);
+    });
     req.on('error', () => res.status(400).json({ ok: false, message: 'Upload stream error' }));
     req.on('end', () => {
+      if (limitHit) return;
       try {
         const buffer = Buffer.concat(chunks);
         const body = buffer.toString('latin1');
