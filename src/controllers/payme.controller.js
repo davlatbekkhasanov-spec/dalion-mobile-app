@@ -23,6 +23,10 @@ function response(id, result) {
   return { jsonrpc: '2.0', result, id: id ?? null };
 }
 
+function localizedMessage(en, ru = en, uz = en) {
+  return { ru, uz, en };
+}
+
 function errorResponse(id, code, message, data) {
   return { jsonrpc: '2.0', error: { code, message, data }, id: id ?? null };
 }
@@ -81,7 +85,8 @@ function getOrder(account = {}, amount = 0) {
   const realOrder = store.getOrderById(orderId) || store.getOrderByNumber(orderId);
   if (realOrder) return realOrder;
 
-  if (!orderId.toLowerCase().startsWith('test-')) {
+  const isSandboxTestOrder = orderId.toLowerCase() === 'test' || /^test-\d+$/i.test(orderId);
+  if (!isSandboxTestOrder) {
     return null;
   }
 
@@ -172,7 +177,7 @@ async function paymeRpc(req, res) {
   const { method, params = {}, id } = req.body || {};
 
   if (!isAuthorized(req)) {
-    return send(res, errorResponse(id, ERRORS.UNAUTHORIZED, 'Unauthorized', 'authorization'));
+    return send(res, errorResponse(id, ERRORS.UNAUTHORIZED, localizedMessage('Unauthorized', 'Не авторизован', 'Avtorizatsiyadan o‘tilmagan'), 'authorization'));
   }
 
   try {
@@ -180,15 +185,15 @@ async function paymeRpc(req, res) {
       const order = getOrder(params.account, params.amount);
 
       if (!order) {
-        return send(res, errorResponse(id, ERRORS.ORDER_NOT_FOUND, 'Order not found', 'order_id'));
+        return send(res, errorResponse(id, ERRORS.ORDER_NOT_FOUND, localizedMessage('Order not found', 'Заказ не найден', 'Buyurtma topilmadi'), 'order_id'));
       }
 
       if (Number(params.amount) !== expectedAmount(order)) {
-        return send(res, errorResponse(id, ERRORS.INVALID_AMOUNT, 'Incorrect amount', 'amount'));
+        return send(res, errorResponse(id, ERRORS.INVALID_AMOUNT, localizedMessage('Incorrect amount', 'Неверная сумма', 'Noto‘g‘ri summa'), 'amount'));
       }
 
       if (!isOrderPayable(order)) {
-        return send(res, errorResponse(id, ERRORS.ORDER_NOT_FOUND, 'Order not found', 'order_id'));
+        return send(res, errorResponse(id, ERRORS.ORDER_NOT_FOUND, localizedMessage('Order not found', 'Заказ не найден', 'Buyurtma topilmadi'), 'order_id'));
       }
 
       return send(res, response(id, { allow: true }));
@@ -199,19 +204,19 @@ async function paymeRpc(req, res) {
       const txId = String(params.id || '').trim();
 
       if (!txId) {
-        return send(res, errorResponse(id, ERRORS.TRANSACTION_NOT_FOUND, 'Transaction not found', 'id'));
+        return send(res, errorResponse(id, ERRORS.TRANSACTION_NOT_FOUND, localizedMessage('Transaction not found', 'Транзакция не найдена', 'Tranzaksiya topilmadi'), 'id'));
       }
 
       if (!order) {
-        return send(res, errorResponse(id, ERRORS.ORDER_NOT_FOUND, 'Order not found', 'order_id'));
+        return send(res, errorResponse(id, ERRORS.ORDER_NOT_FOUND, localizedMessage('Order not found', 'Заказ не найден', 'Buyurtma topilmadi'), 'order_id'));
       }
 
       if (Number(params.amount) !== expectedAmount(order)) {
-        return send(res, errorResponse(id, ERRORS.INVALID_AMOUNT, 'Incorrect amount', 'amount'));
+        return send(res, errorResponse(id, ERRORS.INVALID_AMOUNT, localizedMessage('Incorrect amount', 'Неверная сумма', 'Noto‘g‘ri summa'), 'amount'));
       }
 
       if (!isOrderPayable(order)) {
-        return send(res, errorResponse(id, ERRORS.ORDER_NOT_FOUND, 'Order not found', 'order_id'));
+        return send(res, errorResponse(id, ERRORS.ORDER_NOT_FOUND, localizedMessage('Order not found', 'Заказ не найден', 'Buyurtma topilmadi'), 'order_id'));
       }
 
       const existingSameTx = transactions.get(txId);
@@ -225,7 +230,7 @@ async function paymeRpc(req, res) {
 
       const activeTx = findActiveTransactionByOrder(order.id, txId);
       if (activeTx) {
-        return send(res, errorResponse(id, ERRORS.TRANSACTION_EXISTS, 'Transaction already exists', 'order_id'));
+        return send(res, errorResponse(id, ERRORS.TRANSACTION_EXISTS, localizedMessage('Transaction already exists', 'Транзакция уже существует', 'Tranzaksiya allaqachon mavjud'), 'order_id'));
       }
 
       const tx = {
@@ -253,7 +258,7 @@ async function paymeRpc(req, res) {
       const tx = transactions.get(String(params.id || '').trim());
 
       if (!tx) {
-        return send(res, errorResponse(id, ERRORS.TRANSACTION_NOT_FOUND, 'Transaction not found', 'id'));
+        return send(res, errorResponse(id, ERRORS.TRANSACTION_NOT_FOUND, localizedMessage('Transaction not found', 'Транзакция не найдена', 'Tranzaksiya topilmadi'), 'id'));
       }
 
       return send(res, response(id, transactionResult(tx)));
@@ -263,11 +268,11 @@ async function paymeRpc(req, res) {
       const tx = transactions.get(String(params.id || '').trim());
 
       if (!tx) {
-        return send(res, errorResponse(id, ERRORS.TRANSACTION_NOT_FOUND, 'Transaction not found', 'id'));
+        return send(res, errorResponse(id, ERRORS.TRANSACTION_NOT_FOUND, localizedMessage('Transaction not found', 'Транзакция не найдена', 'Tranzaksiya topilmadi'), 'id'));
       }
 
       if (tx.state < 0) {
-        return send(res, errorResponse(id, ERRORS.ORDER_NOT_FOUND, 'Transaction cancelled', 'id'));
+        return send(res, errorResponse(id, ERRORS.ORDER_NOT_FOUND, localizedMessage('Transaction cancelled', 'Транзакция отменена', 'Tranzaksiya bekor qilingan'), 'id'));
       }
 
       if (tx.state !== TX_STATE.PERFORMED) {
@@ -291,7 +296,7 @@ async function paymeRpc(req, res) {
       const tx = transactions.get(String(params.id || '').trim());
 
       if (!tx) {
-        return send(res, errorResponse(id, ERRORS.TRANSACTION_NOT_FOUND, 'Transaction not found', 'id'));
+        return send(res, errorResponse(id, ERRORS.TRANSACTION_NOT_FOUND, localizedMessage('Transaction not found', 'Транзакция не найдена', 'Tranzaksiya topilmadi'), 'id'));
       }
 
       if (tx.state !== TX_STATE.CANCELED_BEFORE_PERFORM && tx.state !== TX_STATE.CANCELED_AFTER_PERFORM) {
@@ -324,10 +329,10 @@ async function paymeRpc(req, res) {
       }));
     }
 
-    return send(res, errorResponse(id, ERRORS.METHOD_NOT_FOUND, 'Method not found', 'method'));
+    return send(res, errorResponse(id, ERRORS.METHOD_NOT_FOUND, localizedMessage('Method not found', 'Метод не найден', 'Metod topilmadi'), 'method'));
   } catch (error) {
     console.error('[PAYME ERROR]', error);
-    return send(res, errorResponse(id, ERRORS.INTERNAL_ERROR, 'Internal error', 'internal'));
+    return send(res, errorResponse(id, ERRORS.INTERNAL_ERROR, localizedMessage('Internal error', 'Внутренняя ошибка', 'Ichki xatolik'), 'internal'));
   }
 }
 
