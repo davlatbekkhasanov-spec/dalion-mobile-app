@@ -461,9 +461,20 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
   const headersByName = {};
   for (const [idx, val] of headers.entries()) headersByName[val] = idx;
 
-  const required = ['Код', 'Номенклатура', 'Файл картинки', 'Штук', 'Цена'];
-  const missing = required.filter((h) => !headersByName[h]);
-  if (missing.length) throw new Error(`Excel header missing: ${missing.join(', ')}`);
+  const findHeader = (...variants) => variants.find((h) => headersByName[h]);
+  const codeHeader = findHeader('Код', 'code', 'Code', 'ID', 'id', 'sku', 'SKU');
+  const nameHeader = findHeader('Номенклатура', 'name', 'Name', 'Название');
+  const stockHeader = findHeader('Штук', 'stock', 'Stock', 'quantity', 'Quantity');
+  const priceHeader = findHeader('Цена', 'price', 'Price');
+  const oldPriceHeader = findHeader('old_price', 'oldPrice', 'Old Price', 'Старая цена');
+  const categoryHeader = findHeader('category', 'Category', 'Категория');
+  const imageUrlHeader = findHeader('image_url', 'imageUrl', 'Image URL', 'Картинка', 'Ссылка картинки');
+
+  const requiredMissing = [];
+  if (!nameHeader) requiredMissing.push('name');
+  if (!priceHeader) requiredMissing.push('price');
+  if (!stockHeader) requiredMissing.push('stock');
+  if (requiredMissing.length) throw new Error(`Excel header missing: ${requiredMissing.join(', ')}`);
 
   const rowImages = parseDrawingImages(files);
   fs.mkdirSync(PRODUCTS_UPLOAD_DIR, { recursive: true });
@@ -488,8 +499,8 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
   const parsedRows = [];
   for (const rowNo of sortedRows) {
     const row = rows.get(rowNo) || new Map();
-    const codeRaw = (row.get(headersByName['Код']) || '').trim();
-    const nameRaw = (row.get(headersByName['Номенклатура']) || '').trim();
+    const codeRaw = String(codeHeader ? (row.get(headersByName[codeHeader]) || '') : '').trim();
+    const nameRaw = String(row.get(headersByName[nameHeader]) || '').trim();
 
     if (!codeRaw && !nameRaw) continue;
 
@@ -504,11 +515,19 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
       continue;
     }
 
-    const stock = parseNumber(row.get(headersByName['Штук']) || '0');
-    const price = parseNumber(row.get(headersByName['Цена']) || '0');
-    if (Number.isNaN(price) || price <= 0) {
+    const stock = parseNumber(row.get(headersByName[stockHeader]) || '0');
+    const price = parseNumber(row.get(headersByName[priceHeader]) || '0');
+    const oldPrice = oldPriceHeader ? parseNumber(row.get(headersByName[oldPriceHeader]) || '') : NaN;
+    const categoryFromRow = categoryHeader ? String(row.get(headersByName[categoryHeader]) || '').trim() : '';
+    const imageUrlRaw = imageUrlHeader ? String(row.get(headersByName[imageUrlHeader]) || '').trim() : '';
+    if (Number.isNaN(price) || price < 0) {
       skipped += 1;
-      errors.push({ row: rowNo, code: codeRaw, message: 'Цена noto\'g\'ri' });
+      errors.push({ row: rowNo, code: codeRaw, message: 'price noto\'g\'ri' });
+      continue;
+    }
+    if (Number.isNaN(stock) || stock < 0) {
+      skipped += 1;
+      errors.push({ row: rowNo, code: codeRaw, message: 'stock noto\'g\'ri' });
       continue;
     }
 
@@ -516,10 +535,12 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
       rowNo,
       codeRaw,
       nameRaw,
-      safeCode: sanitizeCode(codeRaw),
-      currentCategory,
-      stock: Number.isNaN(stock) ? 0 : stock,
+      safeCode: sanitizeCode(codeRaw || nameRaw.toLowerCase().replace(/\s+/g, '-')),
+      currentCategory: categoryFromRow || currentCategory,
+      stock,
       price,
+      oldPrice: Number.isFinite(oldPrice) && oldPrice >= 0 ? oldPrice : price,
+      imageUrlRaw,
       rowImage: rowImages.get(rowNo)
     });
   }
@@ -577,7 +598,9 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
       imageMissing += 1;
     }
 
-    if (!processImages && existing?.image_url) {
+    if (item.imageUrlRaw) {
+      imageUrl = item.imageUrlRaw;
+    } else if (!processImages && existing?.image_url) {
       imageUrl = existing.image_url;
     }
 
@@ -589,7 +612,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
       category: updateOnlyStockPrice && existing ? existing.category : item.currentCategory,
       stock: item.stock,
       price: item.price,
-      oldPrice: item.price,
+      oldPrice: item.oldPrice,
       image_url: updateOnlyStockPrice && existing ? existing.image_url : imageUrl,
       image: updateOnlyStockPrice && existing ? existing.image : imageUrl,
       source: 'excel',
@@ -606,6 +629,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
   return {
     imported: upsertRows.length,
     skipped,
+    invalidRows: skipped,
     imageExtracted,
     imageProcessed,
     imageObjectDetected,
@@ -615,6 +639,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
     processingTimeMs,
     averageImageMs,
     imageProcessingWarnings,
+    imageWarnings: imageProcessingWarnings.length + imageMissing,
     imageMissing,
     errors
   };
