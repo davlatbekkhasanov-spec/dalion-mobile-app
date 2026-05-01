@@ -128,11 +128,16 @@
     .btn-primary { color:#fff; background: linear-gradient(90deg,#6d5dff,#8b5cf6); box-shadow:0 10px 24px rgba(109,93,255,.3); border-radius:18px; }
     .onb-card{background:#fff;border:1px solid #eceff5;border-radius:18px;padding:12px;box-shadow:0 8px 24px rgba(16,24,40,.08)}
     .onb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-    .onb-prod{background:#fff;border:1px solid #eef1f6;border-radius:14px;padding:8px}
-    .onb-img{height:74px;border-radius:10px;background:#f3f5f9;display:grid;place-items:center;font-size:24px}
-    .onb-title{font-size:12px;color:#374151;margin-top:6px}
-    .onb-bullets{display:grid;gap:8px}
-    .onb-bullets span{font-size:14px;color:#374151}
+    .onb-prod{background:#fff;border:1px solid #eef1f6;border-radius:14px;padding:8px;box-shadow:0 4px 12px rgba(15,23,42,.06)}
+    .onb-img{height:88px;border-radius:10px;background:#fff;display:grid;place-items:center;overflow:hidden;border:1px solid #eef2f7}
+    .onb-img img{width:100%;height:100%;object-fit:contain}
+    .onb-title{font-size:12px;color:#111827;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:32px}
+    .onb-price{font-size:12px;font-weight:800;color:#4f46e5;margin-top:4px}
+    .onb-bullets{display:grid;gap:10px}
+    .onb-bullet{display:flex;align-items:center;gap:8px;font-size:14px;color:#374151;background:#fff;border:1px solid #eceff5;border-radius:12px;padding:10px}
+    .onb-bullet i{font-style:normal}
+    #openRegisterBtn{padding:17px 18px;font-size:17px;box-shadow:0 14px 28px rgba(109,93,255,.35);transition:transform .18s ease,box-shadow .2s ease}
+    #openRegisterBtn:hover{transform:translateY(-1px);box-shadow:0 16px 30px rgba(109,93,255,.38)}
 
     .btn-secondary {
       color: #d9e8ff;
@@ -1085,19 +1090,19 @@
       <div class="intro-inner">
         <p class="muted">📍 Samarqand, Shohruh Mirzo 33</p>
         <h1 class="brand">GlobusMarket</h1>
-        <p class="subtitle">Tez, qulay va ishonchli xarid</p>
+        <p class="subtitle">Har kuni kerakli mahsulotlar</p>
         <div class="onb-card">
           <div class="onb-grid">
-            <div class="onb-prod"><div class="onb-img">🥛</div><div class="onb-title">Sut mahsulotlari</div></div>
-            <div class="onb-prod"><div class="onb-img">🍎</div><div class="onb-title">Meva-sabzavot</div></div>
-            <div class="onb-prod"><div class="onb-img">🥤</div><div class="onb-title">Ichimliklar</div></div>
-            <div class="onb-prod"><div class="onb-img">🧴</div><div class="onb-title">Gigiyena</div></div>
+            <div class="onb-prod"><div class="onb-img"><img src="/uploads/products/coca.webp" onerror="this.src='/uploads/products/coca.png'" alt="Coca Cola 1L" /></div><div class="onb-title">Coca Cola 1L</div><div class="onb-price">12 000 so'm</div></div>
+            <div class="onb-prod"><div class="onb-img"><img src="/uploads/products/pepsi.webp" onerror="this.src='/uploads/products/pepsi.png'" alt="Pepsi 1L" /></div><div class="onb-title">Pepsi 1L</div><div class="onb-price">12 000 so'm</div></div>
+            <div class="onb-prod"><div class="onb-img"><img src="/uploads/products/rich.webp" onerror="this.src='/uploads/products/rich.png'" alt="Rich Apelsin 1L" /></div><div class="onb-title">Rich Apelsin 1L</div><div class="onb-price">18 000 so'm</div></div>
+            <div class="onb-prod"><div class="onb-img"><img src="/uploads/products/coca.webp" onerror="this.src='/uploads/products/coca.png'" alt="Sut mahsuloti" /></div><div class="onb-title">Yangi mahsulotlar</div><div class="onb-price">24/7 yangilanadi</div></div>
           </div>
         </div>
         <div class="onb-bullets">
-          <span>✓ Tez yetkazib berish</span>
-          <span>✓ Keng assortiment</span>
-          <span>✓ Qulay xarid</span>
+          <div class="onb-bullet"><i>🚚</i><span>30 daqiqada yetkazib berish</span></div>
+          <div class="onb-bullet"><i>📦</i><span>5000+ mahsulot</span></div>
+          <div class="onb-bullet"><i>💳</i><span>Qulay to‘lov</span></div>
         </div>
         <button class="btn gm-btn gm-btn-primary btn-primary" id="openRegisterBtn" style="margin-top:auto;">Xaridni boshlash</button>
       </div>
