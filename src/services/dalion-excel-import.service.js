@@ -481,7 +481,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
   const stockHeader = findHeader('Штук', 'stock', 'Stock', 'quantity', 'Quantity');
   const priceHeader = findHeader('Цена', 'price', 'Price');
   const oldPriceHeader = findHeader('old_price', 'oldPrice', 'Old Price', 'Старая цена');
-  const categoryHeader = findHeader('category', 'category_name', 'Category', 'Kategoriya', 'Категория', 'folder', 'group');
+  const categoryHeader = findHeader('category', 'category_name', 'Category', 'Kategoriya', 'Категория', 'folder', 'group', 'type');
   const imageUrlHeader = findHeader('image_url', 'imageUrl', 'Image URL', 'Картинка', 'Ссылка картинки');
 
   const requiredMissing = [];

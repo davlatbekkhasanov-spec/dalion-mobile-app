@@ -1175,6 +1175,7 @@
 </head>
 <body>
   <main class="phone" id="phone">
+    <button id="appBackBtn" aria-label="Orqaga" style="position:absolute;top:12px;left:12px;z-index:50;min-width:44px;min-height:44px;border-radius:12px;border:1px solid rgba(140,170,220,.35);background:rgba(10,20,36,.78);color:#eaf3ff;display:none;">←</button>
     <section class="screen intro" id="introScreen">
       <div class="stars"></div>
       <div class="intro-inner">
@@ -1285,7 +1286,7 @@
         <section class="category-grid" id="categoryResults"></section>
         <p class="muted" id="catalogProductResultsTitle" style="display:none; margin-bottom:8px;"></p>
         <section class="products-grid" id="searchResults"></section>
-        <div class="empty" id="searchEmpty" style="display:none;"><h3>Mahsulot topilmadi</h3><p class="muted">Boshqa nom bilan qidirib ko‘ring</p></div>
+        <div class="empty" id="searchEmpty" style="display:none;"><h3>Mahsulot topilmadi</h3><p class="muted">Boshqa nom yoki kategoriya bilan qidirib ko‘ring</p></div>
       </section>
 
       <section class="view" id="cartView">
@@ -1489,10 +1490,12 @@ Oq fonli foto</div>
     let activeOrderNumber = localStorage.getItem('activeOrderNumber') || '';
     let ordersHistory = JSON.parse(localStorage.getItem('orders_history') || '[]');
     let mergedCustomerOrders = [];
+    const appNavStack = ['homeView'];
     let orderStatusTimer = null;
     let lastOrderData = null;
 
     const phone = document.getElementById('phone');
+    const appBackBtn = document.getElementById('appBackBtn');
     const openRegisterBtn = document.getElementById('openRegisterBtn');
     const authSheetOverlay = document.getElementById('authSheetOverlay');
     const closeAuthSheetBtn = document.getElementById('closeAuthSheetBtn');
@@ -2239,7 +2242,7 @@ Oq fonli foto</div>
 
       await loadCart();
       renderAll();
-      setView('cartView');
+      setView('cartView', { push: true });
       if (!addedAny) {
         showToast("Mahsulotlar hozircha mavjud emas");
         return;
@@ -2414,12 +2417,15 @@ Oq fonli foto`;
       activeModalProductId = id;
       renderModal();
       modalOverlay.classList.add('show');
+      appBackBtn.style.display = 'inline-grid';
+      history.pushState({ type: 'modal' }, '');
     }
 
     function closeProductModal() {
       modalOverlay.classList.remove('show');
       modalImageBox?.classList.remove('zoomed');
       activeModalProductId = null;
+      appBackBtn.style.display = appNavStack.length > 1 ? 'inline-grid' : 'none';
     }
 
     function closeLocationDeniedModal() {
@@ -2452,11 +2458,27 @@ Oq fonli foto`;
       }, { enableHighAccuracy: true, timeout: 12000 });
     }
 
-    function setView(viewId) {
+    function setView(viewId, { push = false } = {}) {
       document.querySelectorAll('.view').forEach((el) => el.classList.toggle('active', el.id === viewId));
       currentView = viewId;
       document.querySelectorAll('.tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.view === viewId));
       bottomNav.classList.toggle('hidden', viewId === 'checkoutView' || viewId === 'successView');
+      if (push && appNavStack[appNavStack.length - 1] !== viewId) {
+        appNavStack.push(viewId);
+        history.pushState({ type: 'view', viewId }, '');
+      }
+      appBackBtn.style.display = (activeModalProductId || appNavStack.length > 1 || viewId === 'checkoutView') ? 'inline-grid' : 'none';
+    }
+
+    function appGoBack() {
+      if (activeModalProductId) return closeProductModal();
+      if (currentView === 'checkoutView') return setView('cartView', { push: true });
+      if (currentView === 'successView') return setView('homeView');
+      if (appNavStack.length > 1) {
+        appNavStack.pop();
+        return setView(appNavStack[appNavStack.length - 1]);
+      }
+      return setView('homeView');
     }
 
     async function refreshOrderStatus() {
@@ -2559,7 +2581,7 @@ Oq fonli foto`;
     });
 
     document.getElementById('openSearchBtn').addEventListener('click', () => {
-      setView('searchView');
+      setView('searchView', { push: true });
       selectedCategory = null;
       selectedCategoryLabel = '';
       catalogMode = 'categories';
@@ -2587,7 +2609,7 @@ Oq fonli foto`;
       const tab = e.target.closest('.tab');
       if (!tab) return;
       if (!requireAuthOrIntro()) return;
-      setView(tab.dataset.view);
+      setView(tab.dataset.view, { push: true });
       if (tab.dataset.view === 'searchView') {
         selectedCategory = null;
         selectedCategoryLabel = '';
@@ -2603,7 +2625,7 @@ Oq fonli foto`;
     });
     document.getElementById('homeAllCategoriesLink')?.addEventListener('click', (e) => {
       e.preventDefault();
-      setView('searchView');
+      setView('searchView', { push: true });
       catalogMode = 'categories';
       selectedCategory = null;
       selectedCategoryLabel = '';
@@ -2611,7 +2633,7 @@ Oq fonli foto`;
       renderSearch();
     });
     cartEmptyCta?.addEventListener('click', () => {
-      setView('searchView');
+      setView('searchView', { push: true });
       catalogMode = 'categories';
       selectedCategory = null;
       selectedCategoryLabel = '';
@@ -2621,7 +2643,7 @@ Oq fonli foto`;
 
     document.getElementById('homeMoreProductsLink')?.addEventListener('click', (e) => {
       e.preventDefault();
-      setView('searchView');
+      setView('searchView', { push: true });
       catalogMode = 'categories';
       selectedCategory = null;
       selectedCategoryLabel = '';
@@ -2721,7 +2743,7 @@ Oq fonli foto`;
         selectedCategory = homeCategoryCard.dataset.homeCategory;
         selectedCategoryLabel = homeCategoryCard.dataset.homeCategoryLabel || homeCategoryCard.dataset.homeCategory;
         catalogMode = 'category';
-        setView('searchView');
+        setView('searchView', { push: true });
         searchInput.value = '';
         renderSearch();
       }
@@ -2731,6 +2753,8 @@ Oq fonli foto`;
     modalOverlay.addEventListener('click', (e) => {
       if (e.target === modalOverlay) closeProductModal();
     });
+    appBackBtn?.addEventListener('click', appGoBack);
+    window.addEventListener('popstate', () => appGoBack());
 
     modalAddBtn.addEventListener('click', async () => {
       if (!activeModalProductId) return;
