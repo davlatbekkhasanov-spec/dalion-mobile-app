@@ -629,6 +629,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
   return {
     imported: upsertRows.length,
     skipped,
+    invalidRows: skipped,
     imageExtracted,
     imageProcessed,
     imageObjectDetected,
@@ -638,6 +639,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
     processingTimeMs,
     averageImageMs,
     imageProcessingWarnings,
+    imageWarnings: imageProcessingWarnings.length + imageMissing,
     imageMissing,
     errors
   };
