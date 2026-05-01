@@ -80,9 +80,9 @@
         <button id="newImportBtn" class="btn">Yangi import qilish</button>
         <button id="reloadStoreBtn" class="btn">Mavjud ma'lumotni yangilash</button>
       </div>
-      <p class="muted" style="margin-top:8px;">Faqat taqdimot/test uchun. Production’da DALION/Excel ma’lumotlari ishlatiladi.</p>
+      <p class="muted" style="margin-top:8px;">Faqat demo/taqdimot uchun. Production’da DALION/Excel ishlatiladi.</p>
       <div class="row" style="margin-top:8px;">
-        <button id="loadDemoCatalogBtn" class="btn">Demo katalogni yuklash</button>
+        <button id="loadDemoCatalogBtn" class="btn">Kanstik demo katalogni yuklash</button>
         <button id="clearDemoCatalogBtn" class="btn">Demo katalogni tozalash</button>
       </div>
       <div id="importProgressWrap" class="progress-wrap">
@@ -438,8 +438,9 @@
     };
     document.getElementById('loadDemoCatalogBtn').onclick = async () => {
       try {
-        const out = await api('/admin/products/load-demo', { method: 'POST' });
-        showToast(`Demo katalog yuklandi: ${out.imported || 0} mahsulot`);
+        const out = await api('/admin/products/load-kanstik-demo', { method: 'POST' });
+        showToast(`Kanstik demo katalog yuklandi: ${out.loaded || out.imported || 0} mahsulot`);
+        document.getElementById('importResult').textContent = JSON.stringify(out, null, 2);
         await loadStoreSummary();
       } catch (e) {
         showToast(e.message || 'Demo katalog yuklashda xatolik');
