@@ -2,43 +2,43 @@ const store = require('../data/store.js');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
-const DEMO_CATEGORIES = ['Ofis jihozlari', 'Kanselyariya', 'Qog‘oz mahsulotlari', 'Printer va kartrijlar', 'Kompyuterlar', 'Noutbuklar', 'Monitorlar', 'Klaviatura va sichqoncha', 'USB va aksessuarlar', 'Tarmoq qurilmalari', 'Tozalash vositalari', 'Arxiv va papkalar'];
+const DEMO_CATEGORIES = ['Kanselyariya', 'Ofis jihozlari', 'Qog‘oz mahsulotlari', 'Papkalar', 'Ruchkalar', 'Daftarlar', 'Printer va kartrijlar', 'Kompyuter aksessuarlari', 'USB va kabellar', 'Tashkiliy buyumlar'];
 
 function buildDemoProducts() {
-  const imageByCategory = {
-    'Ofis jihozlari': 'Office+Supplies',
-    Kanselyariya: 'Stationery',
-    'Qog‘oz mahsulotlari': 'Paper+Products',
-    'Printer va kartrijlar': 'Printer+Cartridge',
-    Kompyuterlar: 'Desktop+Computer',
-    Noutbuklar: 'Laptop',
-    Monitorlar: 'Monitor',
-    'Klaviatura va sichqoncha': 'Keyboard+Mouse',
-    'USB va aksessuarlar': 'USB+Accessories',
-    'Tarmoq qurilmalari': 'Network+Devices',
-    'Tozalash vositalari': 'Cleaning+Supplies',
-    'Arxiv va papkalar': 'Archive+Folders'
+  const itemsByCategory = {
+    'Kanselyariya': ['Qaychi 17sm', 'Yelim qalam', 'Skotch 24mm', 'Marker qora', 'Shtamp bo‘yoq', 'Qalamdon stol usti', 'Korrektor lenta', 'Chizg‘ich 30sm', 'Stepler №24'],
+    'Ofis jihozlari': ['Kalkulyator Canon', 'Laminator A4', 'Shreder mini', 'Flipchart doska', 'Ofis stoli organizer', 'Kreslo g‘ildirakli', 'Sichqoncha gilamcha', 'Stol lampasi LED', 'Vizitka qutisi'],
+    'Qog‘oz mahsulotlari': ['A4 ofis qog‘ozi 80g', 'A3 ofis qog‘ozi 80g', 'Sticky notes 76x76', 'Rangli qog‘oz A4', 'Foto qog‘oz 10x15', 'Konvert C4', 'Konvert C5', 'Termo qog‘oz 57mm', 'Kartochka qog‘oz'],
+    'Papkalar': ['Arxiv papka keng', 'Fayl papka 60 list', 'Prijim papka A4', 'Burchakli papka', 'Halqali papka 2D', 'Portfolio papka', 'Fayl qopqoqli papka', 'Zip papka A5', 'Bo‘luvchi separator'],
+    'Ruchkalar': ['Sharikli ruchka ko‘k', 'Gel ruchka qora', 'Kapillyar ruchka 0.5', 'Avtomatik ruchka', 'Ruchka seti 4 rang', 'Kalligrafik ruchka', 'Ruchka refill ko‘k', 'Flomaster ruchka', 'Roller ruchka'],
+    'Daftarlar': ['Daftar 12 varaq', 'Daftar 24 varaq', 'Daftar 48 varaq', 'Daftar 96 varaq', 'Spiral daftar A4', 'Qattiq muqova daftar', 'Katak daftar', 'Chiziqli daftar', 'Planner notebook'],
+    'Printer va kartrijlar': ['HP LaserJet printer', 'Canon Inkjet printer', 'Epson MFP', 'HP 85A kartrij', 'Canon 725 kartrij', 'Epson 003 siyoh', 'Printer kabel USB-B', 'Toner universal', 'Drum unit'],
+    'Kompyuter aksessuarlari': ['Simsiz sichqoncha', 'USB klaviatura', 'Web-kamera HD', 'Naushnik mikrofonsiz', 'Naushnik mikrofonli', 'Laptop stendi', 'Bluetooth adapter', 'Card reader', 'Kuler pad'],
+    'USB va kabellar': ['USB fleshka 32GB', 'USB fleshka 64GB', 'Type-C kabel 1m', 'Lightning kabel 1m', 'HDMI kabel 2m', 'VGA kabel 1.5m', 'LAN kabel Cat6 3m', 'USB hub 4 port', 'OTG adapter'],
+    'Tashkiliy buyumlar': ['Qog‘oz qisqichi 33mm', 'Skrepkalar 100 dona', 'Rezinka bog‘lagich', 'Nomerator stiker', 'Kantselyariya lotok', 'Sandiqcha organizer', 'Stol kalendari', 'Pin knopka', 'Magnit doska pin']
   };
-  const names = ['Premium', 'Standart', 'Office', 'Pro', 'Mini', 'Max'];
+  const imageBase = 'https://kanstik.uz/storage/products';
   const out = [];
   let idx = 1;
   for (const cat of DEMO_CATEGORIES) {
-    for (let i = 0; i < 9; i += 1) {
-      const base = 35000 + (idx * 2700);
+    const items = itemsByCategory[cat] || [];
+    for (let i = 0; i < items.length + 1; i += 1) {
+      const productName = items[i % items.length];
+      const base = 12000 + (idx * 1950);
       const old = i % 3 === 0 ? base + 12000 : 0;
-      const imageText = imageByCategory[cat] || 'Product+Image';
-      const placeholder = `https://dummyimage.com/640x640/f8fafc/334155&text=${imageText}`;
+      const imageSlug = `${cat}-${productName}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const imageUrl = `${imageBase}/${imageSlug}.jpg`;
       out.push({
         id: `demo-${idx}`,
         code: `DEMO-${String(idx).padStart(4, '0')}`,
         sku: `DEMO-${String(idx).padStart(4, '0')}`,
-        name: `${cat} ${names[i % names.length]} ${i + 1}`,
+        name: productName,
         category: cat,
         price: base,
         oldPrice: old,
         stock: 5 + (idx % 40),
-        image_url: placeholder,
-        image: placeholder,
+        image_url: imageUrl,
+        image: imageUrl,
         source: 'demo',
         active: true
       });
