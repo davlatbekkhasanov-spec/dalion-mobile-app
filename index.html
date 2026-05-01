@@ -1088,6 +1088,14 @@
     .tab.active b { background:linear-gradient(130deg,#ede9fe,#ddd6fe); border-color:#c4b5fd; box-shadow:none; }
     .cart-badge { background:#ef4444; color:#fff; }
 
+  
+    .profile-hero{background:linear-gradient(135deg,#5b4cff,#8b6bff);color:#fff;border:none}
+    .profile-avatar{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:28px}
+    .profile-menu .menu-item{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid #eceff5;border-radius:12px;margin-top:8px;background:#fff;color:#1d2440}
+    .profile-menu .menu-item small{color:#667085}
+    .auth-sheet{background:#fff;border:1px solid #eceff5}
+    .auth-input{background:#fff;color:#1d2440;border:1px solid #d0d5dd}
+
   </style>
   <link rel="stylesheet" href="/styles.css" />
 </head>
@@ -1219,10 +1227,21 @@
 
       <section class="view" id="profileView">
         <h2 class="title">Profil</h2>
-        <div class="list-card gm-card" id="profileUserCard">
-          <h3 style="margin-bottom:6px;" id="profileName">Foydalanuvchi</h3>
-          <p class="muted" id="profilePhone">Telefon: -</p>
-          <button class="btn gm-btn gm-btn-secondary btn-secondary" id="logoutBtn" style="margin-top:10px;">Chiqish</button>
+        <div class="list-card gm-card profile-hero" id="profileUserCard">
+          <div style="display:flex;gap:12px;align-items:center;">
+            <div class="profile-avatar">👤</div>
+            <div><h3 style="margin-bottom:6px;color:#fff;" id="profileName">Foydalanuvchi</h3><p class="muted" id="profilePhone" style="color:rgba(255,255,255,.9)">Telefon: -</p></div>
+          </div>
+        </div>
+        <div class="list-card gm-card profile-menu" id="profileMenuCard">
+          <div class="menu-item"><span>Buyurtmalarim</span><small>›</small></div>
+          <div class="menu-item"><span>To‘lov usullari</span><small>Tez orada</small></div>
+          <div class="menu-item"><span>Manzillarim</span><small>Tez orada</small></div>
+          <div class="menu-item"><span>Promokodlarim</span><small>Tez orada</small></div>
+          <div class="menu-item"><span>Xabarnomalar</span><small>Tez orada</small></div>
+          <div class="menu-item"><span>Sozlamalar</span><small>Tez orada</small></div>
+          <div class="menu-item"><span>Yordam / Biz bilan bog‘lanish</span><small>24/7</small></div>
+          <button class="btn gm-btn gm-btn-secondary btn-secondary" id="logoutBtn" style="margin-top:12px;">Chiqish</button>
         </div>
         <div class="list-card gm-card" id="profileOrdersCard">
           <h3 style="margin-bottom:6px;">Buyurtmalarim</h3>
@@ -1236,6 +1255,7 @@
 
       <section class="view" id="checkoutView">
         <h2 class="title gm-title-md">Checkout</h2>
+        <div class="list-card gm-card" id="checkoutUserCard"><strong id="checkoutUserName">-</strong><p class="muted" id="checkoutUserPhone">-</p></div>
         <div id="checkoutItems" class="checkout-stack"></div>
         <div class="list-card checkout-delivery-card">
           <h4 style="margin-bottom:10px;">Yetkazib berish</h4>
@@ -1430,6 +1450,7 @@ Oq fonli foto</div>
     const profileUserCard = document.getElementById('profileUserCard');
     const profileOrdersCard = document.getElementById('profileOrdersCard');
     const profileGuestCard = document.getElementById('profileGuestCard');
+    const profileMenuCard = document.getElementById('profileMenuCard');
     const logoutBtn = document.getElementById('logoutBtn');
     const profileRegisterBtn = document.getElementById('profileRegisterBtn');
 
@@ -1630,7 +1651,7 @@ Oq fonli foto</div>
 
     function requireAuthOrIntro() {
       if (isAuthed()) return true;
-      showToast("Avval ro'yxatdan o'ting");
+      showToast("Avval ro‘yxatdan o‘ting");
       phone.classList.remove('show-app');
       authSheetOverlay.classList.add('show');
       return false;
@@ -1890,6 +1911,8 @@ Oq fonli foto`;
 
     function renderCheckout() {
       const selected = products.filter((p) => qtyOf(p.id) > 0);
+      document.getElementById('checkoutUserName').textContent = currentUser?.name || "Foydalanuvchi";
+      document.getElementById('checkoutUserPhone').textContent = currentUser?.phone ? `Telefon: ${currentUser.phone}` : "Telefon mavjud emas";
       checkoutItems.innerHTML = selected.map((p) => {
         const qty = qtyOf(p.id);
         const imageHtml = p.image_url ? `<img class="cart-item-thumb" src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '<div class="cart-item-thumb"></div>';
@@ -1985,10 +2008,12 @@ Oq fonli foto`;
       if (!isAuthed()) {
         profileUserCard.style.display = 'none';
         profileOrdersCard.style.display = 'none';
+        profileMenuCard.style.display = 'none';
         profileGuestCard.style.display = 'block';
         return;
       }
       profileGuestCard.style.display = 'none';
+      profileMenuCard.style.display = 'block';
       profileUserCard.style.display = 'block';
       profileOrdersCard.style.display = 'block';
       profileName.textContent = currentUser?.name || 'Foydalanuvchi';
