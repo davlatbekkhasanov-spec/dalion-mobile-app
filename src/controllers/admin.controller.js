@@ -2,6 +2,51 @@ const store = require('../data/store.js');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
+const DEMO_CATEGORIES = ['Ofis jihozlari', 'Kanselyariya', 'Qog‘oz mahsulotlari', 'Printer va kartrijlar', 'Kompyuterlar', 'Noutbuklar', 'Monitorlar', 'Klaviatura va sichqoncha', 'USB va aksessuarlar', 'Tarmoq qurilmalari', 'Tozalash vositalari', 'Arxiv va papkalar'];
+
+function buildDemoProducts() {
+  const imageByCategory = {
+    'Ofis jihozlari': 'Office+Supplies',
+    Kanselyariya: 'Stationery',
+    'Qog‘oz mahsulotlari': 'Paper+Products',
+    'Printer va kartrijlar': 'Printer+Cartridge',
+    Kompyuterlar: 'Desktop+Computer',
+    Noutbuklar: 'Laptop',
+    Monitorlar: 'Monitor',
+    'Klaviatura va sichqoncha': 'Keyboard+Mouse',
+    'USB va aksessuarlar': 'USB+Accessories',
+    'Tarmoq qurilmalari': 'Network+Devices',
+    'Tozalash vositalari': 'Cleaning+Supplies',
+    'Arxiv va papkalar': 'Archive+Folders'
+  };
+  const names = ['Premium', 'Standart', 'Office', 'Pro', 'Mini', 'Max'];
+  const out = [];
+  let idx = 1;
+  for (const cat of DEMO_CATEGORIES) {
+    for (let i = 0; i < 9; i += 1) {
+      const base = 35000 + (idx * 2700);
+      const old = i % 3 === 0 ? base + 12000 : 0;
+      const imageText = imageByCategory[cat] || 'Product+Image';
+      const placeholder = `https://dummyimage.com/640x640/f8fafc/334155&text=${imageText}`;
+      out.push({
+        id: `demo-${idx}`,
+        code: `DEMO-${String(idx).padStart(4, '0')}`,
+        sku: `DEMO-${String(idx).padStart(4, '0')}`,
+        name: `${cat} ${names[i % names.length]} ${i + 1}`,
+        category: cat,
+        price: base,
+        oldPrice: old,
+        stock: 5 + (idx % 40),
+        image_url: placeholder,
+        image: placeholder,
+        source: 'demo',
+        active: true
+      });
+      idx += 1;
+    }
+  }
+  return out;
+}
 
 exports.getBanners = (req, res) => {
   res.json({ banners: store.getBanners() });
@@ -96,6 +141,17 @@ exports.updateProduct = (req, res) => {
   const product = store.updateProduct(req.params.id, req.body || {});
   if (!product) return res.status(404).json({ message: 'Product not found' });
   return res.json({ product });
+};
+exports.loadDemoProducts = (req, res) => {
+  const products = buildDemoProducts();
+  store.upsertProducts(products);
+  return res.json({ ok: true, imported: products.length, categories: DEMO_CATEGORIES.length });
+};
+exports.clearDemoProducts = (req, res) => {
+  const before = store.products.length;
+  const keep = store.products.filter((p) => String(p.source || '') !== 'demo');
+  store.products.splice(0, store.products.length, ...keep);
+  return res.json({ ok: true, removed: before - keep.length });
 };
 
 exports.getStoreSummary = (req, res) => {

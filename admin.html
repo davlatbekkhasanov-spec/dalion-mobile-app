@@ -60,6 +60,9 @@
     <section class="panel card" id="excel-panel">
       <h3 id="excelTitle">Excel Import</h3>
       <input type="file" id="xlsxFile" accept=".xlsx" />
+      <p class="muted" style="margin:8px 0 4px;">
+        XLSX format: required columns <b>name</b>, <b>price</b>, <b>stock</b>. Optional: <b>code/sku</b>, <b>old_price</b>, <b>category</b>, <b>image_url</b>.
+      </p>
       <label class="muted" id="processImagesLabel" style="display:flex;gap:8px;align-items:center;margin:8px 0;">
         <input type="checkbox" id="processImages" checked />
         <span>Rasmlarni qayta ishlash</span>
@@ -76,6 +79,11 @@
       <div class="row" style="margin-top:8px;">
         <button id="newImportBtn" class="btn">Yangi import qilish</button>
         <button id="reloadStoreBtn" class="btn">Mavjud ma'lumotni yangilash</button>
+      </div>
+      <p class="muted" style="margin-top:8px;">Faqat taqdimot/test uchun. Production’da DALION/Excel ma’lumotlari ishlatiladi.</p>
+      <div class="row" style="margin-top:8px;">
+        <button id="loadDemoCatalogBtn" class="btn">Demo katalogni yuklash</button>
+        <button id="clearDemoCatalogBtn" class="btn">Demo katalogni tozalash</button>
       </div>
       <div id="importProgressWrap" class="progress-wrap">
         <div class="progress-track"><div id="importProgressBar" class="progress-bar"></div></div>
@@ -353,8 +361,13 @@
         <div class="import-grid">
           <div class="metric"><span class="muted">Imported</span><b>${data.imported ?? 0}</b></div>
           <div class="metric"><span class="muted">Skipped</span><b>${data.skipped ?? 0}</b></div>
+          <div class="metric"><span class="muted">Invalid rows</span><b>${data.invalidRows ?? data.skipped ?? 0}</b></div>
+          <div class="metric"><span class="muted">Categories detected</span><b>${data.categoriesDetected ?? 0}</b></div>
+          <div class="metric"><span class="muted">Products with category</span><b>${data.productsAssignedCategory ?? 0}</b></div>
+          <div class="metric"><span class="muted">Fallback Boshqa</span><b>${data.productsWithoutCategoryFallback ?? 0}</b></div>
           <div class="metric"><span class="muted">Image extracted</span><b>${data.imageExtracted ?? 0}</b></div>
           <div class="metric"><span class="muted">Image processed</span><b>${data.imageProcessed ?? 0}</b></div>
+          <div class="metric"><span class="muted">Image warnings</span><b>${data.imageWarnings ?? 0}</b></div>
           <div class="metric"><span class="muted">Object detected</span><b>${data.imageObjectDetected ?? 0}</b></div>
           <div class="metric"><span class="muted">Detection warnings</span><b>${(data.imageDetectionWarnings || []).length}</b></div>
           <div class="metric"><span class="muted">Image upscaled</span><b>${data.imageUpscaled ?? 0}</b></div>
@@ -383,7 +396,7 @@
       try{
         const data = await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          xhr.open('POST', `/api/v1/integrations/excel/import/products-xlsx?overwriteImages=${overwriteImages}&processImages=${processImages}&updateOnlyStockPrice=${updateOnlyStockPrice}`);
+          xhr.open('POST', `/api/v1/admin/products/import?overwriteImages=${overwriteImages}&processImages=${processImages}&updateOnlyStockPrice=${updateOnlyStockPrice}`);
           xhr.setRequestHeader('x-admin-token', getToken());
 
           xhr.upload.onprogress = (e) => {
@@ -421,6 +434,24 @@
         await loadStoreSummary();
       } catch (e) {
         showToast(e.message || t('reloadError'));
+      }
+    };
+    document.getElementById('loadDemoCatalogBtn').onclick = async () => {
+      try {
+        const out = await api('/admin/products/load-demo', { method: 'POST' });
+        showToast(`Demo katalog yuklandi: ${out.imported || 0} mahsulot`);
+        await loadStoreSummary();
+      } catch (e) {
+        showToast(e.message || 'Demo katalog yuklashda xatolik');
+      }
+    };
+    document.getElementById('clearDemoCatalogBtn').onclick = async () => {
+      try {
+        const out = await api('/admin/products/clear-demo', { method: 'POST' });
+        showToast(`Demo mahsulotlar tozalandi: ${out.removed || 0}`);
+        await loadStoreSummary();
+      } catch (e) {
+        showToast(e.message || 'Demo katalogni tozalashda xatolik');
       }
     };
 
