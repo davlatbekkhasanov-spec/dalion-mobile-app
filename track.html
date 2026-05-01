@@ -3,259 +3,128 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Order Tracking</title>
+  <title>GlobusMarket Tracking</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    body{margin:0;background:linear-gradient(180deg,#06101d,#0a1730);color:#e8f4ff;font-family:Inter,Segoe UI,Arial,sans-serif}
-    .wrap{max-width:620px;margin:0 auto;padding:14px 14px 24px}
-    .card{background:#0d1d36;border:1px solid #28466c;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 12px 28px rgba(0,0,0,.28)}
-    .muted{color:#9ab8df;font-size:13px;line-height:1.4}
-    .big-status{font-size:26px;font-weight:800;line-height:1.2;margin:6px 0;transition:all .28s ease}
-    .big-status.animate{animation:statusIn .45s ease}
-    @keyframes statusIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-    .status-note{font-size:14px;color:#aad5ff}
-    .timeline{position:relative;margin-top:8px}
-    .timeline:before{content:"";position:absolute;left:11px;top:6px;bottom:6px;width:2px;background:#274a72}
-    .step{position:relative;padding:10px 10px 10px 34px;margin:2px 0;color:#93b7df;font-weight:600}
-    .step:before{content:"";position:absolute;left:4px;top:12px;width:14px;height:14px;border-radius:50%;border:2px solid #3a628e;background:#10233f}
-    .step.done{color:#a8e8c7}
-    .step.done:before{border-color:#4bdaa0;background:#4bdaa0}
-    .step.active{background:#112845;border-radius:12px;color:#ecfffb}
-    .step.active:before{border-color:#37f7a6;background:#37f7a6;box-shadow:0 0 0 6px rgba(55,247,166,.14);animation:activePulse 1.8s infinite}
-    .step.active{box-shadow: inset 0 0 0 1px rgba(95,214,162,.22)}
-    @keyframes activePulse{0%,100%{box-shadow:0 0 0 0 rgba(55,247,166,.26)}50%{box-shadow:0 0 0 9px rgba(55,247,166,0)}}
-    .badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;background:#183354;border:1px solid #356493;color:#b9daff;font-size:12px;font-weight:700}
-    .courier-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-    .call-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 14px;border-radius:12px;border:1px solid #3f7ad0;background:#17345a;color:#eaf5ff;text-decoration:none;font-weight:700}
-    .map-shell{position:relative;border:1px solid #2b4f79;border-radius:12px;padding:6px;background:#0a1528}
-    #courierMap{height:280px;border-radius:10px;display:none}
-    .map-skeleton{height:280px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(90deg,#0e213b,#132a47,#0e213b);background-size:220% 100%;animation:sh 1.2s infinite;color:#8cb4e5;font-size:13px}
-    .skeleton{height:14px;border-radius:8px;background:linear-gradient(90deg,#112641,#153153,#112641);background-size:220% 100%;animation:sh 1.1s infinite;margin:8px 0}
-    .empty{border:1px dashed #345b88;border-radius:14px;padding:16px;text-align:center;color:#acc8e9;background:#0b1a31}
-    .refresh-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#54ffa9;margin-right:6px;animation:pulse 1.6s infinite}
-    .updating{opacity:.9}
-    @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
-    @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
-    textarea,input,button{width:100%;box-sizing:border-box;margin-top:8px;padding:10px;border-radius:10px;border:1px solid #355b86;background:#0b1830;color:#e8f4ff}
-
-    html, body { overflow-x: hidden; }
-    .card { border-radius:16px; }
-    .muted { font-size:13px; line-height:1.45; }
-    .call-btn { min-height:48px; }
-    #trackingContent .card { background:linear-gradient(160deg,#0d1d36,#0b1a31); }
-    @media (max-width: 430px) {
-      .wrap { padding: 10px 10px 18px; }
-      .big-status { font-size: 22px; }
-      .step { padding-right: 6px; }
-      .courier-row { align-items: flex-start; }
-      #courierMap, .map-skeleton { height: 240px; }
-    }
-
-    button{cursor:pointer;min-height:48px}
+    :root{--bg:#f6f7fb;--card:#fff;--text:#1d2440;--muted:#667085;--line:#e7eaf1;--primary:#6a4dff;--primary-soft:#f2efff;--ok:#12b76a;--danger:#ef4444;--shadow:0 14px 34px rgba(16,24,40,.12)}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
+    .wrap{max-width:720px;margin:0 auto;padding:12px 12px 130px;overflow-x:hidden}
+    .map-stage{position:relative;border-radius:22px;overflow:hidden;background:#dde6ff;box-shadow:var(--shadow);min-height:52vh}
+    #courierMap{height:52vh;min-height:360px;display:none}
+    .map-fallback{height:52vh;min-height:360px;display:grid;place-items:center;background:linear-gradient(180deg,#dde8ff,#d4dbf5);color:#475467;font-weight:700;text-align:center;padding:20px}
+    .top-chip{position:absolute;top:14px;left:14px;z-index:6;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:12px;font-weight:700}
+    .float-actions{position:absolute;top:14px;right:14px;z-index:6;display:flex;gap:8px}
+    .icon-btn{border:1px solid var(--line);background:#fff;border-radius:12px;min-height:44px;padding:0 12px;font-weight:700;color:#344054;cursor:pointer}
+    .sheet{margin-top:-34px;position:relative;z-index:7;background:var(--card);border-radius:24px 24px 0 0;padding:14px 14px 18px;box-shadow:0 -6px 22px rgba(16,24,40,.08)}
+    .drag{width:54px;height:5px;border-radius:99px;background:#d7dcec;margin:2px auto 12px}
+    .status-title{font-size:24px;font-weight:800;margin:0 0 6px}
+    .muted{color:var(--muted);font-size:13px;line-height:1.4}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+    .mini{border:1px solid var(--line);border-radius:14px;padding:10px;background:#fff}
+    .mini b{display:block;font-size:12px;color:#475467;margin-bottom:4px}
+    .timeline{margin-top:14px;border:1px solid var(--line);border-radius:16px;padding:12px;background:#fafbff}
+    .step{display:flex;gap:10px;align-items:flex-start;padding:8px 0}
+    .dot{width:16px;height:16px;border-radius:50%;border:2px solid #c7d0e0;background:#fff;flex:none;margin-top:2px}
+    .step.done .dot{background:var(--ok);border-color:var(--ok)}
+    .step.active .dot{background:var(--primary);border-color:var(--primary);box-shadow:0 0 0 6px rgba(106,77,255,.14)}
+    .step span{font-weight:700;color:#475467}.step.active span,.step.done span{color:#1d2440}
+    .card{border:1px solid var(--line);border-radius:16px;background:#fff;padding:12px;margin-top:12px}
+    .row{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+    .call-btn,.support-btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 14px;border-radius:12px;text-decoration:none;font-weight:700;border:1px solid #d8dcf5}
+    .call-btn{background:var(--primary);border-color:var(--primary);color:#fff}
+    .support-btn{background:#fff;color:#344054}
+    .sticky-actions{position:fixed;left:0;right:0;bottom:0;background:rgba(246,247,251,.96);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));z-index:10}
+    .sticky-actions .inner{max-width:720px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .state{border:1px dashed #cbd5e1;border-radius:16px;padding:14px;text-align:center;background:#fff}
   </style>
 </head>
 <body>
-  <div class="wrap">
+<div class="wrap">
+  <section class="map-stage">
+    <div class="top-chip" id="statusBadge">Yuklanmoqda</div>
+    <div class="float-actions"><button class="icon-btn" id="refreshBtn">Yangilash</button></div>
+    <div id="mapFallback" class="map-fallback">Kurier lokatsiyasi aniqlanmoqda</div>
+    <div id="courierMap"></div>
+  </section>
+
+  <section id="stateLoading" class="card">Kuzatuv ma'lumotlari yuklanmoqda...</section>
+  <section id="stateError" class="state" style="display:none;">Kuzatuvni yuklashda xatolik yuz berdi.</section>
+  <section id="stateEmpty" class="state" style="display:none;">Bu buyurtma uchun kuzatuv topilmadi.</section>
+
+  <section id="trackingContent" class="sheet" style="display:none;">
+    <div class="drag"></div>
+    <h1 class="status-title" id="bigStatus">Buyurtma qabul qilindi</h1>
+    <p class="muted" id="bigStatusNote">Holat yangilanmoqda...</p>
+
+    <div class="grid">
+      <div class="mini"><b>Buyurtma</b><span id="meta">-</span></div>
+      <div class="mini"><b>ETA</b><span id="etaText">-</span></div>
+      <div class="mini"><b>To‘lov holati</b><span id="payment">-</span></div>
+      <div class="mini"><b>Jami</b><span id="total">-</span></div>
+    </div>
+
+    <div class="timeline" id="timeline"></div>
+
     <div class="card">
-      <h2 style="margin:0 0 8px;">GlobusMarket</h2>
-      <div id="meta" class="muted"></div>
-      <div id="refreshHint" class="muted" style="margin-top:8px;"><span class="refresh-dot"></span>Holat avtomatik yangilanmoqda</div>
+      <div class="row"><h3 style="margin:0;">Kuryer ma'lumotlari</h3><span class="muted" id="courierStatus"></span></div>
+      <div id="courierCard" class="muted" style="margin-top:8px;">Kurier biriktirilmoqda</div>
     </div>
 
-    <div class="card" id="stateLoading">
-      <div class="skeleton" style="width:52%"></div>
-      <div class="skeleton" style="width:88%"></div>
-      <div class="skeleton" style="width:70%"></div>
-    </div>
-    <div class="card empty" id="stateError" style="display:none;">Kechirasiz, kuzatuv ma'lumotini yuklashda muammo bo‘ldi. Iltimos birozdan keyin qayta urinib ko‘ring.</div>
-    <div class="card empty" id="stateEmpty" style="display:none;">Bu buyurtma uchun kuzatuv topilmadi.</div>
-
-    <div id="trackingContent" style="display:none;">
-      <div class="card">
-        <div class="badge" id="statusBadge">Holat</div>
-        <div class="big-status" id="bigStatus">Buyurtma qabul qilindi</div>
-        <div class="status-note" id="bigStatusNote">Operator buyurtmangizni ko‘rib chiqmoqda.</div>
-        <h3 style="margin:12px 0 8px;">Holat timeline</h3>
-        <div id="timeline" class="timeline"></div>
-      </div>
-
-      <div class="card">
-        <h3 style="margin-top:0;">Kuryer</h3>
-        <div id="courier" class="muted"></div>
-        <div id="courierCard" style="margin-top:8px;"></div>
-        <div id="payment" class="muted" style="margin-top:8px;"></div>
-      </div>
-
-      <div class="card">
-        <h3 style="margin-top:0;">Yetkazib berish ma'lumotlari</h3>
-        <div id="address" class="muted" style="margin-bottom:8px;"></div>
-        <div id="deliveryInfo" class="muted"></div>
-        <div id="items" class="muted" style="margin-top:8px;"></div>
-        <div id="total" style="margin-top:8px;"></div>
-      </div>
-
-      <div class="card" id="liveCourierCard" style="display:none;">
-        <h3 style="margin-top:0;">Kuryer live lokatsiyasi</h3>
-        <div id="courierLiveMeta" class="muted" style="margin-bottom:8px;"></div>
-        <div class="map-shell">
-          <div id="courierMapSkeleton" class="map-skeleton">Xarita yuklanmoqda…</div>
-          <div id="courierMap"></div>
-        </div>
-        <div id="courierMapLink" class="muted" style="margin-top:8px;"></div>
-      </div>
+    <div class="card">
+      <h3 style="margin:0 0 6px;">Yetkazib berish</h3>
+      <div id="address" class="muted"></div>
+      <div id="deliveryInfo" class="muted" style="margin-top:8px;"></div>
+      <div id="items" class="muted" style="margin-top:8px;"></div>
     </div>
 
     <div class="card" id="feedbackCard" style="display:none;">
-      <h3 style="margin-top:0;">Fikr qoldirish</h3>
-      <input id="rating" type="number" min="1" max="5" placeholder="Rating 1-5" />
-      <textarea id="comment" rows="3" placeholder="Izoh"></textarea>
-      <button id="sendFeedback">Fikr yuborish</button>
-      <div id="feedbackMsg" class="muted"></div>
+      <h3 style="margin:0 0 6px;">Fikr qoldirish</h3>
+      <input id="rating" type="number" min="1" max="5" placeholder="Rating 1-5" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid #d0d5dd;" />
+      <textarea id="comment" rows="3" placeholder="Izoh" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid #d0d5dd;"></textarea>
+      <button id="sendFeedback" class="icon-btn" style="width:100%;margin-top:8px;">Fikr yuborish</button>
+      <div id="feedbackMsg" class="muted" style="margin-top:6px;"></div>
     </div>
-  </div>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    const orderNumber = decodeURIComponent(location.pathname.split('/').pop());
-    const timelineSteps = [
-      { key: 'accepted', label: 'Order accepted', statuses: ['new'] },
-      { key: 'preparing', label: 'Preparing', statuses: ['sent_to_tsd', 'picking'] },
-      { key: 'courier_assigned', label: 'Courier assigned', statuses: ['picked', 'waiting_courier'] },
-      { key: 'on_way', label: 'On the way', statuses: ['out_for_delivery'] },
-      { key: 'delivered', label: 'Delivered', statuses: ['delivered'] }
-    ];
-    const statusUx = {
-      new: { title: 'Buyurtma qabul qilindi', note: 'Operator buyurtmangizni tasdiqlashi kutilmoqda.', badge: 'Qabul qilindi' },
-      sent_to_tsd: { title: 'Tayyorlanmoqda 🍳', note: 'Mahsulotlar tayyorlanmoqda.', badge: 'Tayyorlanmoqda' },
-      picking: { title: 'Tayyorlanmoqda 🍳', note: 'Mahsulotlar yig‘ilmoqda.', badge: 'Yig‘ilmoqda' },
-      picked: { title: 'Kuryer biriktirilmoqda', note: 'Kuryer topilishi bilan yo‘lga chiqadi.', badge: 'Kuryer kutilmoqda' },
-      waiting_courier: { title: 'Kuryer biriktirilmoqda', note: 'Buyurtma jo‘natishga tayyor.', badge: 'Kuryer kutilmoqda' },
-      out_for_delivery: { title: 'Kuryer yo‘lda 🚚', note: 'Buyurtmangiz yo‘lda, tez orada yetkaziladi.', badge: 'Yo‘lda' },
-      delivered: { title: 'Yetkazib berildi ✅', note: 'Yoqimli ishtaha!', badge: 'Yetkazildi' },
-      cancelled: { title: 'Buyurtma bekor qilingan', note: 'Savollar bo‘lsa operator bilan bog‘laning.', badge: 'Bekor qilingan' }
-    };
-    let order = null;
-    let firstLoadDone = false;
-    let lastStatus = null;
-    const mapProviders = { leaflet: { ensure(containerId, lat, lng) { if (!window.L) return null; const map = L.map(containerId,{ zoomControl:true }).setView([lat,lng],14); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map); return map; } } };
-    const activeMapProvider = mapProviders.leaflet;
-    let courierMap = null; let courierMarker = null; let destinationMarker = null;
+  </section>
+</div>
+<div class="sticky-actions"><div class="inner"><a id="callBtn" class="call-btn" href="#">Qo‘ng‘iroq</a><button class="support-btn" id="supportBtn">Qo‘llab-quvvatlash</button></div></div>
 
-    async function api(path, options={}) {
-      const res = await fetch('/api/v1'+path,{headers:{'Content-Type':'application/json'},...options});
-      const data = await res.json().catch(()=>({}));
-      if(!res.ok) throw new Error(data.message||'Xatolik');
-      return data;
-    }
-
-    function activeStepIndex(status){
-      return Math.max(0, timelineSteps.findIndex((s)=>s.statuses.includes(status)));
-    }
-
-    function renderState(mode){
-      document.getElementById('stateLoading').style.display = mode === 'loading' ? 'block' : 'none';
-      document.getElementById('stateError').style.display = mode === 'error' ? 'block' : 'none';
-      document.getElementById('stateEmpty').style.display = mode === 'empty' ? 'block' : 'none';
-      document.getElementById('trackingContent').style.display = mode === 'content' ? 'block' : 'none';
-    }
-
-    function render() {
-      if(!order) return;
-      renderState('content');
-      const ui = statusUx[order.status] || statusUx.new;
-      const stepIdx = activeStepIndex(order.status);
-      document.getElementById('meta').textContent = `#${order.orderNumber} · ${new Date(order.created_at).toLocaleString('ru-RU')}`;
-      document.getElementById('statusBadge').textContent = ui.badge;
-      document.getElementById('bigStatus').textContent = ui.title;
-      if (lastStatus && lastStatus !== order.status) {
-        const el = document.getElementById('bigStatus');
-        el.classList.remove('animate');
-        requestAnimationFrame(() => el.classList.add('animate'));
-      }
-      lastStatus = order.status;
-      document.getElementById('bigStatusNote').textContent = ui.note;
-      document.getElementById('timeline').innerHTML = timelineSteps.map((step,idx)=>`<div class="step ${idx < stepIdx ? 'done' : ''} ${idx === stepIdx ? 'active' : ''}">${step.label}</div>`).join('');
-
-      const hasCourier = (order.status === 'out_for_delivery' || order.status === 'delivered') && order.courierName;
-      document.getElementById('courier').textContent = hasCourier ? 'Kuryer ma’lumotlari' : 'Kuryer tayinlanmoqda 🚚';
-      document.getElementById('courierCard').innerHTML = hasCourier
-        ? `<div class="card" style="margin:0;padding:12px;"><div class="courier-row"><div><strong>${order.courierName}</strong><div class="muted">ETA: ${order.deliveryEta || order.estimatedTime || '30 daqiqa'}</div></div><div class="badge">${ui.badge}</div></div>${order.courierPhone ? `<a class="call-btn" href="tel:${order.courierPhone}">📞 ${order.courierPhone}</a>` : ''}</div>`
-        : `<div class="card" style="margin:0;padding:12px;background:linear-gradient(145deg,#102742,#0e2139);"><div class="courier-row"><div style="display:flex;align-items:center;gap:10px;"><div style="width:40px;height:40px;border-radius:50%;background:#1d3b63;display:grid;place-items:center;">👤</div><div><strong>Kuryer tayinlanmoqda 🚚</strong><div class="muted">Tez orada aloqa chiqadi</div></div></div><div class="badge">Kutilmoqda</div></div></div>`;
-      document.getElementById('payment').textContent = `To‘lov: ${order.paymentMethod || '-'} | ${order.paymentStatus || '-'}`;
-
-      const mapLink = (Number.isFinite(Number(order.locationLat)) && Number.isFinite(Number(order.locationLng)))
-        ? `https://maps.google.com/?q=${order.locationLat},${order.locationLng}` : '';
-      document.getElementById('address').innerHTML = `Manzil: ${order.addressText || order.customerAddress || order.location || '-'}<br>Orientir: ${order.landmarkText || '-'}${mapLink ? `<br><a href="${mapLink}" target="_blank">Xaritada ochish</a>` : ''}`;
-      document.getElementById('deliveryInfo').innerHTML = `Buyurtma ID: #${order.orderNumber}<br>Taxminiy vaqt: ${order.deliveryEta || order.estimatedTime || '30 daqiqa'}`;
-      document.getElementById('items').innerHTML = (order.items||[]).map((i)=>`${i.name} × ${i.quantity} = ${Number(i.subtotal||0).toLocaleString('ru-RU')} so'm`).join('<br>');
-      document.getElementById('total').innerHTML = `<b>Jami: ${Number(order.total||0).toLocaleString('ru-RU')} so'm</b>`;
-
-      const feedbackCard = document.getElementById('feedbackCard');
-      const already = !!order.feedbackAt;
-      feedbackCard.style.display = order.status === 'delivered' ? 'block' : 'none';
-      document.getElementById('sendFeedback').disabled = already;
-      if (already) document.getElementById('feedbackMsg').textContent = 'Rahmat, fikringiz qabul qilindi';
-      renderCourierLiveSection();
-    }
-
-    function initCourierMap(lat, lng) { if (courierMap) return; courierMap = activeMapProvider.ensure('courierMap', lat, lng); }
-
-    function renderCourierLiveSection() {
-      const wrap = document.getElementById('liveCourierCard');
-      const meta = document.getElementById('courierLiveMeta');
-      const mapWrap = document.getElementById('courierMap');
-      const mapLink = document.getElementById('courierMapLink');
-      const mapSkeleton = document.getElementById('courierMapSkeleton');
-      if (!wrap || !meta || !mapWrap || !mapLink || !mapSkeleton) return;
-      const canShow = order?.status === 'out_for_delivery' || order?.status === 'delivered';
-      wrap.style.display = canShow ? 'block' : 'none';
-      if (!canShow) return;
-      const hasCourierLoc = Number.isFinite(Number(order.courierLocationLat)) && Number.isFinite(Number(order.courierLocationLng));
-      if (!hasCourierLoc) { meta.textContent = 'Kuryer lokatsiyasi kutilmoqda'; mapWrap.style.display = 'none'; mapSkeleton.style.display = 'grid'; mapLink.innerHTML = ''; return; }
-      const lat = Number(order.courierLocationLat); const lng = Number(order.courierLocationLng);
-      const updatedMs = order.courierLocationUpdatedAt ? new Date(order.courierLocationUpdatedAt).getTime() : 0;
-      const ageSec = updatedMs ? Math.max(0, Math.floor((Date.now() - updatedMs) / 1000)) : 0;
-      const updatedAt = updatedMs ? new Date(updatedMs).toLocaleTimeString('ru-RU') : '-';
-      let statusText = 'Live'; if (ageSec >= 60) statusText = 'Signal vaqtincha yo‘qolgan'; else if (ageSec >= 20) statusText = 'Yangilanmoqda';
-      meta.textContent = `Oxirgi yangilanish: ${updatedAt} · ${statusText}`;
-      mapLink.innerHTML = `<a href="https://maps.google.com/?q=${lat},${lng}" target="_blank">Xaritada ko‘rish</a>`;
-      mapWrap.style.display = 'block';
-      initCourierMap(lat, lng);
-      mapSkeleton.style.display = courierMap ? 'none' : 'grid';
-      if (!courierMap) return;
-      courierMap.invalidateSize();
-      if (!courierMarker) courierMarker = L.marker([lat, lng]).addTo(courierMap).bindPopup('Kurier'); else courierMarker.setLatLng([lat, lng]);
-      const hasDestination = Number.isFinite(Number(order.locationLat)) && Number.isFinite(Number(order.locationLng));
-      if (hasDestination) { const dLat = Number(order.locationLat); const dLng = Number(order.locationLng); if (!destinationMarker) destinationMarker = L.marker([dLat, dLng]).addTo(courierMap).bindPopup('Manzil'); else destinationMarker.setLatLng([dLat, dLng]); courierMap.fitBounds([[lat, lng], [dLat, dLng]], { padding: [32, 32] }); }
-      else courierMap.setView([lat, lng], 14);
-    }
-
-    async function refresh(){
-      try{
-        document.getElementById('refreshHint')?.classList.add('updating');
-        if (!firstLoadDone) renderState('loading');
-        const data = await api(`/orders/${encodeURIComponent(orderNumber)}/track`);
-        order = data.order;
-        if (!order) { renderState('empty'); return; }
-        firstLoadDone = true;
-        render();
-      }catch(e){ if (!firstLoadDone) renderState('error'); }
-      finally { document.getElementById('refreshHint')?.classList.remove('updating'); }
-    }
-
-    document.getElementById('sendFeedback').onclick = async ()=>{
-      try{
-        const out = await api(`/orders/${encodeURIComponent(orderNumber)}/feedback`, {
-          method:'POST',
-          body: JSON.stringify({ feedbackRating: document.getElementById('rating').value, feedbackComment: document.getElementById('comment').value })
-        });
-        order = out.order; render(); localStorage.removeItem('activeOrderNumber');
-        const history = JSON.parse(localStorage.getItem('orders_history') || '[]');
-        if (!history.some((h) => h.orderNumber === order.orderNumber)) { history.unshift({ orderNumber: order.orderNumber, status: order.status, total: order.total, paymentMethod: order.paymentMethod, paymentStatus: order.paymentStatus, feedbackAt: order.feedbackAt, created_at: order.created_at }); localStorage.setItem('orders_history', JSON.stringify(history.slice(0, 100))); }
-      }catch(e){ alert(e.message); }
-    };
-
-    refresh();
-    setInterval(refresh, 5000);
-  </script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const orderNumber = decodeURIComponent(location.pathname.split('/').pop());
+const timelineSteps=[{label:'Buyurtma qabul qilindi',statuses:['new']},{label:'Tayyorlanmoqda',statuses:['sent_to_tsd','picking']},{label:'Kurier yo‘lda',statuses:['picked','waiting_courier','out_for_delivery']},{label:'Yetkazildi',statuses:['delivered']}];
+const statusUx={new:{title:'Buyurtma qabul qilindi',note:'Operator buyurtmangizni tasdiqlashi kutilmoqda.',badge:'Qabul qilindi'},sent_to_tsd:{title:'Tayyorlanmoqda',note:'Mahsulotlar tayyorlanmoqda.',badge:'Tayyorlanmoqda'},picking:{title:'Tayyorlanmoqda',note:'Mahsulotlar yig‘ilmoqda.',badge:'Yig‘ilmoqda'},picked:{title:'Kurier biriktirilmoqda',note:'Kurier topilishi kutilmoqda.',badge:'Kutilmoqda'},waiting_courier:{title:'Kurier biriktirilmoqda',note:'Buyurtma jo‘natishga tayyor.',badge:'Kutilmoqda'},out_for_delivery:{title:'Kurier yo‘lda',note:'Buyurtmangiz manzilga olib borilmoqda.',badge:'Yo‘lda'},delivered:{title:'Yetkazib berildi',note:'Buyurtmangiz muvaffaqiyatli topshirildi.',badge:'Yetkazildi'},cancelled:{title:'Buyurtma bekor qilingan',note:'Savollar bo‘lsa operator bilan bog‘laning.',badge:'Bekor qilingan'}};
+let order=null,firstLoadDone=false,courierMap=null,courierMarker=null,destinationMarker=null,routeLine=null;
+async function api(path,opt={}){const res=await fetch('/api/v1'+path,{headers:{'Content-Type':'application/json'},...opt});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.message||'Xatolik');return data;}
+const hasCoord=(a,b)=>Number.isFinite(Number(a))&&Number.isFinite(Number(b));
+function renderState(m){stateLoading.style.display=m==='loading'?'block':'none';stateError.style.display=m==='error'?'block':'none';stateEmpty.style.display=m==='empty'?'block':'none';trackingContent.style.display=m==='content'?'block':'none';}
+function stepIndex(status){return Math.max(0,timelineSteps.findIndex(s=>s.statuses.includes(status)));}
+function money(v){return `${Number(v||0).toLocaleString('ru-RU')} so'm`;}
+function renderMap(){if(!order)return;const showMap=hasCoord(order.courierLocationLat,order.courierLocationLng)||hasCoord(order.locationLat,order.locationLng);if(!showMap){mapFallback.textContent='Kurier lokatsiyasi aniqlanmoqda';mapFallback.style.display='grid';courierMapEl.style.display='none';return;}mapFallback.style.display='none';courierMapEl.style.display='block';
+  const cLat=Number(order.courierLocationLat), cLng=Number(order.courierLocationLng);
+  const dLat=Number(order.locationLat), dLng=Number(order.locationLng);
+  if(!courierMap && window.L){courierMap=L.map('courierMap',{zoomControl:true}).setView(hasCoord(cLat,cLng)?[cLat,cLng]:[dLat,dLng],14);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(courierMap);} if(!courierMap){mapFallback.style.display='grid';mapFallback.textContent='Kurier lokatsiyasi aniqlanmoqda';return;} courierMap.invalidateSize();
+  if(hasCoord(cLat,cLng)){if(!courierMarker)courierMarker=L.marker([cLat,cLng]).addTo(courierMap).bindPopup('Kurier'); else courierMarker.setLatLng([cLat,cLng]);}
+  if(hasCoord(dLat,dLng)){if(!destinationMarker)destinationMarker=L.marker([dLat,dLng]).addTo(courierMap).bindPopup('Manzil'); else destinationMarker.setLatLng([dLat,dLng]);}
+  if(hasCoord(cLat,cLng)&&hasCoord(dLat,dLng)){if(routeLine)routeLine.setLatLngs([[cLat,cLng],[dLat,dLng]]);else routeLine=L.polyline([[cLat,cLng],[dLat,dLng]],{color:'#6a4dff',weight:4,opacity:.8}).addTo(courierMap);courierMap.fitBounds([[cLat,cLng],[dLat,dLng]],{padding:[30,30]});}
+  else if(hasCoord(cLat,cLng)) courierMap.setView([cLat,cLng],14); else courierMap.setView([dLat,dLng],14);
+}
+function render(){if(!order)return;renderState('content');const ui=statusUx[order.status]||statusUx.new;statusBadge.textContent=ui.badge;bigStatus.textContent=ui.title;bigStatusNote.textContent=ui.note;
+meta.textContent=`#${order.orderNumber} · ${new Date(order.created_at||Date.now()).toLocaleString('ru-RU')}`;etaText.textContent=order.deliveryEta||order.estimatedTime||'Aniqlanmoqda';payment.textContent=`${order.paymentMethod||'-'} / ${order.paymentStatus||'-'}`;total.textContent=money(order.total);
+const idx=stepIndex(order.status);timeline.innerHTML=timelineSteps.map((s,i)=>`<div class="step ${i<idx?'done':''} ${i===idx?'active':''}"><div class="dot"></div><span>${s.label}</span></div>`).join('');
+address.textContent=order.addressText||order.customerAddress||order.location||'Manzil kiritilmagan';deliveryInfo.textContent=`Buyurtma: #${order.orderNumber} · ${order.landmarkText?`Orientir: ${order.landmarkText}`:'Orientir yo‘q'}`;
+items.innerHTML=(order.items||[]).map(i=>`${i.name} × ${i.quantity} = ${money(i.subtotal)}`).join('<br>') || 'Mahsulotlar ro‘yxati mavjud emas';
+const hasCourier=Boolean(order.courierName);courierStatus.textContent=hasCourier?'Faol':'Kutilmoqda';
+const ratingText=Number(order.courierRating)>0?`<div class="muted">Reyting: ${Number(order.courierRating).toFixed(1)}</div>`:'';
+const vehicleText=order.courierVehicle||order.courierVehicleNumber?`<div class="muted">${order.courierVehicle||''} ${order.courierVehicleNumber||''}</div>`:'';
+courierCard.innerHTML=hasCourier?`<div><strong>${order.courierName}</strong>${vehicleText}${ratingText}</div>`:'Kurier biriktirilmoqda';
+callBtn.href=order.courierPhone?`tel:${order.courierPhone}`:'#';callBtn.textContent=order.courierPhone?'Qo‘ng‘iroq qilish':'Raqam yo‘q';
+renderMap();
+feedbackCard.style.display=order.status==='delivered'?'block':'none';sendFeedback.disabled=!!order.feedbackAt; if(order.feedbackAt)feedbackMsg.textContent='Rahmat, fikringiz qabul qilindi';
+}
+async function refresh(){try{if(!firstLoadDone)renderState('loading');const data=await api(`/orders/${encodeURIComponent(orderNumber)}/track`);order=data.order;if(!order)return renderState('empty');firstLoadDone=true;render();}catch(e){if(!firstLoadDone)renderState('error');}}
+refreshBtn.onclick=refresh; supportBtn.onclick=()=>{alert('Qo‘llab-quvvatlash: operator bilan bog‘laning.');};
+sendFeedback.onclick=async()=>{try{const out=await api(`/orders/${encodeURIComponent(orderNumber)}/feedback`,{method:'POST',body:JSON.stringify({feedbackRating:rating.value,feedbackComment:comment.value})});order=out.order;render();}catch(e){alert(e.message);}};
+refresh(); setInterval(refresh,5000);
+</script>
 </body>
 </html>
