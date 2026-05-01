@@ -1448,6 +1448,7 @@ Oq fonli foto</div>
     let activeOrderNumber = localStorage.getItem('activeOrderNumber') || '';
     let ordersHistory = JSON.parse(localStorage.getItem('orders_history') || '[]');
     let orderStatusTimer = null;
+    let lastOrderData = null;
 
     const phone = document.getElementById('phone');
     const openRegisterBtn = document.getElementById('openRegisterBtn');
@@ -1782,6 +1783,25 @@ Oq fonli foto</div>
 
     function totalPrice() {
       return cartItemsSnapshot.reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
+    }
+
+    function getCheckoutTotalsSnapshot() {
+      const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
+      const productsSubtotal = totalPrice();
+      const discountAmount = cartItemsSnapshot.reduce((sum, item) => {
+        const qty = Number(item.quantity || cart[item.id] || 0);
+        const oldPrice = Number(item.old_price || item.oldPrice || 0);
+        const currentPrice = Number(item.price || 0);
+        if (!qty || !(oldPrice > currentPrice)) return sum;
+        return sum + ((oldPrice - currentPrice) * qty);
+      }, 0);
+      const finalTotal = productsSubtotal + deliveryPrice;
+      return {
+        productsSubtotal,
+        deliveryPrice,
+        discountAmount,
+        finalTotal
+      };
     }
 
     async function setQty(id, value, showAddToast = false) {
@@ -2579,6 +2599,7 @@ Oq fonli foto`;
             return;
           }
         }
+        const checkoutTotals = getCheckoutTotalsSnapshot();
         const order = await api('/orders', {
           method: 'POST',
           body: JSON.stringify({
@@ -2600,6 +2621,14 @@ Oq fonli foto`;
           })
         });
 
+        lastOrderData = {
+          ...checkoutTotals,
+          paymentMethod: selectedPayment || '-',
+          address: customerLocation.addressText || homePayload?.delivery_info?.location || '-',
+          orderNumber: order.orderNumber || '-',
+          status: order.status
+        };
+
         await Promise.all([loadProducts({ reset: true }), loadCart()]);
         if ((selectedPayment === 'click' || selectedPayment === 'payme') && paymentProofInput.files?.[0]) {
           const fd2 = new FormData();
@@ -2611,10 +2640,12 @@ Oq fonli foto`;
         latestOrderNumber = order.orderNumber || '';
         activeOrderNumber = latestOrderNumber;
         localStorage.setItem('activeOrderNumber', activeOrderNumber);
-        successOrderNumber.textContent = `Buyurtma: ${latestOrderNumber || '-'}`;
-        successPaymentMethod.textContent = `To‘lov turi: ${selectedPayment || '-'}`;
-        successAddress.textContent = `Manzil: ${customerLocation.addressText || homePayload?.delivery_info?.location || '-'}`;
-        successTotal.textContent = `Jami: ${money(totalPrice() + Number(homePayload?.delivery_info?.price || 12000))}`;
+        successOrderNumber.textContent = `Buyurtma: ${lastOrderData?.orderNumber || latestOrderNumber || '-'}`;
+        successPaymentMethod.textContent = `To‘lov turi: ${lastOrderData?.paymentMethod || '-'}`;
+        successAddress.textContent = `Manzil: ${lastOrderData?.address || '-'}`;
+        successTotal.textContent = Number.isFinite(Number(lastOrderData?.finalTotal))
+          ? `Jami: ${money(Number(lastOrderData.finalTotal))}`
+          : "Jami: Summani tekshirib bo‘lmadi";
         successOrderStatus.textContent = `Status: ${orderStatusLabel(order.status)}`;
         if (latestOrderNumber) {
           trackOrderBtn.style.display = 'inline-flex';
