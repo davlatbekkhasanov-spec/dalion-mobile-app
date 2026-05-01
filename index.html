@@ -536,10 +536,10 @@
     }
 
     .product {
-      border-radius: 15px;
+      border-radius: 18px;
       border: 1px solid rgba(127, 158, 213, 0.26);
       background: var(--dark-card);
-      padding: 8px;
+      padding: 10px;
       display: flex;
       flex-direction: column;
       box-shadow: var(--shadow);
@@ -555,8 +555,8 @@
     }
 
     .image-box {
-      height: 150px;
-      flex: 0 0 150px;
+      height: 182px;
+      flex: 0 0 182px;
       border-radius: 12px;
       background:
         radial-gradient(circle at 35% 22%, rgba(255, 255, 255, 0.98) 0%, rgba(244, 250, 255, 0.95) 38%, rgba(232, 243, 255, 0.9) 100%);
@@ -622,11 +622,15 @@
     }
     .category-card b { font-size: 14px; display:block; }
     .category-card small { color: #9ab3d8; font-size: 11px; }
+    .cat.active, .category-card.active {
+      border-color: #7f56ff;
+      box-shadow: 0 0 0 2px rgba(127, 86, 255, 0.18), 0 10px 22px rgba(127, 86, 255, 0.12);
+    }
 
-    .product h5 { font-size: 12px; margin-bottom: 3px; color: #eaf4ff; line-height: 1.25; }
-    .meta { font-size: 10px; color: #8fb0d8; margin-bottom: 4px; }
-    .price { font-size: 12px; color: #69ffbd; font-weight: 700; }
-    .old-price { font-size: 10px; color: #7e96bc; text-decoration: line-through; margin-bottom: 6px; }
+    .product h5 { font-size: 13px; margin-bottom: 4px; color: #eaf4ff; line-height: 1.3; min-height: 34px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .meta { font-size: 11px; color: #8fb0d8; margin-bottom: 5px; }
+    .price { font-size: 16px; color: #69ffbd; font-weight: 800; }
+    .old-price { font-size: 11px; color: #7e96bc; text-decoration: line-through; margin-bottom: 8px; min-height:14px; }
 
     .qty {
       display: grid;
@@ -1171,6 +1175,7 @@
 </head>
 <body>
   <main class="phone" id="phone">
+    <button id="appBackBtn" aria-label="Orqaga" style="position:absolute;top:12px;left:12px;z-index:50;min-width:44px;min-height:44px;border-radius:12px;border:1px solid rgba(140,170,220,.35);background:rgba(10,20,36,.78);color:#eaf3ff;display:none;">←</button>
     <section class="screen intro" id="introScreen">
       <div class="stars"></div>
       <div class="intro-inner">
@@ -1281,7 +1286,7 @@
         <section class="category-grid" id="categoryResults"></section>
         <p class="muted" id="catalogProductResultsTitle" style="display:none; margin-bottom:8px;"></p>
         <section class="products-grid" id="searchResults"></section>
-        <div class="empty" id="searchEmpty" style="display:none;"><h3>Mahsulot topilmadi</h3><p class="muted">Boshqa nom bilan qidirib ko‘ring</p></div>
+        <div class="empty" id="searchEmpty" style="display:none;"><h3>Mahsulot topilmadi</h3><p class="muted">Boshqa nom yoki kategoriya bilan qidirib ko‘ring</p></div>
       </section>
 
       <section class="view" id="cartView">
@@ -1485,10 +1490,12 @@ Oq fonli foto</div>
     let activeOrderNumber = localStorage.getItem('activeOrderNumber') || '';
     let ordersHistory = JSON.parse(localStorage.getItem('orders_history') || '[]');
     let mergedCustomerOrders = [];
+    const appNavStack = ['homeView'];
     let orderStatusTimer = null;
     let lastOrderData = null;
 
     const phone = document.getElementById('phone');
+    const appBackBtn = document.getElementById('appBackBtn');
     const openRegisterBtn = document.getElementById('openRegisterBtn');
     const authSheetOverlay = document.getElementById('authSheetOverlay');
     const closeAuthSheetBtn = document.getElementById('closeAuthSheetBtn');
@@ -1882,7 +1889,7 @@ Oq fonli foto</div>
     }
 
     function productCardTemplate(p) {
-      const categoryName = normalizedCategoryName(p.categoryDisplayName || p.category);
+      const categoryName = normalizeCategoryKey(p.categoryDisplayName || p.category, p.name);
       const stock = Number(p.stock ?? 0);
       const oldPrice = Number(p.oldPrice || 0);
       const price = Number(p.price || 0);
@@ -1896,9 +1903,8 @@ Oq fonli foto</div>
       const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || '30 daqiqa';
       const hasFastDelivery = Boolean(p.etaText || homePayload?.home_settings?.deliveryTimeText);
       const imageHtml = p.image_url
-        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />`
-        : `DALION
-Oq fonli foto`;
+        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.remove()" />`
+        : `<div class="image-ph">Rasm mavjud emas</div>`;
       return `
         <article class="product gm-card" data-open-product="${p.id}">
           <div class="product-top-row">
@@ -1957,6 +1963,11 @@ Oq fonli foto`;
     function normalizedCategoryName(categoryName) {
       return String(categoryName || '').trim() || 'Boshqa';
     }
+    function normalizeCategoryKey(rawCategory, productName = '') {
+      const text = `${normalizedCategoryName(rawCategory)} ${productName}`.toLowerCase();
+      const byRule = CURATED_CATEGORIES.find((c) => c.key !== 'Boshqa' && c.match.some((m) => text.includes(m.toLowerCase())));
+      return byRule ? byRule.key : 'Boshqa';
+    }
 
     function getCategoryIcon(name) {
       const n = String(name || '').toLowerCase();
@@ -1979,25 +1990,24 @@ Oq fonli foto`;
     function getCategoryEntries() {
       const curated = CURATED_CATEGORIES.map((c) => ({ ...c, count: 0 }));
       products.forEach((p) => {
-        const text = `${normalizedCategoryName(p.categoryDisplayName || p.category)} ${p.name}`.toLowerCase();
-        const found = curated.find((c) => c.match.some((m) => text.includes(m.toLowerCase()))) || curated[curated.length - 1];
-        found.count += 1;
+        const key = normalizeCategoryKey(p.categoryDisplayName || p.category, p.name);
+        const found = curated.find((c) => c.key === key);
+        if (found) found.count += 1;
       });
-      return curated.filter((c) => c.count > 0).slice(0, 10);
+      const nonEmpty = curated.filter((c) => c.count > 0).slice(0, 10);
+      const total = nonEmpty.reduce((sum, c) => sum + c.count, 0);
+      return [{ key: 'all', displayName: 'Hammasi', icon: '🛍️', count: total }, ...nonEmpty];
     }
 
     function productMatchesCategory(product, categoryKey) {
-      const rule = CURATED_CATEGORIES.find((c) => c.key === categoryKey);
-      if (!rule) return normalizedCategoryName(product.category) === categoryKey;
-      if (rule.key === 'Boshqa') return true;
-      const text = `${normalizedCategoryName(product.categoryDisplayName || product.category)} ${product.name}`.toLowerCase();
-      return rule.match.some((m) => text.includes(m.toLowerCase()));
+      if (!categoryKey || categoryKey === 'all') return true;
+      return normalizeCategoryKey(product.categoryDisplayName || product.category, product.name) === categoryKey;
     }
 
     function renderHomeCategories() {
       const entries = getCategoryEntries();
       homeCategories.innerHTML = entries.map((c) => `
-        <article class="cat gm-card" data-home-category="${c.key}" data-home-category-label="${c.displayName}">
+        <article class="cat gm-card ${selectedCategory===c.key?'active':''}" data-home-category="${c.key}" data-home-category-label="${c.displayName}">
           <i>${c.image_url ? `<img src="${c.image_url}" alt="${c.displayName}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />` : c.icon}</i>
           <span class="cat-label gm-chip">${c.displayName}</span>
         </article>
@@ -2010,7 +2020,7 @@ Oq fonli foto`;
       if (catalogMode === 'categories') {
         const categories = getCategoryEntries().filter((c) => c.displayName.toLowerCase().includes(query));
         categoryResults.innerHTML = categories.map((c) => `
-          <article class="category-card gm-card" data-category="${c.key}" data-category-label="${c.displayName}">
+          <article class="category-card gm-card ${selectedCategory===c.key?'active':''}" data-category="${c.key}" data-category-label="${c.displayName}">
             <span class="icon">${c.image_url ? `<img src="${c.image_url}" alt="${c.displayName}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />` : c.icon}</span>
             <div><b>${c.displayName}</b><small>${c.count} ta mahsulot</small></div>
             <span>›</span>
@@ -2232,7 +2242,7 @@ Oq fonli foto`;
 
       await loadCart();
       renderAll();
-      setView('cartView');
+      setView('cartView', { push: true });
       if (!addedAny) {
         showToast("Mahsulotlar hozircha mavjud emas");
         return;
@@ -2407,12 +2417,15 @@ Oq fonli foto`;
       activeModalProductId = id;
       renderModal();
       modalOverlay.classList.add('show');
+      appBackBtn.style.display = 'inline-grid';
+      history.pushState({ type: 'modal' }, '');
     }
 
     function closeProductModal() {
       modalOverlay.classList.remove('show');
       modalImageBox?.classList.remove('zoomed');
       activeModalProductId = null;
+      appBackBtn.style.display = appNavStack.length > 1 ? 'inline-grid' : 'none';
     }
 
     function closeLocationDeniedModal() {
@@ -2445,11 +2458,27 @@ Oq fonli foto`;
       }, { enableHighAccuracy: true, timeout: 12000 });
     }
 
-    function setView(viewId) {
+    function setView(viewId, { push = false } = {}) {
       document.querySelectorAll('.view').forEach((el) => el.classList.toggle('active', el.id === viewId));
       currentView = viewId;
       document.querySelectorAll('.tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.view === viewId));
       bottomNav.classList.toggle('hidden', viewId === 'checkoutView' || viewId === 'successView');
+      if (push && appNavStack[appNavStack.length - 1] !== viewId) {
+        appNavStack.push(viewId);
+        history.pushState({ type: 'view', viewId }, '');
+      }
+      appBackBtn.style.display = (activeModalProductId || appNavStack.length > 1 || viewId === 'checkoutView') ? 'inline-grid' : 'none';
+    }
+
+    function appGoBack() {
+      if (activeModalProductId) return closeProductModal();
+      if (currentView === 'checkoutView') return setView('cartView', { push: true });
+      if (currentView === 'successView') return setView('homeView');
+      if (appNavStack.length > 1) {
+        appNavStack.pop();
+        return setView(appNavStack[appNavStack.length - 1]);
+      }
+      return setView('homeView');
     }
 
     async function refreshOrderStatus() {
@@ -2552,7 +2581,7 @@ Oq fonli foto`;
     });
 
     document.getElementById('openSearchBtn').addEventListener('click', () => {
-      setView('searchView');
+      setView('searchView', { push: true });
       selectedCategory = null;
       selectedCategoryLabel = '';
       catalogMode = 'categories';
@@ -2580,7 +2609,7 @@ Oq fonli foto`;
       const tab = e.target.closest('.tab');
       if (!tab) return;
       if (!requireAuthOrIntro()) return;
-      setView(tab.dataset.view);
+      setView(tab.dataset.view, { push: true });
       if (tab.dataset.view === 'searchView') {
         selectedCategory = null;
         selectedCategoryLabel = '';
@@ -2596,7 +2625,7 @@ Oq fonli foto`;
     });
     document.getElementById('homeAllCategoriesLink')?.addEventListener('click', (e) => {
       e.preventDefault();
-      setView('searchView');
+      setView('searchView', { push: true });
       catalogMode = 'categories';
       selectedCategory = null;
       selectedCategoryLabel = '';
@@ -2604,7 +2633,7 @@ Oq fonli foto`;
       renderSearch();
     });
     cartEmptyCta?.addEventListener('click', () => {
-      setView('searchView');
+      setView('searchView', { push: true });
       catalogMode = 'categories';
       selectedCategory = null;
       selectedCategoryLabel = '';
@@ -2614,7 +2643,7 @@ Oq fonli foto`;
 
     document.getElementById('homeMoreProductsLink')?.addEventListener('click', (e) => {
       e.preventDefault();
-      setView('searchView');
+      setView('searchView', { push: true });
       catalogMode = 'categories';
       selectedCategory = null;
       selectedCategoryLabel = '';
@@ -2694,9 +2723,16 @@ Oq fonli foto`;
 
       const categoryCard = e.target.closest('[data-category]');
       if (categoryCard) {
-        selectedCategory = categoryCard.dataset.category;
-        selectedCategoryLabel = categoryCard.dataset.categoryLabel || categoryCard.dataset.category;
-        catalogMode = 'category';
+        const key = categoryCard.dataset.category;
+        if (key === 'all') {
+          selectedCategory = null;
+          selectedCategoryLabel = '';
+          catalogMode = 'categories';
+        } else {
+          selectedCategory = key;
+          selectedCategoryLabel = categoryCard.dataset.categoryLabel || categoryCard.dataset.category;
+          catalogMode = 'category';
+        }
         searchInput.value = '';
         renderSearch();
         return;
@@ -2707,7 +2743,7 @@ Oq fonli foto`;
         selectedCategory = homeCategoryCard.dataset.homeCategory;
         selectedCategoryLabel = homeCategoryCard.dataset.homeCategoryLabel || homeCategoryCard.dataset.homeCategory;
         catalogMode = 'category';
-        setView('searchView');
+        setView('searchView', { push: true });
         searchInput.value = '';
         renderSearch();
       }
@@ -2717,6 +2753,8 @@ Oq fonli foto`;
     modalOverlay.addEventListener('click', (e) => {
       if (e.target === modalOverlay) closeProductModal();
     });
+    appBackBtn?.addEventListener('click', appGoBack);
+    window.addEventListener('popstate', () => appGoBack());
 
     modalAddBtn.addEventListener('click', async () => {
       if (!activeModalProductId) return;
