@@ -1194,7 +1194,7 @@
           <h3 style="margin:0;">Ro‘yxatdan o‘tish</h3>
           <button class="auth-sheet-close" id="closeAuthSheetBtn">✕</button>
         </div>
-        <input id="authName" class="auth-input" placeholder="Ism" />
+        <input id="authName" class="auth-input" placeholder="Ismingiz" />
         <input id="authPhone" class="auth-input" placeholder="Telefon raqam" />
         <div class="list-card gm-card" style="margin-top:10px;padding:10px;">
           <div class="muted" style="margin-bottom:8px;">OTP tasdiqlash (ixtiyoriy)</div>
@@ -1222,7 +1222,7 @@
           <button class="bell gm-icon-btn" aria-label="Savatga o'tish" id="homeCartShortcut">🛒<span class="badge gm-chip gm-chip--warning" id="homeCartShortcutBadge">0</span></button>
         </header>
 
-        <button class="search home-search-lg" id="openSearchBtn">🔎&nbsp; Маҳсулот, бренд ёки тоифани қидиринг</button>
+        <button class="search home-search-lg" id="openSearchBtn">🔎&nbsp; Mahsulot, brend yoki toifani qidiring</button>
 
         <div class="section-head gm-section-header" id="popularSectionHead">
           <h4 id="bannerSectionTitle">Bannerlar</h4>
@@ -1331,6 +1331,7 @@
         </div>
         <div class="list-card gm-card" id="profileGuestCard" style="display:none;">
           <h3 style="margin-bottom:6px;">Mehmon foydalanuvchi</h3>
+          <p class="muted" style="margin:0 0 10px;">Avval ro‘yxatdan o‘ting</p>
           <button class="btn gm-btn gm-btn-primary btn-primary" id="profileRegisterBtn">Ro‘yxatdan o‘tish</button>
         </div>
       </section>
@@ -1660,12 +1661,12 @@ Oq fonli foto</div>
 
       homeBrandName.textContent = settings.brandName || settings.heroTitle || 'GlobusMarket';
       homeLocation.textContent = `📍 ${settings.locationText || DEFAULT_LOCATION_ADDRESS}`;
-      openSearchBtn.textContent = settings.searchPlaceholder || '🔎 Маҳсулот, бренд ёки тоифани қидиринг';
+      openSearchBtn.textContent = settings.searchPlaceholder || '🔎 Mahsulot, brend yoki toifani qidiring';
 
       const fallbackBanner = {
-        title: settings.heroTitle || 'Экспресс етказиб бериш',
-        subtitle: settings.heroSubtitle || settings.deliveryText || 'Yangi mahsulotlar tez va ishonchli yetkazib beriladi.',
-        badge: settings.heroBadgeText || '⚡ Бугун бепул доставка',
+        title: settings.heroTitle || 'GlobusMarket',
+        subtitle: settings.heroSubtitle || settings.deliveryText || 'Tez, qulay va ishonchli xarid',
+        badge: settings.heroBadgeText || 'Ishonchli xizmat',
         image_url: settings.backgroundImageUrl || ''
       };
       const bannerItems = banners.length ? banners : [fallbackBanner];
@@ -1681,8 +1682,8 @@ Oq fonli foto</div>
       `).join('');
 
       const fallbackPromo = {
-        title: settings.bonusTitle || 'Бонус балллар ×2',
-        description: settings.bonusSubtitle || 'Янги ҳафта акцияси',
+        title: settings.bonusTitle || 'Siz uchun qulay tanlov',
+        description: settings.bonusSubtitle || 'Har kuni yangi va sifatli mahsulotlar',
         image_url: ''
       };
       const promoItems = promotions.length ? promotions : [fallbackPromo];
