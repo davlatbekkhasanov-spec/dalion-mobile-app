@@ -15,9 +15,24 @@ function buildDemoProducts() {
     'Printer va kartrijlar': ['HP LaserJet printer', 'Canon Inkjet printer', 'Epson MFP', 'HP 85A kartrij', 'Canon 725 kartrij', 'Epson 003 siyoh', 'Printer kabel USB-B', 'Toner universal', 'Drum unit'],
     'Kompyuter aksessuarlari': ['Simsiz sichqoncha', 'USB klaviatura', 'Web-kamera HD', 'Naushnik mikrofonsiz', 'Naushnik mikrofonli', 'Laptop stendi', 'Bluetooth adapter', 'Card reader', 'Kuler pad'],
     'USB va kabellar': ['USB fleshka 32GB', 'USB fleshka 64GB', 'Type-C kabel 1m', 'Lightning kabel 1m', 'HDMI kabel 2m', 'VGA kabel 1.5m', 'LAN kabel Cat6 3m', 'USB hub 4 port', 'OTG adapter'],
-    'Tashkiliy buyumlar': ['Qog‘oz qisqichi 33mm', 'Skrepkalar 100 dona', 'Rezinka bog‘lagich', 'Nomerator stiker', 'Kantselyariya lotok', 'Sandiqcha organizer', 'Stol kalendari', 'Pin knopka', 'Magnit doska pin']
+    'Tashkiliy buyumlar': ['Qog‘oz qisqichi 33mm', 'Skrepkalar 100 dona', 'Rezinka bog‘lagich', 'Nomerator stiker', 'Kantselyariya lotok', 'Sandiqcha organizer', 'Stol kalendari', 'Pin knopka', 'Magnit doska pin'],
+    'Bo‘yoqlar va ijod': ['Akril bo‘yoq seti', 'Guash bo‘yoq 12 rang', 'Akvarel bo‘yoq', 'Rasm albomi A4', 'Mo‘yqalam seti', 'Palitra plastik', 'Marker seti rangli', 'Kanvas 30x40', 'Yelim PVA 100ml'],
+    'Boshqa': ['Batareya AA 4 dona', 'Nam salfetka', 'Kalkulyator batareya', 'Mini fan USB', 'Portativ stiker printer', 'Qulfli quti', 'Qadoqlash lentasi', 'Ko‘rsatkich stikeri', 'Universal tozalagich']
   };
-  const imageBase = 'https://kanstik.uz/storage/products';
+  const categoryImageMap = {
+    'Kanselyariya': 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80',
+    'Ofis jihozlari': 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80',
+    'Qog‘oz mahsulotlari': 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=900&q=80',
+    'Papkalar': 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=900&q=80',
+    'Ruchkalar': 'https://images.unsplash.com/photo-1506784365847-bbad939e9335?auto=format&fit=crop&w=900&q=80',
+    'Daftarlar': 'https://images.unsplash.com/photo-1531346680769-a1d79b57de5c?auto=format&fit=crop&w=900&q=80',
+    'Printer va kartrijlar': 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?auto=format&fit=crop&w=900&q=80',
+    'Kompyuter aksessuarlari': 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80',
+    'USB va kabellar': 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80',
+    'Tashkiliy buyumlar': 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=900&q=80',
+    'Bo‘yoqlar va ijod': 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=900&q=80',
+    'Boshqa': 'https://images.unsplash.com/photo-1481487196290-c152efe083f5?auto=format&fit=crop&w=900&q=80'
+  };
   const out = [];
   let idx = 1;
   for (const cat of DEMO_CATEGORIES) {
@@ -26,8 +41,7 @@ function buildDemoProducts() {
       const productName = items[i % items.length];
       const base = 12000 + (idx * 1950);
       const old = i % 3 === 0 ? base + 12000 : 0;
-      const imageSlug = `${cat}-${productName}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      const imageUrl = `${imageBase}/${imageSlug}.jpg`;
+      const imageUrl = categoryImageMap[cat] || categoryImageMap['Boshqa'];
       out.push({
         id: `demo-${idx}`,
         code: `DEMO-${String(idx).padStart(4, '0')}`,
@@ -39,7 +53,7 @@ function buildDemoProducts() {
         stock: 5 + (idx % 40),
         image_url: imageUrl,
         image: imageUrl,
-        source: 'demo',
+        source: 'static_demo',
         active: true
       });
       idx += 1;
@@ -145,7 +159,7 @@ exports.updateProduct = (req, res) => {
 exports.loadDemoProducts = (req, res) => {
   const products = buildDemoProducts();
   store.upsertProducts(products);
-  return res.json({ ok: true, imported: products.length, categories: DEMO_CATEGORIES.length, source: 'demo' });
+  return res.json({ ok: true, imported: products.length, categories: DEMO_CATEGORIES.length, images: products.filter((p) => p.image_url).length, source: 'static_demo' });
 };
 
 exports.loadKanstikDemoProducts = async (req, res) => {

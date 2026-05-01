@@ -1079,30 +1079,22 @@
     .auth-sheet{background:#fff;border:1px solid #eceff5}
     .auth-input{background:#fff;color:#1d2440;border:1px solid #d0d5dd}
 
+  .premium-intro .intro-logo{animation:introLogo 2.2s ease both}.intro-chip{display:inline-flex;align-items:center;background:#fff;border:1px solid #eceff5;border-radius:999px;padding:6px 10px;max-width:max-content}.intro-cards{display:grid;gap:8px;background:#f7f7ff}.intro-card{height:52px;border-radius:12px;background:linear-gradient(90deg,#fff,#f4f3ff);border:1px solid #e8e7ff;box-shadow:0 6px 16px rgba(91,76,255,.12);opacity:0;transform:translateY(12px)}.intro-card:nth-child(1){animation:introCard .6s .3s forwards}.intro-card:nth-child(2){animation:introCard .6s .55s forwards}.intro-card:nth-child(3){animation:introCard .6s .8s forwards}.intro-cta{opacity:0;animation:introCard .5s 1.5s forwards}@keyframes introLogo{0%{opacity:0;transform:scale(.96)}100%{opacity:1;transform:scale(1)}}@keyframes introCard{to{opacity:1;transform:translateY(0)}}
+
   </style>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
   <main class="phone" id="phone">
-    <button id="appBackBtn" aria-label="Orqaga" style="display:none;">←</button>
+    
     <section class="screen intro" id="introScreen">
-      <div class="intro-inner">
-        <p class="muted">📍 Samarqand, Shohruh Mirzo 33</p>
-        <h1 class="brand">GlobusMarket</h1>
+      <div class="intro-inner premium-intro">
+        <p class="muted intro-chip">Samarqand, Shohrux Mirzo 33</p>
+        <h1 class="brand intro-logo">GlobusMarket</h1>
         <p class="subtitle">Har kuni kerakli mahsulotlar</p>
-        <div class="onb-card">
-          <div class="onb-hero-top">
-            <div class="onb-stat"><b>5000+ mahsulot</b><span>Har kuni yangilanadi</span></div>
-            <div class="onb-stat"><b>30 daqiqa</b><span>Tez yetkazish</span></div>
-          </div>
-          <div class="onb-hero-bottom">Ofis, kanselyariya va texnika mahsulotlari</div>
-        </div>
-        <div class="onb-bullets">
-          <div class="onb-bullet"><i>🚚</i><span>30 daqiqada yetkazib berish</span></div>
-          <div class="onb-bullet"><i>📦</i><span>5000+ mahsulot</span></div>
-          <div class="onb-bullet"><i>💳</i><span>Qulay to‘lov</span></div>
-        </div>
-        <button class="btn gm-btn gm-btn-primary btn-primary" id="openRegisterBtn" style="margin-top:auto;">Xaridni boshlash</button>
+        <div class="onb-card intro-cards"><div class="intro-card"></div><div class="intro-card"></div><div class="intro-card"></div></div>
+        <p class="subtitle">Tez yetkazib berish • Keng assortiment • Qulay to‘lov</p>
+        <button class="btn gm-btn gm-btn-primary btn-primary intro-cta" id="openRegisterBtn" style="margin-top:auto;">Xaridni boshlash</button>
       </div>
     </section>
 
@@ -1408,7 +1400,6 @@ Oq fonli foto</div>
     let lastOrderData = null;
 
     const phone = document.getElementById('phone');
-    const appBackBtn = document.getElementById('appBackBtn');
     const viewTitles = {
       searchView: 'Katalog',
       cartView: 'Savat',
@@ -2325,7 +2316,6 @@ Oq fonli foto</div>
       activeModalProductId = id;
       renderModal();
       modalOverlay.classList.add('show');
-      appBackBtn.style.display = 'inline-grid';
       history.pushState({ type: 'modal' }, '');
     }
 
@@ -2333,7 +2323,6 @@ Oq fonli foto</div>
       modalOverlay.classList.remove('show');
       modalImageBox?.classList.remove('zoomed');
       activeModalProductId = null;
-      appBackBtn.style.display = appNavStack.length > 1 ? 'inline-grid' : 'none';
     }
 
     function closeLocationDeniedModal() {
@@ -2386,7 +2375,6 @@ Oq fonli foto</div>
         appNavStack.push(viewId);
         history.pushState({ type: 'view', viewId }, '');
       }
-      appBackBtn.style.display = 'none';
       updateInlineBackTitle();
     }
 
@@ -2432,13 +2420,7 @@ Oq fonli foto</div>
       }
     }
 
-    openRegisterBtn?.addEventListener('click', () => {
-      if (!authSheetOverlay) {
-        showToast("Ro'yxatdan o'tish paneli topilmadi");
-        return;
-      }
-      authSheetOverlay.classList.add('show');
-    });
+    openRegisterBtn?.addEventListener('click', async () => { phone.classList.add('show-app'); setView('homeView'); await initializeAppData(); });
 
     closeAuthSheetBtn?.addEventListener('click', () => {
       authSheetOverlay.classList.remove('show');
@@ -2673,7 +2655,6 @@ Oq fonli foto</div>
     modalOverlay.addEventListener('click', (e) => {
       if (e.target === modalOverlay) closeProductModal();
     });
-    appBackBtn?.addEventListener('click', () => window.history.back());
     window.addEventListener('popstate', () => appGoBack());
 
     modalAddBtn.addEventListener('click', async () => {
