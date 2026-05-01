@@ -93,6 +93,34 @@ function parseNumber(raw) {
   const n = Number(cleaned || '0');
   return Number.isFinite(n) ? n : NaN;
 }
+function normalizeImportedCategory(raw = '') {
+  const text = String(raw || '').trim().toLowerCase();
+  if (!text) return 'Boshqa';
+  if (/(ichim|suv|sharbat|напит)/i.test(text)) return 'Ichimliklar';
+  if (/(shirin|konfet|shokolad)/i.test(text)) return 'Shirinliklar';
+  if (/(sut|qatiq|pishloq)/i.test(text)) return 'Sut mahsulotlari';
+  if (/(non|buloch|un)/i.test(text)) return 'Non mahsulotlari';
+  if (/(meva|sabz|ko'kat|ko‘kat)/i.test(text)) return 'Meva-sabzavot';
+  if (/(go.sht|gosht|tovuq)/i.test(text)) return 'Go‘sht';
+  if (/(uy|ro.zg.or|xojalik|tozalash)/i.test(text)) return 'Uy-ro‘zg‘or';
+  if (/(gigiy|shampun|sovun|шампун|гигиен)/i.test(text)) return 'Gigiyena';
+  if (/(muzlat|frozen)/i.test(text)) return 'Muzlatilgan';
+  return 'Boshqa';
+}
+function isCategoryHeaderName(name = '') {
+  return /^[■◼▪●]\s*/u.test(String(name || '').trim());
+}
+function cleanCategoryHeaderName(name = '') {
+  return String(name || '').replace(/^[■◼▪●]\s*/u, '').trim();
+}
+function resolveRowCategory({ nameRaw = '', explicitCategory = '', currentCategory = 'Boshqa' } = {}) {
+  if (isCategoryHeaderName(nameRaw)) {
+    const cleaned = cleanCategoryHeaderName(nameRaw);
+    return { isCategoryHeader: true, nextCategory: cleaned || currentCategory || 'Boshqa', assignedCategory: null };
+  }
+  const assigned = normalizeImportedCategory(explicitCategory || currentCategory || 'Boshqa');
+  return { isCategoryHeader: false, nextCategory: currentCategory || 'Boshqa', assignedCategory: assigned };
+}
 
 function parseDrawingImages(files) {
   const drawingXml = (files['xl/drawings/drawing1.xml'] || Buffer.from('')).toString('utf8');
@@ -461,9 +489,20 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
   const headersByName = {};
   for (const [idx, val] of headers.entries()) headersByName[val] = idx;
 
-  const required = ['Код', 'Номенклатура', 'Файл картинки', 'Штук', 'Цена'];
-  const missing = required.filter((h) => !headersByName[h]);
-  if (missing.length) throw new Error(`Excel header missing: ${missing.join(', ')}`);
+  const findHeader = (...variants) => variants.find((h) => headersByName[h]);
+  const codeHeader = findHeader('Код', 'code', 'Code', 'ID', 'id', 'sku', 'SKU');
+  const nameHeader = findHeader('Номенклатура', 'name', 'Name', 'Название');
+  const stockHeader = findHeader('Штук', 'stock', 'Stock', 'quantity', 'Quantity');
+  const priceHeader = findHeader('Цена', 'price', 'Price');
+  const oldPriceHeader = findHeader('old_price', 'oldPrice', 'Old Price', 'Старая цена');
+  const categoryHeader = findHeader('category', 'category_name', 'Category', 'Kategoriya', 'Категория', 'folder', 'group', 'type');
+  const imageUrlHeader = findHeader('image_url', 'imageUrl', 'Image URL', 'Картинка', 'Ссылка картинки');
+
+  const requiredMissing = [];
+  if (!nameHeader) requiredMissing.push('name');
+  if (!priceHeader) requiredMissing.push('price');
+  if (!stockHeader) requiredMissing.push('stock');
+  if (requiredMissing.length) throw new Error(`Excel header missing: ${requiredMissing.join(', ')}`);
 
   const rowImages = parseDrawingImages(files);
   fs.mkdirSync(PRODUCTS_UPLOAD_DIR, { recursive: true });
@@ -478,6 +517,9 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
   let imageUpscaled = 0;
   let imageSkippedExisting = 0;
   let imageMissing = 0;
+  const detectedCategories = new Set();
+  let productsAssignedCategory = 0;
+  let productsWithoutCategoryFallback = 0;
   const imageProcessingWarnings = [];
   const imageDetectionWarnings = [];
   const startedAt = Date.now();
@@ -488,13 +530,16 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
   const parsedRows = [];
   for (const rowNo of sortedRows) {
     const row = rows.get(rowNo) || new Map();
-    const codeRaw = (row.get(headersByName['Код']) || '').trim();
-    const nameRaw = (row.get(headersByName['Номенклатура']) || '').trim();
+    const codeRaw = String(codeHeader ? (row.get(headersByName[codeHeader]) || '') : '').trim();
+    const nameRaw = String(row.get(headersByName[nameHeader]) || '').trim();
 
     if (!codeRaw && !nameRaw) continue;
 
-    if (nameRaw.startsWith('◼')) {
-      currentCategory = nameRaw.replace(/^◼\s*/, '').trim() || currentCategory;
+    const categoryFromRow = categoryHeader ? String(row.get(headersByName[categoryHeader]) || '').trim() : '';
+    const categoryState = resolveRowCategory({ nameRaw, explicitCategory: categoryFromRow, currentCategory });
+    if (categoryState.isCategoryHeader) {
+      currentCategory = categoryState.nextCategory;
+      if (cleanCategoryHeaderName(nameRaw)) detectedCategories.add(currentCategory);
       continue;
     }
 
@@ -504,11 +549,18 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
       continue;
     }
 
-    const stock = parseNumber(row.get(headersByName['Штук']) || '0');
-    const price = parseNumber(row.get(headersByName['Цена']) || '0');
-    if (Number.isNaN(price) || price <= 0) {
+    const stock = parseNumber(row.get(headersByName[stockHeader]) || '0');
+    const price = parseNumber(row.get(headersByName[priceHeader]) || '0');
+    const oldPrice = oldPriceHeader ? parseNumber(row.get(headersByName[oldPriceHeader]) || '') : NaN;
+    const imageUrlRaw = imageUrlHeader ? String(row.get(headersByName[imageUrlHeader]) || '').trim() : '';
+    if (Number.isNaN(price) || price < 0) {
       skipped += 1;
-      errors.push({ row: rowNo, code: codeRaw, message: 'Цена noto\'g\'ri' });
+      errors.push({ row: rowNo, code: codeRaw, message: 'price noto\'g\'ri' });
+      continue;
+    }
+    if (Number.isNaN(stock) || stock < 0) {
+      skipped += 1;
+      errors.push({ row: rowNo, code: codeRaw, message: 'stock noto\'g\'ri' });
       continue;
     }
 
@@ -516,10 +568,12 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
       rowNo,
       codeRaw,
       nameRaw,
-      safeCode: sanitizeCode(codeRaw),
-      currentCategory,
-      stock: Number.isNaN(stock) ? 0 : stock,
+      safeCode: sanitizeCode(codeRaw || nameRaw.toLowerCase().replace(/\s+/g, '-')),
+      currentCategory: categoryState.assignedCategory,
+      stock,
       price,
+      oldPrice: Number.isFinite(oldPrice) && oldPrice >= 0 ? oldPrice : price,
+      imageUrlRaw,
       rowImage: rowImages.get(rowNo)
     });
   }
@@ -577,7 +631,9 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
       imageMissing += 1;
     }
 
-    if (!processImages && existing?.image_url) {
+    if (item.imageUrlRaw) {
+      imageUrl = item.imageUrlRaw;
+    } else if (!processImages && existing?.image_url) {
       imageUrl = existing.image_url;
     }
 
@@ -589,7 +645,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
       category: updateOnlyStockPrice && existing ? existing.category : item.currentCategory,
       stock: item.stock,
       price: item.price,
-      oldPrice: item.price,
+      oldPrice: item.oldPrice,
       image_url: updateOnlyStockPrice && existing ? existing.image_url : imageUrl,
       image: updateOnlyStockPrice && existing ? existing.image : imageUrl,
       source: 'excel',
@@ -597,6 +653,8 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
       active: existing ? existing.active !== false : true,
       orderCount: existing?.orderCount || 0
     });
+    if (item.currentCategory && item.currentCategory !== 'Boshqa') productsAssignedCategory += 1;
+    else productsWithoutCategoryFallback += 1;
   });
 
   store.upsertProducts(upsertRows);
@@ -606,6 +664,10 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
   return {
     imported: upsertRows.length,
     skipped,
+    invalidRows: skipped,
+    categoriesDetected: detectedCategories.size,
+    productsAssignedCategory,
+    productsWithoutCategoryFallback,
     imageExtracted,
     imageProcessed,
     imageObjectDetected,
@@ -615,11 +677,18 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
     processingTimeMs,
     averageImageMs,
     imageProcessingWarnings,
+    imageWarnings: imageProcessingWarnings.length + imageMissing,
     imageMissing,
     errors
   };
 }
 
 module.exports = {
-  importProductsFromXlsxBuffer
+  importProductsFromXlsxBuffer,
+  __test: {
+    isCategoryHeaderName,
+    cleanCategoryHeaderName,
+    normalizeImportedCategory,
+    resolveRowCategory
+  }
 };
