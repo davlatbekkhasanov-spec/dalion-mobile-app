@@ -78,6 +78,7 @@ router.post('/admin/categories/:id/image', requireAdminImportToken, parseMultipa
 router.get('/admin/products', requireAdminImportToken, adminController.getProducts);
 router.put('/admin/products/:id', requireAdminImportToken, adminController.updateProduct);
 router.post('/admin/products/load-demo', requireAdminImportToken, adminController.loadDemoProducts);
+router.post('/admin/products/load-kanstik-demo', requireAdminImportToken, adminController.loadKanstikDemoProducts);
 router.post('/admin/products/clear-demo', requireAdminImportToken, adminController.clearDemoProducts);
 router.get('/admin/store/summary', requireAdminImportToken, adminController.getStoreSummary);
 router.post('/admin/store/reload', requireAdminImportToken, adminController.reloadStore);

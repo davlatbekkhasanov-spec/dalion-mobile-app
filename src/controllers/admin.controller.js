@@ -2,7 +2,7 @@ const store = require('../data/store.js');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
-const DEMO_CATEGORIES = ['Kanselyariya', 'Ofis jihozlari', 'Qog‘oz mahsulotlari', 'Papkalar', 'Ruchkalar', 'Daftarlar', 'Printer va kartrijlar', 'Kompyuter aksessuarlari', 'USB va kabellar', 'Tashkiliy buyumlar'];
+const { loadKanstikDemoCatalog, SOURCE: KANSTIK_SOURCE, DEMO_CATEGORIES } = require('../services/kanstik-demo.service.js');
 
 function buildDemoProducts() {
   const itemsByCategory = {
@@ -145,11 +145,22 @@ exports.updateProduct = (req, res) => {
 exports.loadDemoProducts = (req, res) => {
   const products = buildDemoProducts();
   store.upsertProducts(products);
-  return res.json({ ok: true, imported: products.length, categories: DEMO_CATEGORIES.length });
+  return res.json({ ok: true, imported: products.length, categories: DEMO_CATEGORIES.length, source: 'demo' });
+};
+
+exports.loadKanstikDemoProducts = async (req, res) => {
+  try {
+    const { products, summary } = await loadKanstikDemoCatalog();
+    if (!products.length) return res.status(422).json({ message: 'Kanstik sahifalaridan mahsulot topilmadi', summary });
+    store.upsertProducts(products);
+    return res.json({ ok: true, source: KANSTIK_SOURCE, ...summary });
+  } catch (e) {
+    return res.status(502).json({ ok: false, message: e.message || 'Kanstik demo yuklashda xatolik' });
+  }
 };
 exports.clearDemoProducts = (req, res) => {
   const before = store.products.length;
-  const keep = store.products.filter((p) => String(p.source || '') !== 'demo');
+  const keep = store.products.filter((p) => !['demo', KANSTIK_SOURCE].includes(String(p.source || '')));
   store.products.splice(0, store.products.length, ...keep);
   return res.json({ ok: true, removed: before - keep.length });
 };
