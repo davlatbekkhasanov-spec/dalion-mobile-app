@@ -1050,7 +1050,7 @@
     .product:hover { transform: none; border-color: transparent; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
     .image-box {
       width: 100%;
-      height: 190px;
+      height: 220px;
       margin-bottom: 0;
       border: 0;
       border-radius: 0;
@@ -1061,7 +1061,7 @@
       position: relative;
     }
     .image-box img { width: 100%; height: 100%; object-fit: cover; max-width: none; max-height: none; filter: none; }
-    .product-info { padding: 10px 12px; display:flex; flex-direction:column; gap:0; flex:1; }
+    .product-info { padding: 8px 10px 10px; display:flex; flex-direction:column; gap:0; flex:1; }
     .product h5 { font-size: 13px; min-height: 34px; margin: 4px 0 0; font-weight:500; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .price { color:#111827; font-size:18px; font-weight:700; line-height:1.15; margin: 0; }
     .old-price { color:#999; min-height: 14px; margin: 1px 0 0; font-size: 12px; text-decoration:line-through; }
@@ -1071,11 +1071,48 @@
     .discount-chip { background:#ff4d6d; color:#fff; border-radius:12px; font-size:12px; padding:4px 8px; }
     .delivery-chip { background:#f5f3ff; color:#5b4cff; }
     .quick-add-btn,.full-btn,.btn.btn-primary,.gm-btn-primary { background: linear-gradient(135deg, #7b5cff, #5a67ff); color:#fff; border:none; }
-    .quick-add-btn { min-height: 38px !important; height: 38px; border-radius: 10px; font-size:14px; font-weight: 600; margin: 8px 0 0; width: 100%; }
+    .quick-add-btn { min-height: 42px !important; height: 42px; border-radius: 12px; font-size:14px; font-weight: 600; margin: 8px 0 0; width: 100%; display:flex; align-items:center; justify-content:center; }
     .product-rating { font-size: 12px; color: #777; margin: 4px 0 0; }
     .credit-badge { background:#fef3c7; color:#92400e; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:700; margin: 0 10px; width: max-content; }
     .qty button { background:#f2f4f7; color:#1d2440; border:1px solid #dde3ee; }
     .qty span { background:#fff; color:#1d2440; border:1px solid #e4e7ec; }
+    .product .qty {
+      grid-template-columns: 44px 1fr 44px;
+      gap: 6px;
+      margin-top: 8px;
+      height: 42px;
+      background: #f7f8fc;
+      border: 1px solid #e5e9f2;
+      border-radius: 12px;
+      padding: 0;
+      overflow: hidden;
+    }
+    .product .qty button {
+      height: 42px;
+      min-width: 44px;
+      border-radius: 0;
+      border: 0;
+      background: #eef2f8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: #1d2440;
+    }
+    .product .qty span {
+      height: 42px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 15px;
+      font-weight: 700;
+      color: #1d2440;
+    }
+
     .icon-btn { background:#fff1f3; color:#b42318; border:1px solid #fbcfe8; min-height:40px; }
     .cart-item-thumb { width:72px; height:72px; }
     .cart-item-card { border-radius:18px; }
@@ -1837,7 +1874,9 @@ Oq fonli foto</div>
             <p class="old-price">${oldPrice > 0 ? money(oldPrice) : ''}</p>
             <h5>${p.name}</h5>
             ${hasRating ? `<p class="product-rating">⭐ ${rating}${reviews ? ` (${reviews})` : ''}</p>` : '<p class="product-rating">⭐ 4.8 (120)</p>'}
-            <button class="btn gm-btn gm-btn-primary quick-add-btn" data-add-one="${p.id}" ${stock <= 0 ? 'disabled' : ''}>Savatga qo‘shish</button>
+            ${qtyOf(p.id) > 0
+              ? `<div class="qty" data-qty-wrap="${p.id}">${makeQtyControls(p.id)}</div>`
+              : `<button class="btn gm-btn gm-btn-primary quick-add-btn" data-add-one="${p.id}" ${stock <= 0 ? 'disabled' : ''}>Savatga qo‘shish</button>`}
           </div>
         </article>
       `;
