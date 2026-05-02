@@ -1044,16 +1044,17 @@
     .promo, .list-card, .product, .category-card, .cat { background:#fff; border:1px solid #edf0f5; box-shadow:0 8px 24px rgba(16,24,40,.08); }
     .promo { background: linear-gradient(130deg,#6f54ff,#8c6bff); color:#fff; }
     .promo p, .promo .muted { color: rgba(255,255,255,.88); }
-    .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .image-box { height: 170px; background:#f8f9ff; border:1px solid #ecefff; }
-    .product { padding: 0; border-radius: 16px; overflow: hidden; gap: 0; display:flex; flex-direction:column; min-height:100%; border:0; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
-    .product:hover { transform: none; border-color: transparent; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+    .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-left: -6px; margin-right: -6px; }
+    .image-box { height: 170px; background:#f8f9ff; border:0; }
+    .product { padding: 0; border-radius: 16px; overflow: hidden; gap: 0; display:flex; flex-direction:column; min-height:100%; border:0; box-shadow: 0 4px 14px rgba(0,0,0,.06); background:#fff; }
+    .product:hover { transform: none; border-color: transparent; box-shadow: 0 4px 14px rgba(0,0,0,.06); }
     .image-box {
       width: 100%;
-      height: 220px;
+      aspect-ratio: 3 / 4;
+      height: 230px;
       margin-bottom: 0;
       border: 0;
-      border-radius: 0;
+      border-radius: 14px 14px 0 0;
       background: #eef2f8;
       box-shadow: none;
       padding: 0;
@@ -1061,9 +1062,9 @@
       position: relative;
     }
     .image-box img { width: 100%; height: 100%; object-fit: cover; max-width: none; max-height: none; filter: none; }
-    .product-info { padding: 8px 10px 10px; display:flex; flex-direction:column; gap:0; flex:1; }
+    .product-info { padding: 8px 8px 10px; display:flex; flex-direction:column; gap:0; flex:1; }
     .product h5 { font-size: 13px; min-height: 34px; margin: 4px 0 0; font-weight:500; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-    .price { color:#111827; font-size:18px; font-weight:700; line-height:1.15; margin: 0; }
+    .price { color:#111827; font-size:18px; font-weight:800; line-height:1.15; margin: 0; }
     .old-price { color:#999; min-height: 14px; margin: 1px 0 0; font-size: 12px; text-decoration:line-through; }
     .product-top-row { position:absolute; inset:8px 8px auto 8px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px; z-index:2; }
     .fav-btn { width:30px; height:30px; border-radius:999px; border:0; background:#fff; color:#b42318; display:grid; place-items:center; font-size:14px; box-shadow: 0 2px 8px rgba(16,24,40,.14); }
@@ -1071,7 +1072,7 @@
     .discount-chip { background:#ff4d6d; color:#fff; border-radius:12px; font-size:12px; padding:4px 8px; }
     .delivery-chip { background:#f5f3ff; color:#5b4cff; }
     .quick-add-btn,.full-btn,.btn.btn-primary,.gm-btn-primary { background: linear-gradient(135deg, #7b5cff, #5a67ff); color:#fff; border:none; }
-    .quick-add-btn { min-height: 42px !important; height: 42px; border-radius: 12px; font-size:14px; font-weight: 600; margin: 8px 0 0; width: 100%; display:flex; align-items:center; justify-content:center; }
+    .quick-add-btn { min-height: 38px !important; height: 38px; border-radius: 12px; font-size:13px; font-weight: 600; margin: 8px 0 0; width: 100%; display:flex; align-items:center; justify-content:center; line-height:1; }
     .product-rating { font-size: 12px; color: #777; margin: 4px 0 0; }
     .credit-badge { background:#fef3c7; color:#92400e; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:700; margin: 0 10px; width: max-content; }
     .qty button { background:#f2f4f7; color:#1d2440; border:1px solid #dde3ee; }
@@ -1080,7 +1081,7 @@
       grid-template-columns: 44px 1fr 44px;
       gap: 6px;
       margin-top: 8px;
-      height: 42px;
+      height: 38px;
       background: #f7f8fc;
       border: 1px solid #e5e9f2;
       border-radius: 12px;
@@ -1088,7 +1089,7 @@
       overflow: hidden;
     }
     .product .qty button {
-      height: 42px;
+      height: 38px;
       min-width: 44px;
       border-radius: 0;
       border: 0;
@@ -1101,7 +1102,7 @@
       color: #1d2440;
     }
     .product .qty span {
-      height: 42px;
+      height: 38px;
       border: 0;
       border-radius: 0;
       background: transparent;
@@ -1112,6 +1113,22 @@
       font-weight: 700;
       color: #1d2440;
     }
+    .image-fallback {
+      width: 100%;
+      height: 100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      color:#475467;
+      background: linear-gradient(180deg, #f6f7fb 0%, #eceff5 100%);
+      font-size:12px;
+      font-weight:700;
+      text-align:center;
+      padding:10px;
+    }
+    .image-fallback i { font-style:normal; font-size:34px; }
 
     .icon-btn { background:#fff1f3; color:#b42318; border:1px solid #fbcfe8; min-height:40px; }
     .cart-item-thumb { width:72px; height:72px; }
@@ -1859,7 +1876,9 @@ Oq fonli foto</div>
       const rating = hasRating ? ratingValue.toFixed(1) : '';
       const reviews = Number(p.reviewCount || 0);
       const priceText = Number(p.price) > 0 ? money(p.price) : 'Narx aniqlanmoqda';
-      const imageHtml = p.image_url ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '';
+      const imageHtml = p.image_url
+        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.remove();this.parentElement.insertAdjacentHTML('beforeend', imageFallbackTemplate('${(p.categoryDisplayName || p.category || '').replace(/'/g, '&#39;')}'));" />`
+        : imageFallbackTemplate(p.categoryDisplayName || p.category || p.name);
       return `
         <article class="product gm-card" data-open-product="${p.id}">
           <div class="image-box">
@@ -1882,6 +1901,63 @@ Oq fonli foto</div>
       `;
     }
 
+    function imageFallbackTemplate(categoryName = '') {
+      const normalized = String(categoryName).toLowerCase();
+      const map = [
+        { icon: '📒', label: 'Daftar', keys: ['daftar', 'kitob'] },
+        { icon: '🖊️', label: 'Ruchka', keys: ['ruchka', 'marker'] },
+        { icon: '🖨️', label: 'Printer', keys: ['printer', 'kartrij'] },
+        { icon: '⌨️', label: 'Aksessuar', keys: ['klaviatura', 'sichqoncha', 'kabel', 'usb'] },
+        { icon: '📁', label: 'Ofis', keys: ['papka', 'fayl', 'organayzer', 'stapler'] },
+      ];
+      const found = map.find((item) => item.keys.some((key) => normalized.includes(key))) || { icon: '🛍️', label: 'Mahsulot' };
+      return `<div class="image-fallback"><i>${found.icon}</i><span>${found.label}</span></div>`;
+    }
+
+    const FEATURED_PRODUCT_NAMES = [
+      'A4 daftar 96 list',
+      'Pilot ruchka qora',
+      'HP printer qog‘ozi',
+      'USB Type-C kabel',
+      'Klaviatura',
+      'Sichqoncha',
+      'Fayl papka A4',
+      'Stapler',
+      'Marker to‘plami',
+      'Printer kartrij',
+      'Monitor tagligi',
+      'Ofis organayzer',
+    ];
+
+    function buildDiverseProductShowcase(list = [], limit = 12) {
+      const usedIds = new Set();
+      const ranked = [];
+      FEATURED_PRODUCT_NAMES.forEach((targetName) => {
+        const normalizedTarget = targetName.toLowerCase();
+        const hit = list.find((product) => !usedIds.has(product.id) && String(product.name || '').toLowerCase().includes(normalizedTarget.split(' ')[0]));
+        if (hit) {
+          usedIds.add(hit.id);
+          ranked.push(hit);
+        }
+      });
+      const remainder = list.filter((product) => !usedIds.has(product.id));
+      remainder.sort((a, b) => {
+        const ai = `${a.name || ''}|${a.image_url || ''}`;
+        const bi = `${b.name || ''}|${b.image_url || ''}`;
+        return ai.localeCompare(bi, 'uz');
+      });
+      const diverse = [];
+      const seenNameRoots = new Set();
+      for (const item of remainder) {
+        const nameRoot = String(item.name || '').toLowerCase().split(' ').slice(0, 2).join(' ');
+        if (seenNameRoots.has(nameRoot) && diverse.length + ranked.length < limit) continue;
+        seenNameRoots.add(nameRoot);
+        diverse.push(item);
+        if (diverse.length + ranked.length >= limit) break;
+      }
+      return [...ranked, ...diverse].slice(0, limit);
+    }
+
     function setSectionVisibility(sectionEl, headEl, hasItems) {
       sectionEl.style.display = hasItems ? 'grid' : 'none';
       if (headEl) headEl.style.display = hasItems ? 'flex' : 'none';
@@ -1899,7 +1975,8 @@ Oq fonli foto</div>
           if (byPrice !== 0) return byPrice;
           return String(a.name || '').localeCompare(String(b.name || ''), 'uz');
         })
-        .slice(0, 8);
+        .slice(0, 20);
+      const diversePopular = buildDiverseProductShowcase(popular, 12);
       const discounts = products.filter((p) => Number(p.oldPrice || 0) > Number(p.price || 0)).slice(0, 6);
       const fast = products.filter((p) => Number(p.stock || 0) > 0).slice(0, 6);
       const bestSeller = popular.slice(0, 6);
@@ -1907,7 +1984,7 @@ Oq fonli foto</div>
         ? products.filter((p) => cartItemsSnapshot.some((c) => c.id === p.id)).slice(0, 6)
         : [];
 
-      homeProducts.innerHTML = popular.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Mahsulotlar yuklanmoqda...</div>';
+      homeProducts.innerHTML = diversePopular.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Mahsulotlar yuklanmoqda...</div>';
       homeDiscountProducts.innerHTML = discounts.map(productCardTemplate).join('');
       homeFastProducts.innerHTML = fast.map(productCardTemplate).join('');
       homeBestSellerProducts.innerHTML = bestSeller.map(productCardTemplate).join('');
