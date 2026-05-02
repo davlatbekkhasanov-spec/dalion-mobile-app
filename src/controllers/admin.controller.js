@@ -48,6 +48,17 @@ exports.deletePromotion = (req, res) => {
   return res.json({ ok: true });
 };
 
+
+exports.getPromoCodes = (req, res) => {
+  res.json({ promoCodes: store.getPromoCodes() });
+};
+
+exports.upsertPromoCode = (req, res) => {
+  const promoCode = store.upsertPromoCode(req.body || {});
+  if (!promoCode) return res.status(400).json({ message: 'promo_code required' });
+  return res.json({ promoCode });
+};
+
 exports.getHomeSettings = (req, res) => {
   res.json({ homeSettings: store.getHomeSettings() });
 };

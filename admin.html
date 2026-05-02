@@ -705,6 +705,7 @@
             <label>${t('active')} <input type="checkbox" data-role="active" ${p.active?'checked':''}></label>
             <input data-role="price" type="number" value="${p.price}" placeholder="price">
             <input data-role="stock" type="number" value="${p.stock||0}" placeholder="stock">
+            <input data-role="discount_percent" type="number" min="0" max="100" value="${p.discount_percent||0}" placeholder="discount %">
             <select data-role="categoryId">${opts}</select>
             <button data-id="${p.id}">${t('save')}</button>
           </div>
@@ -717,7 +718,7 @@
       const p=b.closest('.item');
       try{
         setBtnLoading(b, true, t('save'));
-        await api('/admin/products/'+b.dataset.id,{method:'PUT',body:JSON.stringify({active:p.querySelector('[data-role=active]').checked,price:Number(p.querySelector('[data-role=price]').value),stock:Number(p.querySelector('[data-role=stock]').value),categoryId:p.querySelector('[data-role=categoryId]').value})});
+        await api('/admin/products/'+b.dataset.id,{method:'PUT',body:JSON.stringify({active:p.querySelector('[data-role=active]').checked,price:Number(p.querySelector('[data-role=price]').value),stock:Number(p.querySelector('[data-role=stock]').value),categoryId:p.querySelector('[data-role=categoryId]').value,discount_percent:Number(p.querySelector('[data-role=discount_percent]').value||0)})});
         showToast(t('saveOk'));
         await loadProducts();
       }catch(err){showToast(err.message||t('loadError'))}

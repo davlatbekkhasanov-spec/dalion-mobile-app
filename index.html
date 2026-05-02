@@ -1349,6 +1349,7 @@
           <p class="muted" id="checkoutLandmark">Orientir: -</p>
           <input id="manualAddress" class="checkout-input" placeholder="Manzil (qo'lda)" />
           <input id="landmarkInput" class="checkout-input" placeholder="Orientir" />
+          <input id="promoCodeInput" class="checkout-input" placeholder="Promo kod (ixtiyoriy)" />
           <button class="btn btn-secondary location-premium-btn" id="captureLocationBtn">GPS orqali manzilni olish (ixtiyoriy)</button>
           <p class="muted" id="checkoutLocationHint">Lokatsiya ixtiyoriy. Istasangiz manzilni qo‘lda kiriting.</p>
           <p class="muted" id="checkoutDistance">Masofa: aniqlanmagan</p>
@@ -1558,6 +1559,7 @@ Oq fonli foto</div>
     const checkoutSubtotal = document.getElementById('checkoutSubtotal');
     const checkoutDeliveryPrice = document.getElementById('checkoutDeliveryPrice');
     const checkoutGrandTotal = document.getElementById('checkoutGrandTotal');
+    const promoCodeInput = document.getElementById('promoCodeInput');
     const addressValidationError = document.getElementById('addressValidationError');
     const paymentValidationError = document.getElementById('paymentValidationError');
     const successOrderNumber = document.getElementById('successOrderNumber');
@@ -2851,7 +2853,8 @@ Oq fonli foto</div>
             addressText: customerLocation.addressText,
             landmarkText: customerLocation.landmarkText,
             deliveryTime: homePayload?.delivery_info?.time || '30 daqiqa',
-            deliveryPrice: homePayload?.delivery_info?.price || 12000
+            deliveryPrice: homePayload?.delivery_info?.price || 12000,
+            promoCode: String(promoCodeInput?.value || '').trim()
           })
         });
 

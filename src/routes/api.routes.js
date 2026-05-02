@@ -67,6 +67,8 @@ router.get('/admin/promotions', requireAdminImportToken, adminController.getProm
 router.post('/admin/promotions', requireAdminImportToken, adminController.createPromotion);
 router.put('/admin/promotions/:id', requireAdminImportToken, adminController.updatePromotion);
 router.delete('/admin/promotions/:id', requireAdminImportToken, adminController.deletePromotion);
+router.get('/admin/promo-codes', requireAdminImportToken, adminController.getPromoCodes);
+router.post('/admin/promo-codes', requireAdminImportToken, adminController.upsertPromoCode);
 
 router.get('/admin/home-settings', requireAdminImportToken, adminController.getHomeSettings);
 router.put('/admin/home-settings', requireAdminImportToken, adminController.updateHomeSettings);

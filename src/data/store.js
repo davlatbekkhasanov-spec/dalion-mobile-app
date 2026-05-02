@@ -24,8 +24,10 @@ const banners = [
 ];
 
 const promotions = [
-  { id: 'promo_1', title: 'Hafta aksiyasi', description: 'Eng yaxshi narxlar', discount_text: '-20%', active: true }
+  { id: 'promo_1', title: 'Hafta aksiyasi', description: 'Eng yaxshi narxlar', discount_text: '-20%', active: true, promo_code: '', discount_percent: 0 }
 ];
+
+const promoCodes = [];
 
 let homeSettings = {
   brandName: 'GlobusMarket',
@@ -90,6 +92,7 @@ function persistState() {
       categories,
       banners,
       promotions,
+      promoCodes,
       homeSettings,
       users: Array.from(users.values()),
       carts: Array.from(carts.entries()).map(([phone, cart]) => ({
@@ -115,6 +118,7 @@ function loadStateFromDisk() {
     if (Array.isArray(parsed.categories)) { categories.splice(0, categories.length, ...parsed.categories); }
     if (Array.isArray(parsed.banners)) { banners.splice(0, banners.length, ...parsed.banners); }
     if (Array.isArray(parsed.promotions)) { promotions.splice(0, promotions.length, ...parsed.promotions); }
+    if (Array.isArray(parsed.promoCodes)) { promoCodes.splice(0, promoCodes.length, ...parsed.promoCodes); }
     if (parsed.homeSettings && typeof parsed.homeSettings === 'object') { homeSettings = { ...homeSettings, ...parsed.homeSettings }; }
     if (Array.isArray(parsed.users)) {
       users.clear();
@@ -269,7 +273,9 @@ function createBanner(payload = {}) {
     title: payload.title || 'Yangi banner',
     subtitle: payload.subtitle || '',
     image_url: payload.image_url || '',
-    active: payload.active !== false
+    active: payload.active !== false,
+    action_type: payload.action_type || '',
+    action_value: payload.action_value || ''
   };
   banners.push(banner);
   persistState();
@@ -303,7 +309,9 @@ function createPromotion(payload = {}) {
     description: payload.description || '',
     discount_text: payload.discount_text || '',
     image_url: payload.image_url || '',
-    active: payload.active !== false
+    active: payload.active !== false,
+    promo_code: String(payload.promo_code || '').trim().toUpperCase(),
+    discount_percent: Math.max(0, Math.min(100, Number(payload.discount_percent || 0)))
   };
   promotions.push(promo);
   persistState();
@@ -410,13 +418,18 @@ function updateProduct(id, payload = {}) {
     categoryPatch = { categoryId: cat.id, category: cat.name };
   }
 
+  const nextPrice = payload.price !== undefined ? Math.max(0, Number(payload.price) || 0) : Math.max(0, Number(products[i].price || 0));
+  const discountPercent = payload.discount_percent !== undefined ? Math.max(0, Math.min(100, Number(payload.discount_percent) || 0)) : Math.max(0, Math.min(100, Number(products[i].discount_percent || 0)));
+  const discountedPrice = discountPercent > 0 ? Math.max(0, Math.round(nextPrice * (1 - (discountPercent / 100)))) : nextPrice;
   products[i] = {
     ...products[i],
     ...payload,
     ...categoryPatch,
-    price: payload.price !== undefined ? Number(payload.price) || 0 : products[i].price,
-    stock: payload.stock !== undefined ? Number(payload.stock) || 0 : products[i].stock,
-    oldPrice: payload.oldPrice !== undefined ? Number(payload.oldPrice) || 0 : products[i].oldPrice
+    discount_percent: discountPercent,
+    oldPrice: discountPercent > 0 ? nextPrice : 0,
+    old_price: discountPercent > 0 ? nextPrice : 0,
+    price: discountedPrice,
+    stock: payload.stock !== undefined ? Number(payload.stock) || 0 : products[i].stock
   };
   persistState();
   return products[i];
@@ -467,6 +480,23 @@ function clearCart(phone = '') {
   persistState();
 }
 
+
+function getPromoCodes() {
+  return promoCodes.slice();
+}
+
+function upsertPromoCode(payload = {}) {
+  const code = String(payload.promo_code || payload.code || '').trim().toUpperCase();
+  if (!code) return null;
+  const discount_percent = Math.max(0, Math.min(100, Number(payload.discount_percent || 0)));
+  const i = promoCodes.findIndex((x) => x.promo_code === code);
+  const row = { promo_code: code, discount_percent, active: payload.active !== false };
+  if (i === -1) promoCodes.push(row);
+  else promoCodes[i] = { ...promoCodes[i], ...row };
+  persistState();
+  return row;
+}
+
 function createOrder({
   paymentMethod = 'cash',
   paymentStatus = '',
@@ -487,7 +517,8 @@ function createOrder({
   authMethod = '',
   cashAgreementTextVersion = 'draft-v1',
   cashAgreementAccepted = false,
-  cashAgreementAcceptedAt = null
+  cashAgreementAcceptedAt = null,
+  promoCode = ''
 } = {}) {
   const normalizedUserPhone = normalizePhone(userPhone);
   if (!normalizedUserPhone) return { error: "Avval ro‘yxatdan o‘ting" };
@@ -555,6 +586,10 @@ function createOrder({
     deliveryDistanceKm = Math.max(0.5, earthKm * c);
   }
   const subtotal = Number(summary.subtotal || 0);
+  const normalizedPromoCode = String(promoCode || '').trim().toUpperCase();
+  const promo = promoCodes.find((x) => x.active !== false && x.promo_code === normalizedPromoCode);
+  const promoDiscountPercent = Math.max(0, Math.min(100, Number(promo?.discount_percent || 0)));
+  const promoDiscountAmount = Math.max(0, Math.round(subtotal * (promoDiscountPercent / 100)));
   const freeDelivery = Number.isFinite(freeDeliveryThreshold) && freeDeliveryThreshold > 0 && subtotal >= freeDeliveryThreshold;
   const computedDeliveryPrice = Math.max(0, Math.round(freeDelivery ? 0 : (baseDeliveryPrice + (deliveryDistanceKm * pricePerKm))));
   const deliveryZone = deliveryDistanceKm <= 3 ? 'near' : (deliveryDistanceKm <= 7 ? 'mid' : 'far');
@@ -620,7 +655,10 @@ function createOrder({
     delivery_zone: deliveryZone,
     items: orderItems,
     subtotal,
-    total: subtotal + computedDeliveryPrice
+    promoCode: promo?.promo_code || '',
+    promoDiscountPercent: promoDiscountPercent || 0,
+    promoDiscountAmount,
+    total: Math.max(0, subtotal - promoDiscountAmount) + computedDeliveryPrice
   };
   orderSequence += 1;
 
@@ -973,6 +1011,7 @@ module.exports = {
   categories,
   banners,
   promotions,
+  promoCodes,
   // public getters
   listProducts,
   getProductById,
@@ -988,6 +1027,8 @@ module.exports = {
   createPromotion,
   updatePromotion,
   deletePromotion,
+  getPromoCodes,
+  upsertPromoCode,
   updateHomeSettings,
   upsertUser,
   markPhoneVerified,
