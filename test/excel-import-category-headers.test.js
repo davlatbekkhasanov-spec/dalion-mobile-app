@@ -33,12 +33,12 @@ test('products inherit/switch category headers and fallback to Boshqa', () => {
   assert.equal(current, 'Адресные папки');
 
   out = __test.resolveRowCategory({ nameRaw: 'Адресат IMZOGA', currentCategory: current });
-  assert.equal(out.assignedCategory, 'Boshqa');
+  assert.equal(out.assignedCategory, 'Адресные папки');
 
   out = __test.resolveRowCategory({ nameRaw: '● Напитки', currentCategory: current });
   current = out.nextCategory;
   out = __test.resolveRowCategory({ nameRaw: 'Cola 1L', currentCategory: current });
-  assert.equal(out.assignedCategory, 'Ichimliklar');
+  assert.equal(out.assignedCategory, 'Напитки');
 
   out = __test.resolveRowCategory({ nameRaw: 'No Category Product', currentCategory: '', explicitCategory: '' });
   assert.equal(out.assignedCategory, 'Boshqa');

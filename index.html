@@ -1902,16 +1902,7 @@ Oq fonli foto</div>
     }
 
     function imageFallbackTemplate(categoryName = '') {
-      const normalized = String(categoryName).toLowerCase();
-      const map = [
-        { icon: '📒', label: 'Daftar', keys: ['daftar', 'kitob'] },
-        { icon: '🖊️', label: 'Ruchka', keys: ['ruchka', 'marker'] },
-        { icon: '🖨️', label: 'Printer', keys: ['printer', 'kartrij'] },
-        { icon: '⌨️', label: 'Aksessuar', keys: ['klaviatura', 'sichqoncha', 'kabel', 'usb'] },
-        { icon: '📁', label: 'Ofis', keys: ['papka', 'fayl', 'organayzer', 'stapler'] },
-      ];
-      const found = map.find((item) => item.keys.some((key) => normalized.includes(key))) || { icon: '🛍️', label: 'Mahsulot' };
-      return `<div class="image-fallback"><i>${found.icon}</i><span>${found.label}</span></div>`;
+      return `<div class="image-fallback"><i>🖼️</i><span>Rasm yo‘q</span></div>`;
     }
 
     function setSectionVisibility(sectionEl, headEl, hasItems) {

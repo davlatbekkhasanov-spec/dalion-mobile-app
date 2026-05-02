@@ -363,6 +363,7 @@
           <div class="metric"><span class="muted">Skipped</span><b>${data.skipped ?? 0}</b></div>
           <div class="metric"><span class="muted">Invalid rows</span><b>${data.invalidRows ?? data.skipped ?? 0}</b></div>
           <div class="metric"><span class="muted">Categories detected</span><b>${data.categoriesDetected ?? 0}</b></div>
+          <div class="metric"><span class="muted">Skipped categories</span><b>${data.skippedCategoryRows ?? 0}</b></div>
           <div class="metric"><span class="muted">Products with category</span><b>${data.productsAssignedCategory ?? 0}</b></div>
           <div class="metric"><span class="muted">Fallback Boshqa</span><b>${data.productsWithoutCategoryFallback ?? 0}</b></div>
           <div class="metric"><span class="muted">Image extracted</span><b>${data.imageExtracted ?? 0}</b></div>
@@ -373,6 +374,9 @@
           <div class="metric"><span class="muted">Image upscaled</span><b>${data.imageUpscaled ?? 0}</b></div>
           <div class="metric"><span class="muted">Image skipped</span><b>${data.imageSkippedExisting ?? 0}</b></div>
           <div class="metric"><span class="muted">Image missing</span><b>${data.imageMissing ?? 0}</b></div>
+          <div class="metric"><span class="muted">With image_url</span><b>${data.productsWithImageUrl ?? 0}</b></div>
+          <div class="metric"><span class="muted">Embedded images</span><b>${data.productsWithEmbeddedImages ?? 0}</b></div>
+          <div class="metric"><span class="muted">Without images</span><b>${data.productsWithoutImages ?? 0}</b></div>
           <div class="metric"><span class="muted">Processing ms</span><b>${data.processingTimeMs ?? 0}</b></div>
           <div class="metric"><span class="muted">Avg image ms</span><b>${data.averageImageMs ?? 0}</b></div>
         </div>
