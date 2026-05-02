@@ -1914,50 +1914,6 @@ Oq fonli foto</div>
       return `<div class="image-fallback"><i>${found.icon}</i><span>${found.label}</span></div>`;
     }
 
-    const FEATURED_PRODUCT_NAMES = [
-      'A4 daftar 96 list',
-      'Pilot ruchka qora',
-      'HP printer qog‘ozi',
-      'USB Type-C kabel',
-      'Klaviatura',
-      'Sichqoncha',
-      'Fayl papka A4',
-      'Stapler',
-      'Marker to‘plami',
-      'Printer kartrij',
-      'Monitor tagligi',
-      'Ofis organayzer',
-    ];
-
-    function buildDiverseProductShowcase(list = [], limit = 12) {
-      const usedIds = new Set();
-      const ranked = [];
-      FEATURED_PRODUCT_NAMES.forEach((targetName) => {
-        const normalizedTarget = targetName.toLowerCase();
-        const hit = list.find((product) => !usedIds.has(product.id) && String(product.name || '').toLowerCase().includes(normalizedTarget.split(' ')[0]));
-        if (hit) {
-          usedIds.add(hit.id);
-          ranked.push(hit);
-        }
-      });
-      const remainder = list.filter((product) => !usedIds.has(product.id));
-      remainder.sort((a, b) => {
-        const ai = `${a.name || ''}|${a.image_url || ''}`;
-        const bi = `${b.name || ''}|${b.image_url || ''}`;
-        return ai.localeCompare(bi, 'uz');
-      });
-      const diverse = [];
-      const seenNameRoots = new Set();
-      for (const item of remainder) {
-        const nameRoot = String(item.name || '').toLowerCase().split(' ').slice(0, 2).join(' ');
-        if (seenNameRoots.has(nameRoot) && diverse.length + ranked.length < limit) continue;
-        seenNameRoots.add(nameRoot);
-        diverse.push(item);
-        if (diverse.length + ranked.length >= limit) break;
-      }
-      return [...ranked, ...diverse].slice(0, limit);
-    }
-
     function setSectionVisibility(sectionEl, headEl, hasItems) {
       sectionEl.style.display = hasItems ? 'grid' : 'none';
       if (headEl) headEl.style.display = hasItems ? 'flex' : 'none';
@@ -1975,8 +1931,7 @@ Oq fonli foto</div>
           if (byPrice !== 0) return byPrice;
           return String(a.name || '').localeCompare(String(b.name || ''), 'uz');
         })
-        .slice(0, 20);
-      const diversePopular = buildDiverseProductShowcase(popular, 12);
+        .slice(0, 12);
       const discounts = products.filter((p) => Number(p.oldPrice || 0) > Number(p.price || 0)).slice(0, 6);
       const fast = products.filter((p) => Number(p.stock || 0) > 0).slice(0, 6);
       const bestSeller = popular.slice(0, 6);
@@ -1984,7 +1939,7 @@ Oq fonli foto</div>
         ? products.filter((p) => cartItemsSnapshot.some((c) => c.id === p.id)).slice(0, 6)
         : [];
 
-      homeProducts.innerHTML = diversePopular.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Mahsulotlar yuklanmoqda...</div>';
+      homeProducts.innerHTML = popular.map(productCardTemplate).join('') || '<div class="empty gm-empty-state"><strong>Mahsulotlar hali yuklanmagan</strong><br/>Admin panel orqali Excel import qiling yoki DALION sinxronizatsiyasini ulang</div>';
       homeDiscountProducts.innerHTML = discounts.map(productCardTemplate).join('');
       homeFastProducts.innerHTML = fast.map(productCardTemplate).join('');
       homeBestSellerProducts.innerHTML = bestSeller.map(productCardTemplate).join('');
