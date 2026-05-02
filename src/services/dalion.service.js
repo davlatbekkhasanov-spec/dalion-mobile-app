@@ -1,4 +1,24 @@
 const store = require('../data/store.js');
+const DALION_NOT_CONFIGURED_ERROR = 'DALION integration is not configured';
+
+function getDalionConfig() {
+  return {
+    enabled: String(process.env.DALION_ENABLED || 'false').toLowerCase() === 'true',
+    apiUrl: String(process.env.DALION_API_URL || '').trim(),
+    username: String(process.env.DALION_USERNAME || '').trim(),
+    password: String(process.env.DALION_PASSWORD || '').trim()
+  };
+}
+
+function assertDalionConfigured() {
+  const cfg = getDalionConfig();
+  if (!cfg.enabled || !cfg.apiUrl || !cfg.username || !cfg.password) {
+    const err = new Error(DALION_NOT_CONFIGURED_ERROR);
+    err.code = 'DALION_NOT_CONFIGURED';
+    throw err;
+  }
+  return cfg;
+}
 
 function mapFrom1CDalionTrend(item = {}) {
   return {
@@ -45,9 +65,28 @@ function exportTo1C() {
   return products.map(mapTo1CDalionTrend);
 }
 
+async function fetchProducts() { assertDalionConfigured(); throw new Error(DALION_NOT_CONFIGURED_ERROR); }
+async function fetchCategories() { assertDalionConfigured(); throw new Error(DALION_NOT_CONFIGURED_ERROR); }
+async function fetchStocks() { assertDalionConfigured(); throw new Error(DALION_NOT_CONFIGURED_ERROR); }
+async function fetchPrices() { assertDalionConfigured(); throw new Error(DALION_NOT_CONFIGURED_ERROR); }
+async function fetchImages() { assertDalionConfigured(); throw new Error(DALION_NOT_CONFIGURED_ERROR); }
+
+async function syncProductsFromDalion() {
+  assertDalionConfigured();
+  throw new Error(DALION_NOT_CONFIGURED_ERROR);
+}
+
 module.exports = {
   mapFrom1CDalionTrend,
   mapTo1CDalionTrend,
   importFrom1C,
-  exportTo1C
+  exportTo1C,
+  getDalionConfig,
+  fetchProducts,
+  fetchCategories,
+  fetchStocks,
+  fetchPrices,
+  fetchImages,
+  syncProductsFromDalion,
+  DALION_NOT_CONFIGURED_ERROR
 };
