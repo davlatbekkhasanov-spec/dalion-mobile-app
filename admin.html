@@ -80,10 +80,10 @@
         <button id="newImportBtn" class="btn">Yangi import qilish</button>
         <button id="reloadStoreBtn" class="btn">Mavjud ma'lumotni yangilash</button>
       </div>
-      <p class="muted" style="margin-top:8px;">Faqat demo/taqdimot uchun. Production’da DALION/Excel ishlatiladi.</p>
-      <div class="row" style="margin-top:8px;">
-        <button id="loadDemoCatalogBtn" class="btn">Premium demo katalogni yuklash</button>
-        <button id="clearDemoCatalogBtn" class="btn">Demo katalogni tozalash</button>
+      <p class="muted" style="margin-top:8px;">Mahsulot manbai: vaqtincha Excel import, keyin DALION sinxronizatsiyasi.</p>
+      <div class="card" style="margin-top:10px;padding:10px;">
+        <strong>DALION integratsiyasi</strong>
+        <p class="muted" style="margin-top:4px;">Tayyorlanmoqda: API orqali mahsulot, qoldiq, narx va rasm sinxroni.</p>
       </div>
       <div id="importProgressWrap" class="progress-wrap">
         <div class="progress-track"><div id="importProgressBar" class="progress-bar"></div></div>
@@ -363,6 +363,7 @@
           <div class="metric"><span class="muted">Skipped</span><b>${data.skipped ?? 0}</b></div>
           <div class="metric"><span class="muted">Invalid rows</span><b>${data.invalidRows ?? data.skipped ?? 0}</b></div>
           <div class="metric"><span class="muted">Categories detected</span><b>${data.categoriesDetected ?? 0}</b></div>
+          <div class="metric"><span class="muted">Skipped categories</span><b>${data.skippedCategoryRows ?? 0}</b></div>
           <div class="metric"><span class="muted">Products with category</span><b>${data.productsAssignedCategory ?? 0}</b></div>
           <div class="metric"><span class="muted">Fallback Boshqa</span><b>${data.productsWithoutCategoryFallback ?? 0}</b></div>
           <div class="metric"><span class="muted">Image extracted</span><b>${data.imageExtracted ?? 0}</b></div>
@@ -373,6 +374,9 @@
           <div class="metric"><span class="muted">Image upscaled</span><b>${data.imageUpscaled ?? 0}</b></div>
           <div class="metric"><span class="muted">Image skipped</span><b>${data.imageSkippedExisting ?? 0}</b></div>
           <div class="metric"><span class="muted">Image missing</span><b>${data.imageMissing ?? 0}</b></div>
+          <div class="metric"><span class="muted">With image_url</span><b>${data.productsWithImageUrl ?? 0}</b></div>
+          <div class="metric"><span class="muted">Embedded images</span><b>${data.productsWithEmbeddedImages ?? 0}</b></div>
+          <div class="metric"><span class="muted">Without images</span><b>${data.productsWithoutImages ?? 0}</b></div>
           <div class="metric"><span class="muted">Processing ms</span><b>${data.processingTimeMs ?? 0}</b></div>
           <div class="metric"><span class="muted">Avg image ms</span><b>${data.averageImageMs ?? 0}</b></div>
         </div>
@@ -434,25 +438,6 @@
         await loadStoreSummary();
       } catch (e) {
         showToast(e.message || t('reloadError'));
-      }
-    };
-    document.getElementById('loadDemoCatalogBtn').onclick = async () => {
-      try {
-        const out = await api('/admin/products/load-kanstik-demo', { method: 'POST' });
-        showToast(`Premium demo katalog yuklandi: ${out.loaded || out.imported || 0} mahsulot`);
-        document.getElementById('importResult').textContent = JSON.stringify(out, null, 2);
-        await loadStoreSummary();
-      } catch (e) {
-        showToast(e.message || 'Demo katalog yuklashda xatolik');
-      }
-    };
-    document.getElementById('clearDemoCatalogBtn').onclick = async () => {
-      try {
-        const out = await api('/admin/products/clear-demo', { method: 'POST' });
-        showToast(`Demo mahsulotlar tozalandi: ${out.removed || 0}`);
-        await loadStoreSummary();
-      } catch (e) {
-        showToast(e.message || 'Demo katalogni tozalashda xatolik');
       }
     };
 

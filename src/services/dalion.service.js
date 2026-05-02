@@ -45,9 +45,39 @@ function exportTo1C() {
   return products.map(mapTo1CDalionTrend);
 }
 
+async function fetchProducts() {
+  // TODO: connect DALION Trend products endpoint
+  return [];
+}
+
+async function fetchStocks() {
+  // TODO: connect DALION Trend stocks endpoint
+  return [];
+}
+
+async function fetchPrices() {
+  // TODO: connect DALION Trend prices endpoint
+  return [];
+}
+
+async function fetchImages() {
+  // TODO: connect DALION Trend images endpoint
+  return [];
+}
+
+async function syncDalionProducts() {
+  // TODO: implement DALION merge/upsert strategy
+  return { synced: 0, source: 'dalion', status: 'pending_integration' };
+}
+
 module.exports = {
   mapFrom1CDalionTrend,
   mapTo1CDalionTrend,
   importFrom1C,
-  exportTo1C
+  exportTo1C,
+  fetchProducts,
+  fetchStocks,
+  fetchPrices,
+  fetchImages,
+  syncDalionProducts
 };
