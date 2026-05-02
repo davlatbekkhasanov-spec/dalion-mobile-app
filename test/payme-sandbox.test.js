@@ -2,7 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 process.env.PAYME_TEST_KEY = process.env.PAYME_TEST_KEY || 'sandbox-key';
-process.env.PAYME_SANDBOX_MODE = 'true';
+process.env.PAYME_TEST_MODE = 'true';
+process.env.PAYME_SECRET_KEY = process.env.PAYME_SECRET_KEY || 'sandbox-key';
 
 const payme = require('../src/controllers/payme.controller.js');
 
@@ -29,6 +30,11 @@ test('CheckPerformTransaction missing returns -31050 with order_id', async () =>
   assert.equal(body.error.data, 'order_id');
 });
 
+test('amount mismatch returns -31001', async () => {
+  const body = await callRpc('CheckPerformTransaction', { amount: 5001, account: { order_id: 'test' } });
+  assert.equal(body.error.code, -31001);
+});
+
 test('CreateTransaction then Check/Perform/Cancel flow', async () => {
   const id = 'tx-sandbox-1';
   const created = await callRpc('CreateTransaction', { id, time: 777, amount: 5000, account: { order_id: 'test' } });
@@ -46,4 +52,9 @@ test('CheckTransaction missing returns -31003 with id', async () => {
   const body = await callRpc('CheckTransaction', { id: 'missing-tx' });
   assert.equal(body.error.code, -31003);
   assert.equal(body.error.data, 'id');
+});
+
+test('GetStatement returns transactions array', async () => {
+  const body = await callRpc('GetStatement', { from: 0, to: Date.now() });
+  assert.ok(Array.isArray(body.result.transactions));
 });
