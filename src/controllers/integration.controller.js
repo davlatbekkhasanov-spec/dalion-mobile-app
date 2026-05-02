@@ -4,13 +4,14 @@ const excelService = require('../services/excel.service.js');
 const xlsxImportService = require('../services/dalion-excel-import.service.js');
 
 exports.getIntegrationStatus = (req, res) => {
+  const dalionCfg = dalionService.getDalionConfig();
   res.json({
     ok: true,
     integrations: {
       dalionTrend1C: {
-        enabled: true,
+        enabled: dalionCfg.enabled,
         mode: 'manual-api',
-        notes: 'Ready for payload mapping and sync endpoints.'
+        notes: dalionCfg.enabled ? 'DALION enabled, sync endpoint can be used.' : 'DALION not configured yet.'
       },
       excel: {
         enabled: true,

@@ -82,8 +82,10 @@
       </div>
       <p class="muted" style="margin-top:8px;">Mahsulot manbai: vaqtincha Excel import, keyin DALION sinxronizatsiyasi.</p>
       <div class="card" style="margin-top:10px;padding:10px;">
-        <strong>DALION integratsiyasi</strong>
-        <p class="muted" style="margin-top:4px;">Tayyorlanmoqda: API orqali mahsulot, qoldiq, narx va rasm sinxroni.</p>
+        <strong>DALION Trend integratsiyasi</strong>
+        <p class="muted" id="dalionStatusText" style="margin-top:4px;">Holat: Sozlanmagan</p>
+        <p class="muted" style="margin-top:4px;">Hozircha mahsulotlar Excel import orqali yuklanadi. DALION ulangach avtomatik sinxronizatsiya ishlaydi.</p>
+        <button id="dalionSyncBtn" class="btn" style="margin-top:8px;">DALION sinxronizatsiyani boshlash</button>
       </div>
       <div id="importProgressWrap" class="progress-wrap">
         <div class="progress-track"><div id="importProgressBar" class="progress-bar"></div></div>
@@ -447,6 +449,21 @@
         document.getElementById('storeSummary').textContent = JSON.stringify(summary, null, 2);
       } catch (e) {}
     }
+    async function loadDalionStatus() {
+      try {
+        const out = await api('/integrations/status');
+        const enabled = Boolean(out?.integrations?.dalionTrend1C?.enabled);
+        document.getElementById('dalionStatusText').textContent = `Holat: ${enabled ? 'Sozlangan' : 'Sozlanmagan'}`;
+      } catch (e) {}
+    }
+    document.getElementById('dalionSyncBtn').onclick = async () => {
+      try {
+        const out = await api('/admin/dalion/sync', { method: 'POST' });
+        showToast(out?.success ? 'DALION sinxronizatsiya ishga tushdi' : 'DALION xizmati javobi olindi');
+      } catch (e) {
+        showToast(e.message || 'DALION integratsiyasi hali sozlanmagan');
+      }
+    };
 
     async function loadBanners(){
       const {banners}=await api('/admin/banners');
@@ -744,7 +761,7 @@
       try{
         document.getElementById('addBannerBtn').textContent = t('add');
         document.getElementById('addPromoBtn').textContent = t('add');
-        await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts(),loadStoreSummary(),loadOrdersAdmin()]);
+        await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts(),loadStoreSummary(),loadDalionStatus(),loadOrdersAdmin()]);
       }
       catch(e){showToast(e.message||t('checkToken'))}
     }

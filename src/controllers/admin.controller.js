@@ -2,6 +2,7 @@ const store = require('../data/store.js');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
+const dalionService = require('../services/dalion.service.js');
 
 const DEMO_DEPRECATED_MESSAGE = 'Demo katalog funksiyasi o‘chirildi. Excel import yoki DALION sinxronizatsiyasidan foydalaning.';
 
@@ -120,6 +121,30 @@ exports.getStoreSummary = (req, res) => {
 exports.reloadStore = (req, res) => {
   const out = store.reloadStoreFromDisk();
   res.json(out);
+};
+
+exports.syncDalionProducts = async (req, res) => {
+  const cfg = dalionService.getDalionConfig();
+  if (!cfg.enabled) {
+    return res.status(400).json({
+      success: false,
+      code: 'DALION_NOT_CONFIGURED',
+      message: 'DALION integratsiyasi hali sozlanmagan'
+    });
+  }
+  try {
+    const result = await dalionService.syncProductsFromDalion();
+    return res.json({ success: true, result });
+  } catch (error) {
+    if (error?.code === 'DALION_NOT_CONFIGURED') {
+      return res.status(400).json({
+        success: false,
+        code: 'DALION_NOT_CONFIGURED',
+        message: 'DALION integratsiyasi hali sozlanmagan'
+      });
+    }
+    return res.status(500).json({ success: false, code: 'DALION_SYNC_FAILED', message: error?.message || 'DALION sync failed' });
+  }
 };
 
 exports.getOrders = (req, res) => {
