@@ -122,6 +122,10 @@
       font-weight: 700;
       cursor: pointer;
       transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
     }
     .btn:active { transform: translateY(1px) scale(0.992); }
 
@@ -1036,7 +1040,7 @@
     /* Frontend premium light refresh */
     body { background: #f6f7fb; color: #1a1f36; }
     .phone { background: #f6f7fb; border-color: #e4e7ec; box-shadow: 0 20px 55px rgba(35,42,70,.15); }
-    .app { background: #f6f7fb; }
+    .app { background: #f6f7fb; overflow-x: hidden; }
     .home-top-sticky { background: rgba(246,247,251,.94); border-bottom: 1px solid #eceff5; }
     .logo-mark { background: linear-gradient(140deg,#7f56ff,#5b4cff); border: 0; box-shadow: 0 10px 26px rgba(91,76,255,.3); }
     .title, .section-head h4, .logo-text h3, .cart-item-title, .product h5 { color: #1d2440; }
@@ -1136,7 +1140,7 @@
     .cart-item-card { border-radius:18px; }
     .checkout-delivery-card { background:#fff; border:1px solid #eceff5; }
     .payment-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
-    .pay-btn { background:#fff; color:#344054; border:1px solid #d0d5dd; }
+    .pay-btn { background:#fff; color:#344054; border:1px solid #d0d5dd; min-height:44px; }
     .pay-btn.active { background:#f5f3ff; border-color:#7f56d9; color:#5b21b6; box-shadow:0 0 0 2px rgba(127,86,217,.14); }
     .bottom { background:#fff; border-top:1px solid #e8ebf2; }
     .tab { color:#667085; font-size:11px; min-height:52px; justify-content:center; }
@@ -1291,7 +1295,7 @@
         </div>
 
         <div class="empty" id="cartEmpty">
-          <h3 style="margin-bottom:6px;">Savatingiz bo'sh</h3>
+          <h3 style="margin-bottom:6px;">Savatingiz bo‘sh</h3>
           <p class="muted">Yoqtirgan mahsulotlaringizni qo‘shing va buyurtmani tez yakunlang.</p>
           <button class="btn gm-btn gm-btn-primary empty-cta" id="cartEmptyCta">Katalogga o‘tish</button>
         </div>
