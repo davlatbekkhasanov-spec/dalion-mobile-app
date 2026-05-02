@@ -5,61 +5,11 @@ const {
   ORDER_STATUSES,
   PAYMENT_METHOD_LIST,
   PAYMENT_METHODS,
-  PAYMENT_STATUSES
+  PAYMENT_STATUSES,
+  STORE_LOCATION
 } = require('../constants/domain.constants.js');
 
-const products = [
-  { id: 'prod_001', code: 'DAL-001', sku: 'DAL-001', name: 'A4 daftar 96 list', categoryId: 'cat_kanselyariya', category: 'Kanselyariya', price: 14000, oldPrice: 16000, stock: 40, image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_002', code: 'DAL-002', sku: 'DAL-002', name: 'A4 daftar 96 list', categoryId: 'cat_kanselyariya', category: 'Kanselyariya', price: 16000, oldPrice: 18000, stock: 41, image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_003', code: 'DAL-003', sku: 'DAL-003', name: 'A4 daftar 96 list', categoryId: 'cat_kanselyariya', category: 'Kanselyariya', price: 18000, oldPrice: 20000, stock: 42, image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_004', code: 'DAL-004', sku: 'DAL-004', name: 'A4 daftar 96 list', categoryId: 'cat_kanselyariya', category: 'Kanselyariya', price: 20000, oldPrice: 22000, stock: 43, image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_005', code: 'DAL-005', sku: 'DAL-005', name: 'A4 daftar 96 list', categoryId: 'cat_kanselyariya', category: 'Kanselyariya', price: 19500, oldPrice: 21500, stock: 44, image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_006', code: 'DAL-006', sku: 'DAL-006', name: 'A4 daftar 96 list', categoryId: 'cat_kanselyariya', category: 'Kanselyariya', price: 21500, oldPrice: 23500, stock: 45, image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_007', code: 'DAL-007', sku: 'DAL-007', name: 'A4 daftar 96 list', categoryId: 'cat_kanselyariya', category: 'Kanselyariya', price: 23500, oldPrice: 25500, stock: 46, image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_008', code: 'DAL-008', sku: 'DAL-008', name: 'A4 daftar 96 list', categoryId: 'cat_kanselyariya', category: 'Kanselyariya', price: 25500, oldPrice: 27500, stock: 47, image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_009', code: 'DAL-009', sku: 'DAL-009', name: 'A4 daftar 96 list', categoryId: 'cat_kanselyariya', category: 'Kanselyariya', price: 27500, oldPrice: 29500, stock: 48, image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_010', code: 'DAL-010', sku: 'DAL-010', name: 'A4 daftar 96 list', categoryId: 'cat_kanselyariya', category: 'Kanselyariya', price: 27000, oldPrice: 29000, stock: 49, image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_011', code: 'DAL-011', sku: 'DAL-011', name: 'HP printer qog‘ozi', categoryId: 'cat_ofis_jihozlari', category: 'Ofis jihozlari', price: 14000, oldPrice: 16000, stock: 40, image: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_012', code: 'DAL-012', sku: 'DAL-012', name: 'HP printer qog‘ozi', categoryId: 'cat_ofis_jihozlari', category: 'Ofis jihozlari', price: 16000, oldPrice: 18000, stock: 41, image: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_013', code: 'DAL-013', sku: 'DAL-013', name: 'HP printer qog‘ozi', categoryId: 'cat_ofis_jihozlari', category: 'Ofis jihozlari', price: 18000, oldPrice: 20000, stock: 42, image: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_014', code: 'DAL-014', sku: 'DAL-014', name: 'HP printer qog‘ozi', categoryId: 'cat_ofis_jihozlari', category: 'Ofis jihozlari', price: 20000, oldPrice: 22000, stock: 43, image: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_015', code: 'DAL-015', sku: 'DAL-015', name: 'HP printer qog‘ozi', categoryId: 'cat_ofis_jihozlari', category: 'Ofis jihozlari', price: 19500, oldPrice: 21500, stock: 44, image: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_016', code: 'DAL-016', sku: 'DAL-016', name: 'HP printer qog‘ozi', categoryId: 'cat_ofis_jihozlari', category: 'Ofis jihozlari', price: 21500, oldPrice: 23500, stock: 45, image: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_017', code: 'DAL-017', sku: 'DAL-017', name: 'HP printer qog‘ozi', categoryId: 'cat_ofis_jihozlari', category: 'Ofis jihozlari', price: 23500, oldPrice: 25500, stock: 46, image: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_018', code: 'DAL-018', sku: 'DAL-018', name: 'HP printer qog‘ozi', categoryId: 'cat_ofis_jihozlari', category: 'Ofis jihozlari', price: 25500, oldPrice: 27500, stock: 47, image: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_019', code: 'DAL-019', sku: 'DAL-019', name: 'HP printer qog‘ozi', categoryId: 'cat_ofis_jihozlari', category: 'Ofis jihozlari', price: 27500, oldPrice: 29500, stock: 48, image: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_020', code: 'DAL-020', sku: 'DAL-020', name: 'HP printer qog‘ozi', categoryId: 'cat_ofis_jihozlari', category: 'Ofis jihozlari', price: 27000, oldPrice: 29000, stock: 49, image: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_021', code: 'DAL-021', sku: 'DAL-021', name: 'USB kabel Type-C', categoryId: 'cat_kompyuter_aksessuarlari', category: 'Kompyuter aksessuarlari', price: 14000, oldPrice: 16000, stock: 40, image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_022', code: 'DAL-022', sku: 'DAL-022', name: 'USB kabel Type-C', categoryId: 'cat_kompyuter_aksessuarlari', category: 'Kompyuter aksessuarlari', price: 16000, oldPrice: 18000, stock: 41, image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_023', code: 'DAL-023', sku: 'DAL-023', name: 'USB kabel Type-C', categoryId: 'cat_kompyuter_aksessuarlari', category: 'Kompyuter aksessuarlari', price: 18000, oldPrice: 20000, stock: 42, image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_024', code: 'DAL-024', sku: 'DAL-024', name: 'USB kabel Type-C', categoryId: 'cat_kompyuter_aksessuarlari', category: 'Kompyuter aksessuarlari', price: 20000, oldPrice: 22000, stock: 43, image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_025', code: 'DAL-025', sku: 'DAL-025', name: 'USB kabel Type-C', categoryId: 'cat_kompyuter_aksessuarlari', category: 'Kompyuter aksessuarlari', price: 19500, oldPrice: 21500, stock: 44, image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_026', code: 'DAL-026', sku: 'DAL-026', name: 'USB kabel Type-C', categoryId: 'cat_kompyuter_aksessuarlari', category: 'Kompyuter aksessuarlari', price: 21500, oldPrice: 23500, stock: 45, image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_027', code: 'DAL-027', sku: 'DAL-027', name: 'USB kabel Type-C', categoryId: 'cat_kompyuter_aksessuarlari', category: 'Kompyuter aksessuarlari', price: 23500, oldPrice: 25500, stock: 46, image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_028', code: 'DAL-028', sku: 'DAL-028', name: 'USB kabel Type-C', categoryId: 'cat_kompyuter_aksessuarlari', category: 'Kompyuter aksessuarlari', price: 25500, oldPrice: 27500, stock: 47, image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_029', code: 'DAL-029', sku: 'DAL-029', name: 'USB kabel Type-C', categoryId: 'cat_kompyuter_aksessuarlari', category: 'Kompyuter aksessuarlari', price: 27500, oldPrice: 29500, stock: 48, image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_030', code: 'DAL-030', sku: 'DAL-030', name: 'USB kabel Type-C', categoryId: 'cat_kompyuter_aksessuarlari', category: 'Kompyuter aksessuarlari', price: 27000, oldPrice: 29000, stock: 49, image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_031', code: 'DAL-031', sku: 'DAL-031', name: 'Pilot ruchka qora', categoryId: 'cat_usb_kabellar', category: 'USB va kabellar', price: 14000, oldPrice: 16000, stock: 40, image: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_032', code: 'DAL-032', sku: 'DAL-032', name: 'Pilot ruchka qora', categoryId: 'cat_usb_kabellar', category: 'USB va kabellar', price: 16000, oldPrice: 18000, stock: 41, image: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_033', code: 'DAL-033', sku: 'DAL-033', name: 'Pilot ruchka qora', categoryId: 'cat_usb_kabellar', category: 'USB va kabellar', price: 18000, oldPrice: 20000, stock: 42, image: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_034', code: 'DAL-034', sku: 'DAL-034', name: 'Pilot ruchka qora', categoryId: 'cat_usb_kabellar', category: 'USB va kabellar', price: 20000, oldPrice: 22000, stock: 43, image: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_035', code: 'DAL-035', sku: 'DAL-035', name: 'Pilot ruchka qora', categoryId: 'cat_usb_kabellar', category: 'USB va kabellar', price: 19500, oldPrice: 21500, stock: 44, image: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_036', code: 'DAL-036', sku: 'DAL-036', name: 'Pilot ruchka qora', categoryId: 'cat_usb_kabellar', category: 'USB va kabellar', price: 21500, oldPrice: 23500, stock: 45, image: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_037', code: 'DAL-037', sku: 'DAL-037', name: 'Pilot ruchka qora', categoryId: 'cat_usb_kabellar', category: 'USB va kabellar', price: 23500, oldPrice: 25500, stock: 46, image: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_038', code: 'DAL-038', sku: 'DAL-038', name: 'Pilot ruchka qora', categoryId: 'cat_usb_kabellar', category: 'USB va kabellar', price: 25500, oldPrice: 27500, stock: 47, image: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_039', code: 'DAL-039', sku: 'DAL-039', name: 'Pilot ruchka qora', categoryId: 'cat_usb_kabellar', category: 'USB va kabellar', price: 27500, oldPrice: 29500, stock: 48, image: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_040', code: 'DAL-040', sku: 'DAL-040', name: 'Pilot ruchka qora', categoryId: 'cat_usb_kabellar', category: 'USB va kabellar', price: 27000, oldPrice: 29000, stock: 49, image: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_041', code: 'DAL-041', sku: 'DAL-041', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 14000, oldPrice: 16000, stock: 40, image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_042', code: 'DAL-042', sku: 'DAL-042', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 16000, oldPrice: 18000, stock: 41, image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_043', code: 'DAL-043', sku: 'DAL-043', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 18000, oldPrice: 20000, stock: 42, image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_044', code: 'DAL-044', sku: 'DAL-044', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 20000, oldPrice: 22000, stock: 43, image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_045', code: 'DAL-045', sku: 'DAL-045', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 19500, oldPrice: 21500, stock: 44, image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_046', code: 'DAL-046', sku: 'DAL-046', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 21500, oldPrice: 23500, stock: 45, image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_047', code: 'DAL-047', sku: 'DAL-047', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 23500, oldPrice: 25500, stock: 46, image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_048', code: 'DAL-048', sku: 'DAL-048', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 25500, oldPrice: 27500, stock: 47, image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_049', code: 'DAL-049', sku: 'DAL-049', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 27500, oldPrice: 29500, stock: 48, image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-  { id: 'prod_050', code: 'DAL-050', sku: 'DAL-050', name: 'Coca Cola 1L', categoryId: 'cat_ichimliklar', category: 'Ichimliklar', price: 27000, oldPrice: 29000, stock: 49, image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', image_url: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80', source: 'seed', updated_at: new Date().toISOString(), active: true, orderCount: 0 },
-];
+const products = [];
 
 const categories = [
   { id: 'cat_kanselyariya', name: 'Kanselyariya', displayName: 'Kanselyariya', icon: '✏️', image_url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80', active: true, productCount: 0 },
@@ -92,7 +42,8 @@ let homeSettings = {
   accentColor: '#25f48f',
   clickPaymentUrl: '',
   paymePaymentUrl: '',
-  cashTermsText: "Men buyurtmani yetkazilganda naqd to‘lashni tasdiqlayman"
+  cashTermsText: "Men buyurtmani yetkazilganda naqd to‘lashni tasdiqlayman",
+  defaultMarginPercent: 0
 };
 
 const users = new Map();
@@ -100,21 +51,36 @@ const carts = new Map();
 const orders = [];
 let lastUpdated = null;
 let orderSequence = 1;
-const ORDER_STATUS_SET = new Set(ORDER_STATUS_LIST);
+const ORDER_STATUS_SET = new Set([...ORDER_STATUS_LIST, 'created', 'payment_pending', 'payment_confirmed', 'preparing', 'ready_for_courier', 'courier_assigned', 'returned']);
+const ORDER_TRANSITIONS = {
+  created: new Set(['payment_pending', 'payment_confirmed', 'cancelled']),
+  payment_pending: new Set(['payment_confirmed', 'cancelled']),
+  payment_confirmed: new Set(['preparing', 'cancelled']),
+  preparing: new Set(['ready_for_courier', 'cancelled']),
+  ready_for_courier: new Set(['courier_assigned', 'cancelled']),
+  courier_assigned: new Set(['out_for_delivery', 'cancelled']),
+  out_for_delivery: new Set(['delivered', 'cancelled', 'returned']),
+  delivered: new Set([]),
+  cancelled: new Set([]),
+  returned: new Set([])
+};
+const orderStatusLogs = [];
 
 function normalizeOrderStatus(status = '') {
   const raw = String(status || '').trim();
   if (ORDER_STATUS_SET.has(raw)) return raw;
   const legacyMap = {
-    queued: 'sent_to_tsd',
-    accepted: 'sent_to_tsd',
-    preparing: 'picking',
-    ready: 'picked',
-    waiting: 'waiting_courier',
+    queued: 'preparing',
+    accepted: 'preparing',
+    picking: 'preparing',
+    picked: 'ready_for_courier',
+    waiting_courier: 'ready_for_courier',
+    waiting: 'ready_for_courier',
+    sent_to_tsd: 'payment_confirmed',
     in_delivery: 'out_for_delivery',
     done: 'delivered'
   };
-  return legacyMap[raw] || ORDER_STATUSES.NEW;
+  return legacyMap[raw] || 'created';
 }
 
 function persistState() {
@@ -556,9 +522,6 @@ function createOrder({
   if (!hasGeo && !hasManual) {
     return { error: 'Lokatsiya yoki manzil talab qilinadi' };
   }
-  if ((normalizedPaymentMethod === PAYMENT_METHODS.CLICK || normalizedPaymentMethod === PAYMENT_METHODS.PAYME) && !String(paymentProofUrl || '').trim()) {
-    return { error: "To‘lov cheki screenshotini yuklang" };
-  }
   if (normalizedPaymentMethod === PAYMENT_METHODS.CASH && !cashAgreementAccepted) {
     return { error: 'Naqd to‘lov shartlarini tasdiqlang' };
   }
@@ -578,16 +541,35 @@ function createOrder({
     };
   });
 
+  const baseDeliveryPrice = Math.max(0, Number(process.env.BASE_DELIVERY_PRICE || 5000) || 5000);
+  const pricePerKm = Math.max(0, Number(process.env.PRICE_PER_KM || 1000) || 1000);
+  const freeDeliveryThreshold = Number(process.env.FREE_DELIVERY_THRESHOLD || 0);
+  let deliveryDistanceKm = 4;
+  if (hasGeo) {
+    const toRad = (deg) => (Number(deg) * Math.PI) / 180;
+    const earthKm = 6371;
+    const dLat = toRad(latNum - STORE_LOCATION.lat);
+    const dLng = toRad(lngNum - STORE_LOCATION.lng);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(STORE_LOCATION.lat)) * Math.cos(toRad(latNum)) * Math.sin(dLng / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    deliveryDistanceKm = Math.max(0.5, earthKm * c);
+  }
+  const subtotal = Number(summary.subtotal || 0);
+  const freeDelivery = Number.isFinite(freeDeliveryThreshold) && freeDeliveryThreshold > 0 && subtotal >= freeDeliveryThreshold;
+  const computedDeliveryPrice = Math.max(0, Math.round(freeDelivery ? 0 : (baseDeliveryPrice + (deliveryDistanceKm * pricePerKm))));
+  const deliveryZone = deliveryDistanceKm <= 3 ? 'near' : (deliveryDistanceKm <= 7 ? 'mid' : 'far');
+
   const order = {
     id: `ord_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
     orderNumber: `ORD-${String(orderSequence).padStart(5, '0')}`,
+    order_number: `ORD-${String(orderSequence).padStart(5, '0')}`,
     customerName: String(user.name || 'Mehmon'),
     customerPhone: normalizedUserPhone,
     customerAddress: String(customerAddress || location || ''),
     customerSelfieUrl: String(customerSelfieUrl || ''),
     created_at: now,
     updated_at: now,
-    status: ORDER_STATUSES.NEW,
+    status: normalizedPaymentMethod === PAYMENT_METHODS.CASH ? 'created' : 'payment_pending',
     sentToTsdAt: null,
     tsdStatus: '',
     dalionPicked: false,
@@ -597,6 +579,11 @@ function createOrder({
     courierTokenUsed: false,
     courierName: '',
     courierPhone: '',
+    courier_id: '',
+    delivery_status: 'new',
+    assigned_at: null,
+    picked_up_at: null,
+    delivered_at: null,
     courierAcceptedAt: null,
     courierDeliveredAt: null,
     courierLocationLat: null,
@@ -609,7 +596,9 @@ function createOrder({
     deliveredAt: null,
     cancelledAt: null,
     paymentMethod: normalizedPaymentMethod,
-    paymentStatus: String(paymentStatus || (normalizedPaymentMethod === PAYMENT_METHODS.CASH ? PAYMENT_STATUSES.CASH_PENDING : PAYMENT_STATUSES.PENDING)),
+    payment_method: normalizedPaymentMethod,
+    paymentStatus: String(paymentStatus || (normalizedPaymentMethod === PAYMENT_METHODS.CASH ? 'unpaid' : 'pending')),
+    payment_status: String(paymentStatus || (normalizedPaymentMethod === PAYMENT_METHODS.CASH ? 'unpaid' : 'pending')),
     cashTermsAccepted: Boolean(cashTermsAccepted),
     paymentProofUrl: String(paymentProofUrl || ''),
     cashAgreementConfirmed: Boolean(cashAgreementConfirmed),
@@ -625,10 +614,13 @@ function createOrder({
     addressText: String(addressText || customerAddress || location || ''),
     landmarkText: String(landmarkText || ''),
     deliveryTime: deliveryTime || '',
-    deliveryPrice: Number(deliveryPrice || 0),
+    deliveryPrice: computedDeliveryPrice,
+    delivery_price: computedDeliveryPrice,
+    delivery_distance: Number(deliveryDistanceKm.toFixed(2)),
+    delivery_zone: deliveryZone,
     items: orderItems,
-    subtotal: summary.subtotal,
-    total: summary.subtotal + deliveryPrice
+    subtotal,
+    total: subtotal + computedDeliveryPrice
   };
   orderSequence += 1;
 
@@ -666,8 +658,14 @@ function attachPaymentProof(orderNumber, { paymentProofUrl = '' } = {}) {
 function markOrderPaid(id) {
   const order = getOrderById(id);
   if (!order) return null;
+  if (String(order.status) === 'cancelled' || String(order.status) === ORDER_STATUSES.CANCELLED) return null;
+  if (String(order.status) === 'delivered' || String(order.status) === ORDER_STATUSES.DELIVERED) return null;
   const now = new Date().toISOString();
   order.paymentStatus = 'paid';
+  order.payment_status = 'paid';
+  if (order.status === 'payment_pending' || order.status === 'created' || order.status === ORDER_STATUSES.NEW) {
+    order.status = 'payment_confirmed';
+  }
   order.paidAt = order.paidAt || now;
   order.updated_at = now;
   persistState();
@@ -677,8 +675,12 @@ function markOrderPaid(id) {
 function markOrderPaymentCancelled(id) {
   const order = getOrderById(id);
   if (!order) return null;
+  if (String(order.status) === 'delivered' || String(order.status) === ORDER_STATUSES.DELIVERED) return null;
+  if (String(order.paymentStatus) === 'paid') return null;
   const now = new Date().toISOString();
   order.paymentStatus = 'cancelled';
+  order.payment_status = 'cancelled';
+  if (order.status === 'payment_pending' || order.status === 'created') order.status = 'cancelled';
   order.updated_at = now;
   persistState();
   return order;
@@ -736,12 +738,22 @@ function updateOrderStatus(id, status) {
   if (!ORDER_STATUS_SET.has(status)) return null;
   const order = getOrderById(id);
   if (!order) return null;
-  if (status === ORDER_STATUSES.CANCELLED && order.status !== ORDER_STATUSES.DELIVERED && order.status !== ORDER_STATUSES.CANCELLED) {
+  const fromStatus = normalizeOrderStatus(order.status);
+  const toStatus = normalizeOrderStatus(status);
+  if (fromStatus === 'delivered' && toStatus !== 'delivered') return null;
+  const allowed = ORDER_TRANSITIONS[fromStatus] || new Set();
+  if (!allowed.has(toStatus) && !(toStatus === 'cancelled' && fromStatus !== 'delivered')) return null;
+  if (toStatus === 'cancelled' && fromStatus !== 'delivered' && fromStatus !== 'cancelled') {
     restoreStockForCancelledOrder(order);
   }
-  order.status = status;
+  order.status = toStatus;
+  if (toStatus === 'courier_assigned') order.assigned_at = new Date().toISOString();
+  if (toStatus === 'out_for_delivery') order.picked_up_at = new Date().toISOString();
+  if (toStatus === 'delivered') order.delivered_at = new Date().toISOString();
+  order.delivery_status = toStatus;
   order.updated_at = new Date().toISOString();
-  applyStatusTimestamps(order, status);
+  applyStatusTimestamps(order, toStatus);
+  orderStatusLogs.push({ order_id: order.id, from_status: fromStatus, to_status: toStatus, actor: 'admin', note: '', created_at: order.updated_at });
   persistState();
   return order;
 }
@@ -769,7 +781,7 @@ function getOrderPicklist(id) {
 function sendOrderToTsd(id) {
   const order = getOrderById(id);
   if (!order) return null;
-  order.status = ORDER_STATUSES.SENT_TO_TSD;
+  order.status = 'preparing';
   order.tsdStatus = 'queued';
   order.tsdQueuedAt = new Date().toISOString();
   order.sentToTsdAt = order.sentToTsdAt || order.tsdQueuedAt;
@@ -782,7 +794,7 @@ function sendOrderToTsd(id) {
 function markDalionPicked(id) {
   const order = getOrderById(id);
   if (!order) return null;
-  order.status = ORDER_STATUSES.WAITING_COURIER;
+  order.status = 'ready_for_courier';
   order.dalionPicked = true;
   order.pickedAt = new Date().toISOString();
   order.waitingCourierAt = order.pickedAt;
@@ -799,10 +811,12 @@ function courierAccept(token, { courierName = '', courierPhone = '' } = {}) {
   const order = getOrderByCourierToken(token);
   if (!order) return { error: 'Invalid token' };
   if (order.courierTokenUsed) return { error: 'Bu QR kod allaqachon ishlatilgan' };
-  if (order.status !== ORDER_STATUSES.WAITING_COURIER) return { error: 'Buyurtma hali courier qabul bosqichida emas' };
-  order.status = ORDER_STATUSES.OUT_FOR_DELIVERY;
+  if (order.status !== 'ready_for_courier') return { error: 'Buyurtma hali courier qabul bosqichida emas' };
+  order.status = 'out_for_delivery';
   order.courierName = String(courierName || order.courierName || '').trim();
   order.courierPhone = String(courierPhone || order.courierPhone || '').trim();
+  order.assigned_at = new Date().toISOString();
+  order.picked_up_at = order.assigned_at;
   order.courierAcceptedAt = new Date().toISOString();
   order.courierTrackingStartedAt = order.courierTrackingStartedAt || order.courierAcceptedAt;
   order.courierTrackingStoppedAt = null;
@@ -815,8 +829,8 @@ function courierDeliver(token) {
   const order = getOrderByCourierToken(token);
   if (!order) return { error: 'Invalid token' };
   if (order.courierTokenUsed) return { error: 'Bu QR kod allaqachon ishlatilgan' };
-  if (order.status !== ORDER_STATUSES.OUT_FOR_DELIVERY) return { error: 'Buyurtma courierda emas' };
-  order.status = ORDER_STATUSES.DELIVERED;
+  if (order.status !== 'out_for_delivery') return { error: 'Buyurtma courierda emas' };
+  order.status = 'delivered';
   order.deliveredAt = new Date().toISOString();
   order.courierDeliveredAt = order.deliveredAt;
   order.courierTrackingStoppedAt = order.deliveredAt;
@@ -829,8 +843,8 @@ function courierDeliver(token) {
 function updateCourierLocation(token, { lat = null, lng = null, accuracy = null } = {}) {
   const order = getOrderByCourierToken(token);
   if (!order) return { error: 'Invalid token' };
-  if (order.status !== ORDER_STATUSES.OUT_FOR_DELIVERY) return { error: 'Buyurtma courierda emas' };
-  if (order.status === ORDER_STATUSES.DELIVERED || order.status === ORDER_STATUSES.CANCELLED || order.courierTokenUsed) {
+  if (order.status !== 'out_for_delivery') return { error: 'Buyurtma courierda emas' };
+  if (order.status === 'delivered' || order.status === 'cancelled' || order.courierTokenUsed) {
     return { error: 'Lokatsiya yuborish mumkin emas' };
   }
   const latNum = Number(lat);
@@ -860,11 +874,24 @@ function markOrderPaymentPaid(orderRef) {
 
 function upsertProducts(items = []) {
   const touched = [];
+  const defaultMarginPercent = Number(homeSettings.defaultMarginPercent || 0);
 
   for (const raw of items) {
     if (!raw || !raw.id) continue;
     const i = products.findIndex((p) => p.id === raw.id);
     const categoryRef = ensureCategory(raw.category || 'Boshqa');
+
+    const costPrice = Math.max(0, Number(raw.cost_price ?? raw.price ?? 0) || 0);
+    const marginPercentRaw = raw.margin_percent;
+    const marginFixedRaw = raw.margin_fixed;
+    const hasMarginPercent = marginPercentRaw !== undefined && marginPercentRaw !== null && marginPercentRaw !== '';
+    const hasMarginFixed = marginFixedRaw !== undefined && marginFixedRaw !== null && marginFixedRaw !== '';
+    const marginPercent = hasMarginPercent ? Number(marginPercentRaw || 0) : defaultMarginPercent;
+    const marginFixed = hasMarginFixed ? Number(marginFixedRaw || 0) : null;
+    let sellingPrice = costPrice;
+    if (hasMarginFixed) sellingPrice = costPrice + (Number.isFinite(marginFixed) ? marginFixed : 0);
+    else if (Number.isFinite(marginPercent) && marginPercent !== 0) sellingPrice = costPrice * (1 + (marginPercent / 100));
+    sellingPrice = Math.max(0, Math.round(sellingPrice));
 
     const normalized = {
       id: raw.id,
@@ -873,8 +900,11 @@ function upsertProducts(items = []) {
       name: raw.name || 'Nomsiz mahsulot',
       categoryId: raw.categoryId || categoryRef.id,
       category: raw.category || categoryRef.name,
-      price: Number(raw.price) || 0,
-      oldPrice: Number(raw.oldPrice) || Number(raw.price) || 0,
+      cost_price: costPrice,
+      margin_percent: Number.isFinite(marginPercent) ? marginPercent : 0,
+      margin_fixed: Number.isFinite(marginFixed) ? marginFixed : null,
+      price: sellingPrice,
+      oldPrice: Number(raw.oldPrice) || sellingPrice || 0,
       stock: Number(raw.stock ?? 0),
       image: raw.image || raw.image_url || '',
       image_url: raw.image_url || raw.image || '',
@@ -915,6 +945,11 @@ function reloadStoreFromDisk() {
   return { ok, ...getStoreSummary() };
 }
 
+function getOrderStatusLogs(orderId = '') {
+  if (!orderId) return orderStatusLogs.slice();
+  return orderStatusLogs.filter((l) => l.order_id === orderId);
+}
+
 loadStateFromDisk();
 
 module.exports = {
@@ -950,6 +985,7 @@ module.exports = {
   createOrder,
   upsertProducts,
   getStoreSummary,
+  getOrderStatusLogs,
   reloadStoreFromDisk,
   getOrders,
   markOrderPaid,
