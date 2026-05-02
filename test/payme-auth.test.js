@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 process.env.PAYME_TEST_KEY = 'testkey';
 process.env.PAYME_SECRET_KEY = 'secretkey';
+process.env.PAYME_TEST_MODE = 'true';
 
 const { paymeRpc } = require('../src/controllers/payme.controller.js');
 
