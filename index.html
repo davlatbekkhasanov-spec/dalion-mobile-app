@@ -1171,6 +1171,29 @@
   .intro-cta{height:48px;border-radius:16px;box-shadow:0 12px 24px rgba(91,76,255,.22);margin-top:auto;animation:introFade .45s 2.05s forwards}
   @keyframes introLogo{to{opacity:1;transform:scale(1)}}@keyframes introFade{to{opacity:1}}@keyframes introCard{to{opacity:1;filter:blur(0);transform:translateY(0)}}
 
+  
+    /* Phase 14 marketplace cleanup overrides */
+    body { display:block; padding:0; background:#f6f7fb; }
+    .phone { max-width:none; width:100%; height:100vh; border-radius:0; border:0; box-shadow:none; }
+    .phone::before,.phone::after,.app::before { display:none; }
+    .view { padding: 10px 6px 88px; }
+    .top { margin-bottom: 10px; }
+    .products-grid { width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding:0 0 8px; margin:0; }
+    .product { border-radius:14px; overflow:hidden; box-shadow:0 4px 16px rgba(17,24,39,.08); border:1px solid #edf0f5; background:#fff; }
+    .product .image-box { position:relative; height:248px; border-radius:0; padding:0; background:#f3f4f6; }
+    .product .image-box img { width:100%; height:100%; object-fit:cover; border-radius:0; }
+    .product .product-info { padding:8px; display:grid; gap:5px; }
+    .product h5 { font-size:13px; line-height:1.35; min-height:34px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+    .product .price { font-size:15px; font-weight:800; color:#121826; }
+    .product .old-price { min-height:14px; font-size:12px; color:#9ca3af; text-decoration:line-through; }
+    .product-rating { font-size:12px; color:#6b7280; }
+    .quick-add-btn,.qty { height:38px; border-radius:10px; }
+    .quick-add-btn { font-size:13px; display:flex; align-items:center; justify-content:center; width:100%; white-space:nowrap; overflow:hidden; }
+    .qty { display:grid; grid-template-columns:38px 1fr 38px; align-items:center; text-align:center; }
+    .qty button { height:38px; }
+    .product-top-row { position:absolute; left:6px; top:6px; right:6px; z-index:2; display:flex; justify-content:space-between; }
+    .product-top-row .fav-btn { display:none; }
+
   </style>
   <link rel="stylesheet" href="/styles.css" />
 </head>
@@ -1890,32 +1913,29 @@ Oq fonli foto</div>
 
     function productCardTemplate(p) {
       const stock = Number(p.stock ?? 0);
-      const oldPrice = Number(p.oldPrice || 0);
+      const oldPrice = Number(p.oldPrice || p.old_price || 0);
       const price = Number(p.price || 0);
       const hasDiscount = oldPrice > price && price > 0;
       const discountPercent = hasDiscount ? Math.max(1, Math.round(((oldPrice - price) / oldPrice) * 100)) : 0;
-      const ratingValue = Number(p.rating || 0);
-      const hasRating = ratingValue > 0;
-      const rating = hasRating ? ratingValue.toFixed(1) : '';
-      const reviews = Number(p.reviewCount || 0);
-      const priceText = Number(p.price) > 0 ? money(p.price) : 'Narx aniqlanmoqda';
+      const ratingValue = Number(p.rating || 4.8);
+      const reviews = Number(p.reviewCount || 120);
+      const priceText = price > 0 ? money(price) : 'Narx aniqlanmoqda';
       const imageHtml = p.image_url
-        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.remove();this.parentElement.insertAdjacentHTML('beforeend', imageFallbackTemplate('${(p.categoryDisplayName || p.category || '').replace(/'/g, '&#39;')}'));" />`
-        : imageFallbackTemplate(p.categoryDisplayName || p.category || p.name);
+        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.remove();this.parentElement.insertAdjacentHTML('beforeend', imageFallbackTemplate('${(p.name || '').replace(/'/g, '&#39;')}'));" />`
+        : imageFallbackTemplate(p.name);
       return `
-        <article class="product gm-card" data-open-product="${p.id}">
+        <article class="product" data-open-product="${p.id}">
           <div class="image-box">
             <div class="product-top-row">
               ${hasDiscount ? `<span class="gm-chip discount-chip product-discount">-${discountPercent}%</span>` : '<span></span>'}
-              <button class="fav-btn" type="button" aria-label="Saralanganlar">♡</button>
             </div>
             ${imageHtml}
           </div>
           <div class="product-info">
             <p class="price">${priceText}</p>
-            <p class="old-price">${oldPrice > 0 ? money(oldPrice) : ''}</p>
+            <p class="old-price">${hasDiscount ? money(oldPrice) : ''}</p>
             <h5>${p.name}</h5>
-            ${hasRating ? `<p class="product-rating">⭐ ${rating}${reviews ? ` (${reviews})` : ''}</p>` : '<p class="product-rating">⭐ 4.8 (120)</p>'}
+            <p class="product-rating">⭐ ${ratingValue.toFixed(1)} (${reviews})</p>
             ${qtyOf(p.id) > 0
               ? `<div class="qty" data-qty-wrap="${p.id}">${makeQtyControls(p.id)}</div>`
               : `<button class="btn gm-btn gm-btn-primary quick-add-btn" data-add-one="${p.id}" ${stock <= 0 ? 'disabled' : ''}>Savatga qo‘shish</button>`}
