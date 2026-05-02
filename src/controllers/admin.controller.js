@@ -179,6 +179,70 @@ exports.assignCourier = (req, res) => {
   return res.json({ order });
 };
 
+exports.getAnalyticsOverview = (req, res) => {
+  const orders = store.getOrders();
+  const qualifying = orders.filter((o) => o.status === 'delivered' || o.status === 'paid' || o.paymentStatus === 'paid');
+  const cancelled = orders.filter((o) => o.status === 'cancelled');
+  const revenue = qualifying.reduce((s, o) => s + Number(o.total || 0), 0);
+  const totalOrders = orders.length;
+  res.json({
+    total_orders: totalOrders,
+    total_revenue: revenue,
+    total_delivered_orders: qualifying.filter((o) => o.status === 'delivered').length,
+    total_cancelled_orders: cancelled.length,
+    avg_order_value: qualifying.length ? Math.round(revenue / qualifying.length) : 0
+  });
+};
+
+exports.getAnalyticsTopProducts = (req, res) => {
+  const soldMap = new Map();
+  store.getOrders()
+    .filter((o) => o.status !== 'cancelled' && (o.status === 'delivered' || o.status === 'paid' || o.paymentStatus === 'paid'))
+    .forEach((o) => {
+      (o.items || []).forEach((it) => {
+        const id = it.id || it.code || it.name;
+        const prev = soldMap.get(id) || { product_id: id, name: it.name || id, qty_sold: 0 };
+        prev.qty_sold += Number(it.quantity || 0);
+        soldMap.set(id, prev);
+      });
+    });
+  const top = [...soldMap.values()].sort((a, b) => b.qty_sold - a.qty_sold).slice(0, 10);
+  res.json({ items: top });
+};
+
+exports.getAnalyticsTopCategories = (req, res) => {
+  const catMap = new Map();
+  store.getOrders()
+    .filter((o) => o.status !== 'cancelled' && (o.status === 'delivered' || o.status === 'paid' || o.paymentStatus === 'paid'))
+    .forEach((o) => {
+      (o.items || []).forEach((it) => {
+        const p = store.getProductById(it.id) || {};
+        const cat = p.category || 'Boshqa';
+        const prev = catMap.get(cat) || { category: cat, revenue: 0 };
+        prev.revenue += Number(it.subtotal || (Number(it.price || 0) * Number(it.quantity || 0)));
+        catMap.set(cat, prev);
+      });
+    });
+  res.json({ items: [...catMap.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 10) });
+};
+
+exports.getAnalyticsDaily = (req, res) => {
+  const days = Number(req.query?.days || 7);
+  const from = Date.now() - (Math.max(1, Math.min(30, days)) * 24 * 60 * 60 * 1000);
+  const bucket = new Map();
+  store.getOrders()
+    .filter((o) => new Date(o.created_at || 0).getTime() >= from)
+    .filter((o) => o.status !== 'cancelled' && (o.status === 'delivered' || o.status === 'paid' || o.paymentStatus === 'paid'))
+    .forEach((o) => {
+      const key = new Date(o.created_at).toISOString().slice(0, 10);
+      const prev = bucket.get(key) || { date: key, orders: 0, revenue: 0 };
+      prev.orders += 1;
+      prev.revenue += Number(o.total || 0);
+      bucket.set(key, prev);
+    });
+  res.json({ items: [...bucket.values()].sort((a, b) => a.date.localeCompare(b.date)) });
+};
+
 exports.getOrderPicklist = (req, res) => {
   const picklist = store.getOrderPicklist(req.params.id);
   if (!picklist) return res.status(404).json({ message: 'Order not found' });
