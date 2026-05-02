@@ -12,8 +12,13 @@ exports.createOrder = (req, res) => {
   if (result.error) {
     return res.status(400).json({ message: result.error });
   }
-
-  return res.status(201).json(result.data);
+  const order = result.data || {};
+  return res.status(201).json({
+    ...order,
+    order_number: order.order_number || order.orderNumber,
+    payment_method: order.payment_method || order.paymentMethod,
+    payment_status: order.payment_status || order.paymentStatus
+  });
 };
 
 exports.getProfile = (req, res) => {

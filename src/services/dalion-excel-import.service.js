@@ -3,6 +3,7 @@ const path = require('path');
 const sharp = require('sharp');
 const { unzipBuffer } = require('./xlsx-zip-reader.js');
 const store = require('../data/store.js');
+const productRepository = require('../repositories/product.repository.js');
 
 const PRODUCTS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'products');
 
@@ -118,7 +119,7 @@ function resolveRowCategory({ nameRaw = '', explicitCategory = '', currentCatego
     const cleaned = cleanCategoryHeaderName(nameRaw);
     return { isCategoryHeader: true, nextCategory: cleaned || currentCategory || 'Boshqa', assignedCategory: null };
   }
-  const assigned = normalizeImportedCategory(explicitCategory || currentCategory || 'Boshqa');
+  const assigned = String(explicitCategory || currentCategory || 'Boshqa').trim() || 'Boshqa';
   return { isCategoryHeader: false, nextCategory: currentCategory || 'Boshqa', assignedCategory: assigned };
 }
 
@@ -511,6 +512,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
   const upsertRows = [];
   const errors = [];
   let skipped = 0;
+  let skippedCategoryRows = 0;
   let imageExtracted = 0;
   let imageProcessed = 0;
   let imageObjectDetected = 0;
@@ -540,6 +542,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
     if (categoryState.isCategoryHeader) {
       currentCategory = categoryState.nextCategory;
       if (cleanCategoryHeaderName(nameRaw)) detectedCategories.add(currentCategory);
+      skippedCategoryRows += 1;
       continue;
     }
 
@@ -579,7 +582,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
   }
 
   await mapLimit(parsedRows, 4, async (item) => {
-    const existing = store.getProductById(item.safeCode);
+    const existing = await productRepository.getProductById(item.safeCode);
     let imageUrl = null;
     if (processImages && item.rowImage && item.rowImage.col === 2) {
       try {
@@ -657,15 +660,23 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
     else productsWithoutCategoryFallback += 1;
   });
 
-  store.upsertProducts(upsertRows);
+  await productRepository.upsertProducts(upsertRows);
   const processingTimeMs = Date.now() - startedAt;
   const averageImageMs = imageTimings.length ? Math.round(imageTimings.reduce((a, b) => a + b, 0) / imageTimings.length) : 0;
+
+  const productsWithImageUrl = upsertRows.filter((p) => Boolean(p.image_url)).length;
+  const productsWithEmbeddedImages = upsertRows.filter((p) => String(p.image_url || '').startsWith('/uploads/products/')).length;
+  const productsWithoutImages = upsertRows.length - productsWithImageUrl;
 
   return {
     imported: upsertRows.length,
     skipped,
     invalidRows: skipped,
+    skippedCategoryRows,
     categoriesDetected: detectedCategories.size,
+    productsWithImageUrl,
+    productsWithEmbeddedImages,
+    productsWithoutImages,
     productsAssignedCategory,
     productsWithoutCategoryFallback,
     imageExtracted,
