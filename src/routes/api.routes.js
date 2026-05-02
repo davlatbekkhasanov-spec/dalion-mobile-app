@@ -67,6 +67,8 @@ router.get('/admin/promotions', requireAdminImportToken, adminController.getProm
 router.post('/admin/promotions', requireAdminImportToken, adminController.createPromotion);
 router.put('/admin/promotions/:id', requireAdminImportToken, adminController.updatePromotion);
 router.delete('/admin/promotions/:id', requireAdminImportToken, adminController.deletePromotion);
+router.get('/admin/promo-codes', requireAdminImportToken, adminController.getPromoCodes);
+router.post('/admin/promo-codes', requireAdminImportToken, adminController.upsertPromoCode);
 
 router.get('/admin/home-settings', requireAdminImportToken, adminController.getHomeSettings);
 router.put('/admin/home-settings', requireAdminImportToken, adminController.updateHomeSettings);
@@ -82,10 +84,12 @@ router.post('/admin/products/load-kanstik-demo', requireAdminImportToken, adminC
 router.post('/admin/products/clear-demo', requireAdminImportToken, adminController.clearDemoProducts);
 router.get('/admin/store/summary', requireAdminImportToken, adminController.getStoreSummary);
 router.post('/admin/store/reload', requireAdminImportToken, adminController.reloadStore);
+router.post('/admin/dalion/sync', requireAdminImportToken, adminController.syncDalionProducts);
 router.get('/admin/orders', requireAdminImportToken, adminController.getOrders);
 router.get('/admin/orders/:id', requireAdminImportToken, adminController.getOrderById);
 router.put('/admin/orders/:id/status', requireAdminImportToken, adminController.updateOrderStatus);
 router.post('/admin/orders/:id/cancel', requireAdminImportToken, adminController.cancelOrder);
+router.post('/admin/orders/:id/assign-courier', requireAdminImportToken, adminController.assignCourier);
 router.get('/admin/orders/:id/picklist', requireAdminImportToken, adminController.getOrderPicklist);
 router.post('/admin/orders/:id/send-to-tsd', requireAdminImportToken, adminController.sendOrderToTsd);
 router.get('/admin/orders/:id/qr', requireAdminImportToken, adminController.getOrderQr);
