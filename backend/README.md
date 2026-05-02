@@ -24,3 +24,22 @@ If DALION is not configured, app startup should still work and DALION sync endpo
   - `psql "$DATABASE_URL" -f src/db/migrations/001_init.sql`
 
 No destructive auto-migrations are executed at app startup.
+
+## Payme Merchant API
+- Supported JSON-RPC methods:
+  - `CheckPerformTransaction`
+  - `CreateTransaction`
+  - `PerformTransaction`
+  - `CancelTransaction`
+  - `CheckTransaction`
+  - `GetStatement`
+- Amount is validated in **tiyin** (UZS × 100).
+- Supported account lookup fields: `account.order_id` or `account.orderNumber`.
+
+### Payme env vars
+- `PAYME_MERCHANT_ID`
+- `PAYME_SECRET_KEY`
+- `PAYME_TEST_MODE` (`true`/`false`)
+
+### Test mode note
+- In `PAYME_TEST_MODE=true`, legacy test key auth (`PAYME_TEST_KEY`) remains available for existing tests/sandbox flows.
