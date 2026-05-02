@@ -527,6 +527,7 @@ function createOrder({
   const order = {
     id: `ord_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
     orderNumber: `ORD-${String(orderSequence).padStart(5, '0')}`,
+    order_number: `ORD-${String(orderSequence).padStart(5, '0')}`,
     customerName: String(user.name || 'Mehmon'),
     customerPhone: normalizedUserPhone,
     customerAddress: String(customerAddress || location || ''),
@@ -555,7 +556,9 @@ function createOrder({
     deliveredAt: null,
     cancelledAt: null,
     paymentMethod: normalizedPaymentMethod,
+    payment_method: normalizedPaymentMethod,
     paymentStatus: String(paymentStatus || (normalizedPaymentMethod === PAYMENT_METHODS.CASH ? 'unpaid' : 'pending')),
+    payment_status: String(paymentStatus || (normalizedPaymentMethod === PAYMENT_METHODS.CASH ? 'unpaid' : 'pending')),
     cashTermsAccepted: Boolean(cashTermsAccepted),
     paymentProofUrl: String(paymentProofUrl || ''),
     cashAgreementConfirmed: Boolean(cashAgreementConfirmed),
@@ -616,6 +619,7 @@ function markOrderPaid(id) {
   if (String(order.status) === 'delivered' || String(order.status) === ORDER_STATUSES.DELIVERED) return null;
   const now = new Date().toISOString();
   order.paymentStatus = 'paid';
+  order.payment_status = 'paid';
   if (order.status === 'pending_payment' || order.status === 'created' || order.status === ORDER_STATUSES.NEW) {
     order.status = 'paid';
   }
@@ -632,6 +636,7 @@ function markOrderPaymentCancelled(id) {
   if (String(order.paymentStatus) === 'paid') return null;
   const now = new Date().toISOString();
   order.paymentStatus = 'cancelled';
+  order.payment_status = 'cancelled';
   if (order.status === 'pending_payment' || order.status === 'created') order.status = 'cancelled';
   order.updated_at = now;
   persistState();

@@ -2840,6 +2840,7 @@ Oq fonli foto</div>
         await Promise.all([loadProducts({ reset: true }), loadCart()]);
         if (selectedPayment === 'click') {
           const amountTiyin = Math.round(Number((checkoutTotals?.finalTotal || 0)) * 100);
+          // TODO: replace redirect-only flow with Click callback/webhook confirmation.
           window.open(`https://indoor.click.uz/pay?id=081328&t=${amountTiyin}`, '_blank');
         }
         cart = {};
