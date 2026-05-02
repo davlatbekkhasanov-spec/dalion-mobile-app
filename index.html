@@ -122,6 +122,10 @@
       font-weight: 700;
       cursor: pointer;
       transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
     }
     .btn:active { transform: translateY(1px) scale(0.992); }
 
@@ -181,6 +185,7 @@
       transform: scale(1.04);
       pointer-events: none;
     }
+    #introScreen.fade-out { opacity: 0; }
 
     .phone.show-app .app {
       opacity: 1;
@@ -1035,7 +1040,7 @@
     /* Frontend premium light refresh */
     body { background: #f6f7fb; color: #1a1f36; }
     .phone { background: #f6f7fb; border-color: #e4e7ec; box-shadow: 0 20px 55px rgba(35,42,70,.15); }
-    .app { background: #f6f7fb; }
+    .app { background: #f6f7fb; overflow-x: hidden; }
     .home-top-sticky { background: rgba(246,247,251,.94); border-bottom: 1px solid #eceff5; }
     .logo-mark { background: linear-gradient(140deg,#7f56ff,#5b4cff); border: 0; box-shadow: 0 10px 26px rgba(91,76,255,.3); }
     .title, .section-head h4, .logo-text h3, .cart-item-title, .product h5 { color: #1d2440; }
@@ -1044,16 +1049,17 @@
     .promo, .list-card, .product, .category-card, .cat { background:#fff; border:1px solid #edf0f5; box-shadow:0 8px 24px rgba(16,24,40,.08); }
     .promo { background: linear-gradient(130deg,#6f54ff,#8c6bff); color:#fff; }
     .promo p, .promo .muted { color: rgba(255,255,255,.88); }
-    .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .image-box { height: 170px; background:#f8f9ff; border:1px solid #ecefff; }
-    .product { padding: 0; border-radius: 16px; overflow: hidden; gap: 0; display:flex; flex-direction:column; min-height:100%; border:0; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
-    .product:hover { transform: none; border-color: transparent; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+    .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-left: -8px; margin-right: -8px; }
+    .image-box { height: 170px; background:#f8f9ff; border:0; }
+    .product { padding: 0; border-radius: 16px; overflow: hidden; gap: 0; display:flex; flex-direction:column; min-height:100%; border:0; box-shadow: 0 4px 14px rgba(0,0,0,.06); background:#fff; }
+    .product:hover { transform: none; border-color: transparent; box-shadow: 0 4px 14px rgba(0,0,0,.06); }
     .image-box {
       width: 100%;
-      height: 220px;
+      aspect-ratio: 3 / 4;
+      height: 250px;
       margin-bottom: 0;
       border: 0;
-      border-radius: 0;
+      border-radius: 14px 14px 0 0;
       background: #eef2f8;
       box-shadow: none;
       padding: 0;
@@ -1061,9 +1067,9 @@
       position: relative;
     }
     .image-box img { width: 100%; height: 100%; object-fit: cover; max-width: none; max-height: none; filter: none; }
-    .product-info { padding: 8px 10px 10px; display:flex; flex-direction:column; gap:0; flex:1; }
+    .product-info { padding: 8px 8px 10px; display:flex; flex-direction:column; gap:0; flex:1; }
     .product h5 { font-size: 13px; min-height: 34px; margin: 4px 0 0; font-weight:500; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-    .price { color:#111827; font-size:18px; font-weight:700; line-height:1.15; margin: 0; }
+    .price { color:#111827; font-size:18px; font-weight:800; line-height:1.15; margin: 0; }
     .old-price { color:#999; min-height: 14px; margin: 1px 0 0; font-size: 12px; text-decoration:line-through; }
     .product-top-row { position:absolute; inset:8px 8px auto 8px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px; z-index:2; }
     .fav-btn { width:30px; height:30px; border-radius:999px; border:0; background:#fff; color:#b42318; display:grid; place-items:center; font-size:14px; box-shadow: 0 2px 8px rgba(16,24,40,.14); }
@@ -1071,7 +1077,7 @@
     .discount-chip { background:#ff4d6d; color:#fff; border-radius:12px; font-size:12px; padding:4px 8px; }
     .delivery-chip { background:#f5f3ff; color:#5b4cff; }
     .quick-add-btn,.full-btn,.btn.btn-primary,.gm-btn-primary { background: linear-gradient(135deg, #7b5cff, #5a67ff); color:#fff; border:none; }
-    .quick-add-btn { min-height: 42px !important; height: 42px; border-radius: 12px; font-size:14px; font-weight: 600; margin: 8px 0 0; width: 100%; display:flex; align-items:center; justify-content:center; }
+    .quick-add-btn { min-height: 40px !important; height: 40px; border-radius: 12px; font-size:13px; font-weight: 600; margin: 8px 0 0; width: 100%; display:flex; align-items:center; justify-content:center; line-height:1; }
     .product-rating { font-size: 12px; color: #777; margin: 4px 0 0; }
     .credit-badge { background:#fef3c7; color:#92400e; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:700; margin: 0 10px; width: max-content; }
     .qty button { background:#f2f4f7; color:#1d2440; border:1px solid #dde3ee; }
@@ -1080,7 +1086,7 @@
       grid-template-columns: 44px 1fr 44px;
       gap: 6px;
       margin-top: 8px;
-      height: 42px;
+      height: 40px;
       background: #f7f8fc;
       border: 1px solid #e5e9f2;
       border-radius: 12px;
@@ -1088,7 +1094,7 @@
       overflow: hidden;
     }
     .product .qty button {
-      height: 42px;
+      height: 40px;
       min-width: 44px;
       border-radius: 0;
       border: 0;
@@ -1101,7 +1107,7 @@
       color: #1d2440;
     }
     .product .qty span {
-      height: 42px;
+      height: 40px;
       border: 0;
       border-radius: 0;
       background: transparent;
@@ -1112,13 +1118,29 @@
       font-weight: 700;
       color: #1d2440;
     }
+    .image-fallback {
+      width: 100%;
+      height: 100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      color:#475467;
+      background: linear-gradient(180deg, #f6f7fb 0%, #eceff5 100%);
+      font-size:12px;
+      font-weight:700;
+      text-align:center;
+      padding:10px;
+    }
+    .image-fallback i { font-style:normal; font-size:34px; }
 
     .icon-btn { background:#fff1f3; color:#b42318; border:1px solid #fbcfe8; min-height:40px; }
     .cart-item-thumb { width:72px; height:72px; }
     .cart-item-card { border-radius:18px; }
     .checkout-delivery-card { background:#fff; border:1px solid #eceff5; }
     .payment-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
-    .pay-btn { background:#fff; color:#344054; border:1px solid #d0d5dd; }
+    .pay-btn { background:#fff; color:#344054; border:1px solid #d0d5dd; min-height:44px; }
     .pay-btn.active { background:#f5f3ff; border-color:#7f56d9; color:#5b21b6; box-shadow:0 0 0 2px rgba(127,86,217,.14); }
     .bottom { background:#fff; border-top:1px solid #e8ebf2; }
     .tab { color:#667085; font-size:11px; min-height:52px; justify-content:center; }
@@ -1126,6 +1148,7 @@
     .tab.active { color:#5b4cff; }
     .tab.active b { background:linear-gradient(130deg,#ede9fe,#ddd6fe); border-color:#c4b5fd; box-shadow:none; }
     .cart-badge { background:#ef4444; color:#fff; }
+    .home-search-lg { position: sticky; top: 64px; z-index: 7; }
 
   
     .profile-hero{background:linear-gradient(135deg,#5b4cff,#8b6bff);color:#fff;border:none}
@@ -1135,7 +1158,18 @@
     .auth-sheet{background:#fff;border:1px solid #eceff5}
     .auth-input{background:#fff;color:#1d2440;border:1px solid #d0d5dd}
 
-  .premium-intro .intro-logo{animation:introLogo 2.2s ease both}.intro-chip{display:inline-flex;align-items:center;background:#fff;border:1px solid #eceff5;border-radius:999px;padding:6px 10px;max-width:max-content}.intro-cards{display:grid;gap:8px;background:#f7f7ff}.intro-card{height:52px;border-radius:12px;background:linear-gradient(90deg,#fff,#f4f3ff);border:1px solid #e8e7ff;box-shadow:0 6px 16px rgba(91,76,255,.12);opacity:0;transform:translateY(12px)}.intro-card:nth-child(1){animation:introCard .6s .3s forwards}.intro-card:nth-child(2){animation:introCard .6s .55s forwards}.intro-card:nth-child(3){animation:introCard .6s .8s forwards}.intro-cta{opacity:0;animation:introCard .5s 1.5s forwards}@keyframes introLogo{0%{opacity:0;transform:scale(.96)}100%{opacity:1;transform:scale(1)}}@keyframes introCard{to{opacity:1;transform:translateY(0)}}
+  .premium-intro{position:relative;min-height:100%;background:linear-gradient(180deg,#ffffff 0%,#f3efff 100%);padding:24px 16px max(24px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;overflow:hidden}
+  .premium-intro .intro-logo{opacity:0;transform:scale(.95);animation:introLogo .65s .35s forwards}
+  .intro-chip{display:inline-flex;align-items:center;background:#f3f4f7;border:1px solid #e5e7eb;border-radius:999px;padding:6px 10px;font-size:12px;color:#667085;max-width:max-content;opacity:0;animation:introFade .4s .15s forwards}
+  .intro-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+  .intro-card{height:86px;border-radius:16px;background:#fff;border:1px solid #eceff5;box-shadow:0 10px 22px rgba(91,76,255,.10);opacity:0;filter:blur(4px);transform:translateY(12px);animation:introCard .55s forwards}
+  .intro-card:nth-child(1){animation-delay:.65s}.intro-card:nth-child(2){animation-delay:.82s}.intro-card:nth-child(3){animation-delay:.99s}.intro-card:nth-child(4){animation-delay:1.16s}
+  .intro-title,.intro-sub,.intro-trust,.intro-cta{opacity:0}
+  .intro-title{font-size:31px;font-weight:900;color:#1d2440;animation:introFade .45s 1.3s forwards}
+  .intro-sub{font-size:15px;color:#475467;animation:introFade .45s 1.45s forwards}
+  .intro-trust{font-size:13px;color:#667085;animation:introFade .45s 1.65s forwards}
+  .intro-cta{height:48px;border-radius:16px;box-shadow:0 12px 24px rgba(91,76,255,.22);margin-top:auto;animation:introFade .45s 2.05s forwards}
+  @keyframes introLogo{to{opacity:1;transform:scale(1)}}@keyframes introFade{to{opacity:1}}@keyframes introCard{to{opacity:1;filter:blur(0);transform:translateY(0)}}
 
   </style>
   <link rel="stylesheet" href="/styles.css" />
@@ -1147,9 +1181,10 @@
       <div class="intro-inner premium-intro">
         <p class="muted intro-chip">Samarqand, Shohrux Mirzo 33</p>
         <h1 class="brand intro-logo">GlobusMarket</h1>
-        <p class="subtitle">Har kuni kerakli mahsulotlar</p>
-        <div class="onb-card intro-cards"><div class="intro-card"></div><div class="intro-card"></div><div class="intro-card"></div></div>
-        <p class="subtitle">Tez yetkazib berish • Keng assortiment • Qulay to‘lov</p>
+        <p class="intro-title">GlobusMarket</p>
+        <p class="intro-sub">Har kuni kerakli mahsulotlar</p>
+        <div class="intro-cards"><div class="intro-card"></div><div class="intro-card"></div><div class="intro-card"></div><div class="intro-card"></div></div>
+        <p class="intro-trust">Tez yetkazib berish • Keng assortiment • Qulay to‘lov</p>
         <button class="btn gm-btn gm-btn-primary btn-primary intro-cta" id="openRegisterBtn" style="margin-top:auto;">Xaridni boshlash</button>
       </div>
     </section>
@@ -1188,7 +1223,7 @@
           <button class="bell gm-icon-btn" aria-label="Savatga o'tish" id="homeCartShortcut">🛒<span class="badge gm-chip gm-chip--warning" id="homeCartShortcutBadge">0</span></button>
         </header>
 
-        <button class="search home-search-lg" id="openSearchBtn">🔎&nbsp; Mahsulot, brend yoki toifani qidiring</button>
+        <button class="search home-search-lg" id="openSearchBtn">🔎&nbsp; Mahsulot qidirish...</button>
 
         <div class="section-head gm-section-header" id="popularSectionHead">
           <h4 id="bannerSectionTitle">Bannerlar</h4>
@@ -1260,7 +1295,7 @@
         </div>
 
         <div class="empty" id="cartEmpty">
-          <h3 style="margin-bottom:6px;">Savatingiz bo'sh</h3>
+          <h3 style="margin-bottom:6px;">Savatingiz bo‘sh</h3>
           <p class="muted">Yoqtirgan mahsulotlaringizni qo‘shing va buyurtmani tez yakunlang.</p>
           <button class="btn gm-btn gm-btn-primary empty-cta" id="cartEmptyCta">Katalogga o‘tish</button>
         </div>
@@ -1628,7 +1663,7 @@ Oq fonli foto</div>
 
       homeBrandName.textContent = settings.brandName || settings.heroTitle || 'GlobusMarket';
       homeLocation.textContent = `📍 ${settings.locationText || DEFAULT_LOCATION_ADDRESS}`;
-      openSearchBtn.textContent = settings.searchPlaceholder || '🔎 Mahsulot, brend yoki toifani qidiring';
+      openSearchBtn.textContent = settings.searchPlaceholder || '🔎 Mahsulot qidirish...';
 
       const fallbackBanner = {
         title: settings.heroTitle || 'GlobusMarket',
@@ -1784,7 +1819,10 @@ Oq fonli foto</div>
         waiting_courier: 'Yig‘ildi / kurier kutilmoqda',
         out_for_delivery: 'Kurierda',
         delivered: 'Yetkazildi',
-        cancelled: 'Bekor qilingan'
+        cancelled: 'Bekor qilingan',
+        created: 'Yaratildi',
+        pending_payment: 'To‘lov kutilmoqda',
+        paid: 'To‘landi'
       }[status] || status || '-';
     }
 
@@ -1859,7 +1897,9 @@ Oq fonli foto</div>
       const rating = hasRating ? ratingValue.toFixed(1) : '';
       const reviews = Number(p.reviewCount || 0);
       const priceText = Number(p.price) > 0 ? money(p.price) : 'Narx aniqlanmoqda';
-      const imageHtml = p.image_url ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '';
+      const imageHtml = p.image_url
+        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.remove();this.parentElement.insertAdjacentHTML('beforeend', imageFallbackTemplate('${(p.categoryDisplayName || p.category || '').replace(/'/g, '&#39;')}'));" />`
+        : imageFallbackTemplate(p.categoryDisplayName || p.category || p.name);
       return `
         <article class="product gm-card" data-open-product="${p.id}">
           <div class="image-box">
@@ -1882,6 +1922,10 @@ Oq fonli foto</div>
       `;
     }
 
+    function imageFallbackTemplate(categoryName = '') {
+      return `<div class="image-fallback"><i>🖼️</i><span>Rasm yo‘q</span></div>`;
+    }
+
     function setSectionVisibility(sectionEl, headEl, hasItems) {
       sectionEl.style.display = hasItems ? 'grid' : 'none';
       if (headEl) headEl.style.display = hasItems ? 'flex' : 'none';
@@ -1899,7 +1943,7 @@ Oq fonli foto</div>
           if (byPrice !== 0) return byPrice;
           return String(a.name || '').localeCompare(String(b.name || ''), 'uz');
         })
-        .slice(0, 8);
+        .slice(0, 12);
       const discounts = products.filter((p) => Number(p.oldPrice || 0) > Number(p.price || 0)).slice(0, 6);
       const fast = products.filter((p) => Number(p.stock || 0) > 0).slice(0, 6);
       const bestSeller = popular.slice(0, 6);
@@ -1907,7 +1951,7 @@ Oq fonli foto</div>
         ? products.filter((p) => cartItemsSnapshot.some((c) => c.id === p.id)).slice(0, 6)
         : [];
 
-      homeProducts.innerHTML = popular.map(productCardTemplate).join('') || '<div class="empty gm-empty-state">Mahsulotlar yuklanmoqda...</div>';
+      homeProducts.innerHTML = popular.map(productCardTemplate).join('') || '<div class="empty gm-empty-state"><strong>Mahsulotlar hali yuklanmagan</strong><br/>Admin panel orqali Excel import qiling yoki DALION sinxronizatsiyasini ulang</div>';
       homeDiscountProducts.innerHTML = discounts.map(productCardTemplate).join('');
       homeFastProducts.innerHTML = fast.map(productCardTemplate).join('');
       homeBestSellerProducts.innerHTML = bestSeller.map(productCardTemplate).join('');
@@ -2102,11 +2146,12 @@ Oq fonli foto</div>
           ? 'Manzilni qo‘lda kiriting yoki lokatsiyani yoqing'
           : 'Lokatsiya ixtiyoriy. Istasangiz manzilni qo‘lda kiriting.';
       }
-      if (selectedPayment === 'click') paymentLinks.innerHTML = 'Click: <a href="https://indoor.click.uz/pay?id=081328&t=0" target="_blank">To‘lov havolasi</a>';
-      else if (selectedPayment === 'payme') paymentLinks.innerHTML = 'Payme: <a href="https://transfer.paycom.uz/693801c1958777a0164fea76" target="_blank">To‘lov havolasi</a>';
+      const clickAmountTiyin = Math.round(Number(orderTotal || 0) * 100);
+      if (selectedPayment === 'click') paymentLinks.innerHTML = `Click: <a href="https://indoor.click.uz/pay?id=081328&t=${clickAmountTiyin}" target="_blank">To‘lov havolasi</a>`;
+      else if (selectedPayment === 'payme') paymentLinks.innerHTML = 'Payme: To‘lovni Payme ilovasi orqali yakunlang';
       else paymentLinks.innerHTML = '';
       const isOnline = selectedPayment === 'click' || selectedPayment === 'payme';
-      paymentProofInput.style.display = isOnline ? 'block' : 'none';
+      paymentProofInput.style.display = 'none';
       cashAgreementDetails.style.display = selectedPayment === 'cash' ? 'block' : 'none';
       cashAgreementLabel.style.display = selectedPayment === 'cash' ? 'block' : 'none';
       addressValidationError.style.display = 'none';
@@ -2476,7 +2521,15 @@ Oq fonli foto</div>
       }
     }
 
-    openRegisterBtn?.addEventListener('click', async () => { phone.classList.add('show-app'); setView('homeView'); await initializeAppData(); });
+    openRegisterBtn?.addEventListener('click', async () => {
+      localStorage.setItem('onboardingSeen', 'true');
+      document.getElementById('introScreen')?.classList.add('fade-out');
+      setTimeout(async () => {
+        phone.classList.add('show-app');
+        setView('homeView');
+        await initializeAppData();
+      }, 260);
+    });
 
     closeAuthSheetBtn?.addEventListener('click', () => {
       authSheetOverlay.classList.remove('show');
@@ -2772,16 +2825,6 @@ Oq fonli foto</div>
 
       try {
         let paymentProofUrl = '';
-        if (selectedPayment === 'click') window.open('https://indoor.click.uz/pay?id=081328&t=0', '_blank');
-        if (selectedPayment === 'payme') window.open('https://transfer.paycom.uz/693801c1958777a0164fea76', '_blank');
-        if (selectedPayment === 'click' || selectedPayment === 'payme') {
-          const file = paymentProofInput.files && paymentProofInput.files[0];
-          if (!file) {
-            showToast("To‘lov chekini ilova qiling");
-            return;
-          }
-          paymentProofUrl = file.name;
-        }
         if (selectedPayment === 'cash') {
           if (!cashAgreementCheckbox.checked) {
             paymentValidationError.textContent = "Naqd to‘lov uchun rozilikni tasdiqlang";
@@ -2795,7 +2838,7 @@ Oq fonli foto</div>
           method: 'POST',
           body: JSON.stringify({
             paymentMethod: selectedPayment,
-            paymentStatus: selectedPayment === 'cash' ? 'cash_pending' : 'proof_uploaded',
+            paymentStatus: selectedPayment === 'cash' ? 'unpaid' : 'pending',
             cashTermsAccepted: selectedPayment === 'cash',
             paymentProofUrl,
             cashAgreementTextVersion: selectedPayment === 'cash' ? 'draft-v1' : '',
@@ -2821,10 +2864,10 @@ Oq fonli foto</div>
         };
 
         await Promise.all([loadProducts({ reset: true }), loadCart()]);
-        if ((selectedPayment === 'click' || selectedPayment === 'payme') && paymentProofInput.files?.[0]) {
-          const fd2 = new FormData();
-          fd2.append('file', paymentProofInput.files[0]);
-          await fetch(`/api/v1/orders/payment-proof?orderNumber=${encodeURIComponent(order.orderNumber)}`, { method: 'POST', body: fd2 }).catch(() => null);
+        if (selectedPayment === 'click') {
+          const amountTiyin = Math.round(Number((checkoutTotals?.finalTotal || 0)) * 100);
+          // TODO: replace redirect-only flow with Click callback/webhook confirmation.
+          window.open(`https://indoor.click.uz/pay?id=081328&t=${amountTiyin}`, '_blank');
         }
         cart = {};
         renderAll();
@@ -2837,7 +2880,8 @@ Oq fonli foto</div>
         successTotal.textContent = Number.isFinite(Number(lastOrderData?.finalTotal))
           ? `Jami: ${money(Number(lastOrderData.finalTotal))}`
           : "Jami: Summani tekshirib bo‘lmadi";
-        successOrderStatus.textContent = `Status: ${orderStatusLabel(order.status)}`;
+        const pendingText = order?.paymentStatus === 'pending' ? " · To‘lovni yakunlang" : '';
+        successOrderStatus.textContent = `Status: ${orderStatusLabel(order.status)}${pendingText}`;
         if (latestOrderNumber) {
           trackOrderBtn.style.display = 'inline-flex';
           trackOrderBtn.setAttribute('href', `/track/${encodeURIComponent(latestOrderNumber)}`);
@@ -2884,7 +2928,8 @@ Oq fonli foto</div>
     landmarkInput.addEventListener('input', renderCheckout);
     (async () => {
       await loadProfile();
-      if (isAuthed()) {
+      const onboardingSeen = localStorage.getItem('onboardingSeen') === 'true';
+      if (isAuthed() || onboardingSeen) {
         phone.classList.add('show-app');
         setView('homeView');
         await initializeAppData();
