@@ -2,6 +2,7 @@ const store = require('../data/store.js');
 const dalionService = require('../services/dalion.service.js');
 const excelService = require('../services/excel.service.js');
 const xlsxImportService = require('../services/dalion-excel-import.service.js');
+const db = require('../db/index.js');
 
 exports.getIntegrationStatus = (req, res) => {
   const dalionCfg = dalionService.getDalionConfig();
@@ -21,7 +22,8 @@ exports.getIntegrationStatus = (req, res) => {
     },
     stats: {
       products: store.listProducts().length,
-      cartItems: store.getCartSummary().totalQty
+      cartItems: store.getCartSummary().totalQty,
+      storageMode: db.isDbEnabled() ? 'postgres' : 'local'
     }
   });
 };

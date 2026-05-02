@@ -84,6 +84,7 @@
       <div class="card" style="margin-top:10px;padding:10px;">
         <strong>DALION Trend integratsiyasi</strong>
         <p class="muted" id="dalionStatusText" style="margin-top:4px;">Holat: Sozlanmagan</p>
+        <p class="muted" id="storageModeText" style="margin-top:4px;">Storage: Local file/memory</p>
         <p class="muted" style="margin-top:4px;">Hozircha mahsulotlar Excel import orqali yuklanadi. DALION ulangach avtomatik sinxronizatsiya ishlaydi.</p>
         <button id="dalionSyncBtn" class="btn" style="margin-top:8px;">DALION sinxronizatsiyani boshlash</button>
       </div>
@@ -454,6 +455,7 @@
         const out = await api('/integrations/status');
         const enabled = Boolean(out?.integrations?.dalionTrend1C?.enabled);
         document.getElementById('dalionStatusText').textContent = `Holat: ${enabled ? 'Sozlangan' : 'Sozlanmagan'}`;
+        document.getElementById('storageModeText').textContent = `Storage: ${out?.stats?.storageMode === 'postgres' ? 'PostgreSQL' : 'Local file/memory'}`;
       } catch (e) {}
     }
     document.getElementById('dalionSyncBtn').onclick = async () => {

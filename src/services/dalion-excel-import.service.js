@@ -3,6 +3,7 @@ const path = require('path');
 const sharp = require('sharp');
 const { unzipBuffer } = require('./xlsx-zip-reader.js');
 const store = require('../data/store.js');
+const productRepository = require('../repositories/product.repository.js');
 
 const PRODUCTS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'products');
 
@@ -581,7 +582,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
   }
 
   await mapLimit(parsedRows, 4, async (item) => {
-    const existing = store.getProductById(item.safeCode);
+    const existing = await productRepository.getProductById(item.safeCode);
     let imageUrl = null;
     if (processImages && item.rowImage && item.rowImage.col === 2) {
       try {
@@ -659,7 +660,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
     else productsWithoutCategoryFallback += 1;
   });
 
-  store.upsertProducts(upsertRows);
+  await productRepository.upsertProducts(upsertRows);
   const processingTimeMs = Date.now() - startedAt;
   const averageImageMs = imageTimings.length ? Math.round(imageTimings.reduce((a, b) => a + b, 0) / imageTimings.length) : 0;
 
