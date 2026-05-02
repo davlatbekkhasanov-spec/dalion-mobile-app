@@ -137,6 +137,7 @@
         <input id="deliveryText" placeholder="Delivery text" />
         <input id="bgUrl" placeholder="Background image URL" />
         <input id="accentColor" placeholder="Accent color" />
+        <input id="defaultMarginPercent" type="number" step="0.01" placeholder="Default margin %" />
         <input id="clickPaymentUrl" placeholder="CLICK_PAYMENT_URL" />
         <input id="paymePaymentUrl" placeholder="PAYME_PAYMENT_URL" />
         <input id="cashTermsText" placeholder="cashTermsText" />
@@ -604,6 +605,7 @@
       deliveryText.value=homeSettings.deliveryText||'';
       bgUrl.value=homeSettings.backgroundImageUrl||'';
       accentColor.value=homeSettings.accentColor||'';
+      defaultMarginPercent.value=homeSettings.defaultMarginPercent ?? 0;
       clickPaymentUrl.value=homeSettings.clickPaymentUrl||'';
       paymePaymentUrl.value=homeSettings.paymePaymentUrl||'';
       cashTermsText.value=homeSettings.cashTermsText||'';
@@ -625,6 +627,7 @@
           deliveryText: deliveryText.value,
           backgroundImageUrl:bgUrl.value,
           accentColor:accentColor.value,
+          defaultMarginPercent: Number(defaultMarginPercent.value || 0),
           clickPaymentUrl: clickPaymentUrl.value,
           paymePaymentUrl: paymePaymentUrl.value,
           cashTermsText: cashTermsText.value

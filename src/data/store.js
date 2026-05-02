@@ -41,7 +41,8 @@ let homeSettings = {
   accentColor: '#25f48f',
   clickPaymentUrl: '',
   paymePaymentUrl: '',
-  cashTermsText: "Men buyurtmani yetkazilganda naqd to‘lashni tasdiqlayman"
+  cashTermsText: "Men buyurtmani yetkazilganda naqd to‘lashni tasdiqlayman",
+  defaultMarginPercent: 0
 };
 
 const users = new Map();
@@ -819,11 +820,24 @@ function markOrderPaymentPaid(orderRef) {
 
 function upsertProducts(items = []) {
   const touched = [];
+  const defaultMarginPercent = Number(homeSettings.defaultMarginPercent || 0);
 
   for (const raw of items) {
     if (!raw || !raw.id) continue;
     const i = products.findIndex((p) => p.id === raw.id);
     const categoryRef = ensureCategory(raw.category || 'Boshqa');
+
+    const costPrice = Math.max(0, Number(raw.cost_price ?? raw.price ?? 0) || 0);
+    const marginPercentRaw = raw.margin_percent;
+    const marginFixedRaw = raw.margin_fixed;
+    const hasMarginPercent = marginPercentRaw !== undefined && marginPercentRaw !== null && marginPercentRaw !== '';
+    const hasMarginFixed = marginFixedRaw !== undefined && marginFixedRaw !== null && marginFixedRaw !== '';
+    const marginPercent = hasMarginPercent ? Number(marginPercentRaw || 0) : defaultMarginPercent;
+    const marginFixed = hasMarginFixed ? Number(marginFixedRaw || 0) : null;
+    let sellingPrice = costPrice;
+    if (hasMarginFixed) sellingPrice = costPrice + (Number.isFinite(marginFixed) ? marginFixed : 0);
+    else if (Number.isFinite(marginPercent) && marginPercent !== 0) sellingPrice = costPrice * (1 + (marginPercent / 100));
+    sellingPrice = Math.max(0, Math.round(sellingPrice));
 
     const normalized = {
       id: raw.id,
@@ -832,8 +846,11 @@ function upsertProducts(items = []) {
       name: raw.name || 'Nomsiz mahsulot',
       categoryId: raw.categoryId || categoryRef.id,
       category: raw.category || categoryRef.name,
-      price: Number(raw.price) || 0,
-      oldPrice: Number(raw.oldPrice) || Number(raw.price) || 0,
+      cost_price: costPrice,
+      margin_percent: Number.isFinite(marginPercent) ? marginPercent : 0,
+      margin_fixed: Number.isFinite(marginFixed) ? marginFixed : null,
+      price: sellingPrice,
+      oldPrice: Number(raw.oldPrice) || sellingPrice || 0,
       stock: Number(raw.stock ?? 0),
       image: raw.image || raw.image_url || '',
       image_url: raw.image_url || raw.image || '',

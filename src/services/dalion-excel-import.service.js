@@ -648,6 +648,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
       category: updateOnlyStockPrice && existing ? existing.category : item.currentCategory,
       stock: item.stock,
       price: item.price,
+      cost_price: item.price,
       oldPrice: item.oldPrice,
       image_url: updateOnlyStockPrice && existing ? existing.image_url : imageUrl,
       image: updateOnlyStockPrice && existing ? existing.image : imageUrl,
