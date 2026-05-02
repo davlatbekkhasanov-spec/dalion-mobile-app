@@ -181,6 +181,7 @@
       transform: scale(1.04);
       pointer-events: none;
     }
+    #introScreen.fade-out { opacity: 0; }
 
     .phone.show-app .app {
       opacity: 1;
@@ -1153,7 +1154,18 @@
     .auth-sheet{background:#fff;border:1px solid #eceff5}
     .auth-input{background:#fff;color:#1d2440;border:1px solid #d0d5dd}
 
-  .premium-intro .intro-logo{animation:introLogo 2.2s ease both}.intro-chip{display:inline-flex;align-items:center;background:#fff;border:1px solid #eceff5;border-radius:999px;padding:6px 10px;max-width:max-content}.intro-cards{display:grid;gap:8px;background:#f7f7ff}.intro-card{height:52px;border-radius:12px;background:linear-gradient(90deg,#fff,#f4f3ff);border:1px solid #e8e7ff;box-shadow:0 6px 16px rgba(91,76,255,.12);opacity:0;transform:translateY(12px)}.intro-card:nth-child(1){animation:introCard .6s .3s forwards}.intro-card:nth-child(2){animation:introCard .6s .55s forwards}.intro-card:nth-child(3){animation:introCard .6s .8s forwards}.intro-cta{opacity:0;animation:introCard .5s 1.5s forwards}@keyframes introLogo{0%{opacity:0;transform:scale(.96)}100%{opacity:1;transform:scale(1)}}@keyframes introCard{to{opacity:1;transform:translateY(0)}}
+  .premium-intro{position:relative;min-height:100%;background:linear-gradient(180deg,#ffffff 0%,#f3efff 100%);padding:24px 16px max(24px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;overflow:hidden}
+  .premium-intro .intro-logo{opacity:0;transform:scale(.95);animation:introLogo .65s .35s forwards}
+  .intro-chip{display:inline-flex;align-items:center;background:#f3f4f7;border:1px solid #e5e7eb;border-radius:999px;padding:6px 10px;font-size:12px;color:#667085;max-width:max-content;opacity:0;animation:introFade .4s .15s forwards}
+  .intro-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+  .intro-card{height:86px;border-radius:16px;background:#fff;border:1px solid #eceff5;box-shadow:0 10px 22px rgba(91,76,255,.10);opacity:0;filter:blur(4px);transform:translateY(12px);animation:introCard .55s forwards}
+  .intro-card:nth-child(1){animation-delay:.65s}.intro-card:nth-child(2){animation-delay:.82s}.intro-card:nth-child(3){animation-delay:.99s}.intro-card:nth-child(4){animation-delay:1.16s}
+  .intro-title,.intro-sub,.intro-trust,.intro-cta{opacity:0}
+  .intro-title{font-size:31px;font-weight:900;color:#1d2440;animation:introFade .45s 1.3s forwards}
+  .intro-sub{font-size:15px;color:#475467;animation:introFade .45s 1.45s forwards}
+  .intro-trust{font-size:13px;color:#667085;animation:introFade .45s 1.65s forwards}
+  .intro-cta{height:48px;border-radius:16px;box-shadow:0 12px 24px rgba(91,76,255,.22);margin-top:auto;animation:introFade .45s 2.05s forwards}
+  @keyframes introLogo{to{opacity:1;transform:scale(1)}}@keyframes introFade{to{opacity:1}}@keyframes introCard{to{opacity:1;filter:blur(0);transform:translateY(0)}}
 
   </style>
   <link rel="stylesheet" href="/styles.css" />
@@ -1165,9 +1177,10 @@
       <div class="intro-inner premium-intro">
         <p class="muted intro-chip">Samarqand, Shohrux Mirzo 33</p>
         <h1 class="brand intro-logo">GlobusMarket</h1>
-        <p class="subtitle">Har kuni kerakli mahsulotlar</p>
-        <div class="onb-card intro-cards"><div class="intro-card"></div><div class="intro-card"></div><div class="intro-card"></div></div>
-        <p class="subtitle">Tez yetkazib berish • Keng assortiment • Qulay to‘lov</p>
+        <p class="intro-title">GlobusMarket</p>
+        <p class="intro-sub">Har kuni kerakli mahsulotlar</p>
+        <div class="intro-cards"><div class="intro-card"></div><div class="intro-card"></div><div class="intro-card"></div><div class="intro-card"></div></div>
+        <p class="intro-trust">Tez yetkazib berish • Keng assortiment • Qulay to‘lov</p>
         <button class="btn gm-btn gm-btn-primary btn-primary intro-cta" id="openRegisterBtn" style="margin-top:auto;">Xaridni boshlash</button>
       </div>
     </section>
@@ -2504,7 +2517,15 @@ Oq fonli foto</div>
       }
     }
 
-    openRegisterBtn?.addEventListener('click', async () => { phone.classList.add('show-app'); setView('homeView'); await initializeAppData(); });
+    openRegisterBtn?.addEventListener('click', async () => {
+      localStorage.setItem('onboardingSeen', 'true');
+      document.getElementById('introScreen')?.classList.add('fade-out');
+      setTimeout(async () => {
+        phone.classList.add('show-app');
+        setView('homeView');
+        await initializeAppData();
+      }, 260);
+    });
 
     closeAuthSheetBtn?.addEventListener('click', () => {
       authSheetOverlay.classList.remove('show');
@@ -2903,7 +2924,8 @@ Oq fonli foto</div>
     landmarkInput.addEventListener('input', renderCheckout);
     (async () => {
       await loadProfile();
-      if (isAuthed()) {
+      const onboardingSeen = localStorage.getItem('onboardingSeen') === 'true';
+      if (isAuthed() || onboardingSeen) {
         phone.classList.add('show-app');
         setView('homeView');
         await initializeAppData();
