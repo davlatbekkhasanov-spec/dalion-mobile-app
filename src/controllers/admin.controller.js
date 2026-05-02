@@ -2,65 +2,9 @@ const store = require('../data/store.js');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
-const { loadKanstikDemoCatalog, SOURCE: KANSTIK_SOURCE, DEMO_CATEGORIES } = require('../services/kanstik-demo.service.js');
+const dalionService = require('../services/dalion.service.js');
 
-function buildDemoProducts() {
-  const itemsByCategory = {
-    'Kanselyariya': ['Qaychi 17sm', 'Yelim qalam', 'Skotch 24mm', 'Marker qora', 'Shtamp bo‘yoq', 'Qalamdon stol usti', 'Korrektor lenta', 'Chizg‘ich 30sm', 'Stepler №24'],
-    'Ofis jihozlari': ['Kalkulyator Canon', 'Laminator A4', 'Shreder mini', 'Flipchart doska', 'Ofis stoli organizer', 'Kreslo g‘ildirakli', 'Sichqoncha gilamcha', 'Stol lampasi LED', 'Vizitka qutisi'],
-    'Qog‘oz mahsulotlari': ['A4 ofis qog‘ozi 80g', 'A3 ofis qog‘ozi 80g', 'Sticky notes 76x76', 'Rangli qog‘oz A4', 'Foto qog‘oz 10x15', 'Konvert C4', 'Konvert C5', 'Termo qog‘oz 57mm', 'Kartochka qog‘oz'],
-    'Papkalar': ['Arxiv papka keng', 'Fayl papka 60 list', 'Prijim papka A4', 'Burchakli papka', 'Halqali papka 2D', 'Portfolio papka', 'Fayl qopqoqli papka', 'Zip papka A5', 'Bo‘luvchi separator'],
-    'Ruchkalar': ['Sharikli ruchka ko‘k', 'Gel ruchka qora', 'Kapillyar ruchka 0.5', 'Avtomatik ruchka', 'Ruchka seti 4 rang', 'Kalligrafik ruchka', 'Ruchka refill ko‘k', 'Flomaster ruchka', 'Roller ruchka'],
-    'Daftarlar': ['Daftar 12 varaq', 'Daftar 24 varaq', 'Daftar 48 varaq', 'Daftar 96 varaq', 'Spiral daftar A4', 'Qattiq muqova daftar', 'Katak daftar', 'Chiziqli daftar', 'Planner notebook'],
-    'Printer va kartrijlar': ['HP LaserJet printer', 'Canon Inkjet printer', 'Epson MFP', 'HP 85A kartrij', 'Canon 725 kartrij', 'Epson 003 siyoh', 'Printer kabel USB-B', 'Toner universal', 'Drum unit'],
-    'Kompyuter aksessuarlari': ['Simsiz sichqoncha', 'USB klaviatura', 'Web-kamera HD', 'Naushnik mikrofonsiz', 'Naushnik mikrofonli', 'Laptop stendi', 'Bluetooth adapter', 'Card reader', 'Kuler pad'],
-    'USB va kabellar': ['USB fleshka 32GB', 'USB fleshka 64GB', 'Type-C kabel 1m', 'Lightning kabel 1m', 'HDMI kabel 2m', 'VGA kabel 1.5m', 'LAN kabel Cat6 3m', 'USB hub 4 port', 'OTG adapter'],
-    'Tashkiliy buyumlar': ['Qog‘oz qisqichi 33mm', 'Skrepkalar 100 dona', 'Rezinka bog‘lagich', 'Nomerator stiker', 'Kantselyariya lotok', 'Sandiqcha organizer', 'Stol kalendari', 'Pin knopka', 'Magnit doska pin'],
-    'Bo‘yoqlar va ijod': ['Akril bo‘yoq seti', 'Guash bo‘yoq 12 rang', 'Akvarel bo‘yoq', 'Rasm albomi A4', 'Mo‘yqalam seti', 'Palitra plastik', 'Marker seti rangli', 'Kanvas 30x40', 'Yelim PVA 100ml'],
-    'Boshqa': ['Batareya AA 4 dona', 'Nam salfetka', 'Kalkulyator batareya', 'Mini fan USB', 'Portativ stiker printer', 'Qulfli quti', 'Qadoqlash lentasi', 'Ko‘rsatkich stikeri', 'Universal tozalagich']
-  };
-  const categoryImageMap = {
-    'Kanselyariya': 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80',
-    'Ofis jihozlari': 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80',
-    'Qog‘oz mahsulotlari': 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=900&q=80',
-    'Papkalar': 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=900&q=80',
-    'Ruchkalar': 'https://images.unsplash.com/photo-1506784365847-bbad939e9335?auto=format&fit=crop&w=900&q=80',
-    'Daftarlar': 'https://images.unsplash.com/photo-1531346680769-a1d79b57de5c?auto=format&fit=crop&w=900&q=80',
-    'Printer va kartrijlar': 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?auto=format&fit=crop&w=900&q=80',
-    'Kompyuter aksessuarlari': 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=80',
-    'USB va kabellar': 'https://images.unsplash.com/photo-1587134160474-cd7f6c09d1a5?auto=format&fit=crop&w=900&q=80',
-    'Tashkiliy buyumlar': 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=900&q=80',
-    'Bo‘yoqlar va ijod': 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=900&q=80',
-    'Boshqa': 'https://images.unsplash.com/photo-1481487196290-c152efe083f5?auto=format&fit=crop&w=900&q=80'
-  };
-  const out = [];
-  let idx = 1;
-  for (const cat of DEMO_CATEGORIES) {
-    const items = itemsByCategory[cat] || [];
-    for (let i = 0; i < items.length + 1; i += 1) {
-      const productName = items[i % items.length];
-      const base = 12000 + (idx * 1950);
-      const old = i % 3 === 0 ? base + 12000 : 0;
-      const imageUrl = categoryImageMap[cat] || categoryImageMap['Boshqa'];
-      out.push({
-        id: `demo-${idx}`,
-        code: `DEMO-${String(idx).padStart(4, '0')}`,
-        sku: `DEMO-${String(idx).padStart(4, '0')}`,
-        name: productName,
-        category: cat,
-        price: base,
-        oldPrice: old,
-        stock: 5 + (idx % 40),
-        image_url: imageUrl,
-        image: imageUrl,
-        source: 'static_demo',
-        active: true
-      });
-      idx += 1;
-    }
-  }
-  return out;
-}
+const DEMO_DEPRECATED_MESSAGE = 'Demo katalog funksiyasi o‘chirildi. Excel import yoki DALION sinxronizatsiyasidan foydalaning.';
 
 exports.getBanners = (req, res) => {
   res.json({ banners: store.getBanners() });
@@ -157,26 +101,17 @@ exports.updateProduct = (req, res) => {
   return res.json({ product });
 };
 exports.loadDemoProducts = (req, res) => {
-  const products = buildDemoProducts();
-  store.upsertProducts(products);
-  return res.json({ ok: true, imported: products.length, categories: DEMO_CATEGORIES.length, images: products.filter((p) => p.image_url).length, source: 'static_demo' });
+  return res.status(410).json({ ok: false, deprecated: true, message: DEMO_DEPRECATED_MESSAGE });
 };
 
 exports.loadKanstikDemoProducts = async (req, res) => {
-  try {
-    const { products, summary } = await loadKanstikDemoCatalog();
-    if (!products.length) return res.status(422).json({ message: 'Kanstik sahifalaridan mahsulot topilmadi', summary });
-    store.upsertProducts(products);
-    return res.json({ ok: true, source: KANSTIK_SOURCE, ...summary });
-  } catch (e) {
-    return res.status(502).json({ ok: false, message: e.message || 'Kanstik demo yuklashda xatolik' });
-  }
+  return res.status(410).json({ ok: false, deprecated: true, message: DEMO_DEPRECATED_MESSAGE });
 };
 exports.clearDemoProducts = (req, res) => {
   const before = store.products.length;
-  const keep = store.products.filter((p) => !['demo', KANSTIK_SOURCE].includes(String(p.source || '')));
+  const keep = store.products.filter((p) => !['demo', 'static_demo', 'kanstik_demo', 'seed'].includes(String(p.source || '')));
   store.products.splice(0, store.products.length, ...keep);
-  return res.json({ ok: true, removed: before - keep.length });
+  return res.json({ ok: true, removed: before - keep.length, deprecated: true, message: DEMO_DEPRECATED_MESSAGE });
 };
 
 exports.getStoreSummary = (req, res) => {
@@ -186,6 +121,30 @@ exports.getStoreSummary = (req, res) => {
 exports.reloadStore = (req, res) => {
   const out = store.reloadStoreFromDisk();
   res.json(out);
+};
+
+exports.syncDalionProducts = async (req, res) => {
+  const cfg = dalionService.getDalionConfig();
+  if (!cfg.enabled) {
+    return res.status(400).json({
+      success: false,
+      code: 'DALION_NOT_CONFIGURED',
+      message: 'DALION integratsiyasi hali sozlanmagan'
+    });
+  }
+  try {
+    const result = await dalionService.syncProductsFromDalion();
+    return res.json({ success: true, result });
+  } catch (error) {
+    if (error?.code === 'DALION_NOT_CONFIGURED') {
+      return res.status(400).json({
+        success: false,
+        code: 'DALION_NOT_CONFIGURED',
+        message: 'DALION integratsiyasi hali sozlanmagan'
+      });
+    }
+    return res.status(500).json({ success: false, code: 'DALION_SYNC_FAILED', message: error?.message || 'DALION sync failed' });
+  }
 };
 
 exports.getOrders = (req, res) => {
@@ -208,6 +167,15 @@ exports.updateOrderStatus = (req, res) => {
 exports.cancelOrder = (req, res) => {
   const order = store.cancelOrder(req.params.id);
   if (!order) return res.status(404).json({ message: 'Order not found' });
+  return res.json({ order });
+};
+
+exports.assignCourier = (req, res) => {
+  const courierName = String(req.body?.courierName || '').trim();
+  const courierPhone = String(req.body?.courierPhone || '').trim();
+  if (!courierName || !courierPhone) return res.status(400).json({ message: 'courierName va courierPhone majburiy' });
+  const order = store.adminAssignCourier(req.params.id, { courierName, courierPhone });
+  if (!order) return res.status(400).json({ message: 'Order not found or cannot assign courier' });
   return res.json({ order });
 };
 
