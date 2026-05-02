@@ -5,7 +5,8 @@ const {
   ORDER_STATUSES,
   PAYMENT_METHOD_LIST,
   PAYMENT_METHODS,
-  PAYMENT_STATUSES
+  PAYMENT_STATUSES,
+  STORE_LOCATION
 } = require('../constants/domain.constants.js');
 
 const products = [];
@@ -525,6 +526,24 @@ function createOrder({
     };
   });
 
+  const baseDeliveryPrice = Math.max(0, Number(process.env.BASE_DELIVERY_PRICE || 5000) || 5000);
+  const pricePerKm = Math.max(0, Number(process.env.PRICE_PER_KM || 1000) || 1000);
+  const freeDeliveryThreshold = Number(process.env.FREE_DELIVERY_THRESHOLD || 0);
+  let deliveryDistanceKm = 4;
+  if (hasGeo) {
+    const toRad = (deg) => (Number(deg) * Math.PI) / 180;
+    const earthKm = 6371;
+    const dLat = toRad(latNum - STORE_LOCATION.lat);
+    const dLng = toRad(lngNum - STORE_LOCATION.lng);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(STORE_LOCATION.lat)) * Math.cos(toRad(latNum)) * Math.sin(dLng / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    deliveryDistanceKm = Math.max(0.5, earthKm * c);
+  }
+  const subtotal = Number(summary.subtotal || 0);
+  const freeDelivery = Number.isFinite(freeDeliveryThreshold) && freeDeliveryThreshold > 0 && subtotal >= freeDeliveryThreshold;
+  const computedDeliveryPrice = Math.max(0, Math.round(freeDelivery ? 0 : (baseDeliveryPrice + (deliveryDistanceKm * pricePerKm))));
+  const deliveryZone = deliveryDistanceKm <= 3 ? 'near' : (deliveryDistanceKm <= 7 ? 'mid' : 'far');
+
   const order = {
     id: `ord_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
     orderNumber: `ORD-${String(orderSequence).padStart(5, '0')}`,
@@ -575,10 +594,13 @@ function createOrder({
     addressText: String(addressText || customerAddress || location || ''),
     landmarkText: String(landmarkText || ''),
     deliveryTime: deliveryTime || '',
-    deliveryPrice: Number(deliveryPrice || 0),
+    deliveryPrice: computedDeliveryPrice,
+    delivery_price: computedDeliveryPrice,
+    delivery_distance: Number(deliveryDistanceKm.toFixed(2)),
+    delivery_zone: deliveryZone,
     items: orderItems,
-    subtotal: summary.subtotal,
-    total: summary.subtotal + deliveryPrice
+    subtotal,
+    total: subtotal + computedDeliveryPrice
   };
   orderSequence += 1;
 
