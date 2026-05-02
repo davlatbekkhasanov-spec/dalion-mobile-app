@@ -158,6 +158,14 @@
 
     <section class="panel card" id="orders-panel">
       <h3>Orders</h3>
+      <div class="row">
+        <select id="ordersStatusFilter">
+          <option value="all">all</option><option value="created">new</option><option value="payment_pending">payment pending</option>
+          <option value="preparing">preparing</option><option value="ready_for_courier">ready for courier</option>
+          <option value="out_for_delivery">out for delivery</option><option value="delivered">delivered</option><option value="cancelled">cancelled</option>
+        </select>
+        <input id="ordersSearch" placeholder="Order # / phone / customer" />
+      </div>
       <div id="ordersAdminBoard" class="list"></div>
     </section>
   </div>
@@ -717,20 +725,28 @@
     };
 
     const orderNext = {
-      new: ['TSD ga yuborish', 'sent_to_tsd'],
-      sent_to_tsd: ['Terishni boshlash', 'picking'],
-      picking: ['Terib bo‘lindi', 'picked'],
-      picked: ['Kurierni kutmoqda', 'waiting_courier'],
-      waiting_courier: ['Kurierga berildi', 'out_for_delivery'],
+      created: ['To‘lov kutilmoqda', 'payment_pending'],
+      payment_pending: ['To‘lov tasdiqlandi', 'payment_confirmed'],
+      payment_confirmed: ['Tayyorlashni boshlash', 'preparing'],
+      preparing: ['Kurierga tayyor', 'ready_for_courier'],
+      ready_for_courier: ['Kurier biriktirish', 'courier_assigned'],
+      courier_assigned: ['Yo‘lga chiqdi', 'out_for_delivery'],
       out_for_delivery: ['Yetkazildi', 'delivered']
     };
 
     async function loadOrdersAdmin(){
       const {orders} = await api('/admin/orders');
       const wrap = document.getElementById('ordersAdminBoard');
-      const statuses = ['new','sent_to_tsd','picking','picked','waiting_courier','out_for_delivery','delivered','cancelled'];
+      const statuses = ['created','payment_pending','payment_confirmed','preparing','ready_for_courier','courier_assigned','out_for_delivery','delivered','cancelled'];
+      const statusFilter = document.getElementById('ordersStatusFilter').value;
+      const query = String(document.getElementById('ordersSearch').value || '').toLowerCase().trim();
       const buckets = Object.fromEntries(statuses.map((s)=>[s,[]]));
-      (orders || []).forEach((o)=>{ if (buckets[o.status]) buckets[o.status].push(o); });
+      (orders || []).forEach((o)=>{
+        const statusOk = statusFilter === 'all' || o.status === statusFilter;
+        const text = `${o.orderNumber || ''} ${o.customerPhone || ''} ${o.customerName || ''}`.toLowerCase();
+        const searchOk = !query || text.includes(query);
+        if (statusOk && searchOk && buckets[o.status]) buckets[o.status].push(o);
+      });
       wrap.innerHTML = statuses.map((s)=>`
         <div class="item">
           <b>${s} (${buckets[s].length})</b>
@@ -739,9 +755,12 @@
               <div class="item">
                 <div><b>#${o.orderNumber || o.id}</b> · ${new Date(o.created_at).toLocaleTimeString('ru-RU')}</div>
                 <div class="muted">${o.customerName || 'Mehmon'} | ${o.customerPhone || '-'} | ${o.customerAddress || o.location || '-'}</div>
+                <div class="muted">To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatus || '-'} · Delivery: ${o.delivery_status || '-'}</div>
                 <div class="muted">${(o.items || []).length} item · ${Number(o.total || 0).toLocaleString('ru-RU')} so'm</div>
+                <div class="muted">Kurier: ${o.courierName || 'Kurier biriktirilmoqda'} ${o.courierPhone ? `(${o.courierPhone})` : ''}</div>
                 <div class="row">
                   ${orderNext[o.status] ? `<button data-id="${o.id}" data-next="${orderNext[o.status][1]}">${orderNext[o.status][0]}</button>` : ''}
+                  ${o.status === 'ready_for_courier' ? `<button data-id="${o.id}" data-assign="1">Kurier biriktirish</button>` : ''}
                   ${o.status !== 'cancelled' && o.status !== 'delivered' ? `<button data-id="${o.id}" data-cancel="1">Bekor qilish</button>` : ''}
                 </div>
               </div>
@@ -756,11 +775,18 @@
       if(!btn) return;
       try{
         if (btn.dataset.cancel) await api('/admin/orders/'+btn.dataset.id+'/cancel',{method:'POST'});
+        if (btn.dataset.assign) {
+          const courierName = prompt('Kurier ismi');
+          const courierPhone = prompt('Kurier telefoni');
+          if (courierName && courierPhone) await api('/admin/orders/'+btn.dataset.id+'/assign-courier',{method:'POST',body:JSON.stringify({courierName,courierPhone})});
+        }
         if (btn.dataset.next) await api('/admin/orders/'+btn.dataset.id+'/status',{method:'PUT',body:JSON.stringify({status:btn.dataset.next})});
         showToast(t('saveOk'));
         await loadOrdersAdmin();
       }catch(err){showToast(err.message||t('loadError'))}
     };
+    document.getElementById('ordersStatusFilter').onchange = () => loadOrdersAdmin().catch(()=>{});
+    document.getElementById('ordersSearch').oninput = () => loadOrdersAdmin().catch(()=>{});
 
     async function bootstrap(){
       try{

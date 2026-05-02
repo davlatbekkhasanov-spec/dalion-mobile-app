@@ -863,6 +863,21 @@ function updateCourierLocation(token, { lat = null, lng = null, accuracy = null 
   return { ok: true, order };
 }
 
+function adminAssignCourier(id, { courierName = '', courierPhone = '' } = {}) {
+  const order = getOrderById(id);
+  if (!order) return null;
+  if (normalizeOrderStatus(order.status) === 'delivered') return null;
+  order.courierName = String(courierName || '').trim();
+  order.courierPhone = String(courierPhone || '').trim();
+  order.courier_id = order.courier_id || `courier_${Date.now()}`;
+  order.assigned_at = new Date().toISOString();
+  if (normalizeOrderStatus(order.status) === 'ready_for_courier') order.status = 'courier_assigned';
+  order.updated_at = new Date().toISOString();
+  orderStatusLogs.push({ order_id: order.id, from_status: normalizeOrderStatus(order.status), to_status: normalizeOrderStatus(order.status), actor: 'admin', note: 'courier assigned', created_at: order.updated_at });
+  persistState();
+  return order;
+}
+
 function markOrderPaymentPaid(orderRef) {
   const order = getOrderByNumber(orderRef) || getOrderById(orderRef);
   if (!order) return null;
@@ -1005,5 +1020,6 @@ module.exports = {
   courierDeliver,
   updateCourierLocation,
   markOrderPaymentPaid,
+  adminAssignCourier,
   orders
 };

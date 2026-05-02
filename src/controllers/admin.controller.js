@@ -170,6 +170,15 @@ exports.cancelOrder = (req, res) => {
   return res.json({ order });
 };
 
+exports.assignCourier = (req, res) => {
+  const courierName = String(req.body?.courierName || '').trim();
+  const courierPhone = String(req.body?.courierPhone || '').trim();
+  if (!courierName || !courierPhone) return res.status(400).json({ message: 'courierName va courierPhone majburiy' });
+  const order = store.adminAssignCourier(req.params.id, { courierName, courierPhone });
+  if (!order) return res.status(400).json({ message: 'Order not found or cannot assign courier' });
+  return res.json({ order });
+};
+
 exports.getOrderPicklist = (req, res) => {
   const picklist = store.getOrderPicklist(req.params.id);
   if (!picklist) return res.status(404).json({ message: 'Order not found' });
