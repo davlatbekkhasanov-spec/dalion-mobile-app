@@ -80,10 +80,10 @@
         <button id="newImportBtn" class="btn">Yangi import qilish</button>
         <button id="reloadStoreBtn" class="btn">Mavjud ma'lumotni yangilash</button>
       </div>
-      <p class="muted" style="margin-top:8px;">Faqat demo/taqdimot uchun. Production’da DALION/Excel ishlatiladi.</p>
-      <div class="row" style="margin-top:8px;">
-        <button id="loadDemoCatalogBtn" class="btn">Premium demo katalogni yuklash</button>
-        <button id="clearDemoCatalogBtn" class="btn">Demo katalogni tozalash</button>
+      <p class="muted" style="margin-top:8px;">Mahsulot manbai: vaqtincha Excel import, keyin DALION sinxronizatsiyasi.</p>
+      <div class="card" style="margin-top:10px;padding:10px;">
+        <strong>DALION integratsiyasi</strong>
+        <p class="muted" style="margin-top:4px;">Tayyorlanmoqda: API orqali mahsulot, qoldiq, narx va rasm sinxroni.</p>
       </div>
       <div id="importProgressWrap" class="progress-wrap">
         <div class="progress-track"><div id="importProgressBar" class="progress-bar"></div></div>
@@ -434,25 +434,6 @@
         await loadStoreSummary();
       } catch (e) {
         showToast(e.message || t('reloadError'));
-      }
-    };
-    document.getElementById('loadDemoCatalogBtn').onclick = async () => {
-      try {
-        const out = await api('/admin/products/load-kanstik-demo', { method: 'POST' });
-        showToast(`Premium demo katalog yuklandi: ${out.loaded || out.imported || 0} mahsulot`);
-        document.getElementById('importResult').textContent = JSON.stringify(out, null, 2);
-        await loadStoreSummary();
-      } catch (e) {
-        showToast(e.message || 'Demo katalog yuklashda xatolik');
-      }
-    };
-    document.getElementById('clearDemoCatalogBtn').onclick = async () => {
-      try {
-        const out = await api('/admin/products/clear-demo', { method: 'POST' });
-        showToast(`Demo mahsulotlar tozalandi: ${out.removed || 0}`);
-        await loadStoreSummary();
-      } catch (e) {
-        showToast(e.message || 'Demo katalogni tozalashda xatolik');
       }
     };
 
