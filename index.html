@@ -1801,7 +1801,10 @@ Oq fonli foto</div>
         waiting_courier: 'Yig‘ildi / kurier kutilmoqda',
         out_for_delivery: 'Kurierda',
         delivered: 'Yetkazildi',
-        cancelled: 'Bekor qilingan'
+        cancelled: 'Bekor qilingan',
+        created: 'Yaratildi',
+        pending_payment: 'To‘lov kutilmoqda',
+        paid: 'To‘landi'
       }[status] || status || '-';
     }
 
@@ -2125,11 +2128,12 @@ Oq fonli foto</div>
           ? 'Manzilni qo‘lda kiriting yoki lokatsiyani yoqing'
           : 'Lokatsiya ixtiyoriy. Istasangiz manzilni qo‘lda kiriting.';
       }
-      if (selectedPayment === 'click') paymentLinks.innerHTML = 'Click: <a href="https://indoor.click.uz/pay?id=081328&t=0" target="_blank">To‘lov havolasi</a>';
-      else if (selectedPayment === 'payme') paymentLinks.innerHTML = 'Payme: <a href="https://transfer.paycom.uz/693801c1958777a0164fea76" target="_blank">To‘lov havolasi</a>';
+      const clickAmountTiyin = Math.round(Number(orderTotal || 0) * 100);
+      if (selectedPayment === 'click') paymentLinks.innerHTML = `Click: <a href="https://indoor.click.uz/pay?id=081328&t=${clickAmountTiyin}" target="_blank">To‘lov havolasi</a>`;
+      else if (selectedPayment === 'payme') paymentLinks.innerHTML = 'Payme: To‘lovni Payme ilovasi orqali yakunlang';
       else paymentLinks.innerHTML = '';
       const isOnline = selectedPayment === 'click' || selectedPayment === 'payme';
-      paymentProofInput.style.display = isOnline ? 'block' : 'none';
+      paymentProofInput.style.display = 'none';
       cashAgreementDetails.style.display = selectedPayment === 'cash' ? 'block' : 'none';
       cashAgreementLabel.style.display = selectedPayment === 'cash' ? 'block' : 'none';
       addressValidationError.style.display = 'none';
@@ -2795,16 +2799,6 @@ Oq fonli foto</div>
 
       try {
         let paymentProofUrl = '';
-        if (selectedPayment === 'click') window.open('https://indoor.click.uz/pay?id=081328&t=0', '_blank');
-        if (selectedPayment === 'payme') window.open('https://transfer.paycom.uz/693801c1958777a0164fea76', '_blank');
-        if (selectedPayment === 'click' || selectedPayment === 'payme') {
-          const file = paymentProofInput.files && paymentProofInput.files[0];
-          if (!file) {
-            showToast("To‘lov chekini ilova qiling");
-            return;
-          }
-          paymentProofUrl = file.name;
-        }
         if (selectedPayment === 'cash') {
           if (!cashAgreementCheckbox.checked) {
             paymentValidationError.textContent = "Naqd to‘lov uchun rozilikni tasdiqlang";
@@ -2818,7 +2812,7 @@ Oq fonli foto</div>
           method: 'POST',
           body: JSON.stringify({
             paymentMethod: selectedPayment,
-            paymentStatus: selectedPayment === 'cash' ? 'cash_pending' : 'proof_uploaded',
+            paymentStatus: selectedPayment === 'cash' ? 'unpaid' : 'pending',
             cashTermsAccepted: selectedPayment === 'cash',
             paymentProofUrl,
             cashAgreementTextVersion: selectedPayment === 'cash' ? 'draft-v1' : '',
@@ -2844,10 +2838,9 @@ Oq fonli foto</div>
         };
 
         await Promise.all([loadProducts({ reset: true }), loadCart()]);
-        if ((selectedPayment === 'click' || selectedPayment === 'payme') && paymentProofInput.files?.[0]) {
-          const fd2 = new FormData();
-          fd2.append('file', paymentProofInput.files[0]);
-          await fetch(`/api/v1/orders/payment-proof?orderNumber=${encodeURIComponent(order.orderNumber)}`, { method: 'POST', body: fd2 }).catch(() => null);
+        if (selectedPayment === 'click') {
+          const amountTiyin = Math.round(Number((checkoutTotals?.finalTotal || 0)) * 100);
+          window.open(`https://indoor.click.uz/pay?id=081328&t=${amountTiyin}`, '_blank');
         }
         cart = {};
         renderAll();
@@ -2860,7 +2853,8 @@ Oq fonli foto</div>
         successTotal.textContent = Number.isFinite(Number(lastOrderData?.finalTotal))
           ? `Jami: ${money(Number(lastOrderData.finalTotal))}`
           : "Jami: Summani tekshirib bo‘lmadi";
-        successOrderStatus.textContent = `Status: ${orderStatusLabel(order.status)}`;
+        const pendingText = order?.paymentStatus === 'pending' ? " · To‘lovni yakunlang" : '';
+        successOrderStatus.textContent = `Status: ${orderStatusLabel(order.status)}${pendingText}`;
         if (latestOrderNumber) {
           trackOrderBtn.style.display = 'inline-flex';
           trackOrderBtn.setAttribute('href', `/track/${encodeURIComponent(latestOrderNumber)}`);

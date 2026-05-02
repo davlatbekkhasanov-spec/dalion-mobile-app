@@ -505,9 +505,6 @@ function createOrder({
   if (!hasGeo && !hasManual) {
     return { error: 'Lokatsiya yoki manzil talab qilinadi' };
   }
-  if ((normalizedPaymentMethod === PAYMENT_METHODS.CLICK || normalizedPaymentMethod === PAYMENT_METHODS.PAYME) && !String(paymentProofUrl || '').trim()) {
-    return { error: "To‘lov cheki screenshotini yuklang" };
-  }
   if (normalizedPaymentMethod === PAYMENT_METHODS.CASH && !cashAgreementAccepted) {
     return { error: 'Naqd to‘lov shartlarini tasdiqlang' };
   }
@@ -536,7 +533,7 @@ function createOrder({
     customerSelfieUrl: String(customerSelfieUrl || ''),
     created_at: now,
     updated_at: now,
-    status: ORDER_STATUSES.NEW,
+    status: normalizedPaymentMethod === PAYMENT_METHODS.CASH ? 'created' : 'pending_payment',
     sentToTsdAt: null,
     tsdStatus: '',
     dalionPicked: false,
@@ -558,7 +555,7 @@ function createOrder({
     deliveredAt: null,
     cancelledAt: null,
     paymentMethod: normalizedPaymentMethod,
-    paymentStatus: String(paymentStatus || (normalizedPaymentMethod === PAYMENT_METHODS.CASH ? PAYMENT_STATUSES.CASH_PENDING : PAYMENT_STATUSES.PENDING)),
+    paymentStatus: String(paymentStatus || (normalizedPaymentMethod === PAYMENT_METHODS.CASH ? 'unpaid' : 'pending')),
     cashTermsAccepted: Boolean(cashTermsAccepted),
     paymentProofUrl: String(paymentProofUrl || ''),
     cashAgreementConfirmed: Boolean(cashAgreementConfirmed),
@@ -615,8 +612,13 @@ function attachPaymentProof(orderNumber, { paymentProofUrl = '' } = {}) {
 function markOrderPaid(id) {
   const order = getOrderById(id);
   if (!order) return null;
+  if (String(order.status) === 'cancelled' || String(order.status) === ORDER_STATUSES.CANCELLED) return null;
+  if (String(order.status) === 'delivered' || String(order.status) === ORDER_STATUSES.DELIVERED) return null;
   const now = new Date().toISOString();
   order.paymentStatus = 'paid';
+  if (order.status === 'pending_payment' || order.status === 'created' || order.status === ORDER_STATUSES.NEW) {
+    order.status = 'paid';
+  }
   order.paidAt = order.paidAt || now;
   order.updated_at = now;
   persistState();
@@ -626,8 +628,11 @@ function markOrderPaid(id) {
 function markOrderPaymentCancelled(id) {
   const order = getOrderById(id);
   if (!order) return null;
+  if (String(order.status) === 'delivered' || String(order.status) === ORDER_STATUSES.DELIVERED) return null;
+  if (String(order.paymentStatus) === 'paid') return null;
   const now = new Date().toISOString();
   order.paymentStatus = 'cancelled';
+  if (order.status === 'pending_payment' || order.status === 'created') order.status = 'cancelled';
   order.updated_at = now;
   persistState();
   return order;
