@@ -1044,14 +1044,14 @@
     .promo, .list-card, .product, .category-card, .cat { background:#fff; border:1px solid #edf0f5; box-shadow:0 8px 24px rgba(16,24,40,.08); }
     .promo { background: linear-gradient(130deg,#6f54ff,#8c6bff); color:#fff; }
     .promo p, .promo .muted { color: rgba(255,255,255,.88); }
-    .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-left: -6px; margin-right: -6px; }
+    .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-left: -8px; margin-right: -8px; }
     .image-box { height: 170px; background:#f8f9ff; border:0; }
     .product { padding: 0; border-radius: 16px; overflow: hidden; gap: 0; display:flex; flex-direction:column; min-height:100%; border:0; box-shadow: 0 4px 14px rgba(0,0,0,.06); background:#fff; }
     .product:hover { transform: none; border-color: transparent; box-shadow: 0 4px 14px rgba(0,0,0,.06); }
     .image-box {
       width: 100%;
       aspect-ratio: 3 / 4;
-      height: 230px;
+      height: 250px;
       margin-bottom: 0;
       border: 0;
       border-radius: 14px 14px 0 0;
@@ -1072,7 +1072,7 @@
     .discount-chip { background:#ff4d6d; color:#fff; border-radius:12px; font-size:12px; padding:4px 8px; }
     .delivery-chip { background:#f5f3ff; color:#5b4cff; }
     .quick-add-btn,.full-btn,.btn.btn-primary,.gm-btn-primary { background: linear-gradient(135deg, #7b5cff, #5a67ff); color:#fff; border:none; }
-    .quick-add-btn { min-height: 38px !important; height: 38px; border-radius: 12px; font-size:13px; font-weight: 600; margin: 8px 0 0; width: 100%; display:flex; align-items:center; justify-content:center; line-height:1; }
+    .quick-add-btn { min-height: 40px !important; height: 40px; border-radius: 12px; font-size:13px; font-weight: 600; margin: 8px 0 0; width: 100%; display:flex; align-items:center; justify-content:center; line-height:1; }
     .product-rating { font-size: 12px; color: #777; margin: 4px 0 0; }
     .credit-badge { background:#fef3c7; color:#92400e; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:700; margin: 0 10px; width: max-content; }
     .qty button { background:#f2f4f7; color:#1d2440; border:1px solid #dde3ee; }
@@ -1081,7 +1081,7 @@
       grid-template-columns: 44px 1fr 44px;
       gap: 6px;
       margin-top: 8px;
-      height: 38px;
+      height: 40px;
       background: #f7f8fc;
       border: 1px solid #e5e9f2;
       border-radius: 12px;
@@ -1089,7 +1089,7 @@
       overflow: hidden;
     }
     .product .qty button {
-      height: 38px;
+      height: 40px;
       min-width: 44px;
       border-radius: 0;
       border: 0;
@@ -1102,7 +1102,7 @@
       color: #1d2440;
     }
     .product .qty span {
-      height: 38px;
+      height: 40px;
       border: 0;
       border-radius: 0;
       background: transparent;
@@ -1143,6 +1143,7 @@
     .tab.active { color:#5b4cff; }
     .tab.active b { background:linear-gradient(130deg,#ede9fe,#ddd6fe); border-color:#c4b5fd; box-shadow:none; }
     .cart-badge { background:#ef4444; color:#fff; }
+    .home-search-lg { position: sticky; top: 64px; z-index: 7; }
 
   
     .profile-hero{background:linear-gradient(135deg,#5b4cff,#8b6bff);color:#fff;border:none}
@@ -1205,7 +1206,7 @@
           <button class="bell gm-icon-btn" aria-label="Savatga o'tish" id="homeCartShortcut">🛒<span class="badge gm-chip gm-chip--warning" id="homeCartShortcutBadge">0</span></button>
         </header>
 
-        <button class="search home-search-lg" id="openSearchBtn">🔎&nbsp; Mahsulot, brend yoki toifani qidiring</button>
+        <button class="search home-search-lg" id="openSearchBtn">🔎&nbsp; Mahsulot qidirish...</button>
 
         <div class="section-head gm-section-header" id="popularSectionHead">
           <h4 id="bannerSectionTitle">Bannerlar</h4>
@@ -1645,7 +1646,7 @@ Oq fonli foto</div>
 
       homeBrandName.textContent = settings.brandName || settings.heroTitle || 'GlobusMarket';
       homeLocation.textContent = `📍 ${settings.locationText || DEFAULT_LOCATION_ADDRESS}`;
-      openSearchBtn.textContent = settings.searchPlaceholder || '🔎 Mahsulot, brend yoki toifani qidiring';
+      openSearchBtn.textContent = settings.searchPlaceholder || '🔎 Mahsulot qidirish...';
 
       const fallbackBanner = {
         title: settings.heroTitle || 'GlobusMarket',
