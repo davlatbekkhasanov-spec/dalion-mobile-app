@@ -31,7 +31,7 @@ const promoCodes = [];
 
 let homeSettings = {
   brandName: 'GlobusMarket',
-  locationText: '📍 Тошкент, Чилонзор тумани',
+  locationText: '📍 Samarqand, Shohrux Mirzo 33',
   searchPlaceholder: '🔎 Маҳсулот, бренд ёки тоифани қидиринг',
   heroTitle: 'GlobusMarket',
   heroSubtitle: 'Qulay va tez xarid tajribasi',

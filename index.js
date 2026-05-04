@@ -66,8 +66,6 @@ app.get('/health', (req, res) => {
   res.status(200).json({ ok: true, service: 'dalion-mobile-app' });
 });
 
-console.log('STARTING SERVER...');
-console.log('PORT:', process.env.PORT);
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.info(`[SERVER] started on port ${PORT}`);
 });
