@@ -51,6 +51,8 @@ let homeSettings = {
 const users = new Map();
 const carts = new Map();
 const orders = [];
+const wholesaleApplications = [];
+const wholesaleAccounts = [];
 let lastUpdated = null;
 let orderSequence = 1;
 const ORDER_STATUS_SET = new Set([...ORDER_STATUS_LIST, 'created', 'payment_pending', 'payment_confirmed', 'preparing', 'ready_for_courier', 'courier_assigned', 'returned']);
@@ -100,6 +102,8 @@ function persistState() {
         items: Array.from(cart.entries()).map(([productId, quantity]) => ({ productId, quantity }))
       })),
       orders,
+      wholesaleApplications,
+      wholesaleAccounts,
       orderSequence,
       savedAt: new Date().toISOString()
     };
@@ -179,6 +183,8 @@ function loadStateFromDisk() {
     if (Array.isArray(parsed.orders)) {
       orders.splice(0, orders.length, ...parsed.orders.map((o) => ({ ...o, status: normalizeOrderStatus(o?.status) })));
     }
+    if (Array.isArray(parsed.wholesaleApplications)) wholesaleApplications.splice(0, wholesaleApplications.length, ...parsed.wholesaleApplications);
+    if (Array.isArray(parsed.wholesaleAccounts)) wholesaleAccounts.splice(0, wholesaleAccounts.length, ...parsed.wholesaleAccounts);
     if (Number.isFinite(Number(parsed.orderSequence))) orderSequence = Math.max(1, Number(parsed.orderSequence));
     lastUpdated = parsed.savedAt || new Date().toISOString();
     return true;
@@ -694,6 +700,48 @@ function getCustomerOrders(phone = '') {
   return getOrders().filter((o) => String(o.customerPhone || '').replace(/\s+/g, '') === normalized);
 }
 
+function createWholesaleApplication(payload = {}) {
+  const row = {
+    id: makeId('ws_app'),
+    name: String(payload.name || '').trim(),
+    phone: normalizePhone(payload.phone),
+    businessName: String(payload.businessName || '').trim(),
+    note: String(payload.note || '').trim(),
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
+  wholesaleApplications.push(row);
+  persistState();
+  return row;
+}
+
+function listWholesaleApplications() { return wholesaleApplications.slice().reverse(); }
+
+function decideWholesaleApplication(id, decision = 'reject') {
+  const app = wholesaleApplications.find((x) => x.id === id);
+  if (!app) return null;
+  app.status = decision === 'approve' ? 'approved' : 'rejected';
+  app.decidedAt = new Date().toISOString();
+  if (app.status === 'approved') {
+    const login = `optoviy_${(app.phone || '').replace(/\\D/g, '').slice(-6)}`;
+    const password = Math.random().toString(36).slice(-8);
+    wholesaleAccounts.push({ id: makeId('ws_acc'), phone: app.phone, login, password, active: true, createdAt: app.decidedAt });
+    app.credentials = { login, password };
+  }
+  persistState();
+  return app;
+}
+
+function wholesaleLogin(login = '', password = '') {
+  const account = wholesaleAccounts.find((x) => x.active && x.login === String(login || '').trim() && x.password === String(password || '').trim());
+  if (!account) return null;
+  return account;
+}
+
+function isWholesaleTokenValid(token = '') {
+  return wholesaleAccounts.some((x) => x.active && x.id === String(token || '').trim());
+}
+
 function attachPaymentProof(orderNumber, { paymentProofUrl = '' } = {}) {
   const order = getOrderByNumber(orderNumber);
   if (!order) return null;
@@ -1073,5 +1121,10 @@ module.exports = {
   updateCourierLocation,
   markOrderPaymentPaid,
   adminAssignCourier,
+  createWholesaleApplication,
+  listWholesaleApplications,
+  decideWholesaleApplication,
+  wholesaleLogin,
+  isWholesaleTokenValid,
   orders
 };

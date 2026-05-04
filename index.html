@@ -1404,6 +1404,7 @@
           <button class="menu-item" data-profile-action="promos"><span>Promokodlarim</span><small>Kiritish</small></button>
           <button class="menu-item" data-profile-action="notifications"><span>Xabarnomalar</span><small>Ko‘rish</small></button>
           <button class="menu-item" data-profile-action="courier"><span>Kuryer bo‘lish</span><small>Ariza yuborish</small></button>
+          <button class="menu-item" data-profile-action="wholesale"><span>Оптом мижоз бўлиш</span><small>Ariza / Login</small></button>
           <button class="menu-item" data-profile-action="help"><span>Yordam / Biz bilan bog‘lanish</span><small>24/7</small></button>
           <button class="btn gm-btn gm-btn-secondary btn-secondary" id="logoutBtn" style="margin-top:12px;">Chiqish</button>
         </div>
@@ -1739,6 +1740,8 @@
       const isFormData = typeof FormData !== 'undefined' && hasBody && options.body instanceof FormData;
       if (!isFormData && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
       if (currentUser?.phone) headers['x-user-phone'] = currentUser.phone;
+      const wsToken = localStorage.getItem('wholesaleToken') || '';
+      if (wsToken) headers['x-wholesale-token'] = wsToken;
       const res = await fetch(`/api/v1${path}`, {
         headers,
         ...options
@@ -2478,7 +2481,8 @@
       profileMenuCard.style.display = 'block';
       profileUserCard.style.display = 'block';
       profileOrdersCard.style.display = 'block';
-      profileName.textContent = currentUser?.name || 'Foydalanuvchi';
+      const wholesaleMode = Boolean(localStorage.getItem('wholesaleToken'));
+      profileName.textContent = `${currentUser?.name || 'Foydalanuvchi'}${wholesaleMode ? ' · Оптовый режим' : ''}`;
       profilePhone.textContent = `Telefon: ${currentUser?.phone || '-'}`;
       profileAddress.textContent = `Manzil: ${currentUser?.address || 'Manzil qo‘shilmagan'}`;
       const orders = await loadCustomerOrders();
@@ -2812,6 +2816,10 @@
       if (action === 'notifications') {
         openProfileAction('Xabarnomalar', '<p class="muted">Hozircha xabarnomalar yo‘q</p>');
       }
+
+      if (action === 'wholesale') {
+        openProfileAction('Оптовый мижоз', '<input id="wsName" class="auth-input" placeholder="Ism" /><input id="wsPhone" class="auth-input" placeholder="Telefon" style="margin-top:8px;" /><input id="wsBiz" class="auth-input" placeholder="Biznes nomi" style="margin-top:8px;" /><input id="wsNote" class="auth-input" placeholder="Izoh" style="margin-top:8px;" /><button class="btn gm-btn gm-btn-primary btn-primary" id="wsApplyBtn" style="margin-top:10px;">Ariza yuborish</button><hr style="margin:10px 0;border-color:#eee;"><input id="wsLogin" class="auth-input" placeholder="Wholesale login" /><input id="wsPassword" type="password" class="auth-input" placeholder="Parol" style="margin-top:8px;" /><button class="btn gm-btn gm-btn-secondary btn-secondary" id="wsLoginBtn" style="margin-top:10px;">Wholesale kirish</button>');
+      }
       if (action === 'help') {
         openProfileAction('Yordam', `<p class="muted">Qo‘llab-quvvatlash: <a href="tel:+998900000000">+998 90 000 00 00</a></p><p class="muted">Telegram: <a target="_blank" href="${COURIER_TELEGRAM_LINK}">Guruhga o‘tish</a></p>`);
       }
@@ -2844,6 +2852,17 @@
         localStorage.setItem('courierApplicationStatus', 'pending');
         showToast('Arizangiz yuborildi');
         closeProfileAction();
+      }
+      if (e.target.id === 'wsApplyBtn') {
+        await api('/wholesale/apply', { method:'POST', body: JSON.stringify({ name: document.getElementById('wsName')?.value, phone: document.getElementById('wsPhone')?.value, businessName: document.getElementById('wsBiz')?.value, note: document.getElementById('wsNote')?.value }) });
+        showToast('Оптовая заявка yuborildi');
+      }
+      if (e.target.id === 'wsLoginBtn') {
+        const out = await api('/wholesale/login', { method:'POST', body: JSON.stringify({ login: document.getElementById('wsLogin')?.value, password: document.getElementById('wsPassword')?.value }) });
+        localStorage.setItem('wholesaleToken', out.wholesaleToken || '');
+        showToast('Оптовый режим yoqildi');
+        closeProfileAction();
+        await initializeAppData();
       }
     });
 
