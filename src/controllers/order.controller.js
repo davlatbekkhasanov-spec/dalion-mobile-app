@@ -1,9 +1,13 @@
 const store = require('../data/store.js');
 const fs = require('fs');
 const path = require('path');
+const tokenService = require('../services/auth-token.service.js');
 
 function resolveUserPhone(req) {
-  return String(req.header('x-user-phone') || req.query?.phone || req.body?.phone || req.body?.userPhone || '').trim();
+  const auth = String(req.header('authorization') || '');
+  const bearer = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+  const decoded = bearer ? tokenService.verify(bearer) : null;
+  return String(decoded?.phone || req.header('x-user-phone') || req.query?.phone || req.body?.phone || req.body?.userPhone || '').trim();
 }
 function isValidPhone(phone = '') {
   const normalized = String(phone).replace(/[^\d+]/g, '');

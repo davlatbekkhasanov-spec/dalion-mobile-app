@@ -1743,6 +1743,8 @@
       const isFormData = typeof FormData !== 'undefined' && hasBody && options.body instanceof FormData;
       if (!isFormData && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
       if (currentUser?.phone) headers['x-user-phone'] = currentUser.phone;
+      const authToken = localStorage.getItem('authToken') || '';
+      if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
       const wsToken = localStorage.getItem('wholesaleToken') || '';
       if (wsToken) headers['x-wholesale-token'] = wsToken;
       const res = await fetch(`/api/v1${path}`, {
@@ -1926,6 +1928,7 @@
     async function requestOtpCode() {
       const phoneValue = String(authPhone.value || '').trim();
       if (!phoneValue) { showToast('Telefon raqam kiriting'); return; }
+      if (!/^\+998\d{9}$/.test(String(phoneValue).replace(/\s+/g, ''))) { showToast('+998 XX XXX XX XX formatida kiriting'); return; }
       if (Date.now() < otpResendAt) { showToast('Kodni qayta yuborish uchun kuting'); return; }
       authOtpState = 'otp_sent';
       await api('/auth/request-otp', { method: 'POST', body: JSON.stringify({ phone: phoneValue }) });
@@ -1952,7 +1955,19 @@
         localStorage.setItem('globusUser', JSON.stringify(currentUser));
       }
       authOtpState = 'verified';
-      showToast('Telefon OTP orqali tasdiqlandi');
+      if (out.token) localStorage.setItem('authToken', out.token);
+      showToast('Kod tasdiqlandi');
+    }
+
+    
+    function openProfileAction(title, bodyHtml) {
+      profileActionTitle.textContent = title;
+      profileActionBody.innerHTML = bodyHtml;
+      profileActionOverlay.classList.add('show');
+    }
+
+    function closeProfileAction() {
+      profileActionOverlay.classList.remove('show');
     }
 
     
@@ -2798,6 +2813,7 @@
 
     logoutBtn?.addEventListener('click', () => {
       localStorage.removeItem('globusUser');
+      localStorage.removeItem('authToken');
       currentUser = null;
       activeOrderNumber = '';
       localStorage.removeItem('activeOrderNumber');
