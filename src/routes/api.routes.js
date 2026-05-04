@@ -10,6 +10,7 @@ const integrationController = require('../controllers/integration.controller.js'
 const adminController = require('../controllers/admin.controller.js');
 const { parseMultipartSingleFile } = require('../middlewares/upload.middleware.js');
 const { requireAdminImportToken } = require('../middlewares/admin-token.middleware.js');
+const { env } = require('../config/env.js');
 
 const router = express.Router();
 const XLSX_IMPORT_MAX_BYTES = 10 * 1024 * 1024;
@@ -79,9 +80,12 @@ router.post('/admin/categories/:id/image', requireAdminImportToken, parseMultipa
 
 router.get('/admin/products', requireAdminImportToken, adminController.getProducts);
 router.put('/admin/products/:id', requireAdminImportToken, adminController.updateProduct);
-router.post('/admin/products/load-demo', requireAdminImportToken, adminController.loadDemoProducts);
-router.post('/admin/products/load-kanstik-demo', requireAdminImportToken, adminController.loadKanstikDemoProducts);
-router.post('/admin/products/clear-demo', requireAdminImportToken, adminController.clearDemoProducts);
+
+if (env.enableDemoLoaders) {
+  router.post('/admin/products/load-demo', requireAdminImportToken, adminController.loadDemoProducts);
+  router.post('/admin/products/load-kanstik-demo', requireAdminImportToken, adminController.loadKanstikDemoProducts);
+  router.post('/admin/products/clear-demo', requireAdminImportToken, adminController.clearDemoProducts);
+}
 router.get('/admin/store/summary', requireAdminImportToken, adminController.getStoreSummary);
 router.post('/admin/store/reload', requireAdminImportToken, adminController.reloadStore);
 router.post('/admin/dalion/sync', requireAdminImportToken, adminController.syncDalionProducts);
