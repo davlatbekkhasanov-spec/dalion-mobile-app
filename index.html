@@ -1970,17 +1970,6 @@
       profileActionOverlay.classList.remove('show');
     }
 
-    
-    function openProfileAction(title, bodyHtml) {
-      profileActionTitle.textContent = title;
-      profileActionBody.innerHTML = bodyHtml;
-      profileActionOverlay.classList.add('show');
-    }
-
-    function closeProfileAction() {
-      profileActionOverlay.classList.remove('show');
-    }
-
     function requireAuthOrIntro() {
       if (isAuthed()) return true;
       showToast("Avval ro‘yxatdan o‘ting");
