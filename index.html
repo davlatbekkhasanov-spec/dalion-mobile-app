@@ -1967,9 +1967,9 @@ Oq fonli foto</div>
       const q = qtyOf(id);
       const plusDisabled = stock <= 0 || q >= stock ? 'disabled' : '';
       return `
-        <button class="qty-minus" data-id="${id}">−</button>
+        <button class="qty-minus" data-action="minus" data-id="${id}">−</button>
         <span>${q}</span>
-        <button class="qty-plus" data-id="${id}" ${plusDisabled}>+</button>
+        <button class="qty-plus" data-action="plus" data-id="${id}" ${plusDisabled}>+</button>
       `;
     }
 
@@ -1983,14 +1983,14 @@ Oq fonli foto</div>
       const reviews = Number(p.reviewCount || 120);
       const priceText = price > 0 ? money(price) : 'Narx aniqlanmoqda';
       const imageHtml = p.image_url
-        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.remove();this.parentElement.insertAdjacentHTML('beforeend', imageFallbackTemplate('${(p.name || '').replace(/'/g, '&#39;')}'));" />`
+        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />`
         : imageFallbackTemplate(p.name);
       return `
-        <article class="product" data-open-product="${p.id}">
+        <article class="product" data-action="open-product" data-product-id="${p.id}">
           <div class="image-box">
             <div class="product-top-row">
               ${hasDiscount ? `<span class="gm-chip discount-chip product-discount">-${discountPercent}%</span>` : '<span></span>'}
-              <button class="fav-btn" type="button" aria-label="Saralanganlarga qo‘shish">❤</button>
+              <button class="fav-btn" type="button" data-action="favorite" aria-label="Saralanganlarga qo‘shish">❤</button>
             </div>
             ${imageHtml}
           </div>
@@ -2001,7 +2001,7 @@ Oq fonli foto</div>
             <p class="product-rating">⭐ ${ratingValue.toFixed(1)} (${reviews})</p>
             ${qtyOf(p.id) > 0
               ? `<div class="qty" data-qty-wrap="${p.id}">${makeQtyControls(p.id)}</div>`
-              : `<button class="btn gm-btn gm-btn-primary quick-add-btn" data-add-one="${p.id}" ${stock <= 0 ? 'disabled' : ''}>Savatga qo‘shish</button>`}
+              : `<button class="btn gm-btn gm-btn-primary quick-add-btn" data-action="add" data-id="${p.id}" ${stock <= 0 ? 'disabled' : ''}>Savatga qo‘shish</button>`}
           </div>
         </article>
       `;
@@ -2157,7 +2157,7 @@ Oq fonli foto</div>
                 <div class="cart-item-title">${item.name}</div>
                 <div class="cart-item-meta">
                   <strong>${money(item.price)}</strong>
-                  <button class="icon-btn cart-remove-btn" data-remove-cart="${item.id}">Olib tashlash</button>
+                  <button class="icon-btn cart-remove-btn" data-action="remove" data-id="${item.id}">Olib tashlash</button>
                 </div>
               </div>
             </div>
@@ -2422,10 +2422,10 @@ Oq fonli foto</div>
 
     function upsellCardTemplate(p) {
       return `
-        <article class="upsell-card" data-open-product="${p.id}">
+        <article class="upsell-card" data-action="open-product" data-product-id="${p.id}">
           <img class="cart-item-thumb" src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />
           <h6>${p.name}</h6>
-          <div class="list-row"><span class="price">${money(p.price)}</span><button class="upsell-quick-btn" data-quick-add="${p.id}">+ Qo‘shish</button></div>
+          <div class="list-row"><span class="price">${money(p.price)}</span><button class="upsell-quick-btn" data-action="add" data-id="${p.id}">+ Qo‘shish</button></div>
         </article>
       `;
     }
@@ -2754,51 +2754,38 @@ Oq fonli foto</div>
       renderSearch();
     });
 
-    document.body.addEventListener('click', async (e) => {
+    document.addEventListener('click', async (e) => {
       const toastTrigger = e.target.closest('[data-toast]');
       if (toastTrigger) {
         e.preventDefault();
         showToast(toastTrigger.dataset.toast);
       }
-
-      const plus = e.target.closest('.qty-plus');
-      const minus = e.target.closest('.qty-minus');
-      const quickAdd = e.target.closest('[data-add-one]');
-      const upsellQuickAdd = e.target.closest('[data-quick-add]');
-      const removeCart = e.target.closest('[data-remove-cart]');
+      const actionEl = e.target.closest('[data-action]');
+      const action = actionEl?.dataset.action;
 
       try {
-        if (removeCart) {
+        if (action === 'remove') {
           e.preventDefault();
           e.stopPropagation();
-          await setQty(removeCart.dataset.removeCart, 0, false);
-          await loadCart();
-          renderAll();
+          await setQty(actionEl.dataset.id, 0, false);
           return;
         }
-        if (upsellQuickAdd) {
+        if (action === 'add') {
           e.preventDefault();
           e.stopPropagation();
-          const id = upsellQuickAdd.getAttribute('data-quick-add');
-          await setQty(id, qtyOf(id) + 1, true);
-          return;
-        }
-        if (quickAdd) {
-          e.preventDefault();
-          e.stopPropagation();
-          const id = quickAdd.getAttribute('data-add-one');
+          const id = actionEl.dataset.id;
           const current = qtyOf(id);
-          quickAdd.classList.add('bounce');
-          quickAdd.classList.add('added');
-          setTimeout(() => quickAdd.classList.remove('bounce'), 450);
-          setTimeout(() => quickAdd.classList.remove('added'), 500);
+          actionEl.classList.add('bounce');
+          actionEl.classList.add('added');
+          setTimeout(() => actionEl.classList.remove('bounce'), 450);
+          setTimeout(() => actionEl.classList.remove('added'), 500);
           await setQty(id, current + 1, true);
           return;
         }
-        if (plus) {
+        if (action === 'plus') {
           e.preventDefault();
           e.stopPropagation();
-          const id = plus.dataset.id;
+          const id = actionEl.dataset.id;
           const p = products.find((x) => x.id === id);
           const stock = Number(p?.stock ?? 0);
           if (stock <= 0) {
@@ -2813,10 +2800,10 @@ Oq fonli foto</div>
           return;
         }
 
-        if (minus) {
+        if (action === 'minus') {
           e.preventDefault();
           e.stopPropagation();
-          const id = minus.dataset.id;
+          const id = actionEl.dataset.id;
           await setQty(id, qtyOf(id) - 1, false);
           return;
         }
@@ -2825,9 +2812,9 @@ Oq fonli foto</div>
         return;
       }
 
-      const card = e.target.closest('[data-open-product]');
-      if (card && !e.target.closest('.qty, [data-add-one], [data-quick-add], [data-remove-cart], .fav-btn')) {
-        openProductModal(card.dataset.openProduct);
+      const card = e.target.closest('[data-action="open-product"]');
+      if (card && !e.target.closest('[data-action="add"], [data-action="plus"], [data-action="minus"], [data-action="remove"], [data-action="favorite"], .qty')) {
+        openProductModal(card.dataset.productId);
         return;
       }
 
