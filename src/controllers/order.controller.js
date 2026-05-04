@@ -75,13 +75,26 @@ exports.getOrdersDisplay = (req, res) => {
 exports.getOrderTrack = (req, res) => {
   const order = store.getOrderByNumber(req.params.orderNumber);
   if (!order) return res.status(404).json({ message: 'Order not found' });
-  return res.json({ order });
+  return res.json({
+    order: {
+      ...order,
+      courier_status_label: String(order.status) === 'out_for_delivery' ? 'Kuryer yo‘lda' : ''
+    }
+  });
 };
 
 exports.getCustomerOrders = (req, res) => {
   const phone = resolveUserPhone(req);
   if (!phone) return res.status(400).json({ message: 'phone query required' });
   return res.json({ orders: store.getCustomerOrders(phone) });
+};
+
+exports.validatePromo = (req, res) => {
+  const subtotal = Math.max(0, Number(req.body?.subtotal || 0));
+  const code = String(req.body?.code || '').trim();
+  const out = store.validatePromoCode(code, subtotal);
+  if (!out.valid) return res.status(400).json({ ok: false, message: out.message });
+  return res.json({ ok: true, discount: out.discount, promo: { code: out.promo.promo_code } });
 };
 
 exports.uploadPaymentProof = async (req, res) => {

@@ -7,7 +7,7 @@ exports.requestOtp = async (req, res) => {
   if (result.error) return res.status(400).json({ ok: false, message: result.error });
 
   const payload = { ok: true };
-  if (result.provider === 'mock' && result.devOtp) payload.devOtp = result.devOtp;
+  if (process.env.ALLOW_DEV_OTP === 'true' && result.provider === 'mock' && result.devOtp) payload.devOtp = result.devOtp;
   return res.json(payload);
 };
 
