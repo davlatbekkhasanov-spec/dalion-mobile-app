@@ -13,6 +13,7 @@ const { requireAdminImportToken } = require('../middlewares/admin-token.middlewa
 const { env } = require('../config/env.js');
 
 const router = express.Router();
+// TODO(PHASE-2): Split this monolithic router into module-local routers under src/modules/* while preserving current public API paths.
 const XLSX_IMPORT_MAX_BYTES = 10 * 1024 * 1024;
 
 router.get('/home', homeController.getHome);
@@ -81,6 +82,7 @@ router.post('/admin/categories/:id/image', requireAdminImportToken, parseMultipa
 router.get('/admin/products', requireAdminImportToken, adminController.getProducts);
 router.put('/admin/products/:id', requireAdminImportToken, adminController.updateProduct);
 
+// TODO(PHASE-3): Remove demo loader routes fully after DALION/Excel production migration sign-off.
 if (env.enableDemoLoaders) {
   router.post('/admin/products/load-demo', requireAdminImportToken, adminController.loadDemoProducts);
   router.post('/admin/products/load-kanstik-demo', requireAdminImportToken, adminController.loadKanstikDemoProducts);
