@@ -1421,7 +1421,8 @@
         <div class="list-card checkout-delivery-card">
           <h4 style="margin-bottom:10px;">Yetkazib berish</h4>
           <p class="muted" id="checkoutSavedAddress">Saqlangan manzil: -</p>
-          <p class="muted" id="checkoutLocation">Manzil: Samarqand, Shohrux Mirzo 33</p>
+          <p class="muted" id="checkoutLocation">Do'kon: Samarqand, Shohruh Mirzo 33</p>
+          <p class="muted" id="checkoutAddressLabel">Mijoz manzili: Manzil kiritilmagan</p>
           <p class="muted" id="checkoutGeo">Geo: olinmagan</p>
           <p class="muted" id="checkoutLandmark">Orientir: -</p>
           <input id="manualAddress" class="checkout-input" placeholder="Manzil (qo'lda)" />
@@ -1429,9 +1430,9 @@
           <input id="promoCodeInput" class="checkout-input" placeholder="Promo kod (ixtiyoriy)" />
           <button class="btn btn-secondary location-premium-btn" id="captureLocationBtn">GPS orqali manzilni olish (ixtiyoriy)</button>
           <p class="muted" id="checkoutLocationHint">Lokatsiya ixtiyoriy. Istasangiz manzilni qo‘lda kiriting.</p>
-          <p class="muted" id="checkoutDistance">Masofa: aniqlanmagan</p>
-          <p class="muted" id="checkoutTime">ETA: 30 daqiqa</p>
-          <p class="muted" id="checkoutPrice">Narx: 12 000 so'm</p>
+          <p class="muted" id="checkoutDistance">Masofa: Aniqlanmagan</p>
+          <p class="muted" id="checkoutTime">4 km gacha 18 500 so‘m, keyin har km uchun 4 000 so‘m</p>
+          <p class="muted" id="checkoutPrice">Narx: 0 so'm</p>
           <p class="field-error" id="addressValidationError"></p>
         </div>
         <div class="list-card gm-card">
@@ -1555,8 +1556,11 @@ Oq fonli foto</div>
     let cart = {};
     let currentView = 'homeView';
     let selectedPayment = 'payme';
+    const STORE_ADDRESS = 'Samarqand, Shohruh Mirzo 33';
+    const STORE_LAT = 39.654572;
+    const STORE_LNG = 66.958871;
     const DEFAULT_LOCATION_CITY = 'Samarqand';
-    const DEFAULT_LOCATION_ADDRESS = 'Samarqand, Shohrux Mirzo 33';
+    const DEFAULT_LOCATION_ADDRESS = STORE_ADDRESS;
     let currentUser = null;
     let customerLocation = { lat: null, lng: null, accuracy: null, addressText: '', landmarkText: '', permissionDenied: false };
     let activeModalProductId = null;
@@ -1630,6 +1634,7 @@ Oq fonli foto</div>
     const promoCarousel = document.getElementById('promoCarousel');
     const activeOrderCardWrap = document.getElementById('activeOrderCardWrap');
     const checkoutLocation = document.getElementById('checkoutLocation');
+    const checkoutAddressLabel = document.getElementById('checkoutAddressLabel');
     const checkoutSavedAddress = document.getElementById('checkoutSavedAddress');
     const checkoutGeo = document.getElementById('checkoutGeo');
     const checkoutLandmark = document.getElementById('checkoutLandmark');
@@ -1839,7 +1844,30 @@ Oq fonli foto</div>
     }
 
     function resolvePreferredAddress() {
-      return String(manualAddress.value || customerLocation.addressText || currentUser?.address || homePayload?.delivery_info?.location || DEFAULT_LOCATION_ADDRESS).trim();
+      return String(manualAddress.value || customerLocation.addressText || currentUser?.address || '').trim();
+    }
+
+    function haversineKm(lat1, lng1, lat2, lng2) {
+      const toRad = (deg) => (Number(deg) * Math.PI) / 180;
+      const earthKm = 6371;
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+      return 2 * earthKm * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function calculateDeliveryPrice(distanceKm) {
+      if (!Number.isFinite(distanceKm)) return null;
+      const raw = distanceKm <= 4 ? 18500 : (18500 + ((distanceKm - 4) * 4000));
+      return Math.round(raw / 500) * 500;
+    }
+
+    function getDeliveryState() {
+      const hasGeo = Number.isFinite(Number(customerLocation.lat)) && Number.isFinite(Number(customerLocation.lng))
+        && !(Number(customerLocation.lat) === 0 && Number(customerLocation.lng) === 0);
+      const distanceKm = hasGeo ? haversineKm(STORE_LAT, STORE_LNG, Number(customerLocation.lat), Number(customerLocation.lng)) : null;
+      const deliveryPrice = calculateDeliveryPrice(distanceKm);
+      return { hasGeo, distanceKm, deliveryPrice };
     }
 
     async function reverseGeocode(lat, lng) {
@@ -1941,7 +1969,7 @@ Oq fonli foto</div>
     }
 
     function getCheckoutTotalsSnapshot() {
-      const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
+      const deliveryPrice = Number(getDeliveryState().deliveryPrice || 0);
       const productsSubtotal = totalPrice();
       const discountAmount = cartItemsSnapshot.reduce((sum, item) => {
         const qty = Number(item.quantity || cart[item.id] || 0);
@@ -2192,7 +2220,7 @@ Oq fonli foto</div>
       }).join('');
 
       const subtotal = totalPrice();
-      const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
+      const deliveryPrice = Number(getDeliveryState().deliveryPrice || 0);
       cartSubtotal.textContent = money(subtotal);
       cartDelivery.textContent = money(deliveryPrice);
       cartTotalPrice.textContent = money(subtotal + deliveryPrice);
@@ -2227,29 +2255,30 @@ Oq fonli foto</div>
         `;
       }).join('');
 
-      const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
-      const deliveryEta = homePayload?.settings?.deliveryTimeText || homePayload?.delivery_info?.time || "30 daqiqa";
+      const deliveryState = getDeliveryState();
+      const deliveryPrice = Number(deliveryState.deliveryPrice || 0);
       const subtotal = totalPrice();
       const orderTotal = subtotal + deliveryPrice;
       checkoutTotal.textContent = `Jami: ${money(orderTotal)}`;
       checkoutSubtotal.textContent = money(subtotal);
       checkoutDeliveryPrice.textContent = money(deliveryPrice);
       checkoutGrandTotal.textContent = money(orderTotal);
+      const preferredAddress = resolvePreferredAddress();
       checkoutSavedAddress.textContent = `Saqlangan manzil: ${currentUser?.address || 'Manzil qo‘shilmagan'}`;
-      checkoutLocation.textContent = `Manzil: ${resolvePreferredAddress()}`;
+      checkoutLocation.textContent = `Do'kon: ${STORE_ADDRESS}`;
+      checkoutAddressLabel.textContent = `Mijoz manzili: ${preferredAddress || 'Manzil kiritilmagan'}`;
       checkoutLandmark.textContent = `Orientir: ${customerLocation.landmarkText || landmarkInput.value || '-'}`;
-      checkoutGeo.textContent = Number.isFinite(Number(customerLocation.lat)) && Number.isFinite(Number(customerLocation.lng))
+      checkoutGeo.textContent = deliveryState.hasGeo
         ? `Geo: ${Number(customerLocation.lat).toFixed(6)}, ${Number(customerLocation.lng).toFixed(6)} (±${Math.round(Number(customerLocation.accuracy || 0))}m)`
         : 'Geo: olinmagan';
-      const distanceKm = Number(homePayload?.delivery_info?.distanceKm);
-      checkoutDistance.textContent = Number.isFinite(distanceKm) ? `Masofa: ${distanceKm.toFixed(1)} km` : 'Masofa: aniqlanmagan';
-      checkoutTime.textContent = `ETA: ${deliveryEta}`;
+      checkoutDistance.textContent = Number.isFinite(deliveryState.distanceKm) ? `Masofa: ${deliveryState.distanceKm.toFixed(1)} km` : 'Masofa: Aniqlanmagan';
+      checkoutTime.textContent = "4 km gacha 18 500 so‘m, keyin har km uchun 4 000 so‘m";
       checkoutPrice.textContent = `Narx: ${money(deliveryPrice)}`;
       const checkoutLocationHint = document.getElementById('checkoutLocationHint');
       if (checkoutLocationHint) {
         checkoutLocationHint.textContent = customerLocation.permissionDenied
-          ? 'Manzilni qo‘lda kiriting yoki lokatsiyani yoqing'
-          : 'Lokatsiya ixtiyoriy. Istasangiz manzilni qo‘lda kiriting.';
+          ? 'Masofa aniqlanmagan. GPS ni yoqing yoki manzil kiriting.'
+          : 'Lokatsiya olindi.';
       }
       const clickAmountTiyin = Math.round(Number(orderTotal || 0) * 100);
       if (selectedPayment === 'click') paymentLinks.innerHTML = `Click: <a href="https://indoor.click.uz/pay?id=081328&t=${clickAmountTiyin}" target="_blank">To‘lov havolasi</a>`;
@@ -2554,10 +2583,10 @@ Oq fonli foto</div>
         customerLocation.accuracy = pos.coords.accuracy;
         customerLocation.permissionDenied = false;
         const geoAddress = await reverseGeocode(customerLocation.lat, customerLocation.lng);
-        customerLocation.addressText = geoAddress || customerLocation.addressText || 'Lokatsiya olindi';
+        customerLocation.addressText = geoAddress || customerLocation.addressText || '';
         closeLocationDeniedModal();
         renderCheckout();
-        showToast(geoAddress ? 'Manzil aniqlandi' : 'Lokatsiya olindi');
+        showToast('Lokatsiya olindi');
       }, () => {
         customerLocation.permissionDenied = true;
         renderCheckout();
@@ -2921,12 +2950,19 @@ Oq fonli foto</div>
         showToast("To'lov turini tanlang");
         return;
       }
-      customerLocation.addressText = manualAddress.value.trim() || '' || '';
+      customerLocation.addressText = manualAddress.value.trim() || customerLocation.addressText || '';
       customerLocation.landmarkText = landmarkInput.value.trim();
-      if (!Number.isFinite(Number(customerLocation.lat)) && !customerLocation.addressText) {
+      const deliveryState = getDeliveryState();
+      if (!deliveryState.hasGeo && !customerLocation.addressText) {
         addressValidationError.textContent = "Manzilni kiriting yoki lokatsiyani yoqing";
         addressValidationError.style.display = 'block';
         showToast("Lokatsiyani kiriting yoki manzilni to‘ldiring");
+        return;
+      }
+      if (!deliveryState.hasGeo || !Number.isFinite(Number(deliveryState.deliveryPrice))) {
+        addressValidationError.textContent = "Yetkazib berish narxini hisoblash uchun lokatsiyani aniqlang";
+        addressValidationError.style.display = 'block';
+        showToast("Yetkazib berish narxini hisoblash uchun lokatsiyani aniqlang");
         return;
       }
 
@@ -2951,14 +2987,18 @@ Oq fonli foto</div>
             cashAgreementTextVersion: selectedPayment === 'cash' ? 'draft-v1' : '',
             cashAgreementAccepted: selectedPayment === 'cash' ? cashAgreementCheckbox.checked : false,
             cashAgreementAcceptedAt: selectedPayment === 'cash' ? new Date().toISOString() : null,
-            location: resolvePreferredAddress(),
+            location: resolvePreferredAddress() || 'Manzil kiritilmagan',
             locationLat: customerLocation.lat,
             locationLng: customerLocation.lng,
             locationAccuracy: customerLocation.accuracy,
             addressText: customerLocation.addressText,
             landmarkText: customerLocation.landmarkText,
-            deliveryTime: homePayload?.delivery_info?.time || '30 daqiqa',
-            deliveryPrice: homePayload?.delivery_info?.price || 12000,
+            deliveryTime: '',
+            deliveryPrice: deliveryState.deliveryPrice,
+            delivery_address: resolvePreferredAddress() || 'Manzil kiritilmagan',
+            delivery_lat: customerLocation.lat,
+            delivery_lng: customerLocation.lng,
+            delivery_distance_km: Number(deliveryState.distanceKm.toFixed(2)),
             promoCode: String(promoCodeInput?.value || '').trim()
           })
         });
