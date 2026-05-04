@@ -1,4 +1,5 @@
 const store = require('../data/store.js');
+const { STORE_LOCATION } = require('../constants/domain.constants.js');
 
 exports.getHome = (req, res) => {
   const settings = store.getHomeSettings();
@@ -27,9 +28,9 @@ exports.getHome = (req, res) => {
     popular_products: popularProducts,
     popularProducts,
     delivery_info: {
-      location: settings.locationText || 'Yunusobod, Toshkent',
-      time: settings.deliveryTimeText || '30 daqiqa',
-      price: 12000
+      location: settings.locationText || STORE_LOCATION.address,
+      time: settings.deliveryTimeText || '',
+      price: 0
     }
   });
 };
