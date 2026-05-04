@@ -695,11 +695,21 @@
     }
 
 
-    .cart-item-card { padding: 12px; }
+    .cart-item-card { padding: 12px; border-radius:16px; }
     .cart-item-top { display:flex; gap:10px; align-items:flex-start; }
     .cart-item-thumb { width:56px; height:56px; border-radius:12px; object-fit:cover; background:#fff; border:1px solid rgba(126,155,207,.22); }
     .cart-item-title { font-size:14px; font-weight:700; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .cart-item-meta { display:flex; justify-content:space-between; align-items:center; margin-top:8px; gap:8px; }
+    .cart-item-actions { margin-top:10px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .cart-remove-btn { font-size:12px; padding:7px 10px; border-radius:10px; background:#f8fafc; border:1px solid #e4e7ec; color:#475467; }
+    #cartSummary .list-row { display:flex; justify-content:space-between; align-items:center; margin:6px 0; }
+    #cartSummary .list-row:last-of-type { border-top:1px solid #eceff5; padding-top:10px; margin-top:10px; }
+    #cartTotalPrice { font-size:22px; font-weight:800; }
+    #orderBtn { width:100%; min-height:52px; height:52px; border-radius:14px; margin-top:10px; }
+    .checkout-sticky-cta { position:sticky; bottom:8px; z-index:4; background:#fff; border:1px solid #eceff5; border-radius:14px; padding:10px; }
+    #confirmOrderBtn { width:100%; min-height:52px; height:52px; border-radius:14px; }
+    .success-card { margin-top:20px; text-align:center; border-radius:18px; }
+    .success-timeline { margin:12px 0; padding:10px; border:1px solid #eceff5; border-radius:12px; background:#f8fafc; text-align:left; }
     .cart-item-warn { margin-top:8px; color:#ffd89a; font-size:12px; }
     .icon-btn { border:1px solid rgba(255,134,134,.4); color:#ffb0b0; background:rgba(68,20,26,.45); border-radius:12px; min-height:48px; padding:0 12px; font-weight:700; }
     .cart-summary-grid .list-row { margin-bottom:6px; }
@@ -717,12 +727,29 @@
     .checkout-sticky-cta .checkout-total { margin:0; }
 
 
-    .gm-btn, .quick-add-btn, .tab, .pay-btn, .icon-btn { transition: transform .12s ease, filter .18s ease, box-shadow .18s ease; }
-    .gm-btn:active, .quick-add-btn:active, .tab:active, .pay-btn:active, .icon-btn:active { transform: scale(0.96); }
-    .product, .list-card, .category-card { transition: transform .16s ease, box-shadow .2s ease, background .2s ease; }
-    .product:active, .list-card:active, .category-card:active { transform: translateY(-1px) scale(0.995); }
+    .gm-btn, .quick-add-btn, .tab, .pay-btn, .icon-btn, .qty button { transition: transform .15s ease, filter .15s ease, box-shadow .15s ease, opacity .15s ease; will-change: transform; }
+    .gm-btn:active, .quick-add-btn:active, .tab:active, .pay-btn:active, .icon-btn:active, .qty button:active { transform: scale(0.97); }
+    .product, .list-card, .category-card, .upsell-card { transition: transform .2s ease, box-shadow .2s ease, background .2s ease, opacity .2s ease; will-change: transform; }
+    .product:active, .list-card:active, .category-card:active, .upsell-card:active { transform: translateY(-1px) scale(0.985); box-shadow: 0 10px 24px rgba(16,24,40,.14); }
     .quick-add-btn.bounce { animation: addBounce .42s ease; }
+    .quick-add-btn.added { background: linear-gradient(135deg,#16a34a,#22c55e) !important; }
+    .quick-add-btn.added::after { content:" ✓"; }
+    .cart-badge.pop, #homeCartShortcutBadge.pop { animation: badgePop .28s ease; }
+    @keyframes badgePop { 0%{transform:scale(1)} 40%{transform:scale(1.25)} 100%{transform:scale(1)} }
     @keyframes addBounce { 0%{transform:scale(1)} 35%{transform:scale(0.95)} 72%{transform:scale(1.06)} 100%{transform:scale(1)} }
+    .skeleton-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; }
+    .skeleton-card { border-radius:16px; height:320px; background:linear-gradient(90deg,#eef2f7 25%,#f7f9fc 37%,#eef2f7 63%); background-size:400% 100%; animation: shimmer 1.2s ease-in-out infinite; }
+    @keyframes shimmer { 0%{background-position:100% 0} 100%{background-position:0 0} }
+    .view { animation: viewFade .18s ease; }
+    @keyframes viewFade { from { opacity:.0; transform:translateY(4px);} to { opacity:1; transform:translateY(0);} }
+    .overlay { transition: opacity .2s ease; opacity:0; }
+    .overlay.show { opacity:1; }
+    .overlay .modal { transform: translateY(20px) scale(.98); opacity:0; transition: transform .2s ease, opacity .2s ease; }
+    .overlay.show .modal { transform: translateY(0) scale(1); opacity:1; }
+    .home-top-sticky { backdrop-filter: blur(8px); }
+    .product-rating { color:#f59e0b; }
+    .discount-chip { box-shadow:0 6px 14px rgba(255,59,102,.28); }
+    .fav-btn:active { transform:scale(.93); }
     .modal-image { min-height: 220px; cursor: zoom-in; }
     .modal-image.zoomed { position: fixed; inset: 20px; z-index: 70; max-width: min(94vw,520px); max-height: min(80vh,540px); margin: auto; border-radius: 18px; box-shadow: 0 30px 80px rgba(0,0,0,.55); cursor: zoom-out; }
     .modal-image.zoomed img { object-fit: contain; }
@@ -954,12 +981,14 @@
       display: none;
       align-items: flex-end;
       padding: 14px;
+      overflow-y: auto;
     }
 
     .overlay.show { display: flex; }
 
     .modal {
       width: 100%;
+      max-height: calc(100dvh - 28px);
       border-radius: 18px;
       border: 1px solid rgba(130, 160, 210, 0.32);
       background: #fff;
@@ -967,6 +996,8 @@
       box-shadow: var(--shadow);
       position: relative;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     .modal::before {
@@ -981,7 +1012,8 @@
       pointer-events: none;
     }
 
-    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .modal-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 10px; }
+    .modal-head h3 { margin: 0; padding-right: 4px; line-height: 1.3; }
     .close {
       border: 1px solid rgba(130, 160, 210, 0.36);
       background: rgba(18, 31, 56, 0.74);
@@ -993,10 +1025,12 @@
     }
 
     .modal-image {
-      height: 260px;
+      height: 240px;
       margin: 10px 0;
       overflow: hidden;
     }
+    .modal-image img { width: 100%; height: 100%; object-fit: contain; }
+    #productModal { overflow-y: auto; }
     .location-permission-card {
       width: 100%;
       border-radius: 18px;
@@ -1106,6 +1140,8 @@
       font-weight: 700;
       color: #1d2440;
     }
+    .modal-inline-qty { width: 100%; margin-top: 10px; }
+    .modal-inline-qty .qty { width: 100%; height: 40px; grid-template-columns: 44px 1fr 44px; overflow: hidden; }
     .product .qty span {
       height: 40px;
       border: 0;
@@ -1176,23 +1212,39 @@
     body { display:block; padding:0; background:#f6f7fb; }
     .phone { max-width:none; width:100%; height:100vh; border-radius:0; border:0; box-shadow:none; }
     .phone::before,.phone::after,.app::before { display:none; }
-    .view { padding: 10px 6px 88px; }
-    .top { margin-bottom: 10px; }
-    .products-grid { width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding:0 0 8px; margin:0; }
-    .product { border-radius:14px; overflow:hidden; box-shadow:0 4px 16px rgba(17,24,39,.08); border:1px solid #edf0f5; background:#fff; }
-    .product .image-box { position:relative; height:248px; border-radius:0; padding:0; background:#f3f4f6; }
-    .product .image-box img { width:100%; height:100%; object-fit:cover; border-radius:0; }
-    .product .product-info { padding:8px; display:grid; gap:5px; }
-    .product h5 { font-size:13px; line-height:1.35; min-height:34px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-    .product .price { font-size:15px; font-weight:800; color:#121826; }
+    .view { padding: 10px 10px 94px; }
+    .top { margin-bottom: 12px; }
+    .home-top-sticky { display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; border-radius:16px; padding:10px 12px; }
+    .logo-row { justify-content:flex-start; }
+    .name { font-size:22px; font-weight:800; }
+    .location { font-size:13px; color:#667085; margin-top:4px; }
+    .home-search-lg { position: sticky; top: 78px; z-index: 8; min-height:52px; border-radius:16px; font-size:16px; padding:0 16px; margin-bottom:10px; box-shadow:0 4px 14px rgba(16,24,40,.08); }
+    .home-scroll .promo { flex: 0 0 100%; border-radius:20px; min-height:140px; padding:14px; background:linear-gradient(135deg,#6b4dff,#8f67ff); box-shadow:0 8px 24px rgba(91,76,255,.26); }
+    .promo h3 { font-size:22px; font-weight:800; margin:0 0 6px; }
+    .promo p { font-size:14px; margin:0; }
+    .truck { width:72px; height:72px; border-radius:18px; background:rgba(255,255,255,.24); border:1px solid rgba(255,255,255,.4); color:#fff; font-size:28px; }
+    .products-grid { width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; padding:0 0 8px; margin:0; }
+    .product { border-radius:18px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.08); border:1px solid #edf0f5; background:#fff; transition:all .2s ease; min-height:340px; }
+    .product:active { transform:scale(.98); }
+    .product .image-box { position:relative; height:194px; border-radius:18px 18px 0 0; padding:0; background:#f3f4f6; }
+    .product .image-box img { width:100%; height:100%; object-fit:cover; border-radius:18px 18px 0 0; }
+    .product .product-info { padding:12px; display:grid; gap:6px; align-content:start; }
+    .product h5 { font-size:14px; line-height:1.35; min-height:38px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; color:#555; }
+    .product .price { font-size:19px; font-weight:700; color:#121826; }
     .product .old-price { min-height:14px; font-size:12px; color:#9ca3af; text-decoration:line-through; }
     .product-rating { font-size:12px; color:#6b7280; }
-    .quick-add-btn,.qty { height:38px; border-radius:10px; }
-    .quick-add-btn { font-size:13px; display:flex; align-items:center; justify-content:center; width:100%; white-space:nowrap; overflow:hidden; }
-    .qty { display:grid; grid-template-columns:38px 1fr 38px; align-items:center; text-align:center; }
-    .qty button { height:38px; }
-    .product-top-row { position:absolute; left:6px; top:6px; right:6px; z-index:2; display:flex; justify-content:space-between; }
-    .product-top-row .fav-btn { display:none; }
+    .quick-add-btn,.qty { height:44px; border-radius:12px; }
+    .quick-add-btn { font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; width:100%; white-space:nowrap; overflow:hidden; margin-top:8px; }
+    .qty { display:flex; align-items:center; justify-content:space-between; width:100%; overflow:hidden; margin-top:8px; background:#f7f8fc; border:1px solid #e5e9f2; min-height:40px; }
+    .qty button { width:40px; height:40px; border:0; background:#eef2f8; display:flex; align-items:center; justify-content:center; }
+    .qty span { flex:1; border:0; background:transparent; height:40px; display:flex; align-items:center; justify-content:center; }
+    .product-top-row { position:absolute; left:10px; top:10px; right:10px; z-index:2; display:flex; justify-content:space-between; align-items:flex-start; }
+    .discount-chip { background:linear-gradient(135deg,#ff3b66,#ff6b8a); color:#fff; border-radius:999px; font-size:11px; font-weight:700; padding:4px 8px; }
+    .product-top-row .fav-btn { display:grid; width:32px; height:32px; border-radius:999px; background:#fff; color:#b42318; box-shadow:0 3px 10px rgba(16,24,40,.18); }
+    .cats { gap:10px; margin-bottom:14px; }
+    .cat { width:88px; height:88px; flex:0 0 88px; border-radius:14px; padding:8px 4px; background:#fff; }
+    .gm-section-header h4 { font-size:23px; margin-bottom:9px; font-weight:800; }
+    .gm-section-header a { margin-left:auto; align-self:center; }
 
   </style>
   <link rel="stylesheet" href="/styles.css" />
@@ -1246,22 +1298,22 @@
           <button class="bell gm-icon-btn" aria-label="Savatga o'tish" id="homeCartShortcut">🛒<span class="badge gm-chip gm-chip--warning" id="homeCartShortcutBadge">0</span></button>
         </header>
 
-        <button class="search home-search-lg" id="openSearchBtn">🔎&nbsp; Mahsulot qidirish...</button>
+        <button class="search home-search-lg" id="openSearchBtn">Mahsulot qidirish...</button>
 
         <div class="section-head gm-section-header" id="popularSectionHead">
-          <h4 id="bannerSectionTitle">Bannerlar</h4>
+          <h4 id="bannerSectionTitle">Siz uchun</h4>
         </div>
         <section class="home-scroll" id="bannerCarousel"></section>
 
         <div class="section-head gm-section-header">
-          <h4>Категориялар</h4>
-          <a href="#" id="homeAllCategoriesLink">Барчаси</a>
+          <h4>Kategoriyalar</h4>
+          <a href="#" id="homeAllCategoriesLink">Barchasi</a>
         </div>
         <section class="cats" id="homeCategories"></section>
 
         <div class="section-head gm-section-header">
           <h4>Siz uchun</h4>
-          <a href="#" id="homeMoreProductsLink">Кўпроқ</a>
+          <a href="#" id="homeMoreProductsLink">Ko‘proq</a>
         </div>
         <section class="products-grid" id="homeProducts"></section>
 
@@ -1324,10 +1376,10 @@
         </div>
         <div class="list-card gm-card gm-sticky-cta cart-summary-grid" id="cartSummary" style="display:none;">
           <div class="list-row"><span class="muted">Subtotal:</span><strong id="cartSubtotal">0 so'm</strong></div>
-          <div class="list-row"><span class="muted">Yetkazib berish:</span><span id="cartDelivery">30 daqiqa · 12 000 so'm</span></div>
-          <div class="list-row"><span class="muted">Promo kod:</span><span class="muted">Tez orada</span></div>
+          <div class="list-row"><span class="muted">Yetkazib berish:</span><span id="cartDelivery">12 000 so'm</span></div>
+          <div class="list-row"><span class="muted">Promo kod:</span><span class="muted">—</span></div>
           <div class="list-row"><span class="muted">Jami:</span><strong id="cartTotalPrice">0 so'm</strong></div>
-          <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="orderBtn">Checkoutga o‘tish</button>
+          <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="orderBtn">Buyurtma berish</button>
         </div>
       </section>
 
@@ -1361,7 +1413,7 @@
       </section>
 
       <section class="view" id="checkoutView">
-        <h2 class="title gm-title-md">Checkout</h2>
+        <h2 class="title gm-title-md">Buyurtmani rasmiylashtirish</h2>
         <div class="list-card gm-card" id="checkoutUserCard"><strong id="checkoutUserName">-</strong><p class="muted" id="checkoutUserPhone">-</p></div>
         <div id="checkoutItems" class="checkout-stack"></div>
         <div class="list-card checkout-delivery-card">
@@ -1381,10 +1433,8 @@
           <p class="field-error" id="addressValidationError"></p>
         </div>
         <div class="list-card gm-card">
-          <h4 style="margin-bottom:8px;">To'lov turi</h4>
+          <h4 style="margin-bottom:8px;">To‘lov: Payme</h4>
           <div class="payment-grid">
-            <button class="pay-btn" data-payment="cash">💵 Naqd<br><span class="payment-hint">Yetkazilganda to‘lov</span><br><small>Ishonchli va qulay</small></button>
-            <button class="pay-btn" data-payment="click">🟦 Click<br><span class="payment-hint">Ilova orqali xavfsiz</span><br><small>Rasmiy to‘lov havolasi</small></button>
             <button class="pay-btn" data-payment="payme">🟩 Payme<br><span class="payment-hint">Tezkor onlayn to‘lov</span><br><small>Rasmiy to‘lov havolasi</small></button>
           </div>
           <div id="paymentLinks" class="muted" style="margin-top:8px;"></div>
@@ -1408,7 +1458,7 @@
           </div>
           <div class="list-card gm-card gm-sticky-cta checkout-sticky-cta">
             <p class="checkout-total" id="checkoutTotal">Jami: 0 so'm</p>
-            <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="confirmOrderBtn">Buyurtmani tasdiqlash</button>
+            <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="confirmOrderBtn">Buyurtma berish</button>
             <p class="muted" id="checkoutValidationHint" style="margin:4px 0 0;">Maydonlarni to‘liq to‘ldiring va to‘lov turini tanlang.</p>
             <p class="field-error" id="paymentValidationError"></p>
           </div>
@@ -1416,15 +1466,19 @@
       </section>
 
       <section class="view" id="successView">
-        <div class="list-card gm-card" style="margin-top:24px; text-align:center;">
+        <div class="list-card gm-card success-card">
           <h2 style="margin-bottom:8px;">Buyurtma qabul qilindi</h2>
           <p class="muted">Operator tez orada bog'lanadi</p>
           <p class="muted" id="successOrderNumber">Buyurtma: -</p>
+          <p class="muted" id="successOrderTime">Vaqt: -</p>
           <p class="muted" id="successPaymentMethod">To‘lov turi: -</p>
           <p class="muted" id="successAddress">Manzil: -</p>
           <p class="muted" id="successTotal">Jami: -</p>
-          <p class="muted" id="successOrderStatus">Status: Yangi buyurtma</p>
-          <a id="trackOrderBtn" class="btn gm-btn gm-btn-secondary btn-secondary" style="display:none;">Buyurtmani kuzatish</a>
+          <div class="success-timeline">
+            <p class="muted" id="successOrderStatus">Status: Yangi buyurtma</p>
+            <p class="muted">To‘lov holati: To‘lov kutilmoqda</p>
+          </div>
+          <a id="trackOrderBtn" class="btn gm-btn gm-btn-secondary btn-secondary" style="display:none;">Kuzatish</a>
           <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="backHomeBtn">Bosh sahifaga qaytish</button>
         </div>
       </section>
@@ -1447,26 +1501,21 @@
         <div class="image-box modal-image">
 Oq fonli foto</div>
         <div class="modal-rating-row">
-          <span class="gm-chip gm-chip--warning" id="modalRating">⭐ 4.7 · 0 baho</span>
           <span class="gm-chip gm-chip--delivery" id="modalEta">🚚 20 daqiqa</span>
           <span class="gm-chip gm-chip--success" id="modalAvailability">Mavjud</span>
         </div>
         <p class="price modal-price-main" id="modalPrice">0 so'm</p>
         <p class="old-price" id="modalOldPrice">0 so'm</p>
-        <div class="modal-trust">
-          <p id="modalTrustDelivery">🚚 20 daqiqada yetkazib beramiz</p>
-          <p>🔁 Qaytarish kafolati</p>
-          <p>✅ Tekshirilgan mahsulot</p>
-        </div>
+        <div class="modal-trust"><p id="modalTrustDelivery">🚚 20 daqiqada yetkazib beramiz</p></div>
         <p class="muted" id="modalDescription">Mahsulot tavsifi tez orada yangilanadi.</p>
         <div class="modal-specs" id="modalSpecs"></div>
+        <div class="modal-inline-qty" id="modalQty"></div>
         <h4 class="gm-title-md" id="modalUpsellTitle" style="margin-top:10px; display:none;">Shu mahsulot bilan birga olishadi</h4>
         <section class="products-grid modal-reco-grid" id="modalRecommendations"></section>
         <div class="gm-sticky-cta modal-sticky-cta">
           <div class="modal-sticky-price" id="modalStickyPrice">0 so'm</div>
           <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="modalAddBtn">Savatga qo'shish</button>
         </div>
-        <div class="qty" id="modalQty"></div>
       </div>
     </div>
     <div class="overlay" id="locationDeniedOverlay">
@@ -1491,7 +1540,7 @@ Oq fonli foto</div>
     let products = [];
     let cart = {};
     let currentView = 'homeView';
-    let selectedPayment = '';
+    let selectedPayment = 'payme';
     const DEFAULT_LOCATION_CITY = 'Samarqand';
     const DEFAULT_LOCATION_ADDRESS = 'Samarqand, Shohrux Mirzo 33';
     let currentUser = null;
@@ -1504,6 +1553,7 @@ Oq fonli foto</div>
     const productsLimit = 40;
     let productsHasMore = false;
     let productsLoading = false;
+    let previousBadgeQty = 0;
     let cartItemsSnapshot = [];
     let homePayload = null;
     let latestOrderNumber = '';
@@ -1586,6 +1636,7 @@ Oq fonli foto</div>
     const addressValidationError = document.getElementById('addressValidationError');
     const paymentValidationError = document.getElementById('paymentValidationError');
     const successOrderNumber = document.getElementById('successOrderNumber');
+    const successOrderTime = document.getElementById('successOrderTime');
     const successOrderStatus = document.getElementById('successOrderStatus');
     const successPaymentMethod = document.getElementById('successPaymentMethod');
     const successAddress = document.getElementById('successAddress');
@@ -1686,25 +1737,25 @@ Oq fonli foto</div>
       const promotions = homePayload?.promotions || [];
       const delivery = homePayload?.delivery_info || {};
 
-      homeBrandName.textContent = settings.brandName || settings.heroTitle || 'GlobusMarket';
-      homeLocation.textContent = `📍 ${settings.locationText || DEFAULT_LOCATION_ADDRESS}`;
-      openSearchBtn.textContent = settings.searchPlaceholder || '🔎 Mahsulot qidirish...';
+      homeBrandName.textContent = 'GlobusMarket';
+      homeLocation.textContent = `📍 ${DEFAULT_LOCATION_ADDRESS}`;
+      openSearchBtn.textContent = 'Mahsulot qidirish...';
 
       const fallbackBanner = {
-        title: settings.heroTitle || 'GlobusMarket',
-        subtitle: settings.heroSubtitle || settings.deliveryText || 'Tez, qulay va ishonchli xarid',
-        badge: settings.heroBadgeText || 'Ishonchli xizmat',
-        image_url: settings.backgroundImageUrl || ''
+        title: 'Tez yetkazib berish',
+        subtitle: 'Buyurtmangiz tez va qulay yetkaziladi',
+        badge: '20–30 daqiqa',
+        image_url: ''
       };
       const bannerItems = banners.length ? banners : [fallbackBanner];
       bannerCarousel.innerHTML = bannerItems.map((b) => `
         <article class="promo gm-card">
           <div>
-            <h3>${b.title || fallbackBanner.title}</h3>
-            <p>${b.subtitle || fallbackBanner.subtitle}</p>
-            <span class="gm-chip gm-chip--delivery">${b.badge || settings.heroBadgeText || fallbackBanner.badge}</span>
+            <h3>${fallbackBanner.title}</h3>
+            <p>${fallbackBanner.subtitle}</p>
+            <span class="gm-chip gm-chip--delivery">${fallbackBanner.badge}</span>
           </div>
-          <div class="truck">${b.image_url ? `<img src="${b.image_url}" alt="${b.title || 'banner'}" style="width:100%;height:100%;object-fit:cover;border-radius:16px;" />` : '🚚'}</div>
+          <div class="truck">${b.image_url ? `<img src="${b.image_url}" alt="Yetkazib berish" style="width:100%;height:100%;object-fit:cover;border-radius:16px;" />` : '📦'}</div>
         </article>
       `).join('');
 
@@ -1773,7 +1824,18 @@ Oq fonli foto</div>
     }
 
     function resolvePreferredAddress() {
-      return String(customerLocation.addressText || manualAddress.value || currentUser?.address || homePayload?.delivery_info?.location || DEFAULT_LOCATION_ADDRESS).trim();
+      return String(manualAddress.value || customerLocation.addressText || currentUser?.address || homePayload?.delivery_info?.location || DEFAULT_LOCATION_ADDRESS).trim();
+    }
+
+    async function reverseGeocode(lat, lng) {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`);
+        if (!res.ok) return '';
+        const data = await res.json();
+        return String(data?.display_name || '').trim();
+      } catch (_) {
+        return '';
+      }
     }
 
     async function submitAuth() {
@@ -1928,6 +1990,7 @@ Oq fonli foto</div>
           <div class="image-box">
             <div class="product-top-row">
               ${hasDiscount ? `<span class="gm-chip discount-chip product-discount">-${discountPercent}%</span>` : '<span></span>'}
+              <button class="fav-btn" type="button" aria-label="Saralanganlarga qo‘shish">❤</button>
             </div>
             ${imageHtml}
           </div>
@@ -2012,12 +2075,10 @@ Oq fonli foto</div>
     }
 
     function getCategoryEntries() {
-      const curated = CURATED_CATEGORIES.map((c) => ({ ...c, count: 0 }));
-      products.forEach((p) => {
-        const key = normalizeCategoryKey(p.categoryDisplayName || p.category, p.name);
-        const found = curated.find((c) => c.key === key);
-        if (found) found.count += 1;
-      });
+      const curated = CURATED_CATEGORIES.map((c) => ({
+        ...c,
+        count: products.filter((p) => productMatchesCategory(p, c.key)).length
+      }));
       const total = curated.reduce((sum, c) => sum + c.count, 0);
       return [{ key: 'all', displayName: 'Hammasi', icon: '🛍️', count: total }, ...curated];
     }
@@ -2028,7 +2089,7 @@ Oq fonli foto</div>
     }
 
     function renderHomeCategories() {
-      const entries = getCategoryEntries();
+      const entries = getCategoryEntries().filter((c) => c.key === 'all' || c.count > 0);
       homeCategories.innerHTML = entries.map((c) => `
         <article class="cat gm-card ${selectedCategory===c.key?'active':''}" data-home-category="${c.key}" data-home-category-label="${c.displayName}">
           <i>${c.image_url ? `<img src="${c.image_url}" alt="${c.displayName}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />` : c.icon}</i>
@@ -2041,7 +2102,9 @@ Oq fonli foto</div>
       const query = searchInput.value.trim().toLowerCase();
       searchClearBtn.classList.toggle('show', Boolean(query));
       if (catalogMode === 'categories') {
-        const categories = getCategoryEntries().filter((c) => c.displayName.toLowerCase().includes(query));
+        const categories = getCategoryEntries()
+          .filter((c) => c.key === 'all' || c.count > 0)
+          .filter((c) => c.displayName.toLowerCase().includes(query));
         categoryResults.innerHTML = categories.map((c) => `
           <article class="category-card gm-card ${selectedCategory===c.key?'active':''}" data-category="${c.key}" data-category-label="${c.displayName}">
             <span class="icon">${c.image_url ? `<img src="${c.image_url}" alt="${c.displayName}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />` : c.icon}</span>
@@ -2094,11 +2157,11 @@ Oq fonli foto</div>
                 <div class="cart-item-title">${item.name}</div>
                 <div class="cart-item-meta">
                   <strong>${money(item.price)}</strong>
-                  <button class="icon-btn" data-remove-cart="${item.id}">Olib tashlash</button>
+                  <button class="icon-btn cart-remove-btn" data-remove-cart="${item.id}">Olib tashlash</button>
                 </div>
               </div>
             </div>
-            <div class="list-row" style="margin-top:10px;">
+            <div class="cart-item-actions">
               <div class="qty" data-qty-wrap="${item.id}" style="width:116px; margin:0;">${makeQtyControls(item.id)}</div>
               <strong>${money(item.subtotal)}</strong>
             </div>
@@ -2109,9 +2172,8 @@ Oq fonli foto</div>
 
       const subtotal = totalPrice();
       const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
-      const deliveryEta = homePayload?.settings?.deliveryTimeText || homePayload?.delivery_info?.time || '30 daqiqa';
       cartSubtotal.textContent = money(subtotal);
-      cartDelivery.textContent = `${deliveryEta} · ${money(deliveryPrice)}`;
+      cartDelivery.textContent = money(deliveryPrice);
       cartTotalPrice.textContent = money(subtotal + deliveryPrice);
 
       const cartUpsell = getCartUpsellProducts();
@@ -2329,7 +2391,7 @@ Oq fonli foto</div>
             <div style="margin-top:8px;display:grid;gap:6px;">
               ${(o.items || []).length ? (o.items || []).map((item) => `<div class="muted">${item.name || '-'} · ${item.quantity || 0} ta · ${money(item.price || 0)}</div>`).join('') : '<div class="muted">Mahsulotlar topilmadi</div>'}
               <div class="muted">Manzil: ${o.customerAddress || o.addressText || o.location || '-'}</div>
-              <div class="muted">To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatus || '-'}</div>
+              <div class="muted">To‘lov: ${o.paymentMethod === 'payme' ? 'Payme' : (o.paymentMethod || '-')} / ${o.paymentStatus === 'pending' ? "To‘lov kutilmoqda" : (o.paymentStatus || '-')}</div>
             </div>
           </details>
           <div style="display:flex;gap:8px;margin-top:10px;">
@@ -2344,9 +2406,18 @@ Oq fonli foto</div>
       const q = totalQty();
       cartBadge.textContent = q;
       cartBadge.classList.toggle('hidden', q === 0);
+      if (q > previousBadgeQty) {
+        cartBadge.classList.add('pop');
+        homeCartShortcutBadge?.classList.add('pop');
+        setTimeout(() => {
+          cartBadge.classList.remove('pop');
+          homeCartShortcutBadge?.classList.remove('pop');
+        }, 280);
+      }
       if (homeCartShortcutBadge) {
         homeCartShortcutBadge.textContent = q;
       }
+      previousBadgeQty = q;
     }
 
     function upsellCardTemplate(p) {
@@ -2384,8 +2455,6 @@ Oq fonli foto</div>
       const price = Number(p.price || 0);
       const hasDiscount = oldPrice > price && price > 0;
       const discountPercent = hasDiscount ? Math.max(1, Math.round(((oldPrice - price) / oldPrice) * 100)) : 0;
-      const rating = Number(p.rating || 0) > 0 ? Number(p.rating).toFixed(1) : '4.7';
-      const reviews = Number(p.reviewCount || 0) || 0;
       const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || '20 daqiqa';
       modalName.textContent = p.name;
       modalCategory.textContent = normalizedCategoryName(p.categoryDisplayName || p.category);
@@ -2393,18 +2462,13 @@ Oq fonli foto</div>
       modalStickyPrice.textContent = money(p.price);
       modalOldPrice.textContent = oldPrice > 0 ? money(oldPrice) : '';
       modalOldPrice.style.display = oldPrice > 0 ? 'block' : 'none';
-      modalRating.textContent = `⭐ ${rating} · ${reviews} baho`;
       modalEta.textContent = `🚚 ${etaText}`;
       modalAvailability.textContent = stock > 0 ? 'Mavjud' : "Omborda yo'q";
       modalAvailability.className = `gm-chip ${stock > 0 ? 'gm-chip--success' : 'gm-chip--warning'}`;
       modalTrustDelivery.textContent = `🚚 ${etaText}da yetkazib beramiz`;
-      modalDescription.textContent = p.description || p.subtitle || `${p.name} - sifatli va tekshirilgan mahsulot.`;
-      modalSpecs.innerHTML = `
-        <div class="spec-row"><span>Narx</span><strong>${money(p.price)}</strong></div>
-        ${hasDiscount ? `<div class="spec-row"><span>Chegirma</span><strong>-${discountPercent}%</strong></div>` : ''}
-        <div class="spec-row"><span>Kategoriya</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
-        <div class="spec-row"><span>Qoldiq</span><strong>${stock > 0 ? stock : 0} ta</strong></div>
-      `;
+      modalDescription.textContent = p.description || p.subtitle || `${p.name} uchun buyurtma berishingiz mumkin.`;
+      modalSpecs.innerHTML = `<div class="spec-row"><span>Kategoriya</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
+        <div class="spec-row"><span>Qoldiq</span><strong>${stock > 0 ? stock : 0} ta</strong></div>`;
       
       modalImageBox.innerHTML = p.image_url ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '';
       if (hasDiscount) {
@@ -2456,21 +2520,23 @@ Oq fonli foto</div>
       locationDeniedOverlay?.classList.add('show');
     }
 
-    function requestBrowserLocation() {
+    async function requestBrowserLocation() {
       if (!navigator.geolocation) {
         customerLocation.permissionDenied = true;
         renderCheckout();
         openLocationDeniedModal();
         return;
       }
-      navigator.geolocation.getCurrentPosition((pos) => {
+      navigator.geolocation.getCurrentPosition(async (pos) => {
         customerLocation.lat = pos.coords.latitude;
         customerLocation.lng = pos.coords.longitude;
         customerLocation.accuracy = pos.coords.accuracy;
         customerLocation.permissionDenied = false;
+        const geoAddress = await reverseGeocode(customerLocation.lat, customerLocation.lng);
+        customerLocation.addressText = geoAddress || customerLocation.addressText || 'Lokatsiya olindi';
         closeLocationDeniedModal();
         renderCheckout();
-        showToast('Lokatsiya olindi');
+        showToast(geoAddress ? 'Manzil aniqlandi' : 'Lokatsiya olindi');
       }, () => {
         customerLocation.permissionDenied = true;
         renderCheckout();
@@ -2533,6 +2599,10 @@ Oq fonli foto</div>
 
     async function initializeAppData() {
       try {
+        const skeleton = '<div class="skeleton-grid"><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>';
+        homeProducts.innerHTML = skeleton;
+        searchResults.innerHTML = skeleton;
+        cartUpsellGrid.innerHTML = skeleton;
         await loadProfile();
         await Promise.all([loadHomePayload(), loadProducts({ reset: true }), loadCart()]);
         manualAddress.value = currentUser?.address || '';
@@ -2622,7 +2692,7 @@ Oq fonli foto</div>
       renderSearch();
       searchInput.focus();
     });
-    homeCartShortcut?.addEventListener('click', () => setView('cartView'));
+    homeCartShortcut?.addEventListener('click', () => setView('cartView', { push: true }));
 
     searchInput.addEventListener('input', renderSearch);
     searchClearBtn.addEventListener('click', () => {
@@ -2699,28 +2769,34 @@ Oq fonli foto</div>
 
       try {
         if (removeCart) {
+          e.preventDefault();
           e.stopPropagation();
-          await setCartQty(removeCart.dataset.removeCart, 0);
-          await syncCart();
-          render();
+          await setQty(removeCart.dataset.removeCart, 0, false);
+          await loadCart();
+          renderAll();
           return;
         }
         if (upsellQuickAdd) {
+          e.preventDefault();
           e.stopPropagation();
           const id = upsellQuickAdd.getAttribute('data-quick-add');
           await setQty(id, qtyOf(id) + 1, true);
           return;
         }
         if (quickAdd) {
+          e.preventDefault();
           e.stopPropagation();
           const id = quickAdd.getAttribute('data-add-one');
           const current = qtyOf(id);
           quickAdd.classList.add('bounce');
+          quickAdd.classList.add('added');
           setTimeout(() => quickAdd.classList.remove('bounce'), 450);
+          setTimeout(() => quickAdd.classList.remove('added'), 500);
           await setQty(id, current + 1, true);
           return;
         }
         if (plus) {
+          e.preventDefault();
           e.stopPropagation();
           const id = plus.dataset.id;
           const p = products.find((x) => x.id === id);
@@ -2738,6 +2814,7 @@ Oq fonli foto</div>
         }
 
         if (minus) {
+          e.preventDefault();
           e.stopPropagation();
           const id = minus.dataset.id;
           await setQty(id, qtyOf(id) - 1, false);
@@ -2749,7 +2826,7 @@ Oq fonli foto</div>
       }
 
       const card = e.target.closest('[data-open-product]');
-      if (card && !e.target.closest('.qty')) {
+      if (card && !e.target.closest('.qty, [data-add-one], [data-quick-add], [data-remove-cart], .fav-btn')) {
         openProductModal(card.dataset.openProduct);
         return;
       }
@@ -2898,12 +2975,13 @@ Oq fonli foto</div>
         activeOrderNumber = latestOrderNumber;
         localStorage.setItem('activeOrderNumber', activeOrderNumber);
         successOrderNumber.textContent = `Buyurtma: ${lastOrderData?.orderNumber || latestOrderNumber || '-'}`;
-        successPaymentMethod.textContent = `To‘lov turi: ${lastOrderData?.paymentMethod || '-'}`;
+        successOrderTime.textContent = `Vaqt: ${new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}`;
+        successPaymentMethod.textContent = `To‘lov turi: ${lastOrderData?.paymentMethod === 'payme' ? 'Payme' : (lastOrderData?.paymentMethod || '-')}`;
         successAddress.textContent = `Manzil: ${lastOrderData?.address || '-'}`;
         successTotal.textContent = Number.isFinite(Number(lastOrderData?.finalTotal))
           ? `Jami: ${money(Number(lastOrderData.finalTotal))}`
           : "Jami: Summani tekshirib bo‘lmadi";
-        const pendingText = order?.paymentStatus === 'pending' ? " · To‘lovni yakunlang" : '';
+        const pendingText = order?.paymentStatus === 'pending' ? " · To‘lov kutilmoqda" : '';
         successOrderStatus.textContent = `Status: ${orderStatusLabel(order.status)}${pendingText}`;
         if (latestOrderNumber) {
           trackOrderBtn.style.display = 'inline-flex';
