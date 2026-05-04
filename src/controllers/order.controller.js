@@ -1,9 +1,13 @@
 const store = require('../data/store.js');
 const fs = require('fs');
 const path = require('path');
+const tokenService = require('../services/auth-token.service.js');
 
 function resolveUserPhone(req) {
-  return String(req.header('x-user-phone') || req.query?.phone || req.body?.phone || req.body?.userPhone || '').trim();
+  const auth = String(req.header('authorization') || '');
+  const bearer = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+  const decoded = bearer ? tokenService.verify(bearer) : null;
+  return String(decoded?.phone || req.header('x-user-phone') || req.query?.phone || req.body?.phone || req.body?.userPhone || '').trim();
 }
 function isValidPhone(phone = '') {
   const normalized = String(phone).replace(/[^\d+]/g, '');
@@ -75,13 +79,26 @@ exports.getOrdersDisplay = (req, res) => {
 exports.getOrderTrack = (req, res) => {
   const order = store.getOrderByNumber(req.params.orderNumber);
   if (!order) return res.status(404).json({ message: 'Order not found' });
-  return res.json({ order });
+  return res.json({
+    order: {
+      ...order,
+      courier_status_label: String(order.status) === 'out_for_delivery' ? 'Kuryer yo‘lda' : ''
+    }
+  });
 };
 
 exports.getCustomerOrders = (req, res) => {
   const phone = resolveUserPhone(req);
   if (!phone) return res.status(400).json({ message: 'phone query required' });
   return res.json({ orders: store.getCustomerOrders(phone) });
+};
+
+exports.validatePromo = (req, res) => {
+  const subtotal = Math.max(0, Number(req.body?.subtotal || 0));
+  const code = String(req.body?.code || '').trim();
+  const out = store.validatePromoCode(code, subtotal);
+  if (!out.valid) return res.status(400).json({ ok: false, message: out.message });
+  return res.json({ ok: true, discount: out.discount, promo: { code: out.promo.promo_code } });
 };
 
 exports.uploadPaymentProof = async (req, res) => {
