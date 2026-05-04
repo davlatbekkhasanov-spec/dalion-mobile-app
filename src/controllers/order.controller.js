@@ -5,12 +5,29 @@ const path = require('path');
 function resolveUserPhone(req) {
   return String(req.header('x-user-phone') || req.query?.phone || req.body?.phone || req.body?.userPhone || '').trim();
 }
+function isValidPhone(phone = '') {
+  const normalized = String(phone).replace(/[^\d+]/g, '');
+  return /^\+?\d{9,15}$/.test(normalized);
+}
+function isValidName(name = '') {
+  const n = String(name || '').trim();
+  return n.length >= 2 && n.length <= 80;
+}
+function isValidAddress(address = '') {
+  const a = String(address || '').trim();
+  return !a || (a.length >= 5 && a.length <= 220);
+}
 
 exports.createOrder = (req, res) => {
   const userPhone = resolveUserPhone(req);
+  const name = String(req.body?.customerName || req.body?.name || '').trim();
+  const address = String(req.body?.customerAddress || req.body?.addressText || req.body?.location || '').trim();
+  if (userPhone && !isValidPhone(userPhone)) return res.status(400).json({ message: 'Xatolik yuz berdi, qayta urinib ko‘ring' });
+  if (name && !isValidName(name)) return res.status(400).json({ message: 'Xatolik yuz berdi, qayta urinib ko‘ring' });
+  if (!isValidAddress(address)) return res.status(400).json({ message: 'Xatolik yuz berdi, qayta urinib ko‘ring' });
   const result = store.createOrder({ ...(req.body || {}), userPhone });
   if (result.error) {
-    return res.status(400).json({ message: result.error });
+    return res.status(400).json({ message: 'Xatolik yuz berdi, qayta urinib ko‘ring' });
   }
   const order = result.data || {};
   return res.status(201).json({
@@ -32,8 +49,9 @@ exports.getProfile = (req, res) => {
 exports.saveProfile = (req, res) => {
   const name = String(req.body?.name || '').trim();
   const phone = resolveUserPhone(req);
-  if (!name || !phone) {
-    return res.status(400).json({ message: 'name va phone majburiy' });
+  const address = String(req.body?.address || '').trim();
+  if (!isValidName(name) || !isValidPhone(phone) || !isValidAddress(address)) {
+    return res.status(400).json({ message: 'Xatolik yuz berdi, qayta urinib ko‘ring' });
   }
   const profile = store.upsertUser({ ...(req.body || {}), phone });
   return res.json({ profile });
