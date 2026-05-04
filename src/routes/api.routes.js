@@ -23,6 +23,7 @@ router.post('/auth/request-otp', authController.requestOtp);
 router.post('/auth/verify-otp', authController.verifyOtp);
 router.post('/wholesale/apply', wholesaleController.apply);
 router.post('/wholesale/login', wholesaleController.login);
+router.post('/courier/apply', courierController.applyCourier);
 
 router.get('/cart', cartController.getCart);
 router.put('/cart/items', cartController.setCartItem);
@@ -94,6 +95,8 @@ if (env.enableDemoLoaders) {
 router.get('/admin/store/summary', requireAdminImportToken, adminController.getStoreSummary);
 router.post('/admin/store/reload', requireAdminImportToken, adminController.reloadStore);
 router.post('/admin/dalion/sync', requireAdminImportToken, adminController.syncDalionProducts);
+router.get('/admin/courier/applications', requireAdminImportToken, courierController.listCourierApplications);
+router.post('/admin/courier/applications/:id/decision', requireAdminImportToken, courierController.decideCourierApplication);
 router.get('/admin/wholesale/applications', requireAdminImportToken, wholesaleController.listAdmin);
 router.post('/admin/wholesale/applications/:id/decision', requireAdminImportToken, wholesaleController.decide);
 router.get('/admin/orders', requireAdminImportToken, adminController.getOrders);

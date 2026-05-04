@@ -75,7 +75,12 @@ exports.getOrdersDisplay = (req, res) => {
 exports.getOrderTrack = (req, res) => {
   const order = store.getOrderByNumber(req.params.orderNumber);
   if (!order) return res.status(404).json({ message: 'Order not found' });
-  return res.json({ order });
+  return res.json({
+    order: {
+      ...order,
+      courier_status_label: String(order.status) === 'out_for_delivery' ? 'Kuryer yo‘lda' : ''
+    }
+  });
 };
 
 exports.getCustomerOrders = (req, res) => {

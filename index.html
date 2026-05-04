@@ -2482,7 +2482,8 @@
       profileUserCard.style.display = 'block';
       profileOrdersCard.style.display = 'block';
       const wholesaleMode = Boolean(localStorage.getItem('wholesaleToken'));
-      profileName.textContent = `${currentUser?.name || 'Foydalanuvchi'}${wholesaleMode ? ' · Оптовый режим' : ''}`;
+      const courierMode = String(currentUser?.role || '') === 'courier';
+      profileName.textContent = `${currentUser?.name || 'Foydalanuvchi'}${wholesaleMode ? ' · Оптовый режим' : ''}${courierMode ? ' · Siz kuryer sifatida tasdiqlandingiz' : ''}`;
       profilePhone.textContent = `Telefon: ${currentUser?.phone || '-'}`;
       profileAddress.textContent = `Manzil: ${currentUser?.address || 'Manzil qo‘shilmagan'}`;
       const orders = await loadCustomerOrders();
@@ -2849,6 +2850,7 @@
         closeProfileAction();
       }
       if (e.target.id === 'courierSubmitBtn') {
+        await api('/courier/apply', { method:'POST', body: JSON.stringify({ name: document.getElementById('courierName')?.value, phone: document.getElementById('courierPhone')?.value, city: document.getElementById('courierCity')?.value, transport: document.getElementById('courierTransport')?.value, note: document.getElementById('courierNote')?.value }) });
         localStorage.setItem('courierApplicationStatus', 'pending');
         showToast('Arizangiz yuborildi');
         closeProfileAction();

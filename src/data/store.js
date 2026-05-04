@@ -53,6 +53,7 @@ const carts = new Map();
 const orders = [];
 const wholesaleApplications = [];
 const wholesaleAccounts = [];
+const courierApplications = [];
 let lastUpdated = null;
 let orderSequence = 1;
 const ORDER_STATUS_SET = new Set([...ORDER_STATUS_LIST, 'created', 'payment_pending', 'payment_confirmed', 'preparing', 'ready_for_courier', 'courier_assigned', 'returned']);
@@ -104,6 +105,7 @@ function persistState() {
       orders,
       wholesaleApplications,
       wholesaleAccounts,
+      courierApplications,
       orderSequence,
       savedAt: new Date().toISOString()
     };
@@ -136,7 +138,8 @@ function loadStateFromDisk() {
           phoneVerified: Boolean(user?.phoneVerified),
           otpVerifiedAt: user?.otpVerifiedAt || null,
           createdAt: user?.createdAt || new Date().toISOString(),
-          updatedAt: user?.updatedAt || new Date().toISOString()
+          updatedAt: user?.updatedAt || new Date().toISOString(),
+          role: String(user?.role || 'customer')
         });
       });
     }
@@ -165,7 +168,8 @@ function loadStateFromDisk() {
           phoneVerified: false,
           otpVerifiedAt: null,
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
+          role: 'customer'
         });
       }
     }
@@ -185,6 +189,7 @@ function loadStateFromDisk() {
     }
     if (Array.isArray(parsed.wholesaleApplications)) wholesaleApplications.splice(0, wholesaleApplications.length, ...parsed.wholesaleApplications);
     if (Array.isArray(parsed.wholesaleAccounts)) wholesaleAccounts.splice(0, wholesaleAccounts.length, ...parsed.wholesaleAccounts);
+    if (Array.isArray(parsed.courierApplications)) courierApplications.splice(0, courierApplications.length, ...parsed.courierApplications);
     if (Number.isFinite(Number(parsed.orderSequence))) orderSequence = Math.max(1, Number(parsed.orderSequence));
     lastUpdated = parsed.savedAt || new Date().toISOString();
     return true;
@@ -372,7 +377,8 @@ function upsertUser(payload = {}) {
     phoneVerified: payload.phoneVerified !== undefined ? Boolean(payload.phoneVerified) : Boolean(existing?.phoneVerified),
     otpVerifiedAt: payload.otpVerifiedAt !== undefined ? (payload.otpVerifiedAt || null) : (existing?.otpVerifiedAt || null),
     createdAt: existing?.createdAt || now,
-    updatedAt: now
+    updatedAt: now,
+    role: String(payload.role ?? existing?.role ?? 'customer')
   };
   users.set(phone, user);
   persistState();
@@ -740,6 +746,39 @@ function wholesaleLogin(login = '', password = '') {
 
 function isWholesaleTokenValid(token = '') {
   return wholesaleAccounts.some((x) => x.active && x.id === String(token || '').trim());
+}
+
+function createCourierApplication(payload = {}) {
+  const row = {
+    id: makeId('courier_app'),
+    name: String(payload.name || '').trim(),
+    phone: normalizePhone(payload.phone),
+    city: String(payload.city || '').trim(),
+    transport: String(payload.transport || '').trim(),
+    note: String(payload.note || '').trim(),
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
+  courierApplications.push(row);
+  persistState();
+  return row;
+}
+
+function listCourierApplications() {
+  return courierApplications.slice().reverse();
+}
+
+function decideCourierApplication(id, decision = 'reject') {
+  const app = courierApplications.find((x) => x.id === id);
+  if (!app) return null;
+  app.status = decision === 'approve' ? 'approved' : 'rejected';
+  app.decidedAt = new Date().toISOString();
+  if (app.status === 'approved' && app.phone) {
+    const existing = users.get(app.phone) || { phone: app.phone, name: app.name, address: '', role: 'customer', createdAt: app.createdAt, updatedAt: app.createdAt };
+    users.set(app.phone, { ...existing, role: 'courier', updatedAt: app.decidedAt });
+  }
+  persistState();
+  return app;
 }
 
 function attachPaymentProof(orderNumber, { paymentProofUrl = '' } = {}) {
@@ -1126,5 +1165,8 @@ module.exports = {
   decideWholesaleApplication,
   wholesaleLogin,
   isWholesaleTokenValid,
+  createCourierApplication,
+  listCourierApplications,
+  decideCourierApplication,
   orders
 };
