@@ -168,12 +168,25 @@
       </div>
       <div id="ordersAdminBoard" class="list"></div>
     </section>
+    <section class="panel card" id="applications-panel">
+      <h3>Courier / Wholesale Applications</h3>
+      <div class="grid">
+        <div>
+          <h4>Courier</h4>
+          <div id="courierApplicationsList" class="list"></div>
+        </div>
+        <div>
+          <h4>Wholesale</h4>
+          <div id="wholesaleApplicationsList" class="list"></div>
+        </div>
+      </div>
+    </section>
   </div>
 
   <div class="toast" id="toast"></div>
   <script>
     const tabs = [
-      ['excel','Excel Import'],['banners','Banners'],['promotions','Promotions'],['home-settings','Home Settings'],['categories','Categories'],['products','Products'],['orders','Orders']
+      ['excel','Excel Import'],['banners','Banners'],['promotions','Promotions'],['home-settings','Home Settings'],['categories','Categories'],['products','Products'],['orders','Orders'],['applications','Applications']
     ];
     const i18n = {
       uz: {
@@ -789,11 +802,37 @@
     document.getElementById('ordersStatusFilter').onchange = () => loadOrdersAdmin().catch(()=>{});
     document.getElementById('ordersSearch').oninput = () => loadOrdersAdmin().catch(()=>{});
 
+    async function loadApplicationsAdmin(){
+      const [courierOut, wholesaleOut] = await Promise.all([
+        api('/admin/courier/applications'),
+        api('/admin/wholesale/applications')
+      ]);
+      const courierWrap = document.getElementById('courierApplicationsList');
+      const wholesaleWrap = document.getElementById('wholesaleApplicationsList');
+      const courier = courierOut.applications || [];
+      const wholesale = wholesaleOut.applications || [];
+      courierWrap.innerHTML = courier.map((a)=>`<div class="item"><b>${a.name || '-'}</b><div class="muted">${a.phone || '-'} · ${a.city || '-'}</div><div class="muted">status: ${a.status || 'pending'}</div><div class="row">${a.status === 'pending' ? `<button data-kind="courier" data-id="${a.id}" data-decision="approve">Approve</button><button data-kind="courier" data-id="${a.id}" data-decision="reject">Reject</button>` : ''}</div></div>`).join('') || '<div class="muted">No courier applications</div>';
+      wholesaleWrap.innerHTML = wholesale.map((a)=>`<div class="item"><b>${a.name || '-'}</b><div class="muted">${a.phone || '-'} · ${a.businessName || '-'}</div><div class="muted">status: ${a.status || 'pending'}</div><div class="row">${a.status === 'pending' ? `<button data-kind="wholesale" data-id="${a.id}" data-decision="approve">Approve</button><button data-kind="wholesale" data-id="${a.id}" data-decision="reject">Reject</button>` : ''}</div></div>`).join('') || '<div class="muted">No wholesale applications</div>';
+    }
+
+    document.getElementById('applications-panel').onclick = async (e) => {
+      const btn = e.target.closest('button[data-kind][data-id][data-decision]');
+      if (!btn) return;
+      try {
+        const base = btn.dataset.kind === 'courier' ? '/admin/courier/applications/' : '/admin/wholesale/applications/';
+        await api(`${base}${btn.dataset.id}/decision`, { method: 'POST', body: JSON.stringify({ decision: btn.dataset.decision }) });
+        showToast(t('saveOk'));
+        await loadApplicationsAdmin();
+      } catch (err) {
+        showToast(err.message || t('loadError'));
+      }
+    };
+
     async function bootstrap(){
       try{
         document.getElementById('addBannerBtn').textContent = t('add');
         document.getElementById('addPromoBtn').textContent = t('add');
-        await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts(),loadStoreSummary(),loadDalionStatus(),loadOrdersAdmin()]);
+        await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts(),loadStoreSummary(),loadDalionStatus(),loadOrdersAdmin(),loadApplicationsAdmin()]);
       }
       catch(e){showToast(e.message||t('checkToken'))}
     }

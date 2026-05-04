@@ -1035,7 +1035,7 @@
     .modal-reco-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; overflow: hidden; }
     .modal-reco-grid .upsell-card h6 { font-size: 12px; }
     .modal-sticky-cta { position: sticky; bottom: 0; background: rgba(255,255,255,.97); padding-top: 8px; z-index: 3; }
-    #productModal { overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 110px; }
+    #productModal { overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 110px; max-height: calc(100dvh - 32px); }
     .location-permission-card {
       width: 100%;
       border-radius: 18px;
@@ -1840,7 +1840,7 @@
       }
       checkoutLocation.textContent = `Manzil: ${delivery.location || DEFAULT_LOCATION_ADDRESS}`;
       checkoutTime.textContent = `Vaqt: ${settings.deliveryTimeText || delivery.time || '30 daqiqa'}`;
-      checkoutPrice.textContent = `Narx: ${money(delivery.price || 12000)}`;
+      checkoutPrice.textContent = `Narx: ${money(Number(getDeliveryState().deliveryPrice || 0))}`;
     }
 
     async function loadCart() {
@@ -1914,9 +1914,9 @@
     async function submitAuth() {
       const phoneValue = String(authPhone.value || '').trim();
       const nameValue = String(authName.value || '').trim();
-      if (!nameValue) { showToast('Ismingizni kiriting'); return false; }
+      const finalName = nameValue || 'Foydalanuvchi';
       if (!phoneValue) { showToast('Telefon raqam kiriting'); return false; }
-      currentUser = { name: nameValue, phone: phoneValue, createdAt: new Date().toISOString() };
+      currentUser = { name: finalName, phone: phoneValue, createdAt: new Date().toISOString() };
       localStorage.setItem('globusUser', JSON.stringify(currentUser));
       await api('/profile', { method: 'PUT', body: JSON.stringify({ name: currentUser.name, phone: currentUser.phone, address: '' }) });
       authSheetOverlay.classList.remove('show');
@@ -1948,11 +1948,9 @@
       if (!phoneValue || !codeValue) { showToast('Telefon va OTP kodni kiriting'); return; }
       authOtpState = 'verifying';
       const out = await api('/auth/verify-otp', { method: 'POST', body: JSON.stringify({ phone: phoneValue, code: codeValue }) });
-      if (currentUser && String(currentUser.phone || '') === phoneValue) {
-        currentUser.phoneVerified = Boolean(out.user?.phoneVerified);
-        currentUser.otpVerifiedAt = out.user?.otpVerifiedAt || null;
-        localStorage.setItem('globusUser', JSON.stringify(currentUser));
-      }
+      const verifiedUser = out.user || { phone: phoneValue, name: currentUser?.name || 'Foydalanuvchi', role: 'user' };
+      currentUser = { ...currentUser, ...verifiedUser };
+      localStorage.setItem('globusUser', JSON.stringify(currentUser));
       authOtpState = 'verified';
       if (out.token) localStorage.setItem('authToken', out.token);
       showToast('Kod tasdiqlandi');
@@ -2348,7 +2346,7 @@
           ? 'Masofa aniqlanmagan. GPS ni yoqing yoki manzil kiriting.'
           : 'Lokatsiya olindi.';
       }
-      const clickAmountTiyin = Math.round(Number(orderTotal || 0) * 100);
+      const clickAmountTiyin = Math.round(Number(finalTotal || 0) * 100);
       if (selectedPayment === 'click') paymentLinks.innerHTML = `Click: <a href="https://indoor.click.uz/pay?id=081328&t=${clickAmountTiyin}" target="_blank">To‘lov havolasi</a>`;
       else if (selectedPayment === 'payme') paymentLinks.innerHTML = 'Payme: To‘lovni Payme ilovasi orqali yakunlang. To‘lov holati: To‘lov kutilmoqda';
       else paymentLinks.innerHTML = 'To‘lov yetkazib berilganda naqd amalga oshiriladi';
@@ -2624,9 +2622,9 @@
       if (modalQtyNow > 0) {
         modalQty.innerHTML = `<div class="qty" style="width:100%;height:40px;grid-template-columns:44px 1fr 44px;">${makeQtyControls(p.id)}</div>`;
       } else {
-        modalQty.innerHTML = `<button class="full-btn gm-btn gm-btn-primary" data-action="add-to-cart" data-id="${p.id}" style="width:100%;height:40px;">Savatga qo‘shish</button>`;
+        modalQty.innerHTML = `<div class="qty" style="width:100%;height:40px;grid-template-columns:44px 1fr 44px;">${makeQtyControls(p.id)}</div>`;
       }
-      modalAddBtn.textContent = modalQtyNow > 0 ? 'Yana qo‘shish' : "Savatga qo'shish";
+      modalAddBtn.style.display = 'none';
     }
 
     function renderAll() {
@@ -3069,17 +3067,7 @@
     });
     window.addEventListener('popstate', () => appGoBack());
 
-    modalAddBtn.addEventListener('click', async () => {
-      if (!activeModalProductId) return;
-      try {
-        modalAddBtn.disabled = true;
-        await setQty(activeModalProductId, qtyOf(activeModalProductId) + 1, true);
-      } catch (error) {
-        showToast(error.message || 'Xatolik yuz berdi');
-      } finally {
-        modalAddBtn.disabled = false;
-      }
-    });
+    // modalAddBtn intentionally disabled to avoid duplicate add action
 
     document.getElementById('orderBtn').addEventListener('click', () => {
       if (!requireAuthOrIntro()) return;
@@ -3200,7 +3188,7 @@
         successPaymentMethod.textContent = `To‘lov turi: ${paymentMethodLabel(lastOrderData?.paymentMethod)}`;
         successAddress.textContent = `Manzil: ${lastOrderData?.address || '-'}`;
         successTotal.textContent = Number.isFinite(Number(lastOrderData?.finalTotal))
-          ? `Jami: ${money(Math.max(0, Number(lastOrderData.finalTotal) - Number(promoDiscountPreview || 0)))}`
+          ? `Jami: ${money(Math.max(0, Number(lastOrderData.finalTotal || 0)))}`
           : "Jami: Summani tekshirib bo‘lmadi";
         successOrderStatus.textContent = `To‘lov holati: ${paymentStatusLabel(order?.paymentStatus)} | Buyurtma: ${orderStatusLabel(order.status)}`;
         if (latestOrderNumber) {
