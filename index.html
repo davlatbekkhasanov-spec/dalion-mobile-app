@@ -1014,24 +1014,28 @@
       pointer-events: none;
     }
 
-    .modal-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 10px; }
-    .modal-head h3 { margin: 0; padding-right: 4px; line-height: 1.3; }
+    .modal-head { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; margin: -14px -14px 10px; padding: 12px 14px; background: rgba(255,255,255,.96); border-bottom: 1px solid #eef2f7; }
+    .modal-head h3 { margin: 0; padding-right: 8px; line-height: 1.3; font-size: 18px; }
     .close {
       border: 1px solid rgba(130, 160, 210, 0.36);
       background: rgba(18, 31, 56, 0.74);
       color: #d7e8ff;
-      width: 30px;
-      height: 30px;
-      border-radius: 9px;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
       cursor: pointer;
     }
 
-    .modal-image {
-      height: 240px;
-      margin: 10px 0;
-      overflow: hidden;
-    }
-    .modal-image img { width: 100%; height: 100%; object-fit: contain; }
+    .modal-image { margin: 8px 0 12px; background: #f8fafc; border-radius: 16px; padding: 12px; min-height: 220px; max-height: 320px; display:flex; align-items:center; justify-content:center; overflow: hidden; }
+    .modal-image img { width: 100%; max-height: 296px; object-fit: contain; }
+    .modal-price-wrap { margin: 4px 0 8px; }
+    .modal-price-main { font-size: 28px; font-weight: 800; margin: 0; }
+    .modal-inline-qty .qty { width: 100%; height: 40px; grid-template-columns: 44px 1fr 44px; overflow: hidden; }
+    .modal-inline-qty .qty button, .modal-inline-qty .qty span { height: 40px; }
+    .modal-reco-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; overflow: hidden; }
+    .modal-reco-grid .upsell-card h6 { font-size: 12px; }
+    .modal-sticky-cta { position: sticky; bottom: 0; background: rgba(255,255,255,.97); padding-top: 8px; }
+    #productModal { overflow-y: auto; padding-bottom: 84px; }
     #productModal { overflow-y: auto; }
     .location-permission-card {
       width: 100%;
@@ -1502,16 +1506,17 @@
           <h3 id="modalName">Mahsulot</h3>
           <button class="close" id="closeModalBtn">✕</button>
         </div>
-        <p class="muted" id="modalCategory">Kategoriya</p>
-        <div class="image-box modal-image">
-Oq fonli foto</div>
+        <div class="image-box modal-image"></div>
+        <p class="muted" id="modalCategory">Kategoriya: -</p>
         <div class="modal-rating-row">
           <span class="gm-chip gm-chip--delivery" id="modalEta">🚚 20 daqiqa</span>
           <span class="gm-chip gm-chip--success" id="modalAvailability">Mavjud</span>
         </div>
-        <p class="price modal-price-main" id="modalPrice">0 so'm</p>
-        <p class="old-price" id="modalOldPrice">0 so'm</p>
-        <div class="modal-trust"><p id="modalTrustDelivery">🚚 20 daqiqada yetkazib beramiz</p></div>
+        <div class="modal-price-wrap">
+          <p class="price modal-price-main" id="modalPrice">0 so'm</p>
+          <p class="old-price" id="modalOldPrice">0 so'm</p>
+        </div>
+        <div class="modal-trust"><p id="modalTrustDelivery">🚚 Tez yetkazib berish</p></div>
         <p class="muted" id="modalDescription">Mahsulot tavsifi tez orada yangilanadi.</p>
         <div class="modal-specs" id="modalSpecs"></div>
         <div class="modal-inline-qty" id="modalQty"></div>
@@ -2528,20 +2533,21 @@ Oq fonli foto</div>
       const discountPercent = hasDiscount ? Math.max(1, Math.round(((oldPrice - price) / oldPrice) * 100)) : 0;
       const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || '20 daqiqa';
       modalName.textContent = p.name;
-      modalCategory.textContent = normalizedCategoryName(p.categoryDisplayName || p.category);
+      modalCategory.textContent = `Kategoriya: ${normalizedCategoryName(p.categoryDisplayName || p.category)}`;
       modalPrice.textContent = money(p.price);
       modalStickyPrice.textContent = money(p.price);
-      modalOldPrice.textContent = oldPrice > 0 ? money(oldPrice) : '';
+      modalOldPrice.textContent = hasDiscount ? money(oldPrice) : '';
       modalOldPrice.style.display = oldPrice > 0 ? 'block' : 'none';
       modalEta.textContent = `🚚 ${etaText}`;
       modalAvailability.textContent = stock > 0 ? 'Mavjud' : "Omborda yo'q";
       modalAvailability.className = `gm-chip ${stock > 0 ? 'gm-chip--success' : 'gm-chip--warning'}`;
       modalTrustDelivery.textContent = `🚚 ${etaText}da yetkazib beramiz`;
       modalDescription.textContent = p.description || p.subtitle || `${p.name} uchun buyurtma berishingiz mumkin.`;
-      modalSpecs.innerHTML = `<div class="spec-row"><span>Kategoriya</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
-        <div class="spec-row"><span>Qoldiq</span><strong>${stock > 0 ? stock : 0} ta</strong></div>`;
+      modalSpecs.innerHTML = `<div class="spec-row"><span>Kategoriya:</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
+        <div class="spec-row"><span>Qoldiq:</span><strong>${stock > 0 ? stock : 0} ta</strong></div>
+        ${p.code ? `<div class="spec-row"><span>Kod:</span><strong>${p.code}</strong></div>` : ''}`;
       
-      modalImageBox.innerHTML = p.image_url ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '';
+      modalImageBox.innerHTML = p.image_url ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '<div class="muted">Rasm mavjud emas</div>';
       if (hasDiscount) {
         modalImageBox.insertAdjacentHTML('beforeend', `<span class="gm-chip gm-chip--delivery product-discount">-${discountPercent}%</span>`);
       }
@@ -2556,6 +2562,8 @@ Oq fonli foto</div>
         modalUpsellTitle.style.display = 'none';
       }
       modalQty.innerHTML = makeQtyControls(p.id);
+      const modalQtyNow = qtyOf(p.id);
+      modalAddBtn.textContent = modalQtyNow > 0 ? 'Yana qo‘shish' : "Savatga qo'shish";
     }
 
     function renderAll() {
@@ -2926,9 +2934,12 @@ Oq fonli foto</div>
     modalAddBtn.addEventListener('click', async () => {
       if (!activeModalProductId) return;
       try {
+        modalAddBtn.disabled = true;
         await setQty(activeModalProductId, qtyOf(activeModalProductId) + 1, true);
       } catch (error) {
         showToast(error.message || 'Xatolik yuz berdi');
+      } finally {
+        modalAddBtn.disabled = false;
       }
     });
 
