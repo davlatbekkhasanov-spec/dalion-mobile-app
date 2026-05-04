@@ -276,7 +276,7 @@ exports.getOrderQr = async (req, res) => {
   } catch (e) {
     return res.status(500).json({ message: 'QR generator dependency not installed' });
   }
-  const publicBase = process.env.PUBLIC_BASE_URL || 'https://dalion-mobile-app-production.up.railway.app';
+  const publicBase = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
   const courierUrl = `${publicBase}/courier/${order.courierToken}`;
   const qrDataUrl = await QRCode.toDataURL(courierUrl, { margin: 1, width: 220 });
   return res.json({ qrUrl: courierUrl, courierUrl, token: order.courierToken, qrDataUrl });
