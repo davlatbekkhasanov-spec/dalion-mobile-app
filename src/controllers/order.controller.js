@@ -89,6 +89,14 @@ exports.getCustomerOrders = (req, res) => {
   return res.json({ orders: store.getCustomerOrders(phone) });
 };
 
+exports.validatePromo = (req, res) => {
+  const subtotal = Math.max(0, Number(req.body?.subtotal || 0));
+  const code = String(req.body?.code || '').trim();
+  const out = store.validatePromoCode(code, subtotal);
+  if (!out.valid) return res.status(400).json({ ok: false, message: out.message });
+  return res.json({ ok: true, discount: out.discount, promo: { code: out.promo.promo_code } });
+};
+
 exports.uploadPaymentProof = async (req, res) => {
   const orderNumber = String(req.body?.orderNumber || req.query?.orderNumber || '').trim();
   if (!orderNumber) return res.status(400).json({ message: 'orderNumber required' });

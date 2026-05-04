@@ -501,12 +501,28 @@ function upsertPromoCode(payload = {}) {
   const code = String(payload.promo_code || payload.code || '').trim().toUpperCase();
   if (!code) return null;
   const discount_percent = Math.max(0, Math.min(100, Number(payload.discount_percent || 0)));
+  const discount_fixed = Math.max(0, Number(payload.discount_fixed || 0));
+  const min_order_total = Math.max(0, Number(payload.min_order_total || 0));
+  const max_discount = Math.max(0, Number(payload.max_discount || 0));
+  const expires_at = payload.expires_at ? new Date(payload.expires_at).toISOString() : null;
   const i = promoCodes.findIndex((x) => x.promo_code === code);
-  const row = { promo_code: code, discount_percent, active: payload.active !== false };
+  const row = { promo_code: code, discount_percent, discount_fixed, min_order_total, max_discount, expires_at, usage_count: Number(payload.usage_count || 0), active: payload.active !== false };
   if (i === -1) promoCodes.push(row);
   else promoCodes[i] = { ...promoCodes[i], ...row };
   persistState();
   return row;
+}
+
+function validatePromoCode(code = '', subtotal = 0) {
+  const normalized = String(code || '').trim().toUpperCase();
+  const promo = promoCodes.find((x) => x.active !== false && x.promo_code === normalized);
+  if (!promo) return { valid: false, message: 'Promokod topilmadi yoki faol emas' };
+  if (promo.expires_at && new Date(promo.expires_at).getTime() < Date.now()) return { valid: false, message: 'Promokod muddati tugagan' };
+  if (Number(subtotal || 0) < Number(promo.min_order_total || 0)) return { valid: false, message: `Minimal buyurtma: ${promo.min_order_total}` };
+  let discount = Math.round((Number(subtotal || 0) * (Number(promo.discount_percent || 0) / 100)) + Number(promo.discount_fixed || 0));
+  if (Number(promo.max_discount || 0) > 0) discount = Math.min(discount, Number(promo.max_discount || 0));
+  discount = Math.max(0, Math.min(discount, Number(subtotal || 0)));
+  return { valid: true, promo, discount };
 }
 
 function createOrder({
@@ -599,10 +615,14 @@ function createOrder({
     deliveryDistanceKm = Math.max(0, earthKm * c);
   }
   const subtotal = Number(summary.subtotal || 0);
-  const normalizedPromoCode = String(promoCode || '').trim().toUpperCase();
-  const promo = promoCodes.find((x) => x.active !== false && x.promo_code === normalizedPromoCode);
+  const promoValidation = validatePromoCode(promoCode, subtotal);
+  const promo = promoValidation.valid ? promoValidation.promo : null;
   const promoDiscountPercent = Math.max(0, Math.min(100, Number(promo?.discount_percent || 0)));
-  const promoDiscountAmount = Math.max(0, Math.round(subtotal * (promoDiscountPercent / 100)));
+  const promoDiscountAmount = Math.max(0, Number(promoValidation.discount || 0));
+  const firstOrderActive = String(process.env.FIRST_ORDER_DISCOUNT_ACTIVE || 'false').toLowerCase() === 'true';
+  const firstOrderPercent = Math.max(0, Math.min(100, Number(process.env.FIRST_ORDER_DISCOUNT_PERCENT || 0)));
+  const isFirstOrder = getCustomerOrders(normalizedUserPhone).length === 0;
+  const firstOrderDiscount = firstOrderActive && isFirstOrder ? Math.round(subtotal * (firstOrderPercent / 100)) : 0;
   const freeDelivery = Number.isFinite(freeDeliveryThreshold) && freeDeliveryThreshold > 0 && subtotal >= freeDeliveryThreshold;
   const rawDeliveryPrice = deliveryDistanceKm === null
     ? null
@@ -681,8 +701,10 @@ function createOrder({
     promoCode: promo?.promo_code || '',
     promoDiscountPercent: promoDiscountPercent || 0,
     promoDiscountAmount,
-    total: Math.max(0, subtotal - promoDiscountAmount) + computedDeliveryPrice
+    firstOrderDiscountAmount: firstOrderDiscount,
+    total: Math.max(0, subtotal - promoDiscountAmount - firstOrderDiscount) + computedDeliveryPrice
   };
+  if (promo) promo.usage_count = Number(promo.usage_count || 0) + 1;
   orderSequence += 1;
 
   for (const item of summary.items) {
@@ -1127,6 +1149,7 @@ module.exports = {
   deletePromotion,
   getPromoCodes,
   upsertPromoCode,
+  validatePromoCode,
   updateHomeSettings,
   upsertUser,
   markPhoneVerified,

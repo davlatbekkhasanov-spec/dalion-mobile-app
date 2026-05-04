@@ -1669,6 +1669,9 @@
     const checkoutDeliveryPrice = document.getElementById('checkoutDeliveryPrice');
     const checkoutGrandTotal = document.getElementById('checkoutGrandTotal');
     const promoCodeInput = document.getElementById('promoCodeInput');
+    const checkoutDiscountRow = document.getElementById('checkoutDiscountRow');
+    const checkoutDiscount = document.getElementById('checkoutDiscount');
+    let promoDiscountPreview = 0;
     const addressValidationError = document.getElementById('addressValidationError');
     const paymentValidationError = document.getElementById('paymentValidationError');
     const successOrderNumber = document.getElementById('successOrderNumber');
@@ -2320,10 +2323,11 @@
       const deliveryPrice = Number(deliveryState.deliveryPrice || 0);
       const subtotal = totalPrice();
       const orderTotal = subtotal + deliveryPrice;
-      checkoutTotal.textContent = `Jami: ${money(orderTotal)}`;
+      checkoutTotal.textContent = `Jami: ${money(Math.max(0, orderTotal - Number(promoDiscountPreview || 0)))}`;
       checkoutSubtotal.textContent = money(subtotal);
       checkoutDeliveryPrice.textContent = money(deliveryPrice);
-      checkoutGrandTotal.textContent = money(orderTotal);
+      const finalTotal = Math.max(0, orderTotal - Number(promoDiscountPreview || 0));
+      checkoutGrandTotal.textContent = money(finalTotal);
       const preferredAddress = resolvePreferredAddress();
       checkoutSavedAddress.textContent = `Saqlangan manzil: ${currentUser?.address || 'Manzil qo‘shilmagan'}`;
       checkoutLocation.textContent = `Do'kon: ${STORE_ADDRESS}`;
@@ -2351,6 +2355,21 @@
       cashAgreementLabel.style.display = selectedPayment === 'cash' ? 'block' : 'none';
       addressValidationError.style.display = 'none';
       paymentValidationError.style.display = 'none';
+      checkoutDiscountRow.style.display = promoDiscountPreview > 0 ? 'flex' : 'none';
+      checkoutDiscount.textContent = `-${money(promoDiscountPreview)}`;
+    }
+
+    
+    async function previewPromoDiscount() {
+      const code = String(promoCodeInput?.value || '').trim();
+      if (!code) { promoDiscountPreview = 0; renderCheckout(); return; }
+      try {
+        const out = await api('/promos/validate', { method: 'POST', body: JSON.stringify({ code, subtotal: totalPrice() }) });
+        promoDiscountPreview = Math.max(0, Number(out.discount || 0));
+      } catch {
+        promoDiscountPreview = 0;
+      }
+      renderCheckout();
     }
 
     async function loadCustomerOrders() {
@@ -2767,6 +2786,8 @@
       }
     });
 
+    promoCodeInput?.addEventListener('change', previewPromoDiscount);
+
     verifyOtpBtn?.addEventListener('click', async () => {
       try {
         await verifyOtpCode();
@@ -3074,6 +3095,8 @@
     document.getElementById('confirmOrderBtn').addEventListener('click', async () => {
       addressValidationError.style.display = 'none';
       paymentValidationError.style.display = 'none';
+      checkoutDiscountRow.style.display = promoDiscountPreview > 0 ? 'flex' : 'none';
+      checkoutDiscount.textContent = `-${money(promoDiscountPreview)}`;
       if (totalQty() === 0) {
         showToast("Savat bo'sh");
         return;
@@ -3169,7 +3192,7 @@
         successPaymentMethod.textContent = `To‘lov turi: ${paymentMethodLabel(lastOrderData?.paymentMethod)}`;
         successAddress.textContent = `Manzil: ${lastOrderData?.address || '-'}`;
         successTotal.textContent = Number.isFinite(Number(lastOrderData?.finalTotal))
-          ? `Jami: ${money(Number(lastOrderData.finalTotal))}`
+          ? `Jami: ${money(Math.max(0, Number(lastOrderData.finalTotal) - Number(promoDiscountPreview || 0)))}`
           : "Jami: Summani tekshirib bo‘lmadi";
         successOrderStatus.textContent = `To‘lov holati: ${paymentStatusLabel(order?.paymentStatus)} | Buyurtma: ${orderStatusLabel(order.status)}`;
         if (latestOrderNumber) {

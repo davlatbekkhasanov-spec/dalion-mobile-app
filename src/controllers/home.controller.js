@@ -31,6 +31,10 @@ exports.getHome = (req, res) => {
       location: settings.locationText || STORE_LOCATION.address,
       time: settings.deliveryTimeText || '',
       price: 0
+    },
+    first_order_offer: {
+      active: String(process.env.FIRST_ORDER_DISCOUNT_ACTIVE || 'false').toLowerCase() === 'true',
+      percent: Math.max(0, Math.min(100, Number(process.env.FIRST_ORDER_DISCOUNT_PERCENT || 0)))
     }
   });
 };
