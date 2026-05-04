@@ -954,12 +954,14 @@
       display: none;
       align-items: flex-end;
       padding: 14px;
+      overflow-y: auto;
     }
 
     .overlay.show { display: flex; }
 
     .modal {
       width: 100%;
+      max-height: calc(100dvh - 28px);
       border-radius: 18px;
       border: 1px solid rgba(130, 160, 210, 0.32);
       background: #fff;
@@ -967,6 +969,8 @@
       box-shadow: var(--shadow);
       position: relative;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     .modal::before {
@@ -981,7 +985,8 @@
       pointer-events: none;
     }
 
-    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .modal-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 10px; }
+    .modal-head h3 { margin: 0; padding-right: 4px; line-height: 1.3; }
     .close {
       border: 1px solid rgba(130, 160, 210, 0.36);
       background: rgba(18, 31, 56, 0.74);
@@ -993,10 +998,12 @@
     }
 
     .modal-image {
-      height: 260px;
+      height: 240px;
       margin: 10px 0;
       overflow: hidden;
     }
+    .modal-image img { width: 100%; height: 100%; object-fit: contain; }
+    #productModal { overflow-y: auto; }
     .location-permission-card {
       width: 100%;
       border-radius: 18px;
@@ -1106,6 +1113,8 @@
       font-weight: 700;
       color: #1d2440;
     }
+    .modal-inline-qty { width: 100%; margin-top: 10px; }
+    .modal-inline-qty .qty { width: 100%; height: 40px; grid-template-columns: 44px 1fr 44px; overflow: hidden; }
     .product .qty span {
       height: 40px;
       border: 0;
@@ -1447,26 +1456,21 @@
         <div class="image-box modal-image">
 Oq fonli foto</div>
         <div class="modal-rating-row">
-          <span class="gm-chip gm-chip--warning" id="modalRating">⭐ 4.7 · 0 baho</span>
           <span class="gm-chip gm-chip--delivery" id="modalEta">🚚 20 daqiqa</span>
           <span class="gm-chip gm-chip--success" id="modalAvailability">Mavjud</span>
         </div>
         <p class="price modal-price-main" id="modalPrice">0 so'm</p>
         <p class="old-price" id="modalOldPrice">0 so'm</p>
-        <div class="modal-trust">
-          <p id="modalTrustDelivery">🚚 20 daqiqada yetkazib beramiz</p>
-          <p>🔁 Qaytarish kafolati</p>
-          <p>✅ Tekshirilgan mahsulot</p>
-        </div>
+        <div class="modal-trust"><p id="modalTrustDelivery">🚚 20 daqiqada yetkazib beramiz</p></div>
         <p class="muted" id="modalDescription">Mahsulot tavsifi tez orada yangilanadi.</p>
         <div class="modal-specs" id="modalSpecs"></div>
+        <div class="modal-inline-qty" id="modalQty"></div>
         <h4 class="gm-title-md" id="modalUpsellTitle" style="margin-top:10px; display:none;">Shu mahsulot bilan birga olishadi</h4>
         <section class="products-grid modal-reco-grid" id="modalRecommendations"></section>
         <div class="gm-sticky-cta modal-sticky-cta">
           <div class="modal-sticky-price" id="modalStickyPrice">0 so'm</div>
           <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="modalAddBtn">Savatga qo'shish</button>
         </div>
-        <div class="qty" id="modalQty"></div>
       </div>
     </div>
     <div class="overlay" id="locationDeniedOverlay">
@@ -1773,7 +1777,18 @@ Oq fonli foto</div>
     }
 
     function resolvePreferredAddress() {
-      return String(customerLocation.addressText || manualAddress.value || currentUser?.address || homePayload?.delivery_info?.location || DEFAULT_LOCATION_ADDRESS).trim();
+      return String(manualAddress.value || customerLocation.addressText || currentUser?.address || homePayload?.delivery_info?.location || DEFAULT_LOCATION_ADDRESS).trim();
+    }
+
+    async function reverseGeocode(lat, lng) {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`);
+        if (!res.ok) return '';
+        const data = await res.json();
+        return String(data?.display_name || '').trim();
+      } catch (_) {
+        return '';
+      }
     }
 
     async function submitAuth() {
@@ -2012,12 +2027,10 @@ Oq fonli foto</div>
     }
 
     function getCategoryEntries() {
-      const curated = CURATED_CATEGORIES.map((c) => ({ ...c, count: 0 }));
-      products.forEach((p) => {
-        const key = normalizeCategoryKey(p.categoryDisplayName || p.category, p.name);
-        const found = curated.find((c) => c.key === key);
-        if (found) found.count += 1;
-      });
+      const curated = CURATED_CATEGORIES.map((c) => ({
+        ...c,
+        count: products.filter((p) => productMatchesCategory(p, c.key)).length
+      }));
       const total = curated.reduce((sum, c) => sum + c.count, 0);
       return [{ key: 'all', displayName: 'Hammasi', icon: '🛍️', count: total }, ...curated];
     }
@@ -2384,8 +2397,6 @@ Oq fonli foto</div>
       const price = Number(p.price || 0);
       const hasDiscount = oldPrice > price && price > 0;
       const discountPercent = hasDiscount ? Math.max(1, Math.round(((oldPrice - price) / oldPrice) * 100)) : 0;
-      const rating = Number(p.rating || 0) > 0 ? Number(p.rating).toFixed(1) : '4.7';
-      const reviews = Number(p.reviewCount || 0) || 0;
       const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || '20 daqiqa';
       modalName.textContent = p.name;
       modalCategory.textContent = normalizedCategoryName(p.categoryDisplayName || p.category);
@@ -2393,18 +2404,13 @@ Oq fonli foto</div>
       modalStickyPrice.textContent = money(p.price);
       modalOldPrice.textContent = oldPrice > 0 ? money(oldPrice) : '';
       modalOldPrice.style.display = oldPrice > 0 ? 'block' : 'none';
-      modalRating.textContent = `⭐ ${rating} · ${reviews} baho`;
       modalEta.textContent = `🚚 ${etaText}`;
       modalAvailability.textContent = stock > 0 ? 'Mavjud' : "Omborda yo'q";
       modalAvailability.className = `gm-chip ${stock > 0 ? 'gm-chip--success' : 'gm-chip--warning'}`;
       modalTrustDelivery.textContent = `🚚 ${etaText}da yetkazib beramiz`;
-      modalDescription.textContent = p.description || p.subtitle || `${p.name} - sifatli va tekshirilgan mahsulot.`;
-      modalSpecs.innerHTML = `
-        <div class="spec-row"><span>Narx</span><strong>${money(p.price)}</strong></div>
-        ${hasDiscount ? `<div class="spec-row"><span>Chegirma</span><strong>-${discountPercent}%</strong></div>` : ''}
-        <div class="spec-row"><span>Kategoriya</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
-        <div class="spec-row"><span>Qoldiq</span><strong>${stock > 0 ? stock : 0} ta</strong></div>
-      `;
+      modalDescription.textContent = p.description || p.subtitle || `${p.name} uchun buyurtma berishingiz mumkin.`;
+      modalSpecs.innerHTML = `<div class="spec-row"><span>Kategoriya</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
+        <div class="spec-row"><span>Qoldiq</span><strong>${stock > 0 ? stock : 0} ta</strong></div>`;
       
       modalImageBox.innerHTML = p.image_url ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '';
       if (hasDiscount) {
@@ -2456,21 +2462,23 @@ Oq fonli foto</div>
       locationDeniedOverlay?.classList.add('show');
     }
 
-    function requestBrowserLocation() {
+    async function requestBrowserLocation() {
       if (!navigator.geolocation) {
         customerLocation.permissionDenied = true;
         renderCheckout();
         openLocationDeniedModal();
         return;
       }
-      navigator.geolocation.getCurrentPosition((pos) => {
+      navigator.geolocation.getCurrentPosition(async (pos) => {
         customerLocation.lat = pos.coords.latitude;
         customerLocation.lng = pos.coords.longitude;
         customerLocation.accuracy = pos.coords.accuracy;
         customerLocation.permissionDenied = false;
+        const geoAddress = await reverseGeocode(customerLocation.lat, customerLocation.lng);
+        customerLocation.addressText = geoAddress || customerLocation.addressText || 'Lokatsiya olindi';
         closeLocationDeniedModal();
         renderCheckout();
-        showToast('Lokatsiya olindi');
+        showToast(geoAddress ? 'Manzil aniqlandi' : 'Lokatsiya olindi');
       }, () => {
         customerLocation.permissionDenied = true;
         renderCheckout();
@@ -2622,7 +2630,7 @@ Oq fonli foto</div>
       renderSearch();
       searchInput.focus();
     });
-    homeCartShortcut?.addEventListener('click', () => setView('cartView'));
+    homeCartShortcut?.addEventListener('click', () => setView('cartView', { push: true }));
 
     searchInput.addEventListener('input', renderSearch);
     searchClearBtn.addEventListener('click', () => {
@@ -2699,19 +2707,22 @@ Oq fonli foto</div>
 
       try {
         if (removeCart) {
+          e.preventDefault();
           e.stopPropagation();
-          await setCartQty(removeCart.dataset.removeCart, 0);
-          await syncCart();
-          render();
+          await setQty(removeCart.dataset.removeCart, 0, false);
+          await loadCart();
+          renderAll();
           return;
         }
         if (upsellQuickAdd) {
+          e.preventDefault();
           e.stopPropagation();
           const id = upsellQuickAdd.getAttribute('data-quick-add');
           await setQty(id, qtyOf(id) + 1, true);
           return;
         }
         if (quickAdd) {
+          e.preventDefault();
           e.stopPropagation();
           const id = quickAdd.getAttribute('data-add-one');
           const current = qtyOf(id);
@@ -2721,6 +2732,7 @@ Oq fonli foto</div>
           return;
         }
         if (plus) {
+          e.preventDefault();
           e.stopPropagation();
           const id = plus.dataset.id;
           const p = products.find((x) => x.id === id);
@@ -2738,6 +2750,7 @@ Oq fonli foto</div>
         }
 
         if (minus) {
+          e.preventDefault();
           e.stopPropagation();
           const id = minus.dataset.id;
           await setQty(id, qtyOf(id) - 1, false);
@@ -2749,7 +2762,7 @@ Oq fonli foto</div>
       }
 
       const card = e.target.closest('[data-open-product]');
-      if (card && !e.target.closest('.qty')) {
+      if (card && !e.target.closest('.qty, [data-add-one], [data-quick-add], [data-remove-cart], .fav-btn')) {
         openProductModal(card.dataset.openProduct);
         return;
       }
