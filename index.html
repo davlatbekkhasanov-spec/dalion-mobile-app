@@ -727,12 +727,29 @@
     .checkout-sticky-cta .checkout-total { margin:0; }
 
 
-    .gm-btn, .quick-add-btn, .tab, .pay-btn, .icon-btn { transition: transform .12s ease, filter .18s ease, box-shadow .18s ease; }
-    .gm-btn:active, .quick-add-btn:active, .tab:active, .pay-btn:active, .icon-btn:active { transform: scale(0.96); }
-    .product, .list-card, .category-card { transition: transform .16s ease, box-shadow .2s ease, background .2s ease; }
-    .product:active, .list-card:active, .category-card:active { transform: translateY(-1px) scale(0.995); }
+    .gm-btn, .quick-add-btn, .tab, .pay-btn, .icon-btn, .qty button { transition: transform .15s ease, filter .15s ease, box-shadow .15s ease, opacity .15s ease; will-change: transform; }
+    .gm-btn:active, .quick-add-btn:active, .tab:active, .pay-btn:active, .icon-btn:active, .qty button:active { transform: scale(0.97); }
+    .product, .list-card, .category-card, .upsell-card { transition: transform .2s ease, box-shadow .2s ease, background .2s ease, opacity .2s ease; will-change: transform; }
+    .product:active, .list-card:active, .category-card:active, .upsell-card:active { transform: translateY(-1px) scale(0.985); box-shadow: 0 10px 24px rgba(16,24,40,.14); }
     .quick-add-btn.bounce { animation: addBounce .42s ease; }
+    .quick-add-btn.added { background: linear-gradient(135deg,#16a34a,#22c55e) !important; }
+    .quick-add-btn.added::after { content:" ✓"; }
+    .cart-badge.pop, #homeCartShortcutBadge.pop { animation: badgePop .28s ease; }
+    @keyframes badgePop { 0%{transform:scale(1)} 40%{transform:scale(1.25)} 100%{transform:scale(1)} }
     @keyframes addBounce { 0%{transform:scale(1)} 35%{transform:scale(0.95)} 72%{transform:scale(1.06)} 100%{transform:scale(1)} }
+    .skeleton-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; }
+    .skeleton-card { border-radius:16px; height:320px; background:linear-gradient(90deg,#eef2f7 25%,#f7f9fc 37%,#eef2f7 63%); background-size:400% 100%; animation: shimmer 1.2s ease-in-out infinite; }
+    @keyframes shimmer { 0%{background-position:100% 0} 100%{background-position:0 0} }
+    .view { animation: viewFade .18s ease; }
+    @keyframes viewFade { from { opacity:.0; transform:translateY(4px);} to { opacity:1; transform:translateY(0);} }
+    .overlay { transition: opacity .2s ease; opacity:0; }
+    .overlay.show { opacity:1; }
+    .overlay .modal { transform: translateY(20px) scale(.98); opacity:0; transition: transform .2s ease, opacity .2s ease; }
+    .overlay.show .modal { transform: translateY(0) scale(1); opacity:1; }
+    .home-top-sticky { backdrop-filter: blur(8px); }
+    .product-rating { color:#f59e0b; }
+    .discount-chip { box-shadow:0 6px 14px rgba(255,59,102,.28); }
+    .fav-btn:active { transform:scale(.93); }
     .modal-image { min-height: 220px; cursor: zoom-in; }
     .modal-image.zoomed { position: fixed; inset: 20px; z-index: 70; max-width: min(94vw,520px); max-height: min(80vh,540px); margin: auto; border-radius: 18px; box-shadow: 0 30px 80px rgba(0,0,0,.55); cursor: zoom-out; }
     .modal-image.zoomed img { object-fit: contain; }
@@ -1536,6 +1553,7 @@ Oq fonli foto</div>
     const productsLimit = 40;
     let productsHasMore = false;
     let productsLoading = false;
+    let previousBadgeQty = 0;
     let cartItemsSnapshot = [];
     let homePayload = null;
     let latestOrderNumber = '';
@@ -2388,9 +2406,18 @@ Oq fonli foto</div>
       const q = totalQty();
       cartBadge.textContent = q;
       cartBadge.classList.toggle('hidden', q === 0);
+      if (q > previousBadgeQty) {
+        cartBadge.classList.add('pop');
+        homeCartShortcutBadge?.classList.add('pop');
+        setTimeout(() => {
+          cartBadge.classList.remove('pop');
+          homeCartShortcutBadge?.classList.remove('pop');
+        }, 280);
+      }
       if (homeCartShortcutBadge) {
         homeCartShortcutBadge.textContent = q;
       }
+      previousBadgeQty = q;
     }
 
     function upsellCardTemplate(p) {
@@ -2572,6 +2599,10 @@ Oq fonli foto</div>
 
     async function initializeAppData() {
       try {
+        const skeleton = '<div class="skeleton-grid"><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>';
+        homeProducts.innerHTML = skeleton;
+        searchResults.innerHTML = skeleton;
+        cartUpsellGrid.innerHTML = skeleton;
         await loadProfile();
         await Promise.all([loadHomePayload(), loadProducts({ reset: true }), loadCart()]);
         manualAddress.value = currentUser?.address || '';
@@ -2758,7 +2789,9 @@ Oq fonli foto</div>
           const id = quickAdd.getAttribute('data-add-one');
           const current = qtyOf(id);
           quickAdd.classList.add('bounce');
+          quickAdd.classList.add('added');
           setTimeout(() => quickAdd.classList.remove('bounce'), 450);
+          setTimeout(() => quickAdd.classList.remove('added'), 500);
           await setQty(id, current + 1, true);
           return;
         }
