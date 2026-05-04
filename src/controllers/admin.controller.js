@@ -2,7 +2,7 @@ const store = require('../data/store.js');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
-const dalionService = require('../services/dalion.service.js');
+const dalionSyncService = require('../modules/dalion/dalion.sync.service.js');
 
 const DEMO_DEPRECATED_MESSAGE = 'Demo katalog funksiyasi o‘chirildi. Excel import yoki DALION sinxronizatsiyasidan foydalaning.';
 
@@ -135,25 +135,13 @@ exports.reloadStore = (req, res) => {
 };
 
 exports.syncDalionProducts = async (req, res) => {
-  const cfg = dalionService.getDalionConfig();
-  if (!cfg.enabled) {
-    return res.status(400).json({
-      success: false,
-      code: 'DALION_NOT_CONFIGURED',
-      message: 'DALION integratsiyasi hali sozlanmagan'
-    });
-  }
   try {
-    const result = await dalionService.syncProductsFromDalion();
+    const result = await dalionSyncService.syncProducts();
+    if (result.errors.length) {
+      return res.status(200).json({ success: false, code: 'DALION_SYNC_PARTIAL', message: 'DALION mavjud emas, fallback ishlatildi', result });
+    }
     return res.json({ success: true, result });
   } catch (error) {
-    if (error?.code === 'DALION_NOT_CONFIGURED') {
-      return res.status(400).json({
-        success: false,
-        code: 'DALION_NOT_CONFIGURED',
-        message: 'DALION integratsiyasi hali sozlanmagan'
-      });
-    }
     return res.status(500).json({ success: false, code: 'DALION_SYNC_FAILED', message: error?.message || 'DALION sync failed' });
   }
 };
