@@ -1195,7 +1195,7 @@
   
     .profile-hero{background:linear-gradient(135deg,#5b4cff,#8b6bff);color:#fff;border:none}
     .profile-avatar{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:28px}
-    .profile-menu .menu-item{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid #eceff5;border-radius:12px;margin-top:8px;background:#fff;color:#1d2440}
+    .profile-menu .menu-item{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid #eceff5;border-radius:12px;margin-top:8px;background:#fff;color:#1d2440;width:100%;text-align:left;cursor:pointer}
     .profile-menu .menu-item small{color:#667085}
     .auth-sheet{background:#fff;border:1px solid #eceff5}
     .auth-input{background:#fff;color:#1d2440;border:1px solid #d0d5dd}
@@ -1398,13 +1398,13 @@
           </div>
         </div>
         <div class="list-card gm-card profile-menu" id="profileMenuCard">
-          <div class="menu-item"><span>Buyurtmalarim</span><small>›</small></div>
-          <div class="menu-item"><span>To‘lov usullari</span><small>Tez orada</small></div>
-          <div class="menu-item"><span>Manzillarim</span><small>Tez orada</small></div>
-          <div class="menu-item"><span>Promokodlarim</span><small>Tez orada</small></div>
-          <div class="menu-item"><span>Xabarnomalar</span><small>Tez orada</small></div>
-          <div class="menu-item"><span>Sozlamalar</span><small>Tez orada</small></div>
-          <div class="menu-item"><span>Yordam / Biz bilan bog‘lanish</span><small>24/7</small></div>
+          <button class="menu-item" data-profile-action="orders"><span>Buyurtmalarim</span><small>›</small></button>
+          <button class="menu-item" data-profile-action="payments"><span>To‘lov usullari</span><small>Naqd / Payme / Click</small></button>
+          <button class="menu-item" data-profile-action="addresses"><span>Manzillarim</span><small>Tahrirlash</small></button>
+          <button class="menu-item" data-profile-action="promos"><span>Promokodlarim</span><small>Kiritish</small></button>
+          <button class="menu-item" data-profile-action="notifications"><span>Xabarnomalar</span><small>Ko‘rish</small></button>
+          <button class="menu-item" data-profile-action="courier"><span>Kuryer bo‘lish</span><small>Ariza yuborish</small></button>
+          <button class="menu-item" data-profile-action="help"><span>Yordam / Biz bilan bog‘lanish</span><small>24/7</small></button>
           <button class="btn gm-btn gm-btn-secondary btn-secondary" id="logoutBtn" style="margin-top:12px;">Chiqish</button>
         </div>
         <div class="list-card gm-card" id="profileOrdersCard">
@@ -1540,6 +1540,15 @@
           <button class="btn gm-btn gm-btn-secondary btn-secondary" id="retryLocationBtn" type="button">Qayta urinish</button>
           <button class="btn gm-btn gm-btn-primary btn-primary" id="manualLocationBtn" type="button">Manzilni qo‘lda kiritish</button>
         </div>
+      </div>
+    </div>
+    <div class="auth-sheet-overlay" id="profileActionOverlay">
+      <div class="auth-sheet">
+        <div class="auth-sheet-head">
+          <h3 style="margin:0;" id="profileActionTitle">Profil</h3>
+          <button class="auth-sheet-close" id="closeProfileActionBtn">✕</button>
+        </div>
+        <div id="profileActionBody"></div>
       </div>
     </div>
 
@@ -1709,7 +1718,14 @@
     const modalAddBtn = document.getElementById('modalAddBtn');
     const modalImageBox = document.querySelector('.modal-image');
     const locationDeniedOverlay = document.getElementById('locationDeniedOverlay');
+    const profileActionOverlay = document.getElementById('profileActionOverlay');
+    const profileActionTitle = document.getElementById('profileActionTitle');
+    const profileActionBody = document.getElementById('profileActionBody');
+    const closeProfileActionBtn = document.getElementById('closeProfileActionBtn');
     const profileAddress = document.getElementById('profileAddress');
+    const COURIER_TELEGRAM_LINK = 'https://t.me/globusmarket_couriers';
+    let authOtpState = 'idle';
+    let otpResendAt = 0;
     const retryLocationBtn = document.getElementById('retryLocationBtn');
     const manualLocationBtn = document.getElementById('manualLocationBtn');
 
@@ -1904,14 +1920,17 @@
     async function requestOtpCode() {
       const phoneValue = String(authPhone.value || '').trim();
       if (!phoneValue) { showToast('Telefon raqam kiriting'); return; }
-      const out = await api('/auth/request-otp', { method: 'POST', body: JSON.stringify({ phone: phoneValue }) });
-      if (out.devOtp) {
-        devOtpHint.style.display = 'block';
-        devOtpHint.textContent = `Dev OTP (mock): ${out.devOtp}`;
-      } else {
-        devOtpHint.style.display = 'none';
-        devOtpHint.textContent = '';
-      }
+      if (Date.now() < otpResendAt) { showToast('Kodni qayta yuborish uchun kuting'); return; }
+      authOtpState = 'otp_sent';
+      await api('/auth/request-otp', { method: 'POST', body: JSON.stringify({ phone: phoneValue }) });
+      otpResendAt = Date.now() + 60000;
+      devOtpHint.style.display = 'block';
+      devOtpHint.textContent = 'Kod yuborildi. 60 soniyadan keyin qayta yuborish mumkin.';
+      const timer = setInterval(() => {
+        const left = Math.max(0, Math.ceil((otpResendAt - Date.now()) / 1000));
+        requestOtpBtn.textContent = left > 0 ? `Kodni qayta olish (${left}s)` : 'Kod olish';
+        if (left <= 0) clearInterval(timer);
+      }, 500);
       showToast('OTP yuborildi');
     }
 
@@ -1919,13 +1938,26 @@
       const phoneValue = String(authPhone.value || '').trim();
       const codeValue = String(otpCodeInput.value || '').trim();
       if (!phoneValue || !codeValue) { showToast('Telefon va OTP kodni kiriting'); return; }
+      authOtpState = 'verifying';
       const out = await api('/auth/verify-otp', { method: 'POST', body: JSON.stringify({ phone: phoneValue, code: codeValue }) });
       if (currentUser && String(currentUser.phone || '') === phoneValue) {
         currentUser.phoneVerified = Boolean(out.user?.phoneVerified);
         currentUser.otpVerifiedAt = out.user?.otpVerifiedAt || null;
         localStorage.setItem('globusUser', JSON.stringify(currentUser));
       }
+      authOtpState = 'verified';
       showToast('Telefon OTP orqali tasdiqlandi');
+    }
+
+    
+    function openProfileAction(title, bodyHtml) {
+      profileActionTitle.textContent = title;
+      profileActionBody.innerHTML = bodyHtml;
+      profileActionOverlay.classList.add('show');
+    }
+
+    function closeProfileAction() {
+      profileActionOverlay.classList.remove('show');
     }
 
     function requireAuthOrIntro() {
@@ -2761,6 +2793,62 @@
         showToast(error.message || 'Qayta buyurtmada xatolik');
       }
     });
+
+
+    profileMenuCard?.addEventListener('click', (e) => {
+      const item = e.target.closest('[data-profile-action]');
+      if (!item) return;
+      const action = item.dataset.profileAction;
+      if (action === 'orders') { setView('profileView', { push: true }); return; }
+      if (action === 'payments') {
+        openProfileAction('To‘lov usullari', '<p class="muted">Naqd — buyurtma yetkazilganda to‘lov.</p><p class="muted">Payme — onlayn to‘lov (kutilmoqda holatida boshlanadi).</p><p class="muted">Click — Click havola orqali to‘lov.</p>');
+      }
+      if (action === 'addresses') {
+        openProfileAction('Manzillarim', `<input id="profileAddressInput" class="auth-input" placeholder="Manzil" value="${currentUser?.address || ''}" /><button class="btn gm-btn gm-btn-primary btn-primary" id="saveProfileAddressBtn" style="margin-top:10px;">Saqlash</button>`);
+      }
+      if (action === 'promos') {
+        openProfileAction('Promokodlarim', '<input id="profilePromoInput" class="auth-input" placeholder="Promo kod" /><p class="muted" style="margin-top:8px;">Promo tizimi tez orada faollashadi.</p>');
+      }
+      if (action === 'notifications') {
+        openProfileAction('Xabarnomalar', '<p class="muted">Hozircha xabarnomalar yo‘q</p>');
+      }
+      if (action === 'help') {
+        openProfileAction('Yordam', `<p class="muted">Qo‘llab-quvvatlash: <a href="tel:+998900000000">+998 90 000 00 00</a></p><p class="muted">Telegram: <a target="_blank" href="${COURIER_TELEGRAM_LINK}">Guruhga o‘tish</a></p>`);
+      }
+      if (action === 'courier') {
+        const status = localStorage.getItem('courierApplicationStatus') || '';
+        openProfileAction('Kuryer bo‘lish', `<input id="courierName" class="auth-input" placeholder="Ism" value="${currentUser?.name || ''}" />
+          <input id="courierPhone" class="auth-input" placeholder="Telefon" value="${currentUser?.phone || ''}" style="margin-top:8px;" />
+          <input id="courierCity" class="auth-input" placeholder="Shahar" style="margin-top:8px;" />
+          <select id="courierTransport" class="auth-input" style="margin-top:8px;"><option value="piyoda">Piyoda</option><option value="velosiped">Velosiped</option><option value="skuter">Skuter</option><option value="mashina">Mashina</option></select>
+          <input id="courierNote" class="auth-input" placeholder="Izoh (ixtiyoriy)" style="margin-top:8px;" />
+          <button class="btn gm-btn gm-btn-primary btn-primary" id="courierSubmitBtn" style="margin-top:10px;">Ariza yuborish</button>
+          <p class="muted" style="margin-top:8px;">${status === 'approved' ? 'Siz kuryer sifatida tasdiqlandingiz' : (status === 'pending' ? 'Ko‘rib chiqilmoqda' : '')}</p>
+          ${status === 'approved' ? `<a class="btn gm-btn gm-btn-secondary btn-secondary" style="margin-top:8px;display:inline-flex;" target="_blank" href="${COURIER_TELEGRAM_LINK}">Telegram guruhga o‘tish</a>` : ''}`);
+      }
+    });
+
+    profileActionBody?.addEventListener('click', async (e) => {
+      if (e.target.id === 'saveProfileAddressBtn') {
+        const address = String(document.getElementById('profileAddressInput')?.value || '').trim();
+        if (currentUser) {
+          currentUser.address = address;
+          localStorage.setItem('globusUser', JSON.stringify(currentUser));
+          await api('/profile', { method: 'PUT', body: JSON.stringify({ name: currentUser.name, phone: currentUser.phone, address }) });
+          renderAll();
+        }
+        showToast('Manzil saqlandi');
+        closeProfileAction();
+      }
+      if (e.target.id === 'courierSubmitBtn') {
+        localStorage.setItem('courierApplicationStatus', 'pending');
+        showToast('Arizangiz yuborildi');
+        closeProfileAction();
+      }
+    });
+
+    closeProfileActionBtn?.addEventListener('click', closeProfileAction);
+    profileActionOverlay?.addEventListener('click', (e) => { if (e.target === profileActionOverlay) closeProfileAction(); });
 
     document.getElementById('openSearchBtn').addEventListener('click', () => {
       setView('searchView', { push: true });
