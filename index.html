@@ -206,6 +206,8 @@
     .view::-webkit-scrollbar { display: none; }
     .view.active { display: block; }
 
+    .search-sticky-top { position: sticky; top: 0; z-index: 35; background: linear-gradient(180deg, rgba(3,7,17,.96), rgba(3,7,17,.84)); padding-bottom: 8px; }
+
     .top {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -1538,6 +1540,18 @@ Oq fonli foto</div>
 
   <script>
     let products = [];
+    class CartState {
+      constructor() { this.items = new Map(); this.snapshot = []; }
+      hydrate(items = []) {
+        this.items = new Map();
+        this.snapshot = items;
+        items.forEach((item) => this.items.set(item.id, Number(item.quantity || 0)));
+      }
+      qtyOf(id) { return this.items.get(id) || 0; }
+      totalQty() { return Array.from(this.items.values()).reduce((a, b) => a + b, 0); }
+      clear() { this.items.clear(); this.snapshot = []; }
+    }
+    const cartState = new CartState();
     let cart = {};
     let currentView = 'homeView';
     let selectedPayment = 'payme';
@@ -1723,7 +1737,8 @@ Oq fonli foto</div>
           if (!data.hasMore) break;
           page += 1;
         }
-        products = reset ? collected : products.concat(collected);
+        const merged = reset ? collected : products.concat(collected);
+        products = Array.from(new Map(merged.map((item) => [item.id, item])).values());
         productsHasMore = false;
       } finally {
         productsLoading = false;
@@ -1797,15 +1812,15 @@ Oq fonli foto</div>
       if (!currentUser?.phone) {
         cart = {};
         cartItemsSnapshot = [];
+        cartState.clear();
         return { items: [], totalQty: 0, subtotal: 0 };
       }
       const summary = await api('/cart');
-      cart = {};
-      cartItemsSnapshot = summary.items || [];
-      (summary.items || []).forEach((item) => {
-        cart[item.id] = item.quantity;
-      });
-      return summary;
+      const uniqueItems = Array.from(new Map((summary.items || []).map((item) => [item.id, item])).values());
+      cartItemsSnapshot = uniqueItems;
+      cartState.hydrate(uniqueItems);
+      cart = Object.fromEntries(cartState.items);
+      return { ...summary, items: uniqueItems };
     }
 
     async function loadProfile() {
@@ -1887,7 +1902,7 @@ Oq fonli foto</div>
     }
 
     function qtyOf(id) {
-      return cart[id] || 0;
+      return cartState.qtyOf(id);
     }
 
     function showToast(text) {
@@ -1918,7 +1933,7 @@ Oq fonli foto</div>
     }
 
     function totalQty() {
-      return Object.values(cart).reduce((a, b) => a + b, 0);
+      return cartState.totalQty();
     }
 
     function totalPrice() {
