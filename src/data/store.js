@@ -51,6 +51,8 @@ let homeSettings = {
 const users = new Map();
 const carts = new Map();
 const orders = [];
+const wholesaleApplications = [];
+const wholesaleAccounts = [];
 let lastUpdated = null;
 let orderSequence = 1;
 const ORDER_STATUS_SET = new Set([...ORDER_STATUS_LIST, 'created', 'payment_pending', 'payment_confirmed', 'preparing', 'ready_for_courier', 'courier_assigned', 'returned']);
@@ -100,6 +102,8 @@ function persistState() {
         items: Array.from(cart.entries()).map(([productId, quantity]) => ({ productId, quantity }))
       })),
       orders,
+      wholesaleApplications,
+      wholesaleAccounts,
       orderSequence,
       savedAt: new Date().toISOString()
     };
@@ -179,6 +183,8 @@ function loadStateFromDisk() {
     if (Array.isArray(parsed.orders)) {
       orders.splice(0, orders.length, ...parsed.orders.map((o) => ({ ...o, status: normalizeOrderStatus(o?.status) })));
     }
+    if (Array.isArray(parsed.wholesaleApplications)) wholesaleApplications.splice(0, wholesaleApplications.length, ...parsed.wholesaleApplications);
+    if (Array.isArray(parsed.wholesaleAccounts)) wholesaleAccounts.splice(0, wholesaleAccounts.length, ...parsed.wholesaleAccounts);
     if (Number.isFinite(Number(parsed.orderSequence))) orderSequence = Math.max(1, Number(parsed.orderSequence));
     lastUpdated = parsed.savedAt || new Date().toISOString();
     return true;
@@ -501,14 +507,14 @@ function createOrder({
   paymentMethod = 'cash',
   paymentStatus = '',
   cashTermsAccepted = false,
-  location = 'Yunusobod, Toshkent',
+  location = STORE_LOCATION.address,
   locationLat = null,
   locationLng = null,
   locationAccuracy = null,
   addressText = '',
   landmarkText = '',
-  deliveryTime = '30 daqiqa',
-  deliveryPrice = 12000,
+  deliveryTime = '',
+  deliveryPrice = 0,
   userPhone = '',
   customerSelfieUrl = '',
   paymentProofUrl = '',
@@ -572,10 +578,11 @@ function createOrder({
     };
   });
 
-  const baseDeliveryPrice = Math.max(0, Number(process.env.BASE_DELIVERY_PRICE || 5000) || 5000);
-  const pricePerKm = Math.max(0, Number(process.env.PRICE_PER_KM || 1000) || 1000);
+  const baseDeliveryPrice = 18500;
+  const pricePerKmAfterBase = 4000;
+  const baseDistanceKm = 4;
   const freeDeliveryThreshold = Number(process.env.FREE_DELIVERY_THRESHOLD || 0);
-  let deliveryDistanceKm = 4;
+  let deliveryDistanceKm = null;
   if (hasGeo) {
     const toRad = (deg) => (Number(deg) * Math.PI) / 180;
     const earthKm = 6371;
@@ -583,7 +590,7 @@ function createOrder({
     const dLng = toRad(lngNum - STORE_LOCATION.lng);
     const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(STORE_LOCATION.lat)) * Math.cos(toRad(latNum)) * Math.sin(dLng / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    deliveryDistanceKm = Math.max(0.5, earthKm * c);
+    deliveryDistanceKm = Math.max(0, earthKm * c);
   }
   const subtotal = Number(summary.subtotal || 0);
   const normalizedPromoCode = String(promoCode || '').trim().toUpperCase();
@@ -591,8 +598,14 @@ function createOrder({
   const promoDiscountPercent = Math.max(0, Math.min(100, Number(promo?.discount_percent || 0)));
   const promoDiscountAmount = Math.max(0, Math.round(subtotal * (promoDiscountPercent / 100)));
   const freeDelivery = Number.isFinite(freeDeliveryThreshold) && freeDeliveryThreshold > 0 && subtotal >= freeDeliveryThreshold;
-  const computedDeliveryPrice = Math.max(0, Math.round(freeDelivery ? 0 : (baseDeliveryPrice + (deliveryDistanceKm * pricePerKm))));
-  const deliveryZone = deliveryDistanceKm <= 3 ? 'near' : (deliveryDistanceKm <= 7 ? 'mid' : 'far');
+  const rawDeliveryPrice = deliveryDistanceKm === null
+    ? null
+    : (deliveryDistanceKm <= baseDistanceKm
+      ? baseDeliveryPrice
+      : baseDeliveryPrice + ((deliveryDistanceKm - baseDistanceKm) * pricePerKmAfterBase));
+  const roundedDeliveryPrice = rawDeliveryPrice === null ? null : Math.round(rawDeliveryPrice / 500) * 500;
+  const computedDeliveryPrice = freeDelivery ? 0 : roundedDeliveryPrice;
+  const deliveryZone = deliveryDistanceKm === null ? 'unknown' : (deliveryDistanceKm <= 3 ? 'near' : (deliveryDistanceKm <= 7 ? 'mid' : 'far'));
 
   const order = {
     id: `ord_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
@@ -649,9 +662,13 @@ function createOrder({
     addressText: String(addressText || customerAddress || location || ''),
     landmarkText: String(landmarkText || ''),
     deliveryTime: deliveryTime || '',
-    deliveryPrice: computedDeliveryPrice,
-    delivery_price: computedDeliveryPrice,
-    delivery_distance: Number(deliveryDistanceKm.toFixed(2)),
+    deliveryPrice: Number(computedDeliveryPrice || 0),
+    delivery_price: Number(computedDeliveryPrice || 0),
+    delivery_distance: deliveryDistanceKm === null ? null : Number(deliveryDistanceKm.toFixed(2)),
+    delivery_distance_km: deliveryDistanceKm === null ? null : Number(deliveryDistanceKm.toFixed(2)),
+    delivery_address: String(addressText || customerAddress || location || ''),
+    delivery_lat: hasGeo ? latNum : null,
+    delivery_lng: hasGeo ? lngNum : null,
     delivery_zone: deliveryZone,
     items: orderItems,
     subtotal,
@@ -681,6 +698,48 @@ function getCustomerOrders(phone = '') {
   const normalized = normalizePhone(phone);
   if (!normalized) return [];
   return getOrders().filter((o) => String(o.customerPhone || '').replace(/\s+/g, '') === normalized);
+}
+
+function createWholesaleApplication(payload = {}) {
+  const row = {
+    id: makeId('ws_app'),
+    name: String(payload.name || '').trim(),
+    phone: normalizePhone(payload.phone),
+    businessName: String(payload.businessName || '').trim(),
+    note: String(payload.note || '').trim(),
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
+  wholesaleApplications.push(row);
+  persistState();
+  return row;
+}
+
+function listWholesaleApplications() { return wholesaleApplications.slice().reverse(); }
+
+function decideWholesaleApplication(id, decision = 'reject') {
+  const app = wholesaleApplications.find((x) => x.id === id);
+  if (!app) return null;
+  app.status = decision === 'approve' ? 'approved' : 'rejected';
+  app.decidedAt = new Date().toISOString();
+  if (app.status === 'approved') {
+    const login = `optoviy_${(app.phone || '').replace(/\\D/g, '').slice(-6)}`;
+    const password = Math.random().toString(36).slice(-8);
+    wholesaleAccounts.push({ id: makeId('ws_acc'), phone: app.phone, login, password, active: true, createdAt: app.decidedAt });
+    app.credentials = { login, password };
+  }
+  persistState();
+  return app;
+}
+
+function wholesaleLogin(login = '', password = '') {
+  const account = wholesaleAccounts.find((x) => x.active && x.login === String(login || '').trim() && x.password === String(password || '').trim());
+  if (!account) return null;
+  return account;
+}
+
+function isWholesaleTokenValid(token = '') {
+  return wholesaleAccounts.some((x) => x.active && x.id === String(token || '').trim());
 }
 
 function attachPaymentProof(orderNumber, { paymentProofUrl = '' } = {}) {
@@ -1062,5 +1121,10 @@ module.exports = {
   updateCourierLocation,
   markOrderPaymentPaid,
   adminAssignCourier,
+  createWholesaleApplication,
+  listWholesaleApplications,
+  decideWholesaleApplication,
+  wholesaleLogin,
+  isWholesaleTokenValid,
   orders
 };
