@@ -1436,9 +1436,11 @@
           <p class="field-error" id="addressValidationError"></p>
         </div>
         <div class="list-card gm-card">
-          <h4 style="margin-bottom:8px;">To‘lov: Payme</h4>
+          <h4 style="margin-bottom:8px;">To‘lov turini tanlang</h4>
           <div class="payment-grid">
+            <button class="pay-btn active" data-payment="cash">💵 Naqd<br><span class="payment-hint">Yetkazilganda to‘lov</span><br><small>Karta ma’lumoti talab qilinmaydi</small></button>
             <button class="pay-btn" data-payment="payme">🟩 Payme<br><span class="payment-hint">Tezkor onlayn to‘lov</span><br><small>Rasmiy to‘lov havolasi</small></button>
+            <button class="pay-btn" data-payment="click">🟦 Click<br><span class="payment-hint">Click orqali to‘lov</span><br><small>Rasmiy Click havolasi</small></button>
           </div>
           <div id="paymentLinks" class="muted" style="margin-top:8px;"></div>
           <input id="paymentProofInput" class="checkout-input" type="file" accept="image/*,.pdf" style="display:none;" />
@@ -1555,7 +1557,7 @@ Oq fonli foto</div>
     const cartState = new CartState();
     let cart = {};
     let currentView = 'homeView';
-    let selectedPayment = 'payme';
+    let selectedPayment = 'cash';
     const STORE_ADDRESS = 'Samarqand, Shohruh Mirzo 33';
     const STORE_LAT = 39.654572;
     const STORE_LNG = 66.958871;
@@ -1956,6 +1958,25 @@ Oq fonli foto</div>
       }[status] || status || '-';
     }
 
+    
+    function paymentMethodLabel(method) {
+      return {
+        cash: 'Naqd',
+        payme: 'Payme',
+        click: 'Click'
+      }[String(method || '').toLowerCase()] || '-';
+    }
+
+    function paymentStatusLabel(status) {
+      return {
+        payment_pending: 'To‘lov kutilmoqda',
+        pending: 'To‘lov kutilmoqda',
+        paid: 'To‘lov qilingan',
+        unpaid: 'To‘lov qilinmagan',
+        cancelled: 'Bekor qilingan'
+      }[String(status || '').toLowerCase()] || '-';
+    }
+
     function isActiveOrderStatus(status) {
       return ['new', 'sent_to_tsd', 'picking', 'picked', 'waiting_courier', 'out_for_delivery'].includes(String(status || ''));
     }
@@ -2282,8 +2303,8 @@ Oq fonli foto</div>
       }
       const clickAmountTiyin = Math.round(Number(orderTotal || 0) * 100);
       if (selectedPayment === 'click') paymentLinks.innerHTML = `Click: <a href="https://indoor.click.uz/pay?id=081328&t=${clickAmountTiyin}" target="_blank">To‘lov havolasi</a>`;
-      else if (selectedPayment === 'payme') paymentLinks.innerHTML = 'Payme: To‘lovni Payme ilovasi orqali yakunlang';
-      else paymentLinks.innerHTML = '';
+      else if (selectedPayment === 'payme') paymentLinks.innerHTML = 'Payme: To‘lovni Payme ilovasi orqali yakunlang. To‘lov holati: To‘lov kutilmoqda';
+      else paymentLinks.innerHTML = 'To‘lov yetkazib berilganda naqd amalga oshiriladi';
       const isOnline = selectedPayment === 'click' || selectedPayment === 'payme';
       paymentProofInput.style.display = 'none';
       cashAgreementDetails.style.display = selectedPayment === 'cash' ? 'block' : 'none';
@@ -2441,7 +2462,7 @@ Oq fonli foto</div>
             <div style="margin-top:8px;display:grid;gap:6px;">
               ${(o.items || []).length ? (o.items || []).map((item) => `<div class="muted">${item.name || '-'} · ${item.quantity || 0} ta · ${money(item.price || 0)}</div>`).join('') : '<div class="muted">Mahsulotlar topilmadi</div>'}
               <div class="muted">Manzil: ${o.customerAddress || o.addressText || o.location || '-'}</div>
-              <div class="muted">To‘lov: ${o.paymentMethod === 'payme' ? 'Payme' : (o.paymentMethod || '-')} / ${o.paymentStatus === 'pending' ? "To‘lov kutilmoqda" : (o.paymentStatus || '-')}</div>
+              <div class="muted">To‘lov: ${paymentMethodLabel(o.paymentMethod)} / ${paymentStatusLabel(o.paymentStatus)}</div>
             </div>
           </details>
           <div style="display:flex;gap:8px;margin-top:10px;">
@@ -2981,6 +3002,7 @@ Oq fonli foto</div>
           method: 'POST',
           body: JSON.stringify({
             paymentMethod: selectedPayment,
+            payment_method: selectedPayment,
             paymentStatus: selectedPayment === 'cash' ? 'unpaid' : 'pending',
             cashTermsAccepted: selectedPayment === 'cash',
             paymentProofUrl,
@@ -3024,13 +3046,12 @@ Oq fonli foto</div>
         localStorage.setItem('activeOrderNumber', activeOrderNumber);
         successOrderNumber.textContent = `Buyurtma: ${lastOrderData?.orderNumber || latestOrderNumber || '-'}`;
         successOrderTime.textContent = `Vaqt: ${new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}`;
-        successPaymentMethod.textContent = `To‘lov turi: ${lastOrderData?.paymentMethod === 'payme' ? 'Payme' : (lastOrderData?.paymentMethod || '-')}`;
+        successPaymentMethod.textContent = `To‘lov turi: ${paymentMethodLabel(lastOrderData?.paymentMethod)}`;
         successAddress.textContent = `Manzil: ${lastOrderData?.address || '-'}`;
         successTotal.textContent = Number.isFinite(Number(lastOrderData?.finalTotal))
           ? `Jami: ${money(Number(lastOrderData.finalTotal))}`
           : "Jami: Summani tekshirib bo‘lmadi";
-        const pendingText = order?.paymentStatus === 'pending' ? " · To‘lov kutilmoqda" : '';
-        successOrderStatus.textContent = `Status: ${orderStatusLabel(order.status)}${pendingText}`;
+        successOrderStatus.textContent = `To‘lov holati: ${paymentStatusLabel(order?.paymentStatus)} | Buyurtma: ${orderStatusLabel(order.status)}`;
         if (latestOrderNumber) {
           trackOrderBtn.style.display = 'inline-flex';
           trackOrderBtn.setAttribute('href', `/track/${encodeURIComponent(latestOrderNumber)}`);
