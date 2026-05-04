@@ -206,6 +206,8 @@
     .view::-webkit-scrollbar { display: none; }
     .view.active { display: block; }
 
+    .search-sticky-top { position: sticky; top: 0; z-index: 35; background: linear-gradient(180deg, rgba(3,7,17,.96), rgba(3,7,17,.84)); padding-bottom: 8px; }
+
     .top {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -1538,6 +1540,18 @@ Oq fonli foto</div>
 
   <script>
     let products = [];
+    class CartState {
+      constructor() { this.items = new Map(); this.snapshot = []; }
+      hydrate(items = []) {
+        this.items = new Map();
+        this.snapshot = items;
+        items.forEach((item) => this.items.set(item.id, Number(item.quantity || 0)));
+      }
+      qtyOf(id) { return this.items.get(id) || 0; }
+      totalQty() { return Array.from(this.items.values()).reduce((a, b) => a + b, 0); }
+      clear() { this.items.clear(); this.snapshot = []; }
+    }
+    const cartState = new CartState();
     let cart = {};
     let currentView = 'homeView';
     let selectedPayment = 'payme';
@@ -1723,7 +1737,8 @@ Oq fonli foto</div>
           if (!data.hasMore) break;
           page += 1;
         }
-        products = reset ? collected : products.concat(collected);
+        const merged = reset ? collected : products.concat(collected);
+        products = Array.from(new Map(merged.map((item) => [item.id, item])).values());
         productsHasMore = false;
       } finally {
         productsLoading = false;
@@ -1797,15 +1812,15 @@ Oq fonli foto</div>
       if (!currentUser?.phone) {
         cart = {};
         cartItemsSnapshot = [];
+        cartState.clear();
         return { items: [], totalQty: 0, subtotal: 0 };
       }
       const summary = await api('/cart');
-      cart = {};
-      cartItemsSnapshot = summary.items || [];
-      (summary.items || []).forEach((item) => {
-        cart[item.id] = item.quantity;
-      });
-      return summary;
+      const uniqueItems = Array.from(new Map((summary.items || []).map((item) => [item.id, item])).values());
+      cartItemsSnapshot = uniqueItems;
+      cartState.hydrate(uniqueItems);
+      cart = Object.fromEntries(cartState.items);
+      return { ...summary, items: uniqueItems };
     }
 
     async function loadProfile() {
@@ -1887,7 +1902,7 @@ Oq fonli foto</div>
     }
 
     function qtyOf(id) {
-      return cart[id] || 0;
+      return cartState.qtyOf(id);
     }
 
     function showToast(text) {
@@ -1918,7 +1933,7 @@ Oq fonli foto</div>
     }
 
     function totalQty() {
-      return Object.values(cart).reduce((a, b) => a + b, 0);
+      return cartState.totalQty();
     }
 
     function totalPrice() {
@@ -1967,9 +1982,9 @@ Oq fonli foto</div>
       const q = qtyOf(id);
       const plusDisabled = stock <= 0 || q >= stock ? 'disabled' : '';
       return `
-        <button class="qty-minus" data-action="minus" data-id="${id}">−</button>
+        <button class="qty-minus" data-action="qty-minus" data-id="${id}">−</button>
         <span>${q}</span>
-        <button class="qty-plus" data-action="plus" data-id="${id}" ${plusDisabled}>+</button>
+        <button class="qty-plus" data-action="qty-plus" data-id="${id}" ${plusDisabled}>+</button>
       `;
     }
 
@@ -2001,7 +2016,7 @@ Oq fonli foto</div>
             <p class="product-rating">⭐ ${ratingValue.toFixed(1)} (${reviews})</p>
             ${qtyOf(p.id) > 0
               ? `<div class="qty" data-qty-wrap="${p.id}">${makeQtyControls(p.id)}</div>`
-              : `<button class="btn gm-btn gm-btn-primary quick-add-btn" data-action="add" data-id="${p.id}" ${stock <= 0 ? 'disabled' : ''}>Savatga qo‘shish</button>`}
+              : `<button class="btn gm-btn gm-btn-primary quick-add-btn" data-action="add-to-cart" data-id="${p.id}" ${stock <= 0 ? 'disabled' : ''}>Savatga qo‘shish</button>`}
           </div>
         </article>
       `;
@@ -2014,6 +2029,10 @@ Oq fonli foto</div>
     function setSectionVisibility(sectionEl, headEl, hasItems) {
       sectionEl.style.display = hasItems ? 'grid' : 'none';
       if (headEl) headEl.style.display = hasItems ? 'flex' : 'none';
+    }
+
+    function dedupeProductsById(items = []) {
+      return Array.from(new Map(items.map((item) => [item.id, item])).values());
     }
 
     function renderHome() {
@@ -2029,8 +2048,8 @@ Oq fonli foto</div>
           return String(a.name || '').localeCompare(String(b.name || ''), 'uz');
         })
         .slice(0, 12);
-      const discounts = products.filter((p) => Number(p.oldPrice || 0) > Number(p.price || 0)).slice(0, 6);
-      const fast = products.filter((p) => Number(p.stock || 0) > 0).slice(0, 6);
+      const discounts = dedupeProductsById(products.filter((p) => Number(p.oldPrice || 0) > Number(p.price || 0)).slice(0, 6));
+      const fast = dedupeProductsById(products.filter((p) => Number(p.stock || 0) > 0).slice(0, 6));
       const bestSeller = popular.slice(0, 6);
       const reorder = cartItemsSnapshot.length
         ? products.filter((p) => cartItemsSnapshot.some((c) => c.id === p.id)).slice(0, 6)
@@ -2075,19 +2094,21 @@ Oq fonli foto</div>
     }
 
     function getCategoryEntries() {
-      const curated = CURATED_CATEGORIES.map((c) => ({
-        ...c,
-        count: products.filter((p) => productMatchesCategory(p, c.key)).length
-      }));
-      const total = curated.reduce((sum, c) => sum + c.count, 0);
-      return [{ key: 'all', displayName: 'Hammasi', icon: '🛍️', count: total }, ...curated];
+      const counts = new Map();
+      products.forEach((p) => {
+        const key = normalizedCategoryName(p.categoryDisplayName || p.category);
+        counts.set(key, (counts.get(key) || 0) + 1);
+      });
+      const dynamic = Array.from(counts.entries())
+        .map(([key, count]) => ({ key, displayName: key, icon: getCategoryIcon(key), count }))
+        .sort((a, b) => a.displayName.localeCompare(b.displayName, 'uz'));
+      return [{ key: 'all', displayName: 'Hammasi', icon: '🛍️', count: products.length }, ...dynamic];
     }
 
     function productMatchesCategory(product, categoryKey) {
       if (!categoryKey || categoryKey === 'all') return true;
-      return normalizeCategoryKey(product.categoryDisplayName || product.category, product.name) === categoryKey;
+      return normalizedCategoryName(product.categoryDisplayName || product.category) === categoryKey;
     }
-
     function renderHomeCategories() {
       const entries = getCategoryEntries().filter((c) => c.key === 'all' || c.count > 0);
       homeCategories.innerHTML = entries.map((c) => `
@@ -2157,7 +2178,7 @@ Oq fonli foto</div>
                 <div class="cart-item-title">${item.name}</div>
                 <div class="cart-item-meta">
                   <strong>${money(item.price)}</strong>
-                  <button class="icon-btn cart-remove-btn" data-action="remove" data-id="${item.id}">Olib tashlash</button>
+                  <button class="icon-btn cart-remove-btn" data-action="remove-from-cart" data-id="${item.id}">Olib tashlash</button>
                 </div>
               </div>
             </div>
@@ -2425,7 +2446,7 @@ Oq fonli foto</div>
         <article class="upsell-card" data-action="open-product" data-product-id="${p.id}">
           <img class="cart-item-thumb" src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />
           <h6>${p.name}</h6>
-          <div class="list-row"><span class="price">${money(p.price)}</span><button class="upsell-quick-btn" data-action="add" data-id="${p.id}">+ Qo‘shish</button></div>
+          <div class="list-row"><span class="price">${money(p.price)}</span><button class="upsell-quick-btn" data-action="add-to-cart" data-id="${p.id}">+ Qo‘shish</button></div>
         </article>
       `;
     }
@@ -2764,13 +2785,13 @@ Oq fonli foto</div>
       const action = actionEl?.dataset.action;
 
       try {
-        if (action === 'remove') {
+        if (action === 'remove-from-cart') {
           e.preventDefault();
           e.stopPropagation();
           await setQty(actionEl.dataset.id, 0, false);
           return;
         }
-        if (action === 'add') {
+        if (action === 'add-to-cart') {
           e.preventDefault();
           e.stopPropagation();
           const id = actionEl.dataset.id;
@@ -2782,7 +2803,7 @@ Oq fonli foto</div>
           await setQty(id, current + 1, true);
           return;
         }
-        if (action === 'plus') {
+        if (action === 'qty-plus') {
           e.preventDefault();
           e.stopPropagation();
           const id = actionEl.dataset.id;
@@ -2800,7 +2821,7 @@ Oq fonli foto</div>
           return;
         }
 
-        if (action === 'minus') {
+        if (action === 'qty-minus') {
           e.preventDefault();
           e.stopPropagation();
           const id = actionEl.dataset.id;
@@ -2813,7 +2834,7 @@ Oq fonli foto</div>
       }
 
       const card = e.target.closest('[data-action="open-product"]');
-      if (card && !e.target.closest('[data-action="add"], [data-action="plus"], [data-action="minus"], [data-action="remove"], [data-action="favorite"], .qty')) {
+      if (card && !e.target.closest('[data-action="add-to-cart"], [data-action="qty-plus"], [data-action="qty-minus"], [data-action="remove-from-cart"], [data-action="favorite"], .qty')) {
         openProductModal(card.dataset.productId);
         return;
       }

@@ -10,8 +10,10 @@ const integrationController = require('../controllers/integration.controller.js'
 const adminController = require('../controllers/admin.controller.js');
 const { parseMultipartSingleFile } = require('../middlewares/upload.middleware.js');
 const { requireAdminImportToken } = require('../middlewares/admin-token.middleware.js');
+const { env } = require('../config/env.js');
 
 const router = express.Router();
+// TODO(PHASE-2): Split this monolithic router into module-local routers under src/modules/* while preserving current public API paths.
 const XLSX_IMPORT_MAX_BYTES = 10 * 1024 * 1024;
 
 router.get('/home', homeController.getHome);
@@ -79,9 +81,13 @@ router.post('/admin/categories/:id/image', requireAdminImportToken, parseMultipa
 
 router.get('/admin/products', requireAdminImportToken, adminController.getProducts);
 router.put('/admin/products/:id', requireAdminImportToken, adminController.updateProduct);
-router.post('/admin/products/load-demo', requireAdminImportToken, adminController.loadDemoProducts);
-router.post('/admin/products/load-kanstik-demo', requireAdminImportToken, adminController.loadKanstikDemoProducts);
-router.post('/admin/products/clear-demo', requireAdminImportToken, adminController.clearDemoProducts);
+
+// TODO(PHASE-3): Remove demo loader routes fully after DALION/Excel production migration sign-off.
+if (env.enableDemoLoaders) {
+  router.post('/admin/products/load-demo', requireAdminImportToken, adminController.loadDemoProducts);
+  router.post('/admin/products/load-kanstik-demo', requireAdminImportToken, adminController.loadKanstikDemoProducts);
+  router.post('/admin/products/clear-demo', requireAdminImportToken, adminController.clearDemoProducts);
+}
 router.get('/admin/store/summary', requireAdminImportToken, adminController.getStoreSummary);
 router.post('/admin/store/reload', requireAdminImportToken, adminController.reloadStore);
 router.post('/admin/dalion/sync', requireAdminImportToken, adminController.syncDalionProducts);

@@ -12,7 +12,8 @@ process.on('unhandledRejection', (reason) => {
 });
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const { env } = require('./src/config/env.js');
+const PORT = env.port;
 
 const apiRoutes = require('./src/routes/api.routes.js');
 const paymeController = require('./src/controllers/payme.controller.js');
@@ -59,7 +60,7 @@ app.get('/api/payme', (req, res) => {
   res.status(200).json({ ok: true, message: 'Payme endpoint expects POST JSON-RPC' });
 });
 app.post('/api/payme', paymeController.paymeRpc);
-app.use('/api/v1', apiRoutes);
+app.use(env.apiPrefix, apiRoutes);
 
 // Simple health route for hosting platforms
 app.get('/health', (req, res) => {
