@@ -2,11 +2,11 @@ const express = require('express');
 const path = require('path');
 
 process.on('uncaughtException', (error) => {
-  console.error('[PROCESS] uncaughtException', { message: error?.message });
+  console.error('[ERROR] uncaughtException', { message: error?.message });
 });
 
 process.on('unhandledRejection', (reason) => {
-  console.error('[PROCESS] unhandledRejection', {
+  console.error('[ERROR] unhandledRejection', {
     message: reason instanceof Error ? reason.message : String(reason)
   });
 });
@@ -20,6 +20,18 @@ const paymeController = require('./src/controllers/payme.controller.js');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+  const allowedOrigins = String(process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000').split(',').map((x) => x.trim()).filter(Boolean);
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-phone, x-admin-token');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  return next();
+});
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   maxAge: '30d',
@@ -61,6 +73,12 @@ app.get('/api/payme', (req, res) => {
 });
 app.post('/api/payme', paymeController.paymeRpc);
 app.use(env.apiPrefix, apiRoutes);
+
+app.use((err, req, res, next) => {
+  console.error('[ERROR] request_failed', { path: req.path, method: req.method, message: err?.message });
+  if (res.headersSent) return next(err);
+  return res.status(500).json({ ok: false, message: 'Serverda xatolik yuz berdi' });
+});
 
 // Simple health route for hosting platforms
 app.get('/health', (req, res) => {
