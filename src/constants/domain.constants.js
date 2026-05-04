@@ -44,6 +44,7 @@ const API_CONFIG = Object.freeze({
 });
 
 const STORE_LOCATION = Object.freeze({
+  address: 'Samarqand, Shohruh Mirzo 33',
   lat: 39.654572,
   lng: 66.958871,
   name: 'GlobusMarket',
