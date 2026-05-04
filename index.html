@@ -1014,24 +1014,28 @@
       pointer-events: none;
     }
 
-    .modal-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 10px; }
-    .modal-head h3 { margin: 0; padding-right: 4px; line-height: 1.3; }
+    .modal-head { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; margin: -14px -14px 10px; padding: 12px 14px; background: rgba(255,255,255,.96); border-bottom: 1px solid #eef2f7; }
+    .modal-head h3 { margin: 0; padding-right: 8px; line-height: 1.3; font-size: 18px; }
     .close {
       border: 1px solid rgba(130, 160, 210, 0.36);
       background: rgba(18, 31, 56, 0.74);
       color: #d7e8ff;
-      width: 30px;
-      height: 30px;
-      border-radius: 9px;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
       cursor: pointer;
     }
 
-    .modal-image {
-      height: 240px;
-      margin: 10px 0;
-      overflow: hidden;
-    }
-    .modal-image img { width: 100%; height: 100%; object-fit: contain; }
+    .modal-image { margin: 8px 0 12px; background: #f8fafc; border-radius: 16px; padding: 12px; min-height: 220px; max-height: 320px; display:flex; align-items:center; justify-content:center; overflow: hidden; }
+    .modal-image img { width: 100%; max-height: 296px; object-fit: contain; }
+    .modal-price-wrap { margin: 4px 0 8px; }
+    .modal-price-main { font-size: 28px; font-weight: 800; margin: 0; }
+    .modal-inline-qty .qty { width: 100%; height: 40px; grid-template-columns: 44px 1fr 44px; overflow: hidden; }
+    .modal-inline-qty .qty button, .modal-inline-qty .qty span { height: 40px; }
+    .modal-reco-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; overflow: hidden; }
+    .modal-reco-grid .upsell-card h6 { font-size: 12px; }
+    .modal-sticky-cta { position: sticky; bottom: 0; background: rgba(255,255,255,.97); padding-top: 8px; }
+    #productModal { overflow-y: auto; padding-bottom: 84px; }
     #productModal { overflow-y: auto; }
     .location-permission-card {
       width: 100%;
@@ -1191,7 +1195,7 @@
   
     .profile-hero{background:linear-gradient(135deg,#5b4cff,#8b6bff);color:#fff;border:none}
     .profile-avatar{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:28px}
-    .profile-menu .menu-item{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid #eceff5;border-radius:12px;margin-top:8px;background:#fff;color:#1d2440}
+    .profile-menu .menu-item{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid #eceff5;border-radius:12px;margin-top:8px;background:#fff;color:#1d2440;width:100%;text-align:left;cursor:pointer}
     .profile-menu .menu-item small{color:#667085}
     .auth-sheet{background:#fff;border:1px solid #eceff5}
     .auth-input{background:#fff;color:#1d2440;border:1px solid #d0d5dd}
@@ -1394,13 +1398,13 @@
           </div>
         </div>
         <div class="list-card gm-card profile-menu" id="profileMenuCard">
-          <div class="menu-item"><span>Buyurtmalarim</span><small>›</small></div>
-          <div class="menu-item"><span>To‘lov usullari</span><small>Tez orada</small></div>
-          <div class="menu-item"><span>Manzillarim</span><small>Tez orada</small></div>
-          <div class="menu-item"><span>Promokodlarim</span><small>Tez orada</small></div>
-          <div class="menu-item"><span>Xabarnomalar</span><small>Tez orada</small></div>
-          <div class="menu-item"><span>Sozlamalar</span><small>Tez orada</small></div>
-          <div class="menu-item"><span>Yordam / Biz bilan bog‘lanish</span><small>24/7</small></div>
+          <button class="menu-item" data-profile-action="orders"><span>Buyurtmalarim</span><small>›</small></button>
+          <button class="menu-item" data-profile-action="payments"><span>To‘lov usullari</span><small>Naqd / Payme / Click</small></button>
+          <button class="menu-item" data-profile-action="addresses"><span>Manzillarim</span><small>Tahrirlash</small></button>
+          <button class="menu-item" data-profile-action="promos"><span>Promokodlarim</span><small>Kiritish</small></button>
+          <button class="menu-item" data-profile-action="notifications"><span>Xabarnomalar</span><small>Ko‘rish</small></button>
+          <button class="menu-item" data-profile-action="courier"><span>Kuryer bo‘lish</span><small>Ariza yuborish</small></button>
+          <button class="menu-item" data-profile-action="help"><span>Yordam / Biz bilan bog‘lanish</span><small>24/7</small></button>
           <button class="btn gm-btn gm-btn-secondary btn-secondary" id="logoutBtn" style="margin-top:12px;">Chiqish</button>
         </div>
         <div class="list-card gm-card" id="profileOrdersCard">
@@ -1421,7 +1425,8 @@
         <div class="list-card checkout-delivery-card">
           <h4 style="margin-bottom:10px;">Yetkazib berish</h4>
           <p class="muted" id="checkoutSavedAddress">Saqlangan manzil: -</p>
-          <p class="muted" id="checkoutLocation">Manzil: Samarqand, Shohrux Mirzo 33</p>
+          <p class="muted" id="checkoutLocation">Do'kon: Samarqand, Shohruh Mirzo 33</p>
+          <p class="muted" id="checkoutAddressLabel">Mijoz manzili: Manzil kiritilmagan</p>
           <p class="muted" id="checkoutGeo">Geo: olinmagan</p>
           <p class="muted" id="checkoutLandmark">Orientir: -</p>
           <input id="manualAddress" class="checkout-input" placeholder="Manzil (qo'lda)" />
@@ -1429,15 +1434,17 @@
           <input id="promoCodeInput" class="checkout-input" placeholder="Promo kod (ixtiyoriy)" />
           <button class="btn btn-secondary location-premium-btn" id="captureLocationBtn">GPS orqali manzilni olish (ixtiyoriy)</button>
           <p class="muted" id="checkoutLocationHint">Lokatsiya ixtiyoriy. Istasangiz manzilni qo‘lda kiriting.</p>
-          <p class="muted" id="checkoutDistance">Masofa: aniqlanmagan</p>
-          <p class="muted" id="checkoutTime">ETA: 30 daqiqa</p>
-          <p class="muted" id="checkoutPrice">Narx: 12 000 so'm</p>
+          <p class="muted" id="checkoutDistance">Masofa: Aniqlanmagan</p>
+          <p class="muted" id="checkoutTime">4 km gacha 18 500 so‘m, keyin har km uchun 4 000 so‘m</p>
+          <p class="muted" id="checkoutPrice">Narx: 0 so'm</p>
           <p class="field-error" id="addressValidationError"></p>
         </div>
         <div class="list-card gm-card">
-          <h4 style="margin-bottom:8px;">To‘lov: Payme</h4>
+          <h4 style="margin-bottom:8px;">To‘lov turini tanlang</h4>
           <div class="payment-grid">
+            <button class="pay-btn active" data-payment="cash">💵 Naqd<br><span class="payment-hint">Yetkazilganda to‘lov</span><br><small>Karta ma’lumoti talab qilinmaydi</small></button>
             <button class="pay-btn" data-payment="payme">🟩 Payme<br><span class="payment-hint">Tezkor onlayn to‘lov</span><br><small>Rasmiy to‘lov havolasi</small></button>
+            <button class="pay-btn" data-payment="click">🟦 Click<br><span class="payment-hint">Click orqali to‘lov</span><br><small>Rasmiy Click havolasi</small></button>
           </div>
           <div id="paymentLinks" class="muted" style="margin-top:8px;"></div>
           <input id="paymentProofInput" class="checkout-input" type="file" accept="image/*,.pdf" style="display:none;" />
@@ -1499,16 +1506,17 @@
           <h3 id="modalName">Mahsulot</h3>
           <button class="close" id="closeModalBtn">✕</button>
         </div>
-        <p class="muted" id="modalCategory">Kategoriya</p>
-        <div class="image-box modal-image">
-Oq fonli foto</div>
+        <div class="image-box modal-image"></div>
+        <p class="muted" id="modalCategory">Kategoriya: -</p>
         <div class="modal-rating-row">
           <span class="gm-chip gm-chip--delivery" id="modalEta">🚚 20 daqiqa</span>
           <span class="gm-chip gm-chip--success" id="modalAvailability">Mavjud</span>
         </div>
-        <p class="price modal-price-main" id="modalPrice">0 so'm</p>
-        <p class="old-price" id="modalOldPrice">0 so'm</p>
-        <div class="modal-trust"><p id="modalTrustDelivery">🚚 20 daqiqada yetkazib beramiz</p></div>
+        <div class="modal-price-wrap">
+          <p class="price modal-price-main" id="modalPrice">0 so'm</p>
+          <p class="old-price" id="modalOldPrice">0 so'm</p>
+        </div>
+        <div class="modal-trust"><p id="modalTrustDelivery">🚚 Tez yetkazib berish</p></div>
         <p class="muted" id="modalDescription">Mahsulot tavsifi tez orada yangilanadi.</p>
         <div class="modal-specs" id="modalSpecs"></div>
         <div class="modal-inline-qty" id="modalQty"></div>
@@ -1534,6 +1542,15 @@ Oq fonli foto</div>
         </div>
       </div>
     </div>
+    <div class="auth-sheet-overlay" id="profileActionOverlay">
+      <div class="auth-sheet">
+        <div class="auth-sheet-head">
+          <h3 style="margin:0;" id="profileActionTitle">Profil</h3>
+          <button class="auth-sheet-close" id="closeProfileActionBtn">✕</button>
+        </div>
+        <div id="profileActionBody"></div>
+      </div>
+    </div>
 
     <div class="toast" id="toast">Savatga qo'shildi</div>
   </main>
@@ -1554,9 +1571,12 @@ Oq fonli foto</div>
     const cartState = new CartState();
     let cart = {};
     let currentView = 'homeView';
-    let selectedPayment = 'payme';
+    let selectedPayment = 'cash';
+    const STORE_ADDRESS = 'Samarqand, Shohruh Mirzo 33';
+    const STORE_LAT = 39.654572;
+    const STORE_LNG = 66.958871;
     const DEFAULT_LOCATION_CITY = 'Samarqand';
-    const DEFAULT_LOCATION_ADDRESS = 'Samarqand, Shohrux Mirzo 33';
+    const DEFAULT_LOCATION_ADDRESS = STORE_ADDRESS;
     let currentUser = null;
     let customerLocation = { lat: null, lng: null, accuracy: null, addressText: '', landmarkText: '', permissionDenied: false };
     let activeModalProductId = null;
@@ -1630,6 +1650,7 @@ Oq fonli foto</div>
     const promoCarousel = document.getElementById('promoCarousel');
     const activeOrderCardWrap = document.getElementById('activeOrderCardWrap');
     const checkoutLocation = document.getElementById('checkoutLocation');
+    const checkoutAddressLabel = document.getElementById('checkoutAddressLabel');
     const checkoutSavedAddress = document.getElementById('checkoutSavedAddress');
     const checkoutGeo = document.getElementById('checkoutGeo');
     const checkoutLandmark = document.getElementById('checkoutLandmark');
@@ -1697,7 +1718,14 @@ Oq fonli foto</div>
     const modalAddBtn = document.getElementById('modalAddBtn');
     const modalImageBox = document.querySelector('.modal-image');
     const locationDeniedOverlay = document.getElementById('locationDeniedOverlay');
+    const profileActionOverlay = document.getElementById('profileActionOverlay');
+    const profileActionTitle = document.getElementById('profileActionTitle');
+    const profileActionBody = document.getElementById('profileActionBody');
+    const closeProfileActionBtn = document.getElementById('closeProfileActionBtn');
     const profileAddress = document.getElementById('profileAddress');
+    const COURIER_TELEGRAM_LINK = 'https://t.me/globusmarket_couriers';
+    let authOtpState = 'idle';
+    let otpResendAt = 0;
     const retryLocationBtn = document.getElementById('retryLocationBtn');
     const manualLocationBtn = document.getElementById('manualLocationBtn');
 
@@ -1839,7 +1867,30 @@ Oq fonli foto</div>
     }
 
     function resolvePreferredAddress() {
-      return String(manualAddress.value || customerLocation.addressText || currentUser?.address || homePayload?.delivery_info?.location || DEFAULT_LOCATION_ADDRESS).trim();
+      return String(manualAddress.value || customerLocation.addressText || currentUser?.address || '').trim();
+    }
+
+    function haversineKm(lat1, lng1, lat2, lng2) {
+      const toRad = (deg) => (Number(deg) * Math.PI) / 180;
+      const earthKm = 6371;
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+      return 2 * earthKm * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function calculateDeliveryPrice(distanceKm) {
+      if (!Number.isFinite(distanceKm)) return null;
+      const raw = distanceKm <= 4 ? 18500 : (18500 + ((distanceKm - 4) * 4000));
+      return Math.round(raw / 500) * 500;
+    }
+
+    function getDeliveryState() {
+      const hasGeo = Number.isFinite(Number(customerLocation.lat)) && Number.isFinite(Number(customerLocation.lng))
+        && !(Number(customerLocation.lat) === 0 && Number(customerLocation.lng) === 0);
+      const distanceKm = hasGeo ? haversineKm(STORE_LAT, STORE_LNG, Number(customerLocation.lat), Number(customerLocation.lng)) : null;
+      const deliveryPrice = calculateDeliveryPrice(distanceKm);
+      return { hasGeo, distanceKm, deliveryPrice };
     }
 
     async function reverseGeocode(lat, lng) {
@@ -1869,14 +1920,17 @@ Oq fonli foto</div>
     async function requestOtpCode() {
       const phoneValue = String(authPhone.value || '').trim();
       if (!phoneValue) { showToast('Telefon raqam kiriting'); return; }
-      const out = await api('/auth/request-otp', { method: 'POST', body: JSON.stringify({ phone: phoneValue }) });
-      if (out.devOtp) {
-        devOtpHint.style.display = 'block';
-        devOtpHint.textContent = `Dev OTP (mock): ${out.devOtp}`;
-      } else {
-        devOtpHint.style.display = 'none';
-        devOtpHint.textContent = '';
-      }
+      if (Date.now() < otpResendAt) { showToast('Kodni qayta yuborish uchun kuting'); return; }
+      authOtpState = 'otp_sent';
+      await api('/auth/request-otp', { method: 'POST', body: JSON.stringify({ phone: phoneValue }) });
+      otpResendAt = Date.now() + 60000;
+      devOtpHint.style.display = 'block';
+      devOtpHint.textContent = 'Kod yuborildi. 60 soniyadan keyin qayta yuborish mumkin.';
+      const timer = setInterval(() => {
+        const left = Math.max(0, Math.ceil((otpResendAt - Date.now()) / 1000));
+        requestOtpBtn.textContent = left > 0 ? `Kodni qayta olish (${left}s)` : 'Kod olish';
+        if (left <= 0) clearInterval(timer);
+      }, 500);
       showToast('OTP yuborildi');
     }
 
@@ -1884,13 +1938,26 @@ Oq fonli foto</div>
       const phoneValue = String(authPhone.value || '').trim();
       const codeValue = String(otpCodeInput.value || '').trim();
       if (!phoneValue || !codeValue) { showToast('Telefon va OTP kodni kiriting'); return; }
+      authOtpState = 'verifying';
       const out = await api('/auth/verify-otp', { method: 'POST', body: JSON.stringify({ phone: phoneValue, code: codeValue }) });
       if (currentUser && String(currentUser.phone || '') === phoneValue) {
         currentUser.phoneVerified = Boolean(out.user?.phoneVerified);
         currentUser.otpVerifiedAt = out.user?.otpVerifiedAt || null;
         localStorage.setItem('globusUser', JSON.stringify(currentUser));
       }
+      authOtpState = 'verified';
       showToast('Telefon OTP orqali tasdiqlandi');
+    }
+
+    
+    function openProfileAction(title, bodyHtml) {
+      profileActionTitle.textContent = title;
+      profileActionBody.innerHTML = bodyHtml;
+      profileActionOverlay.classList.add('show');
+    }
+
+    function closeProfileAction() {
+      profileActionOverlay.classList.remove('show');
     }
 
     function requireAuthOrIntro() {
@@ -1928,6 +1995,25 @@ Oq fonli foto</div>
       }[status] || status || '-';
     }
 
+    
+    function paymentMethodLabel(method) {
+      return {
+        cash: 'Naqd',
+        payme: 'Payme',
+        click: 'Click'
+      }[String(method || '').toLowerCase()] || '-';
+    }
+
+    function paymentStatusLabel(status) {
+      return {
+        payment_pending: 'To‘lov kutilmoqda',
+        pending: 'To‘lov kutilmoqda',
+        paid: 'To‘lov qilingan',
+        unpaid: 'To‘lov qilinmagan',
+        cancelled: 'Bekor qilingan'
+      }[String(status || '').toLowerCase()] || '-';
+    }
+
     function isActiveOrderStatus(status) {
       return ['new', 'sent_to_tsd', 'picking', 'picked', 'waiting_courier', 'out_for_delivery'].includes(String(status || ''));
     }
@@ -1941,7 +2027,7 @@ Oq fonli foto</div>
     }
 
     function getCheckoutTotalsSnapshot() {
-      const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
+      const deliveryPrice = Number(getDeliveryState().deliveryPrice || 0);
       const productsSubtotal = totalPrice();
       const discountAmount = cartItemsSnapshot.reduce((sum, item) => {
         const qty = Number(item.quantity || cart[item.id] || 0);
@@ -2192,7 +2278,7 @@ Oq fonli foto</div>
       }).join('');
 
       const subtotal = totalPrice();
-      const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
+      const deliveryPrice = Number(getDeliveryState().deliveryPrice || 0);
       cartSubtotal.textContent = money(subtotal);
       cartDelivery.textContent = money(deliveryPrice);
       cartTotalPrice.textContent = money(subtotal + deliveryPrice);
@@ -2227,34 +2313,35 @@ Oq fonli foto</div>
         `;
       }).join('');
 
-      const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
-      const deliveryEta = homePayload?.settings?.deliveryTimeText || homePayload?.delivery_info?.time || "30 daqiqa";
+      const deliveryState = getDeliveryState();
+      const deliveryPrice = Number(deliveryState.deliveryPrice || 0);
       const subtotal = totalPrice();
       const orderTotal = subtotal + deliveryPrice;
       checkoutTotal.textContent = `Jami: ${money(orderTotal)}`;
       checkoutSubtotal.textContent = money(subtotal);
       checkoutDeliveryPrice.textContent = money(deliveryPrice);
       checkoutGrandTotal.textContent = money(orderTotal);
+      const preferredAddress = resolvePreferredAddress();
       checkoutSavedAddress.textContent = `Saqlangan manzil: ${currentUser?.address || 'Manzil qo‘shilmagan'}`;
-      checkoutLocation.textContent = `Manzil: ${resolvePreferredAddress()}`;
+      checkoutLocation.textContent = `Do'kon: ${STORE_ADDRESS}`;
+      checkoutAddressLabel.textContent = `Mijoz manzili: ${preferredAddress || 'Manzil kiritilmagan'}`;
       checkoutLandmark.textContent = `Orientir: ${customerLocation.landmarkText || landmarkInput.value || '-'}`;
-      checkoutGeo.textContent = Number.isFinite(Number(customerLocation.lat)) && Number.isFinite(Number(customerLocation.lng))
+      checkoutGeo.textContent = deliveryState.hasGeo
         ? `Geo: ${Number(customerLocation.lat).toFixed(6)}, ${Number(customerLocation.lng).toFixed(6)} (±${Math.round(Number(customerLocation.accuracy || 0))}m)`
         : 'Geo: olinmagan';
-      const distanceKm = Number(homePayload?.delivery_info?.distanceKm);
-      checkoutDistance.textContent = Number.isFinite(distanceKm) ? `Masofa: ${distanceKm.toFixed(1)} km` : 'Masofa: aniqlanmagan';
-      checkoutTime.textContent = `ETA: ${deliveryEta}`;
+      checkoutDistance.textContent = Number.isFinite(deliveryState.distanceKm) ? `Masofa: ${deliveryState.distanceKm.toFixed(1)} km` : 'Masofa: Aniqlanmagan';
+      checkoutTime.textContent = "4 km gacha 18 500 so‘m, keyin har km uchun 4 000 so‘m";
       checkoutPrice.textContent = `Narx: ${money(deliveryPrice)}`;
       const checkoutLocationHint = document.getElementById('checkoutLocationHint');
       if (checkoutLocationHint) {
         checkoutLocationHint.textContent = customerLocation.permissionDenied
-          ? 'Manzilni qo‘lda kiriting yoki lokatsiyani yoqing'
-          : 'Lokatsiya ixtiyoriy. Istasangiz manzilni qo‘lda kiriting.';
+          ? 'Masofa aniqlanmagan. GPS ni yoqing yoki manzil kiriting.'
+          : 'Lokatsiya olindi.';
       }
       const clickAmountTiyin = Math.round(Number(orderTotal || 0) * 100);
       if (selectedPayment === 'click') paymentLinks.innerHTML = `Click: <a href="https://indoor.click.uz/pay?id=081328&t=${clickAmountTiyin}" target="_blank">To‘lov havolasi</a>`;
-      else if (selectedPayment === 'payme') paymentLinks.innerHTML = 'Payme: To‘lovni Payme ilovasi orqali yakunlang';
-      else paymentLinks.innerHTML = '';
+      else if (selectedPayment === 'payme') paymentLinks.innerHTML = 'Payme: To‘lovni Payme ilovasi orqali yakunlang. To‘lov holati: To‘lov kutilmoqda';
+      else paymentLinks.innerHTML = 'To‘lov yetkazib berilganda naqd amalga oshiriladi';
       const isOnline = selectedPayment === 'click' || selectedPayment === 'payme';
       paymentProofInput.style.display = 'none';
       cashAgreementDetails.style.display = selectedPayment === 'cash' ? 'block' : 'none';
@@ -2412,7 +2499,7 @@ Oq fonli foto</div>
             <div style="margin-top:8px;display:grid;gap:6px;">
               ${(o.items || []).length ? (o.items || []).map((item) => `<div class="muted">${item.name || '-'} · ${item.quantity || 0} ta · ${money(item.price || 0)}</div>`).join('') : '<div class="muted">Mahsulotlar topilmadi</div>'}
               <div class="muted">Manzil: ${o.customerAddress || o.addressText || o.location || '-'}</div>
-              <div class="muted">To‘lov: ${o.paymentMethod === 'payme' ? 'Payme' : (o.paymentMethod || '-')} / ${o.paymentStatus === 'pending' ? "To‘lov kutilmoqda" : (o.paymentStatus || '-')}</div>
+              <div class="muted">To‘lov: ${paymentMethodLabel(o.paymentMethod)} / ${paymentStatusLabel(o.paymentStatus)}</div>
             </div>
           </details>
           <div style="display:flex;gap:8px;margin-top:10px;">
@@ -2478,20 +2565,21 @@ Oq fonli foto</div>
       const discountPercent = hasDiscount ? Math.max(1, Math.round(((oldPrice - price) / oldPrice) * 100)) : 0;
       const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || '20 daqiqa';
       modalName.textContent = p.name;
-      modalCategory.textContent = normalizedCategoryName(p.categoryDisplayName || p.category);
+      modalCategory.textContent = `Kategoriya: ${normalizedCategoryName(p.categoryDisplayName || p.category)}`;
       modalPrice.textContent = money(p.price);
       modalStickyPrice.textContent = money(p.price);
-      modalOldPrice.textContent = oldPrice > 0 ? money(oldPrice) : '';
+      modalOldPrice.textContent = hasDiscount ? money(oldPrice) : '';
       modalOldPrice.style.display = oldPrice > 0 ? 'block' : 'none';
       modalEta.textContent = `🚚 ${etaText}`;
       modalAvailability.textContent = stock > 0 ? 'Mavjud' : "Omborda yo'q";
       modalAvailability.className = `gm-chip ${stock > 0 ? 'gm-chip--success' : 'gm-chip--warning'}`;
       modalTrustDelivery.textContent = `🚚 ${etaText}da yetkazib beramiz`;
       modalDescription.textContent = p.description || p.subtitle || `${p.name} uchun buyurtma berishingiz mumkin.`;
-      modalSpecs.innerHTML = `<div class="spec-row"><span>Kategoriya</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
-        <div class="spec-row"><span>Qoldiq</span><strong>${stock > 0 ? stock : 0} ta</strong></div>`;
+      modalSpecs.innerHTML = `<div class="spec-row"><span>Kategoriya:</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
+        <div class="spec-row"><span>Qoldiq:</span><strong>${stock > 0 ? stock : 0} ta</strong></div>
+        ${p.code ? `<div class="spec-row"><span>Kod:</span><strong>${p.code}</strong></div>` : ''}`;
       
-      modalImageBox.innerHTML = p.image_url ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '';
+      modalImageBox.innerHTML = p.image_url ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '<div class="muted">Rasm mavjud emas</div>';
       if (hasDiscount) {
         modalImageBox.insertAdjacentHTML('beforeend', `<span class="gm-chip gm-chip--delivery product-discount">-${discountPercent}%</span>`);
       }
@@ -2506,6 +2594,8 @@ Oq fonli foto</div>
         modalUpsellTitle.style.display = 'none';
       }
       modalQty.innerHTML = makeQtyControls(p.id);
+      const modalQtyNow = qtyOf(p.id);
+      modalAddBtn.textContent = modalQtyNow > 0 ? 'Yana qo‘shish' : "Savatga qo'shish";
     }
 
     function renderAll() {
@@ -2554,10 +2644,10 @@ Oq fonli foto</div>
         customerLocation.accuracy = pos.coords.accuracy;
         customerLocation.permissionDenied = false;
         const geoAddress = await reverseGeocode(customerLocation.lat, customerLocation.lng);
-        customerLocation.addressText = geoAddress || customerLocation.addressText || 'Lokatsiya olindi';
+        customerLocation.addressText = geoAddress || customerLocation.addressText || '';
         closeLocationDeniedModal();
         renderCheckout();
-        showToast(geoAddress ? 'Manzil aniqlandi' : 'Lokatsiya olindi');
+        showToast('Lokatsiya olindi');
       }, () => {
         customerLocation.permissionDenied = true;
         renderCheckout();
@@ -2703,6 +2793,62 @@ Oq fonli foto</div>
         showToast(error.message || 'Qayta buyurtmada xatolik');
       }
     });
+
+
+    profileMenuCard?.addEventListener('click', (e) => {
+      const item = e.target.closest('[data-profile-action]');
+      if (!item) return;
+      const action = item.dataset.profileAction;
+      if (action === 'orders') { setView('profileView', { push: true }); return; }
+      if (action === 'payments') {
+        openProfileAction('To‘lov usullari', '<p class="muted">Naqd — buyurtma yetkazilganda to‘lov.</p><p class="muted">Payme — onlayn to‘lov (kutilmoqda holatida boshlanadi).</p><p class="muted">Click — Click havola orqali to‘lov.</p>');
+      }
+      if (action === 'addresses') {
+        openProfileAction('Manzillarim', `<input id="profileAddressInput" class="auth-input" placeholder="Manzil" value="${currentUser?.address || ''}" /><button class="btn gm-btn gm-btn-primary btn-primary" id="saveProfileAddressBtn" style="margin-top:10px;">Saqlash</button>`);
+      }
+      if (action === 'promos') {
+        openProfileAction('Promokodlarim', '<input id="profilePromoInput" class="auth-input" placeholder="Promo kod" /><p class="muted" style="margin-top:8px;">Promo tizimi tez orada faollashadi.</p>');
+      }
+      if (action === 'notifications') {
+        openProfileAction('Xabarnomalar', '<p class="muted">Hozircha xabarnomalar yo‘q</p>');
+      }
+      if (action === 'help') {
+        openProfileAction('Yordam', `<p class="muted">Qo‘llab-quvvatlash: <a href="tel:+998900000000">+998 90 000 00 00</a></p><p class="muted">Telegram: <a target="_blank" href="${COURIER_TELEGRAM_LINK}">Guruhga o‘tish</a></p>`);
+      }
+      if (action === 'courier') {
+        const status = localStorage.getItem('courierApplicationStatus') || '';
+        openProfileAction('Kuryer bo‘lish', `<input id="courierName" class="auth-input" placeholder="Ism" value="${currentUser?.name || ''}" />
+          <input id="courierPhone" class="auth-input" placeholder="Telefon" value="${currentUser?.phone || ''}" style="margin-top:8px;" />
+          <input id="courierCity" class="auth-input" placeholder="Shahar" style="margin-top:8px;" />
+          <select id="courierTransport" class="auth-input" style="margin-top:8px;"><option value="piyoda">Piyoda</option><option value="velosiped">Velosiped</option><option value="skuter">Skuter</option><option value="mashina">Mashina</option></select>
+          <input id="courierNote" class="auth-input" placeholder="Izoh (ixtiyoriy)" style="margin-top:8px;" />
+          <button class="btn gm-btn gm-btn-primary btn-primary" id="courierSubmitBtn" style="margin-top:10px;">Ariza yuborish</button>
+          <p class="muted" style="margin-top:8px;">${status === 'approved' ? 'Siz kuryer sifatida tasdiqlandingiz' : (status === 'pending' ? 'Ko‘rib chiqilmoqda' : '')}</p>
+          ${status === 'approved' ? `<a class="btn gm-btn gm-btn-secondary btn-secondary" style="margin-top:8px;display:inline-flex;" target="_blank" href="${COURIER_TELEGRAM_LINK}">Telegram guruhga o‘tish</a>` : ''}`);
+      }
+    });
+
+    profileActionBody?.addEventListener('click', async (e) => {
+      if (e.target.id === 'saveProfileAddressBtn') {
+        const address = String(document.getElementById('profileAddressInput')?.value || '').trim();
+        if (currentUser) {
+          currentUser.address = address;
+          localStorage.setItem('globusUser', JSON.stringify(currentUser));
+          await api('/profile', { method: 'PUT', body: JSON.stringify({ name: currentUser.name, phone: currentUser.phone, address }) });
+          renderAll();
+        }
+        showToast('Manzil saqlandi');
+        closeProfileAction();
+      }
+      if (e.target.id === 'courierSubmitBtn') {
+        localStorage.setItem('courierApplicationStatus', 'pending');
+        showToast('Arizangiz yuborildi');
+        closeProfileAction();
+      }
+    });
+
+    closeProfileActionBtn?.addEventListener('click', closeProfileAction);
+    profileActionOverlay?.addEventListener('click', (e) => { if (e.target === profileActionOverlay) closeProfileAction(); });
 
     document.getElementById('openSearchBtn').addEventListener('click', () => {
       setView('searchView', { push: true });
@@ -2876,9 +3022,12 @@ Oq fonli foto</div>
     modalAddBtn.addEventListener('click', async () => {
       if (!activeModalProductId) return;
       try {
+        modalAddBtn.disabled = true;
         await setQty(activeModalProductId, qtyOf(activeModalProductId) + 1, true);
       } catch (error) {
         showToast(error.message || 'Xatolik yuz berdi');
+      } finally {
+        modalAddBtn.disabled = false;
       }
     });
 
@@ -2921,12 +3070,19 @@ Oq fonli foto</div>
         showToast("To'lov turini tanlang");
         return;
       }
-      customerLocation.addressText = manualAddress.value.trim() || '' || '';
+      customerLocation.addressText = manualAddress.value.trim() || customerLocation.addressText || '';
       customerLocation.landmarkText = landmarkInput.value.trim();
-      if (!Number.isFinite(Number(customerLocation.lat)) && !customerLocation.addressText) {
+      const deliveryState = getDeliveryState();
+      if (!deliveryState.hasGeo && !customerLocation.addressText) {
         addressValidationError.textContent = "Manzilni kiriting yoki lokatsiyani yoqing";
         addressValidationError.style.display = 'block';
         showToast("Lokatsiyani kiriting yoki manzilni to‘ldiring");
+        return;
+      }
+      if (!deliveryState.hasGeo || !Number.isFinite(Number(deliveryState.deliveryPrice))) {
+        addressValidationError.textContent = "Yetkazib berish narxini hisoblash uchun lokatsiyani aniqlang";
+        addressValidationError.style.display = 'block';
+        showToast("Yetkazib berish narxini hisoblash uchun lokatsiyani aniqlang");
         return;
       }
 
@@ -2945,20 +3101,25 @@ Oq fonli foto</div>
           method: 'POST',
           body: JSON.stringify({
             paymentMethod: selectedPayment,
+            payment_method: selectedPayment,
             paymentStatus: selectedPayment === 'cash' ? 'unpaid' : 'pending',
             cashTermsAccepted: selectedPayment === 'cash',
             paymentProofUrl,
             cashAgreementTextVersion: selectedPayment === 'cash' ? 'draft-v1' : '',
             cashAgreementAccepted: selectedPayment === 'cash' ? cashAgreementCheckbox.checked : false,
             cashAgreementAcceptedAt: selectedPayment === 'cash' ? new Date().toISOString() : null,
-            location: resolvePreferredAddress(),
+            location: resolvePreferredAddress() || 'Manzil kiritilmagan',
             locationLat: customerLocation.lat,
             locationLng: customerLocation.lng,
             locationAccuracy: customerLocation.accuracy,
             addressText: customerLocation.addressText,
             landmarkText: customerLocation.landmarkText,
-            deliveryTime: homePayload?.delivery_info?.time || '30 daqiqa',
-            deliveryPrice: homePayload?.delivery_info?.price || 12000,
+            deliveryTime: '',
+            deliveryPrice: deliveryState.deliveryPrice,
+            delivery_address: resolvePreferredAddress() || 'Manzil kiritilmagan',
+            delivery_lat: customerLocation.lat,
+            delivery_lng: customerLocation.lng,
+            delivery_distance_km: Number(deliveryState.distanceKm.toFixed(2)),
             promoCode: String(promoCodeInput?.value || '').trim()
           })
         });
@@ -2984,13 +3145,12 @@ Oq fonli foto</div>
         localStorage.setItem('activeOrderNumber', activeOrderNumber);
         successOrderNumber.textContent = `Buyurtma: ${lastOrderData?.orderNumber || latestOrderNumber || '-'}`;
         successOrderTime.textContent = `Vaqt: ${new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}`;
-        successPaymentMethod.textContent = `To‘lov turi: ${lastOrderData?.paymentMethod === 'payme' ? 'Payme' : (lastOrderData?.paymentMethod || '-')}`;
+        successPaymentMethod.textContent = `To‘lov turi: ${paymentMethodLabel(lastOrderData?.paymentMethod)}`;
         successAddress.textContent = `Manzil: ${lastOrderData?.address || '-'}`;
         successTotal.textContent = Number.isFinite(Number(lastOrderData?.finalTotal))
           ? `Jami: ${money(Number(lastOrderData.finalTotal))}`
           : "Jami: Summani tekshirib bo‘lmadi";
-        const pendingText = order?.paymentStatus === 'pending' ? " · To‘lov kutilmoqda" : '';
-        successOrderStatus.textContent = `Status: ${orderStatusLabel(order.status)}${pendingText}`;
+        successOrderStatus.textContent = `To‘lov holati: ${paymentStatusLabel(order?.paymentStatus)} | Buyurtma: ${orderStatusLabel(order.status)}`;
         if (latestOrderNumber) {
           trackOrderBtn.style.display = 'inline-flex';
           trackOrderBtn.setAttribute('href', `/track/${encodeURIComponent(latestOrderNumber)}`);
