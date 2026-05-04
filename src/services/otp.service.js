@@ -2,9 +2,13 @@ const smsService = require('./sms.service.js');
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const otpStore = new Map();
+const otpRequestStore = new Map();
 
 function normalizePhone(phone = '') {
   return String(phone || '').replace(/\s+/g, '');
+}
+function isValidUzPhone(phone = '') {
+  return /^\+998\d{9}$/.test(String(phone || '').replace(/\s+/g, ''));
 }
 
 function generateOtp() {
@@ -14,6 +18,9 @@ function generateOtp() {
 async function requestOtp(phone = '') {
   const normalizedPhone = normalizePhone(phone);
   if (!normalizedPhone) return { error: 'phone required' };
+  if (!isValidUzPhone(normalizedPhone)) return { error: 'invalid_phone' };
+  const lastSentAt = Number(otpRequestStore.get(normalizedPhone) || 0);
+  if (Date.now() - lastSentAt < 60000) return { error: 'OTP too many requests' };
 
   const code = generateOtp();
   const now = Date.now();
@@ -26,6 +33,10 @@ async function requestOtp(phone = '') {
 
   const sent = await smsService.sendOtp(normalizedPhone, code);
   if (!sent.ok) return { error: sent.message || 'OTP send failed' };
+  otpRequestStore.set(normalizedPhone, Date.now());
+  if (String(process.env.TEST_MODE || 'false').toLowerCase() === 'true') {
+    console.info('[OTP][TEST_MODE]', { phone: normalizedPhone, code });
+  }
 
   return {
     ok: true,
