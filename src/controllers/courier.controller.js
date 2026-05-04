@@ -25,3 +25,21 @@ exports.updateCourierLocation = (req, res) => {
   if (out.error) return res.status(400).json({ ok: false, message: out.error });
   return res.json({ ok: true, order: out.order });
 };
+
+exports.applyCourier = (req, res) => {
+  const name = String(req.body?.name || '').trim();
+  const phone = String(req.body?.phone || '').trim();
+  if (!name || !phone) return res.status(400).json({ ok: false, message: 'Ism va telefon majburiy' });
+  const app = store.createCourierApplication(req.body || {});
+  return res.json({ ok: true, application: app, message: 'Arizangiz yuborildi' });
+};
+
+exports.listCourierApplications = (req, res) => {
+  return res.json({ ok: true, applications: store.listCourierApplications() });
+};
+
+exports.decideCourierApplication = (req, res) => {
+  const app = store.decideCourierApplication(req.params.id, req.body?.decision);
+  if (!app) return res.status(404).json({ ok: false, message: 'Ariza topilmadi' });
+  return res.json({ ok: true, application: app });
+};

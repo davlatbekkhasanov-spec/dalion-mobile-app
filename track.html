@@ -9,9 +9,9 @@
     :root{--bg:#f6f7fb;--card:#fff;--text:#1d2440;--muted:#667085;--line:#e7eaf1;--primary:#6a4dff;--primary-soft:#f2efff;--ok:#12b76a;--danger:#ef4444;--shadow:0 14px 34px rgba(16,24,40,.12)}
     *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
     .wrap{max-width:720px;margin:0 auto;padding:12px 12px 130px;overflow-x:hidden}
-    .map-stage{position:relative;border-radius:22px;overflow:hidden;background:#dde6ff;box-shadow:var(--shadow);min-height:52vh}
-    #courierMap{height:52vh;min-height:360px;display:none}
-    .map-fallback{height:52vh;min-height:360px;display:grid;place-items:center;background:linear-gradient(180deg,#dde8ff,#d4dbf5);color:#475467;font-weight:700;text-align:center;padding:20px}
+    .map-stage{position:relative;border-radius:22px;overflow:hidden;background:#dde6ff;box-shadow:var(--shadow);height:200px}
+    #courierMap{height:200px;display:none}
+    .map-fallback{height:200px;display:grid;place-items:center;background:linear-gradient(180deg,#dde8ff,#d4dbf5);color:#475467;font-weight:700;text-align:center;padding:20px}
     .top-chip{position:absolute;top:14px;left:14px;z-index:6;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:12px;font-weight:700}
     .float-actions{position:absolute;top:14px;right:14px;z-index:6;display:flex;gap:8px}
     .icon-btn{border:1px solid var(--line);background:#fff;border-radius:12px;min-height:44px;padding:0 12px;font-weight:700;color:#344054;cursor:pointer}
@@ -29,6 +29,8 @@
     .step.active .dot{background:var(--primary);border-color:var(--primary);box-shadow:0 0 0 6px rgba(106,77,255,.14)}
     .step span{font-weight:700;color:#475467}.step.active span,.step.done span{color:#1d2440}
     .card{border:1px solid var(--line);border-radius:16px;background:#fff;padding:12px;margin-top:12px}
+    .item-row{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #eef1f5}
+    .item-row img{width:48px;height:48px;border-radius:10px;object-fit:cover;background:#eef2f7}
     .row{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
     .call-btn,.support-btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 14px;border-radius:12px;text-decoration:none;font-weight:700;border:1px solid #d8dcf5}
     .call-btn{background:var(--primary);border-color:var(--primary);color:#fff}
@@ -43,7 +45,7 @@
   <section class="map-stage">
     <div class="top-chip" id="statusBadge">Yuklanmoqda</div>
     <div class="float-actions"><button class="icon-btn" id="refreshBtn">Yangilash</button></div>
-    <div id="mapFallback" class="map-fallback">Kurier lokatsiyasi aniqlanmoqda</div>
+    <div id="mapFallback" class="map-fallback">Buyurtma yo‘lda</div>
     <div id="courierMap"></div>
   </section>
 
@@ -58,7 +60,7 @@
 
     <div class="grid">
       <div class="mini"><b>Buyurtma</b><span id="meta">-</span></div>
-      <div class="mini"><b>ETA</b><span id="etaText">-</span></div>
+      <div class="mini"><b>Holat</b><span id="etaText">-</span></div>
       <div class="mini"><b>To‘lov holati</b><span id="payment">-</span></div>
       <div class="mini"><b>Jami</b><span id="total">-</span></div>
     </div>
@@ -86,12 +88,12 @@
     </div>
   </section>
 </div>
-<div class="sticky-actions"><div class="inner"><a id="callBtn" class="call-btn" href="#">Qo‘ng‘iroq</a><button class="support-btn" id="supportBtn">Qo‘llab-quvvatlash</button></div></div>
+<div class="sticky-actions"><div class="inner"><a id="homeBtn" class="call-btn" href="/">Bosh sahifaga qaytish</a><button class="support-btn" id="supportBtn">Yordam</button></div></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const orderNumber = decodeURIComponent(location.pathname.split('/').pop());
-const timelineSteps=[{label:'Buyurtma qabul qilindi',statuses:['new']},{label:'Tayyorlanmoqda',statuses:['sent_to_tsd','picking']},{label:'Kurier yo‘lda',statuses:['picked','waiting_courier','out_for_delivery']},{label:'Yetkazildi',statuses:['delivered']}];
+const timelineSteps=[{label:'Buyurtma qabul qilindi',statuses:['new']},{label:'Tayyorlanmoqda',statuses:['sent_to_tsd','picking']},{label:'Kuryerga berildi',statuses:['picked','waiting_courier']},{label:'Yo\'lda',statuses:['out_for_delivery']},{label:'Yetkazildi',statuses:['delivered']}];
 const statusUx={new:{title:'Buyurtma qabul qilindi',note:'Operator buyurtmangizni tasdiqlashi kutilmoqda.',badge:'Qabul qilindi'},sent_to_tsd:{title:'Tayyorlanmoqda',note:'Mahsulotlar tayyorlanmoqda.',badge:'Tayyorlanmoqda'},picking:{title:'Tayyorlanmoqda',note:'Mahsulotlar yig‘ilmoqda.',badge:'Yig‘ilmoqda'},picked:{title:'Kurier biriktirilmoqda',note:'Kurier topilishi kutilmoqda.',badge:'Kutilmoqda'},waiting_courier:{title:'Kurier biriktirilmoqda',note:'Buyurtma jo‘natishga tayyor.',badge:'Kutilmoqda'},out_for_delivery:{title:'Kurier yo‘lda',note:'Buyurtmangiz manzilga olib borilmoqda.',badge:'Yo‘lda'},delivered:{title:'Yetkazib berildi',note:'Buyurtmangiz muvaffaqiyatli topshirildi.',badge:'Yetkazildi'},cancelled:{title:'Buyurtma bekor qilingan',note:'Savollar bo‘lsa operator bilan bog‘laning.',badge:'Bekor qilingan'}};
 let order=null,firstLoadDone=false,courierMap=null,courierMarker=null,destinationMarker=null,routeLine=null;
 async function api(path,opt={}){const res=await fetch('/api/v1'+path,{headers:{'Content-Type':'application/json'},...opt});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.message||'Xatolik');return data;}
@@ -99,6 +101,7 @@ const hasCoord=(a,b)=>Number.isFinite(Number(a))&&Number.isFinite(Number(b));
 function renderState(m){stateLoading.style.display=m==='loading'?'block':'none';stateError.style.display=m==='error'?'block':'none';stateEmpty.style.display=m==='empty'?'block':'none';trackingContent.style.display=m==='content'?'block':'none';}
 function stepIndex(status){return Math.max(0,timelineSteps.findIndex(s=>s.statuses.includes(status)));}
 function money(v){return `${Number(v||0).toLocaleString('ru-RU')} so'm`;}
+function paymentStatusLabel(status){return {payment_pending:"To‘lov kutilmoqda",pending:"To‘lov kutilmoqda",paid:"To‘lov qilingan",unpaid:"To‘lov qilinmagan"}[String(status||'')]||String(status||'-');}
 function renderMap(){if(!order)return;const showMap=hasCoord(order.courierLocationLat,order.courierLocationLng)||hasCoord(order.locationLat,order.locationLng);if(!showMap){mapFallback.textContent='Kurier lokatsiyasi aniqlanmoqda';mapFallback.style.display='grid';courierMapEl.style.display='none';return;}mapFallback.style.display='none';courierMapEl.style.display='block';
   const cLat=Number(order.courierLocationLat), cLng=Number(order.courierLocationLng);
   const dLat=Number(order.locationLat), dLng=Number(order.locationLng);
@@ -109,15 +112,14 @@ function renderMap(){if(!order)return;const showMap=hasCoord(order.courierLocati
   else if(hasCoord(cLat,cLng)) courierMap.setView([cLat,cLng],14); else courierMap.setView([dLat,dLng],14);
 }
 function render(){if(!order)return;renderState('content');const ui=statusUx[order.status]||statusUx.new;statusBadge.textContent=ui.badge;bigStatus.textContent=ui.title;bigStatusNote.textContent=ui.note;
-meta.textContent=`#${order.orderNumber} · ${new Date(order.created_at||Date.now()).toLocaleString('ru-RU')}`;etaText.textContent=order.deliveryEta||order.estimatedTime||'Aniqlanmoqda';payment.textContent=`${order.paymentMethod||'-'} / ${order.paymentStatus||'-'}`;total.textContent=money(order.total);
+meta.textContent=`#${order.orderNumber} · ${new Date(order.created_at||Date.now()).toLocaleString('ru-RU')}`;etaText.textContent=ui.badge;payment.textContent=`${order.paymentMethod||'-'} / ${paymentStatusLabel(order.paymentStatus)}`;total.textContent=money(order.total);
 const idx=stepIndex(order.status);timeline.innerHTML=timelineSteps.map((s,i)=>`<div class="step ${i<idx?'done':''} ${i===idx?'active':''}"><div class="dot"></div><span>${s.label}</span></div>`).join('');
-address.textContent=order.addressText||order.customerAddress||order.location||'Manzil kiritilmagan';deliveryInfo.textContent=`Buyurtma: #${order.orderNumber} · ${order.landmarkText?`Orientir: ${order.landmarkText}`:'Orientir yo‘q'}`;
-items.innerHTML=(order.items||[]).map(i=>`${i.name} × ${i.quantity} = ${money(i.subtotal)}`).join('<br>') || 'Mahsulotlar ro‘yxati mavjud emas';
+address.textContent=order.addressText||order.customerAddress||order.location||'Manzil kiritilmagan';deliveryInfo.textContent=`Yetkazib berish: ${money(order.deliveryPrice||order.delivery_price||0)} · ${order.landmarkText?`Orientir: ${order.landmarkText}`:'Orientir yo‘q'}`;
+items.innerHTML=(order.items||[]).map(i=>`<div class="item-row"><img src="${i.image_url||''}" alt="${i.name||''}"/><div><div>${i.name||'-'}</div><div class="muted">${i.quantity||0} ta</div></div><strong>${money(i.subtotal||0)}</strong></div>`).join('') || 'Mahsulotlar ro‘yxati mavjud emas';
 const hasCourier=Boolean(order.courierName);courierStatus.textContent=hasCourier?'Faol':'Kutilmoqda';
 const ratingText=Number(order.courierRating)>0?`<div class="muted">Reyting: ${Number(order.courierRating).toFixed(1)}</div>`:'';
 const vehicleText=order.courierVehicle||order.courierVehicleNumber?`<div class="muted">${order.courierVehicle||''} ${order.courierVehicleNumber||''}</div>`:'';
-courierCard.innerHTML=hasCourier?`<div><strong>${order.courierName}</strong>${vehicleText}${ratingText}</div>`:'Kurier biriktirilmoqda';
-callBtn.href=order.courierPhone?`tel:${order.courierPhone}`:'#';callBtn.textContent=order.courierPhone?'Qo‘ng‘iroq qilish':'Raqam yo‘q';
+courierCard.innerHTML=hasCourier?`<div><strong>Kuryer: ${order.courierName}</strong><div class=\"muted\">${order.courierPhone||''}</div>${vehicleText}${ratingText}</div>`:'Kurier biriktirilmoqda';
 renderMap();
 feedbackCard.style.display=order.status==='delivered'?'block':'none';sendFeedback.disabled=!!order.feedbackAt; if(order.feedbackAt)feedbackMsg.textContent='Rahmat, fikringiz qabul qilindi';
 }

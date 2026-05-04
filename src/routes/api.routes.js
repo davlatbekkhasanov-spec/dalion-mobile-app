@@ -7,6 +7,7 @@ const cartController = require('../controllers/cart.controller.js');
 const orderController = require('../controllers/order.controller.js');
 const courierController = require('../controllers/courier.controller.js');
 const integrationController = require('../controllers/integration.controller.js');
+const wholesaleController = require('../controllers/wholesale.controller.js');
 const adminController = require('../controllers/admin.controller.js');
 const { parseMultipartSingleFile } = require('../middlewares/upload.middleware.js');
 const { requireAdminImportToken } = require('../middlewares/admin-token.middleware.js');
@@ -20,6 +21,9 @@ router.get('/home', homeController.getHome);
 router.get('/products', productController.getProducts);
 router.post('/auth/request-otp', authController.requestOtp);
 router.post('/auth/verify-otp', authController.verifyOtp);
+router.post('/wholesale/apply', wholesaleController.apply);
+router.post('/wholesale/login', wholesaleController.login);
+router.post('/courier/apply', courierController.applyCourier);
 
 router.get('/cart', cartController.getCart);
 router.put('/cart/items', cartController.setCartItem);
@@ -27,6 +31,7 @@ router.delete('/cart', cartController.clearCart);
 
 router.post('/orders', orderController.createOrder);
 router.get('/customer/orders', orderController.getCustomerOrders);
+router.post('/promos/validate', orderController.validatePromo);
 router.post('/orders/payment-proof', parseMultipartSingleFile('file'), orderController.uploadPaymentProof);
 router.get('/profile', orderController.getProfile);
 router.put('/profile', orderController.saveProfile);
@@ -91,6 +96,10 @@ if (env.enableDemoLoaders) {
 router.get('/admin/store/summary', requireAdminImportToken, adminController.getStoreSummary);
 router.post('/admin/store/reload', requireAdminImportToken, adminController.reloadStore);
 router.post('/admin/dalion/sync', requireAdminImportToken, adminController.syncDalionProducts);
+router.get('/admin/courier/applications', requireAdminImportToken, courierController.listCourierApplications);
+router.post('/admin/courier/applications/:id/decision', requireAdminImportToken, courierController.decideCourierApplication);
+router.get('/admin/wholesale/applications', requireAdminImportToken, wholesaleController.listAdmin);
+router.post('/admin/wholesale/applications/:id/decision', requireAdminImportToken, wholesaleController.decide);
 router.get('/admin/orders', requireAdminImportToken, adminController.getOrders);
 router.get('/admin/orders/:id', requireAdminImportToken, adminController.getOrderById);
 router.put('/admin/orders/:id/status', requireAdminImportToken, adminController.updateOrderStatus);
