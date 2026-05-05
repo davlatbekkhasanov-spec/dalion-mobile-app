@@ -86,6 +86,10 @@ els.confirmOrderBtn?.addEventListener('click',()=>{const t=calculateTotals();if(
 els.backHomeBtn?.addEventListener('click',()=>setView('homeView'));
 els.manualAddress?.addEventListener('input',e=>{state.deliveryAddress=e.target.value.trim();if(state.user)state.user.address=state.deliveryAddress;save();renderCheckout();renderProfile()});
 els.bottomNav?.addEventListener('click',e=>{const t=e.target.closest('.tab');if(!t)return;setView(t.dataset.view)});
+
+// payment method select
+Array.from(document.querySelectorAll('.pay-btn')).forEach((btn)=>{btn.addEventListener('click',()=>{Array.from(document.querySelectorAll('.pay-btn')).forEach(b=>b.classList.remove('active'));btn.classList.add('active');state.selectedPayment=btn.dataset.payment||'cash';showToast(`To‘lov: ${state.selectedPayment}`);});});
+
 $('closeModalBtn')?.addEventListener('click',closeProductModal);
 $('productModalOverlay')?.addEventListener('click',e=>{if(e.target.id==='productModalOverlay')closeProductModal()});
 
