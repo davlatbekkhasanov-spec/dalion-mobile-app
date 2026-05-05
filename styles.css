@@ -1492,3 +1492,19 @@
     .cat { width:88px; height:88px; flex:0 0 88px; border-radius:14px; padding:8px 4px; background:#fff; }
     .gm-section-header h4 { font-size:23px; margin-bottom:9px; font-weight:800; }
     .gm-section-header a { margin-left:auto; align-self:center; }
+
+/* Home premium marketplace refresh */
+.home-top-sticky { position: sticky; top: 0; z-index: 40; background: rgba(246,247,251,.96); }
+#homeCartShortcut { position: sticky; top: 8px; z-index: 45; }
+.home-search-lg { position: sticky; top: 78px; z-index: 39; }
+.premium-hero { display:grid; grid-template-columns:1fr auto; gap:10px; width:100%; border-radius:20px; padding:16px; background:linear-gradient(135deg,#5b4cff,#7f56d9 60%,#4f46e5); color:#fff; box-shadow:0 14px 30px rgba(91,76,255,.28); }
+.premium-hero h3 { font-size:22px; line-height:1.2; margin:6px 0; }
+.premium-hero p { opacity:.92; }
+.premium-kicker { display:inline-block; padding:5px 10px; background:rgba(255,255,255,.2); border-radius:999px; font-size:11px; font-weight:700; }
+.premium-hero-art { font-size:34px; display:grid; place-items:center; }
+.smart-chip { border:1px solid #e4e7ec; background:#fff; color:#344054; border-radius:999px; padding:9px 12px; font-size:12px; font-weight:700; }
+.smart-chip.active { background:#eef2ff; border-color:#c7d2fe; color:#4338ca; }
+.trust-badges { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; width:100%; }
+.trust-badge { background:#fff; border:1px solid #eceff5; border-radius:12px; padding:10px; font-size:12px; font-weight:700; color:#1d2440; text-align:center; }
+.product, .smart-chip, .trust-badge, .premium-hero, .quick-add-btn, .qty button { transition: all .22s ease; }
+.product:active, .smart-chip:active, .quick-add-btn:active { transform: scale(.98); }
