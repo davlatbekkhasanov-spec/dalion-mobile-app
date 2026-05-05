@@ -15,7 +15,34 @@ function addToCart(id){const p=state.products.find(x=>x.id===+id);if(!p||p.stock
 function removeFromCart(id){delete state.cart[id];save();renderAll()} function increaseQty(id){addToCart(id)} function decreaseQty(id){if(!state.cart[id])return;state.cart[id]-=1;if(state.cart[id]<=0)delete state.cart[id];save();renderAll()}
 function card(p){const q=state.cart[p.id]||0,out=p.stock===0,fav=!!state.favorites[p.id];const discount=p.oldPrice>p.price?Math.round((1-p.price/p.oldPrice)*100):0;
 return `<article class="product" data-open-product="${p.id}"><div class="image-box">${p.image?`<img src="${safe(p.image)}" alt="${safe(p.name)}">`:`<div class="image-fallback"><i>🛍️</i><span>Rasm mavjud emas</span><small>${safe(p.category||'Mahsulot')}</small></div>`}<div class="product-top-row">${discount?`<span class="discount-chip">-${discount}%</span>`:'<span></span>'}<button class="fav-btn" data-action="fav" data-id="${p.id}">${fav?'❤':'♡'}</button></div></div><div class="product-info"><h5>${safe(p.name)}</h5><p class="product-rating">⭐ ${Number(p.rating||4.7).toFixed(1)} • ${Math.max(12,Number(p.reviews||36))} baho</p><p class="price">${money(p.price)}</p>${p.oldPrice>p.price?`<p class="old-price">${money(p.oldPrice)}</p>`:'<p class="old-price"></p>'}<div class="credit-badge">Muddatli to‘lov mavjud</div><p class="meta">${out?'🔴 Сотувда йўқ':'🟢 Omborda bor'}</p>${out?`<button class="quick-add-btn" disabled>Сотувда йўқ</button>`:q?`<div class="qty"><button data-action="dec" data-id="${p.id}">−</button><span>${q}</span><button data-action="inc" data-id="${p.id}">+</button></div>`:`<button class="quick-add-btn" data-action="add" data-id="${p.id}">Tez qo‘shish</button>`}</div></article>`}
-function openProductModal(id){const p=state.products.find(x=>x.id===+id);if(!p)return;const ov=$("productModalOverlay");if(!ov)return;$("modalName")&&( $("modalName").textContent=p.name );$("modalCategory")&&( $("modalCategory").textContent=`Kategoriya: ${p.category||'-'}` );$("modalPrice")&&( $("modalPrice").textContent=money(p.price) );$("modalOldPrice")&&( $("modalOldPrice").textContent=p.oldPrice>p.price?money(p.oldPrice):'' );$("modalStickyPrice")&&( $("modalStickyPrice").textContent=money(p.price) );$("modalDescription")&&( $("modalDescription").textContent=p.description||'Premium sifatli mahsulot.' );const box=document.querySelector('.modal-image');if(box)box.innerHTML=p.image?`<img src="${safe(p.image)}" alt="${safe(p.name)}">`:`<div class="image-fallback"><i>🛍️</i><span>Rasm mavjud emas</span></div>`;const qty=state.cart[p.id]||0;const qel=$("modalQty");if(qel)qel.innerHTML=qty?`<div class="qty"><button data-action="dec" data-id="${p.id}">−</button><span>${qty}</span><button data-action="inc" data-id="${p.id}">+</button></div>`:`<button class="full-btn" data-action="add" data-id="${p.id}">Savatga qo‘shish</button>`;const add=$("modalAddBtn");if(add){add.dataset.id=String(p.id);add.onclick=()=>addToCart(p.id);}ov.classList.add('show');}
+function openProductModal(id){
+const p=state.products.find(x=>x.id===+id);if(!p)return;const ov=$("productModalOverlay");if(!ov)return;
+const gallery=[p.image,...(Array.isArray(p.images)?p.images:[])].filter(Boolean);
+const discount=p.oldPrice>p.price?Math.round((1-p.price/p.oldPrice)*100):0;
+$("modalName")&&($("modalName").textContent=p.name);
+$("modalCategory")&&($("modalCategory").textContent=`Kategoriya: ${p.category||'-'}`);
+$("modalPrice")&&($("modalPrice").textContent=money(p.price));
+$("modalOldPrice")&&($("modalOldPrice").textContent=p.oldPrice>p.price?`${money(p.oldPrice)}  •  -${discount}%`:'' );
+$("modalStickyPrice")&&($("modalStickyPrice").textContent=money(p.price));
+$("modalDescription")&&($("modalDescription").textContent=p.description||'Premium sifatli mahsulot. Tez yetkazib beriladi.');
+$("modalEta")&&($("modalEta").textContent='🚚 20-40 daqiqa ichida yetkazish');
+$("modalAvailability")&&($("modalAvailability").textContent=(p.stock>0?'Mavjud':'Sotuvda yo‘q'));
+$("modalTrustDelivery")&&($("modalTrustDelivery").textContent='💳 Muddatli to‘lov • 🔒 Xavfsiz to‘lov • ✅ Original mahsulot');
+const box=document.querySelector('.modal-image');
+if(box){
+  const main=gallery[0];
+  const thumbs=gallery.slice(0,4).map((src,i)=>`<button class="modal-thumb ${i===0?'active':''}" data-action="switch-image" data-src="${safe(src)}"><img src="${safe(src)}" alt="thumb"></button>`).join('');
+  box.innerHTML=`<div class="modal-gallery"><img class="modal-main-img" data-action="zoom-image" src="${safe(main||'')}" alt="${safe(p.name)}"><div class="modal-thumbs">${thumbs}</div></div>`;
+}
+const rating=Number(p.rating||4.7).toFixed(1);const reviews=Math.max(12,Number(p.reviews||36));
+const specs=$("modalSpecs");if(specs)specs.innerHTML=`<div class="list-card" style="margin:6px 0;"><div class="list-row"><strong>⭐ ${rating}</strong><span class="muted">${reviews} sharh</span></div><div class="list-row"><span class="muted">To‘lov</span><span class="muted">Muddatli / Naqd / Payme / Click</span></div></div>`;
+const qty=state.cart[p.id]||0;const qel=$("modalQty");if(qel)qel.innerHTML=qty?`<div class="qty"><button data-action="dec" data-id="${p.id}">−</button><span>${qty}</span><button data-action="inc" data-id="${p.id}">+</button></div>`:`<button class="full-btn" data-action="add" data-id="${p.id}">Savatga qo‘shish</button>`;
+const add=$("modalAddBtn");if(add){add.dataset.id=String(p.id);add.onclick=()=>addToCart(p.id);} 
+const similar=state.products.filter(x=>x.id!==p.id && (x.category===p.category || x.price<=p.price*1.2)).slice(0,4);
+const reco=$("modalRecommendations");if(reco)reco.innerHTML=similar.map(card).join('');
+$("modalUpsellTitle")&&($("modalUpsellTitle").style.display=similar.length?'block':'none');
+ov.classList.add('show');
+}
 function closeProductModal(){const ov=$("productModalOverlay");ov&&ov.classList.remove('show');}
 function renderHome(){const list=filtered();
 els.bannerCarousel&&(els.bannerCarousel.innerHTML=`<div class="premium-hero"><div><p class="premium-kicker">Premium market</p><h3>Bugungi xaridlar учун махсус таклифлар</h3><p>${list.length} та реал маҳсулот, тез етказиш ва кафолат.</p><button class="full-btn" id="heroShopNowBtn">Barchasini ko‘rish</button></div><div class="premium-hero-art">✨</div></div>`);
@@ -57,7 +84,7 @@ els.bottomNav?.addEventListener('click',e=>{const t=e.target.closest('.tab');if(
 $('closeModalBtn')?.addEventListener('click',closeProductModal);
 $('productModalOverlay')?.addEventListener('click',e=>{if(e.target.id==='productModalOverlay')closeProductModal()});
 
-document.addEventListener('click',e=>{const opener=e.target.closest('[data-open-product]');if(opener && !e.target.closest('[data-action]')){openProductModal(opener.dataset.openProduct);return;}const a=e.target.closest('[data-action]');if(a){const id=+a.dataset.id;if(a.dataset.action==='add')addToCart(id);if(a.dataset.action==='inc')increaseQty(id);if(a.dataset.action==='dec')decreaseQty(id);if(a.dataset.action==='remove')removeFromCart(id);if(a.dataset.action==='fav'){state.favorites[id]=!state.favorites[id];save();renderAll();showToast(state.favorites[id]?'Sevimlilarga qo‘shildi':'Sevimlilardan olindi');return;}}const c=e.target.closest('[data-category]');if(c){state.selectedCategory=c.dataset.category;renderAll();if(state.currentView==='homeView')setView('searchView')}})
+document.addEventListener('click',e=>{const opener=e.target.closest('[data-open-product]');if(opener && !e.target.closest('[data-action]')){openProductModal(opener.dataset.openProduct);return;}const a=e.target.closest('[data-action]');if(a){const id=+a.dataset.id;if(a.dataset.action==='add')addToCart(id);if(a.dataset.action==='inc')increaseQty(id);if(a.dataset.action==='dec')decreaseQty(id);if(a.dataset.action==='remove')removeFromCart(id);if(a.dataset.action==='fav'){state.favorites[id]=!state.favorites[id];save();renderAll();showToast(state.favorites[id]?'Sevimlilarga qo‘shildi':'Sevimlilardan olindi');return;}if(a.dataset.action==='switch-image'){const main=document.querySelector('.modal-main-img');if(main)main.src=a.dataset.src;document.querySelectorAll('.modal-thumb').forEach(t=>t.classList.toggle('active',t===a));return;}if(a.dataset.action==='zoom-image'){const img=document.querySelector('.modal-image');img&&img.classList.toggle('zoomed');return;}}const c=e.target.closest('[data-category]');if(c){state.selectedCategory=c.dataset.category;renderAll();if(state.currentView==='homeView')setView('searchView')}})
 }
 (async function init(){load();await initData();bind();if(state.user)els.phone?.classList.add('show-app');renderAll();setView('homeView')})();
 })();
