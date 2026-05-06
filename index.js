@@ -476,7 +476,7 @@ app.put('/api/v1/admin/products/:id', requireAdmin, (req, res) => {
     id: db.products[i].id,
     price: toMoney(req.body.price ?? db.products[i].price),
     stock: Math.max(0, Number(req.body.stock ?? db.products[i].stock)),
-    discount_percent: Math.max(0, Math.min(100, Number(req.body.discount_percent ?? db.products[i].discount_percent || 0))),
+    discount_percent: Math.max(0, Math.min(100, Number(req.body.discount_percent ?? (db.products[i].discount_percent ?? 0)))),
     categoryId,
     category: category?.name || db.products[i].category,
     categoryDisplayName: category?.displayName || category?.name || db.products[i].categoryDisplayName
