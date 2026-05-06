@@ -108,23 +108,56 @@
     .cinematic-intro{gap:16px; align-items:center; text-align:center; padding-top:30px;}
     .cinematic-chip{color:#a8bee3;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
     .cinematic-stage{position:relative;width:240px;height:240px;display:grid;place-items:center;perspective:700px}
-    .cinematic-globe-wrap{position:relative;width:176px;height:176px;transform-style:preserve-3d}
+    .cinematic-globe-wrap{position:relative;width:176px;height:176px;transform-style:preserve-3d;filter:drop-shadow(0 26px 36px rgba(3,10,26,.58))}
+    .cinematic-globe-shadow{
+      position:absolute;left:50%;bottom:8px;width:144px;height:30px;transform:translateX(-50%);
+      background:radial-gradient(circle at 50% 50%, rgba(4,8,20,.46), rgba(4,8,20,0) 72%);
+      filter:blur(1px);
+    }
     .cinematic-globe{
       position:absolute;inset:0;border-radius:50%;
       background:
+        radial-gradient(circle at 26% 23%, rgba(210,240,255,.95) 0%, rgba(132,194,255,.62) 16%, rgba(55,129,255,.35) 27%, rgba(8,23,64,0) 40%),
+        radial-gradient(circle at 67% 76%, rgba(18,49,132,.92) 0%, rgba(12,31,88,.98) 44%, rgba(7,16,46,1) 100%),
         radial-gradient(circle at 28% 30%, #8edcff 0%, #4a8dff 34%, #2444b7 68%, #13214a 100%);
       box-shadow:
-        inset -28px -24px 38px rgba(8,14,34,.72),
-        inset 16px 12px 26px rgba(176,226,255,.24),
-        0 0 46px rgba(63,123,255,.4);
+        inset -34px -28px 44px rgba(4,9,25,.76),
+        inset 22px 16px 30px rgba(194,233,255,.2),
+        inset 0 0 0 1px rgba(255,255,255,.22),
+        0 0 52px rgba(63,123,255,.34);
       transform-style:preserve-3d;
-      animation:globeSpin 2s linear infinite;
+      animation:globeSpin 2.6s linear infinite;
+      overflow:hidden;
     }
-    .cinematic-globe::before,
+    .cinematic-globe::before{
+      content:"";
+      position:absolute;inset:8%;
+      border-radius:50%;
+      background:
+        repeating-linear-gradient(100deg, rgba(221,240,255,.17) 0 2px, rgba(0,0,0,0) 2px 9px),
+        repeating-linear-gradient(0deg, rgba(198,228,255,.09) 0 1px, rgba(0,0,0,0) 1px 7px);
+      mix-blend-mode:screen;
+      opacity:.78;
+      transform:rotate(8deg);
+    }
     .cinematic-globe::after{
-      content:"";position:absolute;inset:9%;border-radius:50%;border:1px solid rgba(201,226,255,.35)
+      content:"";
+      position:absolute;inset:16% 12% 20% 24%;
+      border-radius:44% 56% 48% 52% / 51% 45% 55% 49%;
+      background:radial-gradient(circle at 34% 38%, rgba(156,255,220,.48), rgba(58,205,177,.28) 48%, rgba(17,81,100,.18) 76%, rgba(0,0,0,0) 100%);
+      filter:blur(.3px);
+      box-shadow:
+        -36px 26px 0 -16px rgba(92,205,187,.25),
+        30px -18px 0 -17px rgba(120,230,195,.24),
+        16px 34px 0 -18px rgba(70,195,178,.22);
+      opacity:.88;
     }
-    .cinematic-globe::after{inset:22%;border-color:rgba(201,226,255,.22)}
+    .cinematic-atmosphere{
+      position:absolute;inset:-5px;border-radius:50%;pointer-events:none;
+      background:radial-gradient(circle at 58% 44%, rgba(84,201,255,.22), rgba(0,0,0,0) 58%);
+      box-shadow:0 0 24px rgba(104,179,255,.35), inset 0 0 14px rgba(163,221,255,.2);
+      animation:atmosphereShift 3.3s ease-in-out infinite;
+    }
     .cinematic-ring{position:absolute;inset:8%;border:1.5px solid rgba(37,244,143,.58);border-radius:50%;transform:rotateX(72deg) rotateY(12deg);box-shadow:0 0 16px rgba(37,244,143,.45)}
     .cinematic-ring.r2{inset:16%;border-color:rgba(39,213,255,.5);transform:rotateX(75deg) rotateY(80deg)}
     .cinematic-ring.r3{inset:2%;border-color:rgba(156,174,255,.45);transform:rotateY(90deg) rotateX(20deg)}
@@ -144,12 +177,14 @@
     .cinematic-intro.explode .cinematic-ring{animation:ringBurst .9s ease forwards}
     .cinematic-intro.explode .cinematic-particle{animation:particleBurst .9s ease forwards}
     @keyframes globeSpin{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}
+    @keyframes atmosphereShift{0%,100%{opacity:.95;transform:scale(1)}50%{opacity:.76;transform:scale(1.03)}}
     @keyframes globeBurst{0%{transform:scale(1)}100%{transform:scale(.12);opacity:0;filter:blur(4px)}}
     @keyframes ringBurst{0%{opacity:1}100%{transform:scale(1.7) rotateX(70deg) rotateY(40deg);opacity:0}}
     @keyframes particleBurst{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) scale(.2)}}
     @keyframes textReveal{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
     @media (prefers-reduced-motion: reduce) {
       .cinematic-globe { animation: none; }
+      .cinematic-atmosphere { animation: none; }
       .cinematic-intro.explode .cinematic-globe-wrap,
       .cinematic-intro.explode .cinematic-ring,
       .cinematic-intro.explode .cinematic-particle { animation: none; }
@@ -1317,7 +1352,9 @@
         <p class="cinematic-chip">GlobusMarket premium delivery</p>
         <div class="cinematic-stage">
           <div class="cinematic-globe-wrap" id="cinematicGlobeWrap">
+            <div class="cinematic-globe-shadow"></div>
             <div class="cinematic-globe" id="cinematicGlobe"></div>
+            <div class="cinematic-atmosphere"></div>
             <div class="cinematic-ring"></div>
             <div class="cinematic-ring r2"></div>
             <div class="cinematic-ring r3"></div>
@@ -1326,7 +1363,7 @@
         </div>
         <div class="cinematic-text" id="cinematicBrandText">GlobusMarket</div>
         <p class="cinematic-sub">Tez yetkazib berish • Кeng ассортимент • Ишончли сервис</p>
-        <button class="btn gm-btn gm-btn-primary btn-primary intro-cta" id="openRegisterBtn" style="margin-top:auto;">Xaridni boshlash</button>
+        <button class="btn gm-btn gm-btn-primary btn-primary intro-cta" id="openRegisterBtn" style="margin-top:auto;">Ro‘yxatdan o‘tish</button>
       </div>
     </section>
 
@@ -1649,6 +1686,7 @@ Oq fonli foto</div>
     const devOtpHint = document.getElementById('devOtpHint');
     const submitAuthBtn = document.getElementById('submitAuthBtn');
     const toast = document.getElementById('toast');
+    const introScreen = document.getElementById('introScreen');
     const homeProducts = document.getElementById('homeProducts');
     const homeDiscountProducts = document.getElementById('homeDiscountProducts');
     const homeFastProducts = document.getElementById('homeFastProducts');
@@ -1675,12 +1713,24 @@ Oq fonli foto</div>
       if (!cinematicIntro) return;
       buildIntroParticles();
       cinematicIntro.classList.remove('ready', 'explode');
+      introScreen?.classList.remove('fade-out');
       if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         cinematicIntro.classList.add('ready');
         return;
       }
       setTimeout(() => cinematicIntro.classList.add('explode'), 900);
       setTimeout(() => cinematicIntro.classList.add('ready'), 1600);
+    }
+
+    function openRegistrationFlow() {
+      introScreen?.classList.add('fade-out');
+      const existingUser = JSON.parse(localStorage.getItem('globusUser') || 'null');
+      if (existingUser?.name && !authName.value) authName.value = existingUser.name;
+      if (existingUser?.phone && !authPhone.value) authPhone.value = existingUser.phone;
+      setTimeout(() => {
+        authSheetOverlay.classList.add('show');
+        authName?.focus();
+      }, 220);
     }
     const searchResults = document.getElementById('searchResults');
     const searchInput = document.getElementById('searchInput');
@@ -2710,21 +2760,19 @@ Oq fonli foto</div>
     }
 
     openRegisterBtn?.addEventListener('click', async () => {
-      localStorage.setItem('onboardingSeen', 'true');
-      document.getElementById('introScreen')?.classList.add('fade-out');
-      setTimeout(async () => {
-        phone.classList.add('show-app');
-        setView('homeView');
-        await initializeAppData();
-      }, 260);
+      openRegistrationFlow();
     });
 
     closeAuthSheetBtn?.addEventListener('click', () => {
       authSheetOverlay.classList.remove('show');
+      if (!phone.classList.contains('show-app')) runCinematicIntro();
     });
 
     authSheetOverlay?.addEventListener('click', (e) => {
-      if (e.target === authSheetOverlay) authSheetOverlay.classList.remove('show');
+      if (e.target === authSheetOverlay) {
+        authSheetOverlay.classList.remove('show');
+        if (!phone.classList.contains('show-app')) runCinematicIntro();
+      }
     });
 
     submitAuthBtn?.addEventListener('click', async () => {
@@ -2761,6 +2809,8 @@ Oq fonli foto</div>
       activeOrderNumber = '';
       localStorage.removeItem('activeOrderNumber');
       phone.classList.remove('show-app');
+      introScreen?.classList.remove('fade-out');
+      runCinematicIntro();
       showToast("Siz tizimdan chiqdingiz");
       renderProfileOrders();
     });
@@ -3125,15 +3175,9 @@ Oq fonli foto</div>
     landmarkInput.addEventListener('input', renderCheckout);
     (async () => {
       await loadProfile();
-      const onboardingSeen = localStorage.getItem('onboardingSeen') === 'true';
-      if (isAuthed() || onboardingSeen) {
-        phone.classList.add('show-app');
-        setView('homeView');
-        await initializeAppData();
-      } else {
-        phone.classList.remove('show-app');
-        runCinematicIntro();
-      }
+      phone.classList.remove('show-app');
+      authSheetOverlay.classList.remove('show');
+      runCinematicIntro();
     })();
   </script>
 </body>
