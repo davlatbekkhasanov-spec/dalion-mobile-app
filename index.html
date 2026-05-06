@@ -82,7 +82,16 @@
       transition: opacity 600ms ease, transform 600ms ease, visibility 600ms ease;
     }
 
-    .intro { z-index: 20; overflow: hidden; background: #f8f9fb; display: flex; align-items: center; justify-content: center; }
+    .intro { z-index: 20; overflow: hidden; background: radial-gradient(circle at 30% 20%, #1c2f5f, #090f1f 55%, #050913 100%); display: flex; align-items: center; justify-content: center; }
+    .intro::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(circle at 20% 15%, rgba(72,126,255,.35), transparent 35%),
+        radial-gradient(circle at 80% 85%, rgba(39,213,255,.18), transparent 40%);
+      pointer-events:none;
+    }
 
     .intro-inner {
       position: relative;
@@ -95,7 +104,58 @@
       flex-direction: column;
       gap: 14px;
     }
-    .brand { font-size: 34px; font-weight: 800; letter-spacing: 0.2px; color:#111827; }
+    .brand { font-size: 34px; font-weight: 800; letter-spacing: 0.2px; color:#eaf2ff; }
+    .cinematic-intro{gap:16px; align-items:center; text-align:center; padding-top:30px;}
+    .cinematic-chip{color:#a8bee3;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+    .cinematic-stage{position:relative;width:240px;height:240px;display:grid;place-items:center;perspective:700px}
+    .cinematic-globe-wrap{position:relative;width:176px;height:176px;transform-style:preserve-3d}
+    .cinematic-globe{
+      position:absolute;inset:0;border-radius:50%;
+      background:
+        radial-gradient(circle at 28% 30%, #8edcff 0%, #4a8dff 34%, #2444b7 68%, #13214a 100%);
+      box-shadow:
+        inset -28px -24px 38px rgba(8,14,34,.72),
+        inset 16px 12px 26px rgba(176,226,255,.24),
+        0 0 46px rgba(63,123,255,.4);
+      transform-style:preserve-3d;
+      animation:globeSpin 2s linear infinite;
+    }
+    .cinematic-globe::before,
+    .cinematic-globe::after{
+      content:"";position:absolute;inset:9%;border-radius:50%;border:1px solid rgba(201,226,255,.35)
+    }
+    .cinematic-globe::after{inset:22%;border-color:rgba(201,226,255,.22)}
+    .cinematic-ring{position:absolute;inset:8%;border:1.5px solid rgba(37,244,143,.58);border-radius:50%;transform:rotateX(72deg) rotateY(12deg);box-shadow:0 0 16px rgba(37,244,143,.45)}
+    .cinematic-ring.r2{inset:16%;border-color:rgba(39,213,255,.5);transform:rotateX(75deg) rotateY(80deg)}
+    .cinematic-ring.r3{inset:2%;border-color:rgba(156,174,255,.45);transform:rotateY(90deg) rotateX(20deg)}
+    .cinematic-particles{position:absolute;inset:0;pointer-events:none}
+    .cinematic-particle{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#a7c9ff;opacity:0;transform:translate(-50%,-50%)}
+    .cinematic-text{
+      font-size:38px;font-weight:900;letter-spacing:.4px;line-height:1;
+      background:linear-gradient(90deg,#ffffff,#b9d8ff 35%,#8bf4d0 100%);
+      -webkit-background-clip:text;background-clip:text;color:transparent;
+      opacity:0;transform:translateY(14px) scale(.96);text-shadow:0 10px 26px rgba(34,114,255,.25)
+    }
+    .cinematic-sub{color:#b5caea;font-size:14px;max-width:280px}
+    .intro-cta{opacity:0;transform:translateY(10px);pointer-events:none;transition:all .45s ease}
+    .cinematic-intro.ready .intro-cta{opacity:1;transform:translateY(0);pointer-events:auto}
+    .cinematic-intro.ready .cinematic-text{animation:textReveal .6s ease forwards}
+    .cinematic-intro.explode .cinematic-globe-wrap{animation:globeBurst .9s ease forwards}
+    .cinematic-intro.explode .cinematic-ring{animation:ringBurst .9s ease forwards}
+    .cinematic-intro.explode .cinematic-particle{animation:particleBurst .9s ease forwards}
+    @keyframes globeSpin{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}
+    @keyframes globeBurst{0%{transform:scale(1)}100%{transform:scale(.12);opacity:0;filter:blur(4px)}}
+    @keyframes ringBurst{0%{opacity:1}100%{transform:scale(1.7) rotateX(70deg) rotateY(40deg);opacity:0}}
+    @keyframes particleBurst{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) scale(.2)}}
+    @keyframes textReveal{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+    @media (prefers-reduced-motion: reduce) {
+      .cinematic-globe { animation: none; }
+      .cinematic-intro.explode .cinematic-globe-wrap,
+      .cinematic-intro.explode .cinematic-ring,
+      .cinematic-intro.explode .cinematic-particle { animation: none; }
+      .cinematic-intro .intro-cta,
+      .cinematic-intro .cinematic-text { transition: none; animation: none; }
+    }
 
     .headline {
       font-size: 40px;
@@ -1253,13 +1313,19 @@
   <main class="phone" id="phone">
     
     <section class="screen intro" id="introScreen">
-      <div class="intro-inner premium-intro">
-        <p class="muted intro-chip">Samarqand, Shohrux Mirzo 33</p>
-        <h1 class="brand intro-logo">GlobusMarket</h1>
-        <p class="intro-title">GlobusMarket</p>
-        <p class="intro-sub">Har kuni kerakli mahsulotlar</p>
-        <div class="intro-cards"><div class="intro-card"></div><div class="intro-card"></div><div class="intro-card"></div><div class="intro-card"></div></div>
-        <p class="intro-trust">Tez yetkazib berish • Keng assortiment • Qulay to‘lov</p>
+      <div class="intro-inner cinematic-intro" id="cinematicIntro">
+        <p class="cinematic-chip">GlobusMarket premium delivery</p>
+        <div class="cinematic-stage">
+          <div class="cinematic-globe-wrap" id="cinematicGlobeWrap">
+            <div class="cinematic-globe" id="cinematicGlobe"></div>
+            <div class="cinematic-ring"></div>
+            <div class="cinematic-ring r2"></div>
+            <div class="cinematic-ring r3"></div>
+          </div>
+          <div class="cinematic-particles" id="cinematicParticles"></div>
+        </div>
+        <div class="cinematic-text" id="cinematicBrandText">GlobusMarket</div>
+        <p class="cinematic-sub">Tez yetkazib berish • Кeng ассортимент • Ишончли сервис</p>
         <button class="btn gm-btn gm-btn-primary btn-primary intro-cta" id="openRegisterBtn" style="margin-top:auto;">Xaridni boshlash</button>
       </div>
     </section>
@@ -1571,6 +1637,8 @@ Oq fonli foto</div>
       checkoutView: 'Checkout'
     };
     const openRegisterBtn = document.getElementById('openRegisterBtn');
+    const cinematicIntro = document.getElementById('cinematicIntro');
+    const cinematicParticles = document.getElementById('cinematicParticles');
     const authSheetOverlay = document.getElementById('authSheetOverlay');
     const closeAuthSheetBtn = document.getElementById('closeAuthSheetBtn');
     const authName = document.getElementById('authName');
@@ -1586,6 +1654,34 @@ Oq fonli foto</div>
     const homeFastProducts = document.getElementById('homeFastProducts');
     const homeBestSellerProducts = document.getElementById('homeBestSellerProducts');
     const homeReorderProducts = document.getElementById('homeReorderProducts');
+
+    function buildIntroParticles() {
+      if (!cinematicParticles) return;
+      cinematicParticles.innerHTML = '';
+      const count = 22;
+      for (let i = 0; i < count; i += 1) {
+        const particle = document.createElement('span');
+        particle.className = 'cinematic-particle';
+        const angle = (Math.PI * 2 * i) / count;
+        const radius = 70 + Math.random() * 58;
+        particle.style.setProperty('--tx', `${Math.cos(angle) * radius}px`);
+        particle.style.setProperty('--ty', `${Math.sin(angle) * radius}px`);
+        particle.style.background = i % 3 === 0 ? '#25f48f' : (i % 2 ? '#8edcff' : '#c4d8ff');
+        cinematicParticles.appendChild(particle);
+      }
+    }
+
+    function runCinematicIntro() {
+      if (!cinematicIntro) return;
+      buildIntroParticles();
+      cinematicIntro.classList.remove('ready', 'explode');
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        cinematicIntro.classList.add('ready');
+        return;
+      }
+      setTimeout(() => cinematicIntro.classList.add('explode'), 900);
+      setTimeout(() => cinematicIntro.classList.add('ready'), 1600);
+    }
     const searchResults = document.getElementById('searchResults');
     const searchInput = document.getElementById('searchInput');
     const searchClearBtn = document.getElementById('searchClearBtn');
@@ -3036,6 +3132,7 @@ Oq fonli foto</div>
         await initializeAppData();
       } else {
         phone.classList.remove('show-app');
+        runCinematicIntro();
       }
     })();
   </script>
