@@ -1751,9 +1751,9 @@ Oq fonli foto</div>
       bannerCarousel.innerHTML = bannerItems.map((b) => `
         <article class="promo gm-card">
           <div>
-            <h3>${fallbackBanner.title}</h3>
-            <p>${fallbackBanner.subtitle}</p>
-            <span class="gm-chip gm-chip--delivery">${fallbackBanner.badge}</span>
+            <h3>${b.title || fallbackBanner.title}</h3>
+            <p>${b.subtitle || fallbackBanner.subtitle}</p>
+            <span class="gm-chip gm-chip--delivery">${b.badge || fallbackBanner.badge}</span>
           </div>
           <div class="truck">${b.image_url ? `<img src="${b.image_url}" alt="Yetkazib berish" style="width:100%;height:100%;object-fit:cover;border-radius:16px;" />` : '📦'}</div>
         </article>
