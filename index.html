@@ -126,47 +126,47 @@
     }
     .cinematic-globe{
       position:absolute;inset:0;border-radius:50%;
-      background:
-        radial-gradient(circle at 26% 23%, rgba(210,240,255,.95) 0%, rgba(132,194,255,.62) 16%, rgba(55,129,255,.35) 27%, rgba(8,23,64,0) 40%),
-        radial-gradient(circle at 67% 76%, rgba(18,49,132,.92) 0%, rgba(12,31,88,.98) 44%, rgba(7,16,46,1) 100%),
-        radial-gradient(circle at 28% 30%, #8edcff 0%, #4a8dff 34%, #2444b7 68%, #13214a 100%);
+      background:radial-gradient(circle at 32% 30%, #6db5ff 0%, #2d63dc 26%, #143787 58%, #07154a 100%);
       box-shadow:
-        inset -34px -28px 44px rgba(4,9,25,.76),
-        inset 22px 16px 30px rgba(194,233,255,.2),
-        inset 0 0 0 1px rgba(255,255,255,.22),
-        0 0 52px rgba(63,123,255,.34);
+        inset 0 0 0 1px rgba(255,255,255,.16),
+        0 0 62px rgba(63,123,255,.42),
+        0 22px 32px rgba(3,10,26,.6);
       transform-style:preserve-3d;
-      animation:globeSpin 2.6s linear infinite;
       overflow:hidden;
     }
     .cinematic-globe::before{
       content:"";
-      position:absolute;inset:8%;
-      border-radius:50%;
+      position:absolute;inset:0;border-radius:inherit;
       background:
-        repeating-linear-gradient(100deg, rgba(221,240,255,.17) 0 2px, rgba(0,0,0,0) 2px 9px),
-        repeating-linear-gradient(0deg, rgba(198,228,255,.09) 0 1px, rgba(0,0,0,0) 1px 7px);
-      mix-blend-mode:screen;
-      opacity:.78;
-      transform:rotate(8deg);
+        radial-gradient(ellipse 22% 9% at 6% 26%, rgba(255,255,255,.34), rgba(255,255,255,0) 75%),
+        radial-gradient(ellipse 26% 8% at 28% 52%, rgba(255,255,255,.26), rgba(255,255,255,0) 75%),
+        radial-gradient(ellipse 22% 8% at 56% 76%, rgba(255,255,255,.24), rgba(255,255,255,0) 75%),
+        radial-gradient(ellipse 18% 7% at 78% 32%, rgba(255,255,255,.3), rgba(255,255,255,0) 75%),
+        radial-gradient(ellipse 20% 8% at 92% 62%, rgba(255,255,255,.22), rgba(255,255,255,0) 75%),
+        radial-gradient(ellipse 9% 16% at 8% 40%, rgba(40,172,118,.78), rgba(10,68,46,0) 72%),
+        radial-gradient(ellipse 7% 13% at 24% 66%, rgba(50,188,128,.7), rgba(10,82,56,0) 72%),
+        radial-gradient(ellipse 12% 11% at 42% 28%, rgba(45,175,120,.78), rgba(10,72,50,0) 72%),
+        radial-gradient(ellipse 8% 16% at 58% 60%, rgba(50,180,124,.7), rgba(10,76,52,0) 72%),
+        radial-gradient(ellipse 6% 9% at 76% 36%, rgba(60,196,135,.62), rgba(10,82,56,0) 72%),
+        radial-gradient(ellipse 9% 8% at 90% 72%, rgba(45,172,118,.6), rgba(10,76,52,0) 72%);
+      background-size:200% 100%;
+      background-repeat:repeat-x;
+      animation:globeSpin 5.4s linear infinite;
+      opacity:.92;
     }
     .cinematic-globe::after{
       content:"";
-      position:absolute;inset:16% 12% 20% 24%;
-      border-radius:44% 56% 48% 52% / 51% 45% 55% 49%;
-      background:radial-gradient(circle at 34% 38%, rgba(156,255,220,.48), rgba(58,205,177,.28) 48%, rgba(17,81,100,.18) 76%, rgba(0,0,0,0) 100%);
-      filter:blur(.3px);
-      box-shadow:
-        -36px 26px 0 -16px rgba(92,205,187,.25),
-        30px -18px 0 -17px rgba(120,230,195,.24),
-        16px 34px 0 -18px rgba(70,195,178,.22);
-      opacity:.88;
+      position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+      background:
+        radial-gradient(circle at 28% 24%, rgba(255,255,255,.72), rgba(214,238,255,.28) 12%, rgba(255,255,255,0) 28%),
+        radial-gradient(circle at 76% 82%, rgba(2,6,22,.66), rgba(2,6,22,0) 56%),
+        radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 56%, rgba(2,8,28,.82) 100%);
     }
     .cinematic-atmosphere{
-      position:absolute;inset:-5px;border-radius:50%;pointer-events:none;
-      background:radial-gradient(circle at 58% 44%, rgba(84,201,255,.22), rgba(0,0,0,0) 58%);
-      box-shadow:0 0 24px rgba(104,179,255,.35), inset 0 0 14px rgba(163,221,255,.2);
-      animation:atmosphereShift 3.3s ease-in-out infinite;
+      position:absolute;inset:-9px;border-radius:50%;pointer-events:none;
+      background:radial-gradient(circle at 50% 50%, rgba(120,200,255,0) 54%, rgba(120,200,255,.32) 72%, rgba(120,200,255,0) 88%);
+      box-shadow:0 0 42px rgba(104,179,255,.45), inset 0 0 18px rgba(180,225,255,.22);
+      animation:atmosphereShift 4.2s ease-in-out infinite;
     }
     .cinematic-ring{position:absolute;inset:8%;border:1.5px solid rgba(37,244,143,.58);border-radius:50%;transform:rotateX(72deg) rotateY(12deg);box-shadow:0 0 16px rgba(37,244,143,.45)}
     .cinematic-ring.r2{inset:16%;border-color:rgba(39,213,255,.5);transform:rotateX(75deg) rotateY(80deg)}
@@ -199,7 +199,7 @@
     .cinematic-intro.explode .cinematic-ring{animation:ringBurst .9s ease forwards}
     .cinematic-intro.explode .cinematic-particle{animation:particleBurst .9s ease forwards}
     .cinematic-intro.explode .cinematic-star{animation:starScatter .9s ease-out forwards}
-    @keyframes globeSpin{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}
+    @keyframes globeSpin{from{background-position:0% 0%}to{background-position:-200% 0%}}
     @keyframes starTwinkle{0%{opacity:calc(var(--opacity,.7) * .52)}100%{opacity:var(--opacity,.7)}}
     @keyframes starfieldDrift{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(0,-6px,0) scale(1.03)}}
     @keyframes atmosphereShift{0%,100%{opacity:.95;transform:scale(1)}50%{opacity:.76;transform:scale(1.03)}}
@@ -244,7 +244,7 @@
       pointer-events:none;
     }
     @media (prefers-reduced-motion: reduce) {
-      .cinematic-globe { animation: none; }
+      .cinematic-globe, .cinematic-globe::before { animation: none; }
       .cinematic-atmosphere { animation: none; }
       .cinematic-star { animation: none; }
       .cinematic-intro.phase-2 .cinematic-starfield,
@@ -1818,10 +1818,10 @@ Oq fonli foto</div>
         cinematicIntro.classList.add('ready');
         return;
       }
-      introTimers.push(setTimeout(() => cinematicIntro.classList.add('phase-2'), 380));
-      introTimers.push(setTimeout(() => cinematicIntro.classList.add('explode'), 1040));
-      introTimers.push(setTimeout(() => cinematicIntro.classList.add('brand-reveal'), 1620));
-      introTimers.push(setTimeout(() => cinematicIntro.classList.add('ready'), 2080));
+      introTimers.push(setTimeout(() => cinematicIntro.classList.add('phase-2'), 420));
+      introTimers.push(setTimeout(() => cinematicIntro.classList.add('explode'), 1500));
+      introTimers.push(setTimeout(() => cinematicIntro.classList.add('brand-reveal'), 2080));
+      introTimers.push(setTimeout(() => cinematicIntro.classList.add('ready'), 2540));
     }
 
     function openRegistrationFlow() {
