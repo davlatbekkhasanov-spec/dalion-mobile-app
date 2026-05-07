@@ -62,6 +62,34 @@ function toMoney(value) {
   return Math.round(n);
 }
 
+function toFiniteNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const a1 = toFiniteNumber(lat1);
+  const b1 = toFiniteNumber(lon1);
+  const a2 = toFiniteNumber(lat2);
+  const b2 = toFiniteNumber(lon2);
+  if (a1 === null || b1 === null || a2 === null || b2 === null) return null;
+  const R = 6371;
+  const dLat = ((a2 - a1) * Math.PI) / 180;
+  const dLon = ((b2 - b1) * Math.PI) / 180;
+  const p1 = (a1 * Math.PI) / 180;
+  const p2 = (a2 * Math.PI) / 180;
+  const x = Math.sin(dLat / 2) ** 2 + Math.sin(dLon / 2) ** 2 * Math.cos(p1) * Math.cos(p2);
+  const y = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+  return R * y;
+}
+
+function computeDeliveryPriceByDistance(distanceKm) {
+  const km = Number(distanceKm);
+  if (!Number.isFinite(km) || km <= 0) return 18000;
+  if (km <= 3) return 18000;
+  return toMoney(18000 + (km - 3) * 4000);
+}
+
 function defaultDb() {
   const categories = [
     { id: 'c1', name: 'Sut mahsulotlari', displayName: 'Sut mahsulotlari', icon: '🥛', image_url: '', active: true },
@@ -106,7 +134,12 @@ function defaultDb() {
     profiles: {},
     carts: {},
     otp: {},
-    orders: []
+    orders: [],
+    notifications: [],
+    shorts: [
+      { id: 's1', title: 'Yangi aksiya', subtitle: 'Top mahsulotlar bo‘yicha chegirmalar', media_url: '', active: true, sortOrder: 1 },
+      { id: 's2', title: 'Tezkor yetkazish', subtitle: 'Buyurtma odatda 1-4 soatda yetib boradi', media_url: '', active: true, sortOrder: 2 }
+    ]
   };
 }
 
@@ -124,6 +157,16 @@ function readDb() {
 }
 
 let db = readDb();
+
+function ensureDbShape() {
+  if (!Array.isArray(db.orders)) db.orders = [];
+  if (!db.profiles || typeof db.profiles !== 'object') db.profiles = {};
+  if (!db.carts || typeof db.carts !== 'object') db.carts = {};
+  if (!db.otp || typeof db.otp !== 'object') db.otp = {};
+  if (!Array.isArray(db.notifications)) db.notifications = [];
+  if (!Array.isArray(db.shorts)) db.shorts = [];
+}
+ensureDbShape();
 
 function saveDb() {
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
@@ -231,15 +274,19 @@ app.post('/api/payme', (req, res) => {
 
 // Public API
 app.get('/api/v1/home', (req, res) => {
+  const activeShorts = (db.shorts || [])
+    .filter((item) => item && item.active !== false)
+    .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
   return res.json({
     ok: true,
     home_settings: db.homeSettings,
     banners: db.banners.filter((b) => b.active !== false),
     promotions: db.promotions.filter((p) => p.active !== false),
+    shorts: activeShorts,
     delivery_info: {
       location: db.homeSettings.locationText || 'Toshkent shahri',
       time: db.homeSettings.deliveryTimeText || '30 daqiqa',
-      price: 12000
+      price: 18000
     }
   });
 });
@@ -370,7 +417,13 @@ app.post('/api/v1/orders', (req, res) => {
   const cartSummary = buildCartSummary(phone);
   if (!cartSummary.items.length) return res.status(400).json({ ok: false, message: 'Savat bo‘sh' });
   const profile = db.profiles[phone] || {};
-  const deliveryPrice = toMoney(req.body.deliveryPrice || 12000);
+  const storeLat = 39.65417;
+  const storeLng = 66.95972;
+  const distanceKmRaw = haversineKm(storeLat, storeLng, req.body.locationLat, req.body.locationLng);
+  const distanceKm = distanceKmRaw === null ? null : Number(distanceKmRaw.toFixed(2));
+  const deliveryPrice = toMoney(
+    req.body.deliveryPrice || computeDeliveryPriceByDistance(distanceKmRaw)
+  );
   const subtotal = toMoney(cartSummary.subtotal);
   const total = subtotal + deliveryPrice;
   const orderNumber = String(100000 + db.orders.length + 1);
@@ -386,6 +439,7 @@ app.post('/api/v1/orders', (req, res) => {
     locationLat: Number(req.body.locationLat),
     locationLng: Number(req.body.locationLng),
     locationAccuracy: Number(req.body.locationAccuracy || 0),
+    distanceKm,
     paymentMethod: String(req.body.paymentMethod || 'cash'),
     paymentStatus: String(req.body.paymentStatus || 'pending'),
     status: 'created',
@@ -411,7 +465,44 @@ app.post('/api/v1/orders', (req, res) => {
 app.get('/api/v1/orders/:orderNumber/track', (req, res) => {
   const order = db.orders.find((o) => String(o.orderNumber) === String(req.params.orderNumber));
   if (!order) return res.status(404).json({ ok: false, message: 'Buyurtma topilmadi' });
-  return res.json({ ok: true, order: orderPublic(order) });
+  const now = Date.now();
+  const created = new Date(order.created_at || now).getTime();
+  const elapsedMin = Math.max(1, Math.round((now - created) / 60000));
+  const simulatedEtaMin = Math.max(3, 45 - elapsedMin);
+  const etaLabel = simulatedEtaMin > 59
+    ? `${Math.ceil(simulatedEtaMin / 60)} soat`
+    : `${simulatedEtaMin} daqiqa`;
+  const payload = orderPublic({
+    ...order,
+    etaLiveText: etaLabel,
+    trackingUpdatedAt: nowIso()
+  });
+  return res.json({ ok: true, order: payload });
+});
+
+app.get('/api/v1/notifications', (req, res) => {
+  const phone = getUserPhone(req);
+  const readMap = (db.profiles[phone]?.notificationsRead || {}) || {};
+  const notifications = (db.notifications || [])
+    .slice()
+    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+    .map((item) => ({
+      ...item,
+      read: Boolean(readMap[item.id])
+    }));
+  const unreadCount = notifications.filter((n) => !n.read).length;
+  return res.json({ ok: true, notifications, unreadCount });
+});
+
+app.post('/api/v1/notifications/read-all', (req, res) => {
+  const phone = getUserPhone(req);
+  if (!phone) return res.status(401).json({ ok: false, message: 'x-user-phone yuboring' });
+  const profile = db.profiles[phone] || { phone, name: phone };
+  if (!profile.notificationsRead || typeof profile.notificationsRead !== 'object') profile.notificationsRead = {};
+  (db.notifications || []).forEach((n) => { profile.notificationsRead[n.id] = true; });
+  db.profiles[phone] = profile;
+  saveDb();
+  return res.json({ ok: true });
 });
 
 app.post('/api/v1/orders/:orderNumber/feedback', (req, res) => {
@@ -527,6 +618,51 @@ app.get('/api/v1/admin/products', requireAdmin, (req, res) => {
     .map(publicProduct)
     .filter((p) => !q || `${p.name} ${p.code} ${p.category}`.toLowerCase().includes(q));
   res.json({ ok: true, products });
+});
+
+app.get('/api/v1/admin/notifications', requireAdmin, (req, res) => {
+  return res.json({ ok: true, notifications: db.notifications || [] });
+});
+app.post('/api/v1/admin/notifications', requireAdmin, (req, res) => {
+  const notification = {
+    id: randomId('ntf'),
+    title: String(req.body.title || '').trim(),
+    body: String(req.body.body || '').trim(),
+    createdAt: nowIso(),
+    active: req.body.active !== false
+  };
+  if (!notification.title) return res.status(400).json({ ok: false, message: 'Sarlavha majburiy' });
+  db.notifications.unshift(notification);
+  saveDb();
+  return res.json({ ok: true, notification });
+});
+app.delete('/api/v1/admin/notifications/:id', requireAdmin, (req, res) => {
+  db.notifications = (db.notifications || []).filter((n) => n.id !== req.params.id);
+  saveDb();
+  return res.json({ ok: true });
+});
+
+app.get('/api/v1/admin/shorts', requireAdmin, (req, res) => {
+  return res.json({ ok: true, shorts: db.shorts || [] });
+});
+app.post('/api/v1/admin/shorts', requireAdmin, (req, res) => {
+  const shortItem = {
+    id: randomId('srt'),
+    title: String(req.body.title || '').trim(),
+    subtitle: String(req.body.subtitle || '').trim(),
+    media_url: String(req.body.media_url || '').trim(),
+    sortOrder: Number(req.body.sortOrder || (db.shorts?.length || 0) + 1),
+    active: req.body.active !== false
+  };
+  if (!shortItem.title) return res.status(400).json({ ok: false, message: 'Sarlavha majburiy' });
+  db.shorts.unshift(shortItem);
+  saveDb();
+  return res.json({ ok: true, short: shortItem });
+});
+app.delete('/api/v1/admin/shorts/:id', requireAdmin, (req, res) => {
+  db.shorts = (db.shorts || []).filter((s) => s.id !== req.params.id);
+  saveDb();
+  return res.json({ ok: true });
 });
 app.put('/api/v1/admin/products/:id', requireAdmin, (req, res) => {
   const i = db.products.findIndex((x) => x.id === req.params.id);

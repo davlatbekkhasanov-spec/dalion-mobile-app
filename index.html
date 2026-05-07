@@ -469,7 +469,7 @@
       border-radius: 16px;
       border: 1px solid #dbe2ee;
       padding: 12px 44px 12px 38px;
-      font-size: 15px;
+      font-size: 16px;
       outline: none;
     }
     .search-clear-btn {
@@ -838,9 +838,15 @@
       border-radius: 14px;
       padding: 13px 14px;
       margin-top: 10px;
-      font-size: 14px;
+      font-size: 16px;
       outline: none;
     }
+
+    .short-card{min-width:220px;padding:12px;border-radius:16px;border:1px solid rgba(126,155,207,.24);background:#fff;color:#1d2440}
+    .short-card b{display:block;margin-bottom:6px}
+    .short-card p{margin:0;color:#667085;font-size:13px}
+    .short-thumb{height:150px;border-radius:12px;background:#f4f6fb;display:grid;place-items:center;margin-bottom:8px;overflow:hidden}
+    .short-thumb img{width:100%;height:100%;object-fit:cover}
 
     .checkout-input:focus {
       border-color: rgba(88, 243, 173, 0.65);
@@ -897,7 +903,7 @@
     .quick-add-btn.bounce { animation: addBounce .42s ease; }
     .quick-add-btn.added { background: linear-gradient(135deg,#16a34a,#22c55e) !important; }
     .quick-add-btn.added::after { content:" ✓"; }
-    .cart-badge.pop, #homeCartShortcutBadge.pop { animation: badgePop .28s ease; }
+    .cart-badge.pop, #homeBellBadge.pop { animation: badgePop .28s ease; }
     @keyframes badgePop { 0%{transform:scale(1)} 40%{transform:scale(1.25)} 100%{transform:scale(1)} }
     @keyframes addBounce { 0%{transform:scale(1)} 35%{transform:scale(0.95)} 72%{transform:scale(1.06)} 100%{transform:scale(1)} }
     .skeleton-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; }
@@ -937,7 +943,7 @@
       .cart-item-meta { gap: 6px; }
       .cart-item-title { font-size: 13px; }
       .qty button { min-width: 38px; min-height: 38px; }
-      #homeCartShortcut { min-height: 48px; min-width: 48px; }
+      #homeBellBtn { min-height: 48px; min-width: 48px; }
     }
 
 .auth-sheet-overlay {
@@ -1688,9 +1694,13 @@
               <span class="logo-mark" aria-hidden="true"></span>
               <h1 class="name" id="homeBrandName">GlobusMarket</h1>
             </div>
-            <p class="location" id="homeLocation">📍 Samarqand, Shohrux Mirzo 33</p>
+            <p class="location" id="homeLocation">📍 Samarqand</p>
           </div>
-          <button class="bell gm-icon-btn" aria-label="Savatga o'tish" id="homeCartShortcut">🛒<span class="badge gm-chip gm-chip--warning" id="homeCartShortcutBadge">0</span></button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="tab" id="langUzBtn" style="padding:6px 8px; min-height:auto;">UZ</button>
+            <button class="tab" id="langRuBtn" style="padding:6px 8px; min-height:auto;">RU</button>
+            <button class="bell gm-icon-btn" aria-label="Bildirishnomalar" id="homeBellBtn">🔔<span class="badge gm-chip gm-chip--warning" id="homeBellBadge">0</span></button>
+          </div>
         </header>
 
         <button class="search home-search-lg" id="openSearchBtn">Mahsulot qidirish...</button>
@@ -1736,6 +1746,10 @@
           <h4 id="promoSectionTitle">Aksiyalar</h4>
         </div>
         <section class="home-scroll" id="promoCarousel"></section>
+        <div class="section-head gm-section-header">
+          <h4 id="shortsSectionTitle">Shorts</h4>
+        </div>
+        <section class="home-scroll" id="shortsFeed"></section>
         <section id="activeOrderCardWrap" style="margin-top:10px;"></section>
       </section>
 
@@ -1814,7 +1828,7 @@
         <div class="list-card checkout-delivery-card">
           <h4 style="margin-bottom:10px;">Yetkazib berish</h4>
           <p class="muted" id="checkoutSavedAddress">Saqlangan manzil: -</p>
-          <p class="muted" id="checkoutLocation">Manzil: Samarqand, Shohrux Mirzo 33</p>
+          <p class="muted" id="checkoutLocation">Manzil: Samarqand</p>
           <p class="muted" id="checkoutGeo">Geo: olinmagan</p>
           <p class="muted" id="checkoutLandmark">Orientir: -</p>
           <input id="manualAddress" class="checkout-input" placeholder="Manzil (qo'lda)" />
@@ -1828,9 +1842,11 @@
           <p class="field-error" id="addressValidationError"></p>
         </div>
         <div class="list-card gm-card">
-          <h4 style="margin-bottom:8px;">To‘lov: Payme</h4>
+          <h4 style="margin-bottom:8px;" id="paymentTitle">To‘lov usuli</h4>
           <div class="payment-grid">
             <button class="pay-btn" data-payment="payme">🟩 Payme<br><span class="payment-hint">Tezkor onlayn to‘lov</span><br><small>Rasmiy to‘lov havolasi</small></button>
+            <button class="pay-btn" data-payment="click">🟦 Click<br><span class="payment-hint">Click orqali to‘lov</span><br><small>Rasmiy to‘lov havolasi</small></button>
+            <button class="pay-btn" data-payment="cash">💵 Naqd<br><span class="payment-hint">Yetkazilganda to‘lov</span><br><small>Kuryerga naqd</small></button>
           </div>
           <div id="paymentLinks" class="muted" style="margin-top:8px;"></div>
           <input id="paymentProofInput" class="checkout-input" type="file" accept="image/*,.pdf" style="display:none;" />
@@ -1929,6 +1945,15 @@ Oq fonli foto</div>
     </div>
 
     <div class="toast" id="toast">Savatga qo'shildi</div>
+    <div class="overlay" id="notificationsOverlay">
+      <div class="modal" style="max-width:560px;">
+        <div class="modal-head">
+          <h3 id="notificationsTitle">Bildirishnomalar</h3>
+          <button class="close" id="closeNotificationsBtn">✕</button>
+        </div>
+        <div id="notificationsList" class="list"></div>
+      </div>
+    </div>
   </main>
 
   <script>
@@ -1937,7 +1962,9 @@ Oq fonli foto</div>
     let currentView = 'homeView';
     let selectedPayment = 'payme';
     const DEFAULT_LOCATION_CITY = 'Samarqand';
-    const DEFAULT_LOCATION_ADDRESS = 'Samarqand, Shohrux Mirzo 33';
+    const DEFAULT_LOCATION_ADDRESS = 'Samarqand';
+    const STORE_COORDS = { lat: 39.65417, lng: 66.95972 };
+    let currentLang = localStorage.getItem('gm_lang') || 'uz';
     let currentUser = null;
     let customerLocation = { lat: null, lng: null, accuracy: null, addressText: '', landmarkText: '', permissionDenied: false };
     let activeModalProductId = null;
@@ -2336,11 +2363,11 @@ Oq fonli foto</div>
     const homeBrandName = document.getElementById('homeBrandName');
     const homeLocation = document.getElementById('homeLocation');
     const openSearchBtn = document.getElementById('openSearchBtn');
-    const homeCartShortcut = document.getElementById('homeCartShortcut');
-    const homeCartShortcutBadge = document.getElementById('homeCartShortcutBadge');
+    const closeNotificationsBtn = document.getElementById('closeNotificationsBtn');
     const bannerCarousel = document.getElementById('bannerCarousel');
     const promoCarousel = document.getElementById('promoCarousel');
     const activeOrderCardWrap = document.getElementById('activeOrderCardWrap');
+    const shortsFeed = document.getElementById('shortsFeed');
     const checkoutLocation = document.getElementById('checkoutLocation');
     const checkoutSavedAddress = document.getElementById('checkoutSavedAddress');
     const checkoutGeo = document.getElementById('checkoutGeo');
@@ -2409,12 +2436,40 @@ Oq fonli foto</div>
     const modalAddBtn = document.getElementById('modalAddBtn');
     const modalImageBox = document.querySelector('.modal-image');
     const locationDeniedOverlay = document.getElementById('locationDeniedOverlay');
+    const notificationsOverlay = document.getElementById('notificationsOverlay');
+    const notificationsList = document.getElementById('notificationsList');
+    const homeBellBtn = document.getElementById('homeBellBtn');
+    const homeBellBadge = document.getElementById('homeBellBadge');
+    const langUzBtn = document.getElementById('langUzBtn');
+    const langRuBtn = document.getElementById('langRuBtn');
     const profileAddress = document.getElementById('profileAddress');
     const retryLocationBtn = document.getElementById('retryLocationBtn');
     const manualLocationBtn = document.getElementById('manualLocationBtn');
 
     function money(v) {
       return `${Number(v || 0).toLocaleString('ru-RU')} so'm`;
+    }
+
+    const i18n = {
+      uz: { search: 'Mahsulot qidirish...', catalog: 'Katalog', cart: 'Savat', checkout: "Buyurtmani rasmiylashtirish", notifications: 'Bildirishnomalar', shorts: 'Shorts', notFound: 'Mahsulot topilmadi', bellEmpty: "Hozircha bildirishnomalar yo'q" },
+      ru: { search: 'Поиск товаров...', catalog: 'Каталог', cart: 'Корзина', checkout: 'Оформление заказа', notifications: 'Уведомления', shorts: 'Шортс', notFound: 'Товар не найден', bellEmpty: 'Пока нет уведомлений' }
+    };
+
+    function t(key) {
+      return (i18n[currentLang] || i18n.uz)[key] || key;
+    }
+
+    function applyLang() {
+      document.documentElement.lang = currentLang;
+      document.getElementById('openSearchBtn').textContent = t('search');
+      document.querySelector('#searchView .title').textContent = t('catalog');
+      document.querySelector('#cartView .title').textContent = t('cart');
+      document.querySelector('#checkoutView .title').textContent = t('checkout');
+      document.getElementById('notificationsTitle').textContent = t('notifications');
+      document.getElementById('shortsSectionTitle').textContent = t('shorts');
+      if (!notificationsList.children.length) notificationsList.innerHTML = `<div class="empty">${t('bellEmpty')}</div>`;
+      langUzBtn?.classList.toggle('active', currentLang === 'uz');
+      langRuBtn?.classList.toggle('active', currentLang === 'ru');
     }
 
     async function api(path, options = {}) {
@@ -2464,8 +2519,8 @@ Oq fonli foto</div>
       const delivery = homePayload?.delivery_info || {};
 
       homeBrandName.textContent = 'GlobusMarket';
-      homeLocation.textContent = `📍 ${DEFAULT_LOCATION_ADDRESS}`;
-      openSearchBtn.textContent = 'Mahsulot qidirish...';
+      homeLocation.textContent = `📍 ${customerLocation.addressText || currentUser?.address || DEFAULT_LOCATION_ADDRESS}`;
+      openSearchBtn.textContent = t('search');
 
       const fallbackBanner = {
         title: 'Qulay yetkazib berish',
@@ -2516,7 +2571,16 @@ Oq fonli foto</div>
       }
       checkoutLocation.textContent = `Manzil: ${delivery.location || DEFAULT_LOCATION_ADDRESS}`;
       checkoutTime.textContent = `Vaqt: ${settings.deliveryTimeText || delivery.time || 'odatiy 1–4 soat'}`;
-      checkoutPrice.textContent = `Narx: ${money(delivery.price || 12000)}`;
+      checkoutPrice.textContent = `Narx: ${money(computeDeliveryPrice(computeDistanceKmFromStore()))}`;
+
+      const shorts = homePayload?.shorts || [];
+      shortsFeed.innerHTML = shorts.map((s) => `
+        <article class="short-card">
+          <div class="short-thumb">${s.media_url ? `<img src="${s.media_url}" alt="${s.title || ''}" />` : '▶'}</div>
+          <b>${s.title || ''}</b>
+          <p>${s.subtitle || ''}</p>
+        </article>
+      `).join('');
     }
 
     async function loadCart() {
@@ -2653,8 +2717,28 @@ Oq fonli foto</div>
       return cartItemsSnapshot.reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
     }
 
+    function computeDistanceKmFromStore() {
+      if (!Number.isFinite(Number(customerLocation.lat)) || !Number.isFinite(Number(customerLocation.lng))) return null;
+      const toRad = (n) => (n * Math.PI) / 180;
+      const lat1 = Number(STORE_COORDS.lat);
+      const lon1 = Number(STORE_COORDS.lng);
+      const lat2 = Number(customerLocation.lat);
+      const lon2 = Number(customerLocation.lng);
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * (Math.sin(dLon / 2) ** 2);
+      return 6371 * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+    }
+
+    function computeDeliveryPrice(distanceKm) {
+      if (!Number.isFinite(Number(distanceKm)) || Number(distanceKm) <= 0) return 18000;
+      if (distanceKm <= 3) return 18000;
+      return Math.round(18000 + ((distanceKm - 3) * 4000));
+    }
+
     function getCheckoutTotalsSnapshot() {
-      const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
+      const distanceKm = computeDistanceKmFromStore();
+      const deliveryPrice = computeDeliveryPrice(distanceKm);
       const productsSubtotal = totalPrice();
       const discountAmount = cartItemsSnapshot.reduce((sum, item) => {
         const qty = Number(item.quantity || cart[item.id] || 0);
@@ -2666,6 +2750,7 @@ Oq fonli foto</div>
       const finalTotal = productsSubtotal + deliveryPrice;
       return {
         productsSubtotal,
+        distanceKm,
         deliveryPrice,
         discountAmount,
         finalTotal
@@ -2899,7 +2984,7 @@ Oq fonli foto</div>
       }).join('');
 
       const subtotal = totalPrice();
-      const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
+      const deliveryPrice = computeDeliveryPrice(computeDistanceKmFromStore());
       cartSubtotal.textContent = money(subtotal);
       cartDelivery.textContent = money(deliveryPrice);
       cartTotalPrice.textContent = money(subtotal + deliveryPrice);
@@ -2934,7 +3019,8 @@ Oq fonli foto</div>
         `;
       }).join('');
 
-      const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
+      const distanceKmLive = computeDistanceKmFromStore();
+      const deliveryPrice = computeDeliveryPrice(distanceKmLive);
       const deliveryEta = homePayload?.settings?.deliveryTimeText || homePayload?.delivery_info?.time || 'Samarqand bo‘ylab odatda 1–4 soat (tirbandlik va yuklamaga qarab)';
       const subtotal = totalPrice();
       const orderTotal = subtotal + deliveryPrice;
@@ -2948,8 +3034,8 @@ Oq fonli foto</div>
       checkoutGeo.textContent = Number.isFinite(Number(customerLocation.lat)) && Number.isFinite(Number(customerLocation.lng))
         ? `Geo: ${Number(customerLocation.lat).toFixed(6)}, ${Number(customerLocation.lng).toFixed(6)} (±${Math.round(Number(customerLocation.accuracy || 0))}m)`
         : 'Geo: olinmagan';
-      const distanceKm = Number(homePayload?.delivery_info?.distanceKm);
-      checkoutDistance.textContent = Number.isFinite(distanceKm) ? `Masofa: ${distanceKm.toFixed(1)} km` : 'Masofa: aniqlanmagan';
+      const distanceKm = Number.isFinite(Number(distanceKmLive)) ? Number(distanceKmLive) : null;
+      checkoutDistance.textContent = Number.isFinite(distanceKm) ? `Masofa: ${distanceKm.toFixed(2)} km` : 'Masofa: aniqlanmagan';
       checkoutTime.textContent = `ETA: ${deliveryEta}`;
       checkoutPrice.textContent = `Narx: ${money(deliveryPrice)}`;
       const checkoutLocationHint = document.getElementById('checkoutLocationHint');
@@ -3087,6 +3173,28 @@ Oq fonli foto</div>
       }
     }
 
+    async function loadNotifications() {
+      if (!currentUser?.phone) {
+        homeBellBadge.textContent = '0';
+        notificationsList.innerHTML = `<div class="empty">${t('bellEmpty')}</div>`;
+        return;
+      }
+      try {
+        const out = await api('/notifications');
+        const list = out.notifications || [];
+        homeBellBadge.textContent = String(out.unreadCount || 0);
+        notificationsList.innerHTML = list.length
+          ? list.map((n) => `
+            <article class="list-card gm-card" style="margin-bottom:8px;">
+              <b>${n.title || '-'}</b>
+              <p class="muted" style="margin-top:6px;">${n.body || ''}</p>
+              <p class="muted" style="margin-top:6px;">${new Date(n.createdAt || Date.now()).toLocaleString('ru-RU')}</p>
+            </article>
+          `).join('')
+          : `<div class="empty">${t('bellEmpty')}</div>`;
+      } catch (_) {}
+    }
+
     async function renderProfileOrders() {
       if (!isAuthed()) {
         profileUserCard.style.display = 'none';
@@ -3156,14 +3264,11 @@ Oq fonli foto</div>
       cartBadge.classList.toggle('hidden', q === 0);
       if (q > previousBadgeQty) {
         cartBadge.classList.add('pop');
-        homeCartShortcutBadge?.classList.add('pop');
+        homeBellBadge?.classList.add('pop');
         setTimeout(() => {
           cartBadge.classList.remove('pop');
-          homeCartShortcutBadge?.classList.remove('pop');
+          homeBellBadge?.classList.remove('pop');
         }, 280);
-      }
-      if (homeCartShortcutBadge) {
-        homeCartShortcutBadge.textContent = q;
       }
       previousBadgeQty = q;
     }
@@ -3355,6 +3460,8 @@ Oq fonli foto</div>
         await Promise.all([loadHomePayload(), loadProducts({ reset: true }), loadCart()]);
         manualAddress.value = currentUser?.address || '';
         customerLocation.addressText = manualAddress.value.trim();
+        applyLang();
+        await loadNotifications();
         renderAll();
       } catch (error) {
         showToast(error.message || 'Maʼlumotni yuklashda xatolik');
@@ -3442,9 +3549,29 @@ Oq fonli foto</div>
       renderSearch();
       searchInput.focus();
     });
-    homeCartShortcut?.addEventListener('click', () => setView('cartView', { push: true }));
+    homeBellBtn?.addEventListener('click', async () => {
+      notificationsOverlay.classList.add('show');
+      await loadNotifications();
+      if (currentUser?.phone) {
+        await api('/notifications/read-all', { method: 'POST' });
+        await loadNotifications();
+      }
+    });
+    closeNotificationsBtn?.addEventListener('click', () => notificationsOverlay.classList.remove('show'));
+    notificationsOverlay?.addEventListener('click', (e) => {
+      if (e.target === notificationsOverlay) notificationsOverlay.classList.remove('show');
+    });
+    langUzBtn?.addEventListener('click', () => { currentLang = 'uz'; localStorage.setItem('gm_lang', 'uz'); applyLang(); renderAll(); });
+    langRuBtn?.addEventListener('click', () => { currentLang = 'ru'; localStorage.setItem('gm_lang', 'ru'); applyLang(); renderAll(); });
 
     searchInput.addEventListener('input', renderSearch);
+    [searchInput, manualAddress, landmarkInput, promoCodeInput].forEach((field) => {
+      field?.addEventListener('focus', () => {
+        setTimeout(() => {
+          field.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }, 120);
+      });
+    });
     searchClearBtn.addEventListener('click', () => {
       searchInput.value = '';
       renderSearch();
@@ -3473,9 +3600,6 @@ Oq fonli foto</div>
       }
     });
 
-    document.querySelector('.bell')?.addEventListener('click', () => {
-      showToast("Yangi bildirishnomalar tez orada qo'shiladi");
-    });
     document.getElementById('homeAllCategoriesLink')?.addEventListener('click', (e) => {
       e.preventDefault();
       setView('searchView', { push: true });
@@ -3700,7 +3824,7 @@ Oq fonli foto</div>
             addressText: customerLocation.addressText,
             landmarkText: customerLocation.landmarkText,
             deliveryTime: homePayload?.delivery_info?.time || 'odatiy 1–4 soat',
-            deliveryPrice: homePayload?.delivery_info?.price || 12000,
+            deliveryPrice: checkoutTotals.deliveryPrice,
             promoCode: String(promoCodeInput?.value || '').trim()
           })
         });
@@ -3726,7 +3850,10 @@ Oq fonli foto</div>
         localStorage.setItem('activeOrderNumber', activeOrderNumber);
         successOrderNumber.textContent = `Buyurtma: ${lastOrderData?.orderNumber || latestOrderNumber || '-'}`;
         successOrderTime.textContent = `Vaqt: ${new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}`;
-        successPaymentMethod.textContent = `To‘lov turi: ${lastOrderData?.paymentMethod === 'payme' ? 'Payme' : (lastOrderData?.paymentMethod || '-')}`;
+        const paymentLabel = lastOrderData?.paymentMethod === 'payme'
+          ? 'Payme'
+          : (lastOrderData?.paymentMethod === 'click' ? 'Click' : (lastOrderData?.paymentMethod === 'cash' ? 'Naqd' : (lastOrderData?.paymentMethod || '-')));
+        successPaymentMethod.textContent = `To‘lov turi: ${paymentLabel}`;
         successAddress.textContent = `Manzil: ${lastOrderData?.address || '-'}`;
         successTotal.textContent = Number.isFinite(Number(lastOrderData?.finalTotal))
           ? `Jami: ${money(Number(lastOrderData.finalTotal))}`
@@ -3781,6 +3908,7 @@ Oq fonli foto</div>
       await loadProfile();
       phone.classList.remove('show-app');
       authSheetOverlay.classList.remove('show');
+      applyLang();
       runCinematicIntro();
     })();
   </script>
