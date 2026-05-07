@@ -2124,6 +2124,8 @@ Oq fonli foto</div>
     let selfieAutoCaptureEligible = false;
     let selfieCurrentState = 'idle';
     const selfieDebugTransitions = [];
+    const selfieRuntimeEvents = [];
+    let selfieLastStillAlignedLogAt = 0;
     const SELFIE_PREVIEW_MIRRORED = true;
     const SELFIE_CAPTURE_OUTPUT_MIRRORED = false;
     const SELFIE_STABLE_MS = 1400;
@@ -2149,6 +2151,26 @@ Oq fonli foto</div>
       window.__gmSelfieDebug.transitions = selfieDebugTransitions.slice();
     }
 
+    function trackSelfieRuntimeEvent(event, extra) {
+      const entry = {
+        event,
+        at: new Date().toISOString(),
+        state: selfieCurrentState,
+        detectionMode: selfieDetectionMode,
+        countdownActive: Boolean(selfieCountdownTargetAt),
+        countdownMsLeft: selfieCountdownTargetAt ? Math.max(0, selfieCountdownTargetAt - Date.now()) : 0,
+        autoEligible: Boolean(selfieAutoCaptureEligible),
+        extra: extra && typeof extra === 'object' ? extra : null
+      };
+      selfieRuntimeEvents.push(entry);
+      while (selfieRuntimeEvents.length > 120) selfieRuntimeEvents.shift();
+      try {
+        console.info('[SELFIE_RUNTIME]', entry);
+      } catch (_) {}
+      window.__gmSelfieDebug = window.__gmSelfieDebug || {};
+      window.__gmSelfieDebug.runtime = selfieRuntimeEvents.slice();
+    }
+
     function setSelfieGuideStatus(text, aligned) {
       if (selfieGuideStatus && text) selfieGuideStatus.textContent = text;
       if (selfieGuide) selfieGuide.classList.toggle('aligned', Boolean(aligned));
@@ -2171,28 +2193,40 @@ Oq fonli foto</div>
       selfieAutoCaptureEligible = false;
       selfieCountdownStartedAt = 0;
       selfieCountdownTargetAt = 0;
+      if (reason) trackSelfieRuntimeEvent('countdown_cleared', { reason });
       if (reason) trackSelfieTransition('align_required', { reason });
     }
 
     function finalizeSelfieCountdown(mode, source) {
+      trackSelfieRuntimeEvent('finalize_countdown_called', { mode, source: source || 'timer' });
       if (!selfieCountdownTargetAt || Date.now() < selfieCountdownTargetAt) return false;
       if (selfieCountdownTimer) {
         clearTimeout(selfieCountdownTimer);
         selfieCountdownTimer = null;
       }
       const stillEligible = selfieAutoCaptureEligible
-        && selfieCurrentState === 'countdown'
         && selfieDetectionMode === mode;
       if (!stillEligible) {
+        trackSelfieRuntimeEvent('finalize_blocked', {
+          reason: 'not-eligible',
+          mode,
+          currentState: selfieCurrentState,
+          detectionMode: selfieDetectionMode
+        });
         selfieAutoCaptureEligible = false;
         return false;
       }
       if (!selfieStream || !selfieVideo || selfieVideo.style.display === 'none') {
+        trackSelfieRuntimeEvent('finalize_blocked', {
+          reason: 'stream-unavailable',
+          mode
+        });
         selfieAutoCaptureEligible = false;
         return false;
       }
       trackSelfieTransition('countdown_complete', { mode, source: source || 'timer' });
       trackSelfieTransition('capture_called', { auto: true, mode, source: source || 'timer' });
+      trackSelfieRuntimeEvent('capture_invoked', { auto: true, mode, source: source || 'timer' });
       captureSelfieFrame({ auto: true, mode });
       selfieAutoCaptureEligible = false;
       return true;
@@ -2219,6 +2253,7 @@ Oq fonli foto</div>
       selfieCountdownStartedAt = Date.now();
       selfieCountdownTargetAt = selfieCountdownStartedAt + SELFIE_COUNTDOWN_MS;
       trackSelfieTransition('countdown', { mode });
+      trackSelfieRuntimeEvent('countdown_started', { mode });
       scheduleSelfieCountdownCheck(mode);
     }
 
@@ -2311,7 +2346,12 @@ Oq fonli foto</div>
           return;
         }
         if (!selfieAlignmentStartedAt) selfieAlignmentStartedAt = Date.now();
-        trackSelfieTransition('aligned');
+        if (!selfieCountdownTargetAt) {
+          trackSelfieTransition('aligned');
+        } else if ((Date.now() - selfieLastStillAlignedLogAt) > 260) {
+          selfieLastStillAlignedLogAt = Date.now();
+          trackSelfieRuntimeEvent('countdown_still_aligned', { mode: 'native' });
+        }
         const heldForMs = Date.now() - selfieAlignmentStartedAt;
         if (!selfieCountdownTimer) {
           const secondsLeft = Math.max(1, Math.ceil((SELFIE_STABLE_MS - heldForMs) / 1000));
@@ -2412,7 +2452,12 @@ Oq fonli foto</div>
           return;
         }
         if (!selfieAlignmentStartedAt) selfieAlignmentStartedAt = Date.now();
-        trackSelfieTransition('aligned', { mode: 'fallback', metrics: sampled });
+        if (!selfieCountdownTargetAt) {
+          trackSelfieTransition('aligned', { mode: 'fallback', metrics: sampled });
+        } else if ((Date.now() - selfieLastStillAlignedLogAt) > 260) {
+          selfieLastStillAlignedLogAt = Date.now();
+          trackSelfieRuntimeEvent('countdown_still_aligned', { mode: 'fallback', metrics: sampled });
+        }
         const heldForMs = Date.now() - selfieAlignmentStartedAt;
         if (!selfieCountdownTimer) {
           const secondsLeft = Math.max(1, Math.ceil((SELFIE_STABLE_MS - heldForMs) / 1000));
@@ -2468,6 +2513,7 @@ Oq fonli foto</div>
     function setupSelfieFallbackDebugHook() {
       window.__gmSelfieDebug = window.__gmSelfieDebug || {};
       window.__gmSelfieDebug.getTransitions = () => selfieDebugTransitions.slice();
+      window.__gmSelfieDebug.getRuntimeEvents = () => selfieRuntimeEvents.slice();
       window.__gmSelfieDebug.forceFallback = (value) => {
         selfieForceFallbackMode = Boolean(value);
         return selfieForceFallbackMode;
@@ -2684,8 +2730,15 @@ Oq fonli foto</div>
       const activeDetectionMode = requestedMode || selfieDetectionMode;
       if (captureOptions.auto) {
         const allowedMode = SELFIE_AUTO_CAPTURE_MODES.has(activeDetectionMode);
-        const eligibleState = selfieAutoCaptureEligible && selfieCurrentState === 'countdown';
+        const eligibleState = selfieAutoCaptureEligible;
         if (!allowedMode || !eligibleState) {
+          trackSelfieRuntimeEvent('capture_blocked', {
+            auto: true,
+            mode: activeDetectionMode || 'none',
+            allowedMode,
+            eligibleState,
+            currentState: selfieCurrentState
+          });
           trackSelfieTransition('capture_blocked', {
             auto: true,
             mode: activeDetectionMode || 'none',
@@ -2734,6 +2787,7 @@ Oq fonli foto</div>
           ? 'Avto rejim: selfie olindi. Endi "Tasdiqlash" tugmasini bosing.'
           : "Qo'lda rejim: selfie olindi. Endi \"Tasdiqlash\" tugmasini bosing.";
       }
+      trackSelfieRuntimeEvent('captured', { auto: Boolean(captureOptions.auto), mode: activeDetectionMode || 'manual' });
       trackSelfieTransition('captured', { auto: Boolean(captureOptions.auto), mode: activeDetectionMode || 'manual' });
     }
 
@@ -2752,11 +2806,14 @@ Oq fonli foto</div>
 
     function runSelfieStrictFlowSmoke() {
       selfieDebugTransitions.length = 0;
+      selfieRuntimeEvents.length = 0;
       selfieCurrentState = '';
       trackSelfieTransition('idle');
       trackSelfieTransition('align_required', { reason: 'camera-ready', mode: 'native' });
       trackSelfieTransition('aligned', { mode: 'native' });
       trackSelfieTransition('countdown');
+      trackSelfieTransition('countdown_complete', { mode: 'native', source: 'smoke' });
+      trackSelfieTransition('capture_called', { auto: true, mode: 'native', source: 'smoke' });
       trackSelfieTransition('captured', { auto: true, mode: 'native' });
       trackSelfieTransition('align_required', { reason: 'misaligned-reset-check', mode: 'native' });
       trackSelfieTransition('manual_required', { reason: 'native-unsupported' });
@@ -2764,7 +2821,7 @@ Oq fonli foto</div>
       window.__gmSelfieDebug = window.__gmSelfieDebug || {};
       window.__gmSelfieDebug.transitions = selfieDebugTransitions.slice();
       const transitionStates = selfieDebugTransitions.map((item) => item.state);
-      const hasCoreFlow = transitionStates.join('>').includes('align_required>aligned>countdown>captured');
+      const hasCoreFlow = transitionStates.join('>').includes('align_required>aligned>countdown>countdown_complete>capture_called>captured');
       const fallbackAutoCapture = selfieDebugTransitions.some((item) => item.state === 'captured' && item?.extra?.mode === 'fallback' && item?.extra?.auto === true);
       return { transitions: selfieDebugTransitions.slice(), hasCoreFlow, fallbackAutoCapture };
     }
