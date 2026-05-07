@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GlobusMarket Tracking</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root{--bg:#f6f7fb;--card:#fff;--text:#1d2440;--muted:#667085;--line:#e7eaf1;--primary:#6a4dff;--primary-soft:#f2efff;--ok:#12b76a;--danger:#ef4444;--shadow:0 14px 34px rgba(16,24,40,.12)}
     *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
@@ -100,14 +99,15 @@
 </div>
 <div class="sticky-actions"><div class="inner"><a id="callBtn" class="call-btn" href="#">Qo‘ng‘iroq</a><button class="support-btn" id="supportBtn">Qo‘llab-quvvatlash</button></div></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Security: restrict this API key by allowed production domains in Yandex cabinet. -->
+<script src="https://api-maps.yandex.ru/2.1/?apikey=98fbccfc-0ccc-46cc-923a-cfc8b9267d3e&lang=uz_UZ"></script>
 <script>
 const orderNumber = decodeURIComponent(location.pathname.split('/').pop());
 const timelineSteps=[{label:'Buyurtma qabul qilindi',statuses:['new','created','payment_pending','payment_confirmed']},{label:'Yig‘ish va tayyorlash',statuses:['sent_to_tsd','picking','preparing','ready_for_courier','courier_assigned']},{label:'Yetkazib berish jarayoni',statuses:['picked','waiting_courier','out_for_delivery']},{label:'Buyurtma topshirildi',statuses:['delivered']}];
 const statusUx={new:{title:'Buyurtma qabul qilindi',note:'Buyurtmangiz tizimga tushdi. Operator qisqa vaqt ichida tekshiradi.',badge:'Qabul qilindi'},created:{title:'Buyurtma qabul qilindi',note:'Buyurtma muvaffaqiyatli ro‘yxatdan o‘tdi.',badge:'Qabul qilindi'},payment_pending:{title:'To‘lov tekshirilmoqda',note:'To‘lov bo‘yicha holat tasdiqlanmoqda.',badge:'To‘lov tekshirilmoqda'},payment_confirmed:{title:'To‘lov tasdiqlandi',note:'To‘lov qabul qilindi, buyurtma yig‘ishga o‘tkazildi.',badge:'To‘lov tasdiqlandi'},sent_to_tsd:{title:'Buyurtma tayyorlanmoqda',note:'Mahsulotlar saralanib, yig‘ishga yuborildi.',badge:'Tayyorlanmoqda'},picking:{title:'Buyurtma tayyorlanmoqda',note:'Mahsulotlar omborda yig‘ilmoqda.',badge:'Yig‘ilmoqda'},preparing:{title:'Buyurtma tayyorlanmoqda',note:'Buyurtma jo‘natishga tayyorlanmoqda.',badge:'Tayyorlanmoqda'},ready_for_courier:{title:'Kurier biriktirilmoqda',note:'Buyurtma topshirish uchun kurier navbatida.',badge:'Kutilmoqda'},courier_assigned:{title:'Kurier biriktirildi',note:'Kurier buyurtmangizni qabul qilishga yo‘lda.',badge:'Kurier biriktirildi'},picked:{title:'Kurier biriktirilmoqda',note:'Kurier ma’lumotlari yakunlanmoqda.',badge:'Kutilmoqda'},waiting_courier:{title:'Kurier biriktirilmoqda',note:'Buyurtma kurierga topshirish bosqichida.',badge:'Kutilmoqda'},out_for_delivery:{title:'Buyurtma yo‘lda',note:'Kurier buyurtmangizni manzilga olib ketmoqda.',badge:'Yo‘lda'},delivered:{title:'Buyurtma topshirildi',note:'Buyurtma manzilga muvaffaqiyatli yetkazildi.',badge:'Yakunlandi'},cancelled:{title:'Buyurtma bekor qilindi',note:'Sababni aniqlash uchun qo‘llab-quvvatlash bilan bog‘laning.',badge:'Bekor qilindi'}};
 const WAREHOUSE_COORDS={lat:39.654722,lng:66.958972};
 const COURIER_ACTIVE_STATUSES=['out_for_delivery','delivered'];
-let order=null,firstLoadDone=false,courierMap=null,courierMarker=null,destinationMarker=null,warehouseMarker=null,routeLine=null,lastCourierPoint=null,smoothMoveTimer=null;
+let order=null,firstLoadDone=false,courierMap=null,courierMarker=null,destinationMarker=null,warehouseMarker=null,routeLine=null,lastCourierPoint=null,smoothMoveTimer=null,yandexReadyPromise=null;
 async function api(path,opt={}){const res=await fetch('/api/v1'+path,{headers:{'Content-Type':'application/json'},...opt});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.message||'Xatolik');return data;}
 const hasCoord=(a,b)=>{
   const lat=Number(a), lng=Number(b);
@@ -121,30 +121,126 @@ function resolveOrderCoord(pointKeys=[]){
   }
   return null;
 }
+function setMapFallback(message){
+  mapFallback.textContent=message||'Xarita mavjud emas';
+  mapFallback.style.display='grid';
+  courierMapEl.style.display='none';
+}
+function ensureYandexReady(){
+  if(!window.ymaps||typeof window.ymaps.ready!=='function') return Promise.reject(new Error('Yandex API unavailable'));
+  if(!yandexReadyPromise){
+    yandexReadyPromise=new Promise((resolve,reject)=>{
+      let done=false;
+      const timer=setTimeout(()=>{if(!done){done=true;reject(new Error('Yandex API timeout'));}},7000);
+      try{
+        window.ymaps.ready(()=>{
+          if(done) return;
+          done=true;
+          clearTimeout(timer);
+          resolve(window.ymaps);
+        });
+      }catch(err){
+        clearTimeout(timer);
+        reject(err);
+      }
+    });
+  }
+  return yandexReadyPromise;
+}
+function fitTwoPointsSafe(a,b){
+  if(!courierMap) return;
+  const minLat=Math.min(a[0],b[0]), maxLat=Math.max(a[0],b[0]);
+  const minLng=Math.min(a[1],b[1]), maxLng=Math.max(a[1],b[1]);
+  if(minLat===maxLat&&minLng===maxLng){
+    courierMap.setCenter([a[0],a[1]],14,{duration:250});
+    return;
+  }
+  courierMap.setBounds([[minLat,minLng],[maxLat,maxLng]],{checkZoomRange:true,zoomMargin:30,duration:250});
+}
 function renderState(m){stateLoading.style.display=m==='loading'?'block':'none';stateError.style.display=m==='error'?'block':'none';stateEmpty.style.display=m==='empty'?'block':'none';trackingContent.style.display=m==='content'?'block':'none';}
 function stepIndex(status){return Math.max(0,timelineSteps.findIndex(s=>s.statuses.includes(status)));}
 function money(v){return `${Number(v||0).toLocaleString('ru-RU')} so'm`;}
 function renderMap(){if(!order)return;
-  if(!window.L){mapFallback.textContent='Xarita kutubxonasi yuklanmadi';mapFallback.style.display='grid';courierMapEl.style.display='none';return;}
-  mapFallback.style.display='none';courierMapEl.style.display='block';
   const destinationPoint=resolveOrderCoord([['locationLat','locationLng'],['customerLat','customerLng'],['latitude','longitude']]);
   const courierPoint=resolveOrderCoord([['courierLocationLat','courierLocationLng'],['courierLat','courierLng']]);
   const hasDestination=Boolean(destinationPoint);
   const hasCourier=Boolean(courierPoint);
   const cLat=hasCourier?courierPoint.lat:null, cLng=hasCourier?courierPoint.lng:null;
   const dLat=hasDestination?destinationPoint.lat:null, dLng=hasDestination?destinationPoint.lng:null;
-  if(!courierMap){courierMap=L.map('courierMap',{zoomControl:true}).setView(hasDestination?[dLat,dLng]:[WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],14);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(courierMap);}
-  if(!courierMap){mapFallback.style.display='grid';mapFallback.textContent='Xarita yuklanmadi';return;} courierMap.invalidateSize();
-  const isCourierActive=COURIER_ACTIVE_STATUSES.includes(String(order.status||''))&&hasCourier;
-  if(isCourierActive){if(!courierMarker)courierMarker=L.marker([cLat,cLng]).addTo(courierMap).bindPopup('Kurier'); else courierMarker.setLatLng([cLat,cLng]);if(lastCourierPoint&&smoothMoveTimer)clearInterval(smoothMoveTimer);if(lastCourierPoint&&hasCoord(lastCourierPoint.lat,lastCourierPoint.lng)){const steps=8;let i=0;const from={...lastCourierPoint};smoothMoveTimer=setInterval(()=>{i+=1;const k=Math.min(1,i/steps);const lat=from.lat+((cLat-from.lat)*k);const lng=from.lng+((cLng-from.lng)*k);courierMarker.setLatLng([lat,lng]);if(i>=steps)clearInterval(smoothMoveTimer);},450);}lastCourierPoint={lat:cLat,lng:cLng};}
-  else if(courierMarker){courierMap.removeLayer(courierMarker);courierMarker=null;lastCourierPoint=null;if(smoothMoveTimer)clearInterval(smoothMoveTimer);}
-  if(!warehouseMarker){const warehouseIcon=L.divIcon({className:'warehouse-marker-wrap',html:'<div class="warehouse-pin">📦</div>',iconSize:[28,28],iconAnchor:[14,14]});warehouseMarker=L.marker([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],{icon:warehouseIcon}).addTo(courierMap).bindPopup('Ombor');}
-  else warehouseMarker.setLatLng([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng]);
-  if(hasDestination){if(!destinationMarker)destinationMarker=L.marker([dLat,dLng]).addTo(courierMap).bindPopup('Mijoz manzili'); else destinationMarker.setLatLng([dLat,dLng]);}
-  else if(destinationMarker){courierMap.removeLayer(destinationMarker);destinationMarker=null;}
-  if(hasDestination){const start=isCourierActive?[cLat,cLng]:[WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng];if(routeLine)routeLine.setLatLngs([start,[dLat,dLng]]);else routeLine=L.polyline([start,[dLat,dLng]],{color:'#6a4dff',weight:4,opacity:.8,dashArray:isCourierActive?null:'6 8'}).addTo(courierMap);if(routeLine&&routeLine.setStyle)routeLine.setStyle({dashArray:isCourierActive?null:'6 8'});courierMap.fitBounds([start,[dLat,dLng]],{padding:[30,30]});}
-  else if(routeLine){courierMap.removeLayer(routeLine);routeLine=null;}
-  else if(isCourierActive) courierMap.setView([cLat,cLng],14); else courierMap.setView([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],14);
+  ensureYandexReady().then((ymaps)=>{
+    mapFallback.style.display='none';
+    courierMapEl.style.display='block';
+    if(!courierMap){
+      courierMap=new ymaps.Map('courierMap',{center:hasDestination?[dLat,dLng]:[WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],zoom:14,controls:['zoomControl']},{suppressMapOpenBlock:true});
+    }
+    const isCourierActive=COURIER_ACTIVE_STATUSES.includes(String(order.status||''))&&hasCourier;
+    if(isCourierActive){
+      if(!courierMarker){
+        courierMarker=new ymaps.Placemark([cLat,cLng],{balloonContent:'Kurier'},{preset:'islands#redDeliveryIcon'});
+        courierMap.geoObjects.add(courierMarker);
+      }else{
+        courierMarker.geometry.setCoordinates([cLat,cLng]);
+      }
+      if(lastCourierPoint&&smoothMoveTimer)clearInterval(smoothMoveTimer);
+      if(lastCourierPoint&&hasCoord(lastCourierPoint.lat,lastCourierPoint.lng)){
+        const steps=8;let i=0;const from={...lastCourierPoint};
+        smoothMoveTimer=setInterval(()=>{
+          i+=1;
+          const k=Math.min(1,i/steps);
+          const lat=from.lat+((cLat-from.lat)*k);
+          const lng=from.lng+((cLng-from.lng)*k);
+          if(courierMarker?.geometry) courierMarker.geometry.setCoordinates([lat,lng]);
+          if(i>=steps)clearInterval(smoothMoveTimer);
+        },450);
+      }
+      lastCourierPoint={lat:cLat,lng:cLng};
+    }else if(courierMarker){
+      courierMap.geoObjects.remove(courierMarker);
+      courierMarker=null;
+      lastCourierPoint=null;
+      if(smoothMoveTimer)clearInterval(smoothMoveTimer);
+    }
+    if(!warehouseMarker){
+      warehouseMarker=new ymaps.Placemark([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],{balloonContent:'Ombor',iconContent:'📦'},{preset:'islands#blueStretchyIcon'});
+      courierMap.geoObjects.add(warehouseMarker);
+    }else{
+      warehouseMarker.geometry.setCoordinates([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng]);
+    }
+    if(hasDestination){
+      if(!destinationMarker){
+        destinationMarker=new ymaps.Placemark([dLat,dLng],{balloonContent:'Mijoz manzili'},{preset:'islands#greenDotIcon'});
+        courierMap.geoObjects.add(destinationMarker);
+      }else{
+        destinationMarker.geometry.setCoordinates([dLat,dLng]);
+      }
+    }else if(destinationMarker){
+      courierMap.geoObjects.remove(destinationMarker);
+      destinationMarker=null;
+    }
+    if(hasDestination){
+      const start=isCourierActive?[cLat,cLng]:[WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng];
+      if(routeLine){
+        routeLine.geometry.setCoordinates([start,[dLat,dLng]]);
+        routeLine.options.set({strokeStyle:isCourierActive?'solid':'dash'});
+      }else{
+        routeLine=new ymaps.Polyline([start,[dLat,dLng]],{},{
+          strokeColor:'#6a4dff',
+          strokeWidth:4,
+          strokeOpacity:0.8,
+          strokeStyle:isCourierActive?'solid':'dash'
+        });
+        courierMap.geoObjects.add(routeLine);
+      }
+      fitTwoPointsSafe(start,[dLat,dLng]);
+    }else if(routeLine){
+      courierMap.geoObjects.remove(routeLine);
+      routeLine=null;
+    }else if(isCourierActive){
+      courierMap.setCenter([cLat,cLng],14,{duration:250});
+    }else{
+      courierMap.setCenter([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],14,{duration:250});
+    }
+  }).catch(()=>setMapFallback('Xarita vaqtincha mavjud emas'));
 }
 function render(){if(!order)return;renderState('content');const ui=statusUx[order.status]||statusUx.new;statusBadge.textContent=ui.badge;bigStatus.textContent=ui.title;bigStatusNote.textContent=ui.note;
 meta.textContent=`#${order.orderNumber} · ${new Date(order.created_at||Date.now()).toLocaleString('ru-RU')}`;etaText.textContent=order.etaLiveText||order.deliveryEta||order.estimatedTime||'Samarqand bo‘ylab odatda 1–4 soat';payment.textContent=`${order.paymentMethod||'-'} / ${order.paymentStatus||'-'} (xavfsiz tasdiqlash)`;total.textContent=money(order.total);

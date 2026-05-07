@@ -1966,6 +1966,8 @@ Oq fonli foto</div>
     const DEFAULT_LOCATION_CITY = 'Samarqand';
     const DEFAULT_LOCATION_ADDRESS = 'Samarqand';
     const STORE_COORDS = { lat: 39.654722, lng: 66.958972 };
+    // Security: restrict this API key by allowed production domains in Yandex cabinet.
+    const YANDEX_MAPS_API_KEY = '98fbccfc-0ccc-46cc-923a-cfc8b9267d3e';
     const MAX_REASONABLE_DISTANCE_KM = 120;
     const MAX_DELIVERY_FEE = 300000;
     let currentLang = localStorage.getItem('gm_lang') || 'uz';
@@ -2622,6 +2624,17 @@ Oq fonli foto</div>
     }
 
     async function reverseGeocode(lat, lng) {
+      try {
+        const yandexUrl = `https://geocode-maps.yandex.ru/1.x/?apikey=${encodeURIComponent(YANDEX_MAPS_API_KEY)}&format=json&lang=uz_UZ&geocode=${encodeURIComponent(`${lng},${lat}`)}&results=1&kind=house`;
+        const yandexRes = await fetch(yandexUrl);
+        if (yandexRes.ok) {
+          const yandexData = await yandexRes.json();
+          const yandexAddress = String(
+            yandexData?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject?.metaDataProperty?.GeocoderMetaData?.text || ''
+          ).trim();
+          if (yandexAddress) return yandexAddress;
+        }
+      } catch (_) {}
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`);
         if (!res.ok) return '';
