@@ -190,6 +190,15 @@ function ensureDbShape() {
   if (!db.otp || typeof db.otp !== 'object') db.otp = {};
   if (!Array.isArray(db.notifications)) db.notifications = [];
   if (!Array.isArray(db.shorts)) db.shorts = [];
+  db.orders = db.orders.map((order) => {
+    const normalizedStatus = normalizeOrderStatus(order.status);
+    return {
+      ...order,
+      status: normalizedStatus,
+      delivery_status: normalizeOrderStatus(order.delivery_status || normalizedStatus),
+      updated_at: order.updated_at || order.created_at || nowIso()
+    };
+  });
 }
 ensureDbShape();
 
@@ -254,6 +263,46 @@ function orderPublic(order) {
     ...order,
     items: Array.isArray(order.items) ? order.items : []
   };
+}
+
+const TERMINAL_ORDER_STATUSES = new Set(['delivered', 'cancelled']);
+const ORDER_STATUS_ALIASES = {
+  new: 'created',
+  sent_to_tsd: 'preparing',
+  picking: 'preparing',
+  picked: 'ready_for_courier',
+  waiting_courier: 'ready_for_courier'
+};
+const ALLOWED_ORDER_TRANSITIONS = {
+  created: new Set(['payment_pending', 'payment_confirmed', 'preparing', 'cancelled']),
+  payment_pending: new Set(['payment_confirmed', 'preparing', 'cancelled']),
+  payment_confirmed: new Set(['preparing', 'cancelled']),
+  preparing: new Set(['ready_for_courier', 'cancelled']),
+  ready_for_courier: new Set(['courier_assigned', 'out_for_delivery', 'cancelled']),
+  courier_assigned: new Set(['out_for_delivery', 'cancelled']),
+  out_for_delivery: new Set(['delivered', 'cancelled']),
+  delivered: new Set([]),
+  cancelled: new Set([])
+};
+
+function normalizeOrderStatus(status) {
+  const raw = String(status || '').trim();
+  if (!raw) return 'created';
+  return ORDER_STATUS_ALIASES[raw] || raw;
+}
+
+function applyOrderUpdateTimestamp(order, at = nowIso()) {
+  order.updated_at = at;
+  order.trackingUpdatedAt = at;
+}
+
+function canTransitionOrderStatus(currentStatus, requestedStatus) {
+  const from = normalizeOrderStatus(currentStatus);
+  const to = normalizeOrderStatus(requestedStatus);
+  if (from === to) return true;
+  if (TERMINAL_ORDER_STATUSES.has(from)) return false;
+  const allowed = ALLOWED_ORDER_TRANSITIONS[from];
+  return Boolean(allowed && allowed.has(to));
 }
 
 // Frontend pages
@@ -467,6 +516,7 @@ app.post('/api/v1/orders', (req, res) => {
   const subtotal = toMoney(cartSummary.subtotal);
   const total = subtotal + deliveryPrice;
   const orderNumber = String(100000 + db.orders.length + 1);
+  const createdAt = nowIso();
   const order = {
     id: randomId('ord'),
     orderNumber,
@@ -486,14 +536,14 @@ app.post('/api/v1/orders', (req, res) => {
     paymentMethod: String(req.body.paymentMethod || 'cash'),
     paymentStatus: String(req.body.paymentStatus || 'pending'),
     status: 'created',
-    delivery_status: 'new',
+    delivery_status: 'created',
     deliveryEta: String(req.body.deliveryTime || db.homeSettings.deliveryTimeText || '30 daqiqa'),
     items: cartSummary.items,
     subtotal,
     deliveryPrice,
     total,
-    created_at: nowIso(),
-    updated_at: nowIso(),
+    created_at: createdAt,
+    updated_at: createdAt,
     courierName: '',
     courierPhone: '',
     courierLocationLat: null,
@@ -508,17 +558,33 @@ app.post('/api/v1/orders', (req, res) => {
 app.get('/api/v1/orders/:orderNumber/track', (req, res) => {
   const order = db.orders.find((o) => String(o.orderNumber) === String(req.params.orderNumber));
   if (!order) return res.status(404).json({ ok: false, message: 'Buyurtma topilmadi' });
+  const normalizedStatus = normalizeOrderStatus(order.status);
   const now = Date.now();
   const created = new Date(order.created_at || now).getTime();
   const elapsedMin = Math.max(1, Math.round((now - created) / 60000));
-  const simulatedEtaMin = Math.max(3, 45 - elapsedMin);
+  const statusEtaMinMap = {
+    created: 60,
+    payment_pending: 55,
+    payment_confirmed: 50,
+    preparing: 35,
+    ready_for_courier: 20,
+    courier_assigned: 15,
+    out_for_delivery: 12
+  };
+  const etaBase = statusEtaMinMap[normalizedStatus] || 45;
+  const simulatedEtaMin = TERMINAL_ORDER_STATUSES.has(normalizedStatus)
+    ? 0
+    : Math.max(3, etaBase - Math.floor(elapsedMin / 2));
   const etaLabel = simulatedEtaMin > 59
     ? `${Math.ceil(simulatedEtaMin / 60)} soat`
-    : `${simulatedEtaMin} daqiqa`;
+    : (simulatedEtaMin <= 0 ? (normalizedStatus === 'cancelled' ? 'Bekor qilingan' : 'Yetkazildi') : `${simulatedEtaMin} daqiqa`);
+  const latestUpdateAt = order.updated_at || order.created_at || nowIso();
   const payload = orderPublic({
     ...order,
+    status: normalizedStatus,
+    delivery_status: normalizeOrderStatus(order.delivery_status || normalizedStatus),
     etaLiveText: etaLabel,
-    trackingUpdatedAt: nowIso()
+    trackingUpdatedAt: latestUpdateAt
   });
   return res.json({ ok: true, order: payload });
 });
@@ -568,21 +634,28 @@ app.get('/api/v1/customer/orders', (req, res) => {
 
 app.get('/api/v1/orders-display/feed', (req, res) => {
   const activeStatuses = new Set([
-    'new',
     'created',
     'payment_pending',
     'payment_confirmed',
-    'sent_to_tsd',
-    'picking',
-    'picked',
-    'waiting_courier',
+    'preparing',
+    'ready_for_courier',
     'courier_assigned',
     'out_for_delivery',
     'delivered',
     'cancelled'
   ]);
   const feedOrders = db.orders
+    .map((order) => ({
+      ...order,
+      status: normalizeOrderStatus(order.status),
+      delivery_status: normalizeOrderStatus(order.delivery_status || order.status)
+    }))
     .filter((order) => activeStatuses.has(String(order.status || '').trim()))
+    .sort((a, b) => {
+      const bt = new Date(b.updated_at || b.created_at || 0).getTime();
+      const at = new Date(a.updated_at || a.created_at || 0).getTime();
+      return bt - at;
+    })
     .slice(0, 300)
     .map(orderPublic);
   return res.json({
@@ -781,7 +854,19 @@ app.post('/api/v1/admin/products/import', requireAdmin, (req, res) => {
 });
 
 app.get('/api/v1/admin/orders', requireAdmin, (req, res) => {
-  res.json({ ok: true, orders: db.orders.map(orderPublic) });
+  const orders = db.orders
+    .map((order) => ({
+      ...order,
+      status: normalizeOrderStatus(order.status),
+      delivery_status: normalizeOrderStatus(order.delivery_status || order.status)
+    }))
+    .sort((a, b) => {
+      const bt = new Date(b.updated_at || b.created_at || 0).getTime();
+      const at = new Date(a.updated_at || a.created_at || 0).getTime();
+      return bt - at;
+    })
+    .map(orderPublic);
+  res.json({ ok: true, orders });
 });
 app.get('/api/v1/admin/customers/biometric', requireAdmin, (req, res) => {
   const customers = Object.values(db.profiles || {})
@@ -814,30 +899,52 @@ app.get('/api/v1/admin/customers/biometric', requireAdmin, (req, res) => {
 app.post('/api/v1/admin/orders/:id/cancel', requireAdmin, (req, res) => {
   const o = db.orders.find((x) => x.id === req.params.id);
   if (!o) return res.status(404).json({ ok: false, message: 'Order topilmadi' });
+  const currentStatus = normalizeOrderStatus(o.status);
+  if (TERMINAL_ORDER_STATUSES.has(currentStatus)) {
+    return res.status(409).json({ ok: false, message: `Buyurtma allaqachon yakunlangan (${currentStatus})`, code: 'ORDER_TERMINAL' });
+  }
   o.status = 'cancelled';
   o.delivery_status = 'cancelled';
-  o.updated_at = nowIso();
+  applyOrderUpdateTimestamp(o);
   saveDb();
   return res.json({ ok: true, order: orderPublic(o) });
 });
 app.post('/api/v1/admin/orders/:id/assign-courier', requireAdmin, (req, res) => {
   const o = db.orders.find((x) => x.id === req.params.id);
   if (!o) return res.status(404).json({ ok: false, message: 'Order topilmadi' });
+  const currentStatus = normalizeOrderStatus(o.status);
+  if (!canTransitionOrderStatus(currentStatus, 'courier_assigned')) {
+    return res.status(409).json({
+      ok: false,
+      message: `Status o'zgarishi mumkin emas: ${currentStatus} -> courier_assigned`,
+      code: 'INVALID_ORDER_TRANSITION'
+    });
+  }
   o.courierName = String(req.body.courierName || '').trim();
   o.courierPhone = String(req.body.courierPhone || '').trim();
   o.status = 'courier_assigned';
   o.delivery_status = 'courier_assigned';
-  o.updated_at = nowIso();
+  applyOrderUpdateTimestamp(o);
   saveDb();
   return res.json({ ok: true, order: orderPublic(o) });
 });
 app.put('/api/v1/admin/orders/:id/status', requireAdmin, (req, res) => {
   const o = db.orders.find((x) => x.id === req.params.id);
   if (!o) return res.status(404).json({ ok: false, message: 'Order topilmadi' });
-  o.status = String(req.body.status || o.status);
+  const requestedStatusRaw = String(req.body.status || o.status);
+  const requestedStatus = normalizeOrderStatus(requestedStatusRaw);
+  const currentStatus = normalizeOrderStatus(o.status);
+  if (!canTransitionOrderStatus(currentStatus, requestedStatus)) {
+    return res.status(409).json({
+      ok: false,
+      message: `Status o'zgarishi mumkin emas: ${currentStatus} -> ${requestedStatus}`,
+      code: 'INVALID_ORDER_TRANSITION'
+    });
+  }
+  o.status = requestedStatus;
   o.delivery_status = o.status;
   if (o.status === 'delivered' && o.paymentStatus === 'pending') o.paymentStatus = 'paid';
-  o.updated_at = nowIso();
+  applyOrderUpdateTimestamp(o);
   saveDb();
   return res.json({ ok: true, order: orderPublic(o) });
 });

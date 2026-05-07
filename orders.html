@@ -35,6 +35,11 @@
     .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
     .actions button{min-height:56px;font-size:17px;font-weight:700}
     .full{grid-column:1/-1}
+    .toast{position:fixed;right:14px;bottom:14px;max-width:360px;background:#0b1a2f;color:#d4ecff;border:1px solid var(--line);padding:10px 12px;border-radius:12px;display:none;z-index:20}
+    .toast.show{display:block}
+    .toast.err{border-color:#a0485b;color:#ffd7e0;background:#2a1119}
+    .card-actions{display:flex;gap:8px;margin-top:8px}
+    .card-actions button{padding:8px 10px;border-radius:10px}
   </style>
 </head>
 <body>
@@ -59,6 +64,7 @@
       <div id="mActions" class="actions"></div>
     </div>
   </div>
+  <div id="toast" class="toast"></div>
 
   <script>
     const tokenKey = 'admin_import_token';
@@ -69,19 +75,54 @@
       mapsUrl: 'https://maps.google.com/maps?q=39.654572,66.958871&ll=39.654572,66.958871&z=16'
     };
     const statusGroups = [
-      { key: 'new', label: 'Yangi', statuses: ['new', 'created', 'payment_pending', 'payment_confirmed'] },
-      { key: 'sent_to_tsd', label: 'Tovar terilmoqda', statuses: ['sent_to_tsd'] },
-      { key: 'picking', label: 'Terilmoqda', statuses: ['picking'] },
-      { key: 'picked_waiting', label: 'Tayyor / Kurier kutilyapti', statuses: ['picked', 'waiting_courier'] },
+      { key: 'new', label: 'Yangi', statuses: ['created', 'payment_pending', 'payment_confirmed'] },
+      { key: 'preparing', label: 'Tovar terilmoqda', statuses: ['preparing'] },
+      { key: 'ready', label: 'Kurier kutilmoqda', statuses: ['ready_for_courier', 'courier_assigned'] },
       { key: 'out_for_delivery', label: 'Kurierda', statuses: ['out_for_delivery'] },
       { key: 'delivered', label: 'Yetkazildi', statuses: ['delivered'] },
       { key: 'cancelled', label: 'Bekor qilingan', statuses: ['cancelled'] }
     ];
     let orders = [];
     let activeOrder = null;
+    let pollDelay = 2500;
+    let pollTimer = null;
+    let isRefreshing = false;
+
+    const allowedTransitions = {
+      created: ['payment_pending', 'payment_confirmed', 'preparing', 'cancelled'],
+      payment_pending: ['payment_confirmed', 'preparing', 'cancelled'],
+      payment_confirmed: ['preparing', 'cancelled'],
+      preparing: ['ready_for_courier', 'cancelled'],
+      ready_for_courier: ['courier_assigned', 'out_for_delivery', 'cancelled'],
+      courier_assigned: ['out_for_delivery', 'cancelled'],
+      out_for_delivery: ['delivered', 'cancelled']
+    };
 
     function getToken(){ return localStorage.getItem(tokenKey) || ''; }
     function fmt(v){ return v ? new Date(v).toLocaleTimeString('ru-RU') : '-'; }
+    function showToast(message, isError = false) {
+      const el = document.getElementById('toast');
+      el.textContent = message;
+      el.classList.toggle('err', Boolean(isError));
+      el.classList.add('show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => el.classList.remove('show'), 2800);
+    }
+    function getNextTransition(order) {
+      if (!order) return null;
+      if (order.status === 'created' || order.status === 'payment_pending' || order.status === 'payment_confirmed') {
+        return { to: 'preparing', label: 'Tovar terilmoqda' };
+      }
+      if (order.status === 'preparing') return { to: 'ready_for_courier', label: 'Kurier kutilmoqda' };
+      if (order.status === 'ready_for_courier') {
+        return order.courierName
+          ? { to: 'out_for_delivery', label: 'Kurier yo‘lga chiqdi' }
+          : { to: 'courier_assigned', label: 'Kurier biriktirish' };
+      }
+      if (order.status === 'courier_assigned') return { to: 'out_for_delivery', label: 'Yetkazishga chiqarish' };
+      if (order.status === 'out_for_delivery') return { to: 'delivered', label: 'Yetkazildi' };
+      return null;
+    }
 
     async function api(path, options = {}) {
       const token = getToken();
@@ -114,7 +155,13 @@
                 <div class="muted">Status: ${o.status} | To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatus || '-'}</div>
                 <div class="muted">${o.paymentProofUrl ? `<a href="${o.paymentProofUrl}" target="_blank">Payment proof</a>` : 'Payment proof: -'}</div>
                 <div class="muted">${o.courierLocationUpdatedAt ? `Kurier joylashuvi: yangilangan ${fmt(o.courierLocationUpdatedAt)}` : ''}</div>
-                <div class="muted">${fmt(o.created_at)}</div>
+                <div class="muted">${fmt(o.created_at)} · Yangilandi: ${fmt(o.updated_at)}</div>
+                <div class="card-actions">
+                  ${(() => {
+                    const next = getNextTransition(o);
+                    return next ? `<button data-quick-next="${next.to}" data-order-id="${o.id}" class="primary">${next.label}</button>` : '';
+                  })()}
+                </div>
               </article>
             `).join('')}
           </div>
@@ -143,21 +190,8 @@
       `).join('');
 
       const actions = [];
-      if (order.status === 'new') {
-        actions.push(`<button class="primary" data-tsd="1">${order.tsdStatus === 'queued' ? 'Tayyorlanmoqda' : 'Tayyorlashni boshlash'}</button>`);
-      }
-      if (order.status === 'sent_to_tsd') {
-        actions.push('<button data-next="picking">Terishni boshlash</button>');
-      }
-      if (order.status === 'picking') {
-        actions.push('<button data-next="picked">Terib bo‘lindi</button>');
-      }
-      if (order.status === 'picked') {
-        actions.push('<button data-next="waiting_courier">Kurierni kutmoqda</button>');
-      }
-      if (order.status === 'picked' || order.status === 'waiting_courier') {
-        actions.push('<button data-print="1">Chek chiqarish</button>');
-      }
+      const next = getNextTransition(order);
+      if (next) actions.push(`<button class="primary" data-next="${next.to}">${next.label}</button>`);
       if (order.status !== 'delivered' && order.status !== 'cancelled') {
         actions.push('<button class="full" data-cancel="1">Bekor qilish</button>');
       }
@@ -169,6 +203,27 @@
       }
       document.getElementById('mActions').innerHTML = actions.join('');
       document.getElementById('modalOverlay').classList.add('show');
+    }
+
+    async function transitionOrder(orderId, nextStatus) {
+      const target = orders.find((o) => o.id === orderId);
+      if (!target) throw new Error('Order topilmadi');
+      const allowed = allowedTransitions[target.status] || [];
+      if (!allowed.includes(nextStatus)) throw new Error(`Mumkin bo‘lmagan status o‘tishi: ${target.status} -> ${nextStatus}`);
+      const previous = orders.map((o) => ({ ...o }));
+      const now = new Date().toISOString();
+      orders = orders.map((o) => o.id === orderId ? { ...o, status: nextStatus, updated_at: now } : o);
+      renderColumns();
+      try {
+        await api(`/admin/orders/${orderId}/status`, { method: 'PUT', body: JSON.stringify({ status: nextStatus }) });
+        showToast(`Holat yangilandi: ${nextStatus}`);
+        await refresh({ silent: true });
+      } catch (err) {
+        orders = previous;
+        renderColumns();
+        await refresh({ silent: true });
+        throw err;
+      }
     }
 
     async function printReceipt(order) {
@@ -226,7 +281,9 @@
       }
     }
 
-    async function refresh() {
+    async function refresh({ silent = false } = {}) {
+      if (isRefreshing) return;
+      isRefreshing = true;
       const token = getToken();
       document.getElementById('tokenRequired').style.display = 'none';
       try {
@@ -240,13 +297,19 @@
         document.getElementById('online').textContent = 'Online';
         document.getElementById('online').classList.remove('offline');
         document.getElementById('network').textContent = source === 'display-feed' ? '' : 'Display feed mavjud emas, admin feed ishlatilmoqda';
+        pollDelay = 2500;
       } catch (e) {
         document.getElementById('tokenRequired').style.display = token ? 'none' : 'block';
         document.getElementById('online').textContent = 'Offline';
         document.getElementById('online').classList.add('offline');
         document.getElementById('network').textContent = token ? 'Aloqa uzildi, qayta ulanmoqda...' : 'Display uchun token yoki server aloqasi kerak';
+        if (!silent) showToast(e.message || 'Yangilashda xatolik', true);
+        pollDelay = Math.min(12000, Math.round(pollDelay * 1.5));
       } finally {
-        document.getElementById('lastUpdated').textContent = `Oxirgi yangilanish: ${new Date().toLocaleTimeString('ru-RU')}`;
+        document.getElementById('lastUpdated').textContent = `Oxirgi yangilanish: ${new Date().toLocaleTimeString('ru-RU')} · interval ${Math.round(pollDelay / 1000)}s`;
+        isRefreshing = false;
+        clearTimeout(pollTimer);
+        pollTimer = setTimeout(() => refresh({ silent: true }), pollDelay);
       }
     }
 
@@ -262,6 +325,14 @@
     };
 
     document.getElementById('columns').onclick = (e) => {
+      const quickBtn = e.target.closest('[data-quick-next]');
+      if (quickBtn) {
+        const orderId = quickBtn.dataset.orderId;
+        transitionOrder(orderId, quickBtn.dataset.quickNext).catch((err) => {
+          showToast(err.message || 'Holatni o‘zgartirib bo‘lmadi', true);
+        });
+        return;
+      }
       const card = e.target.closest('[data-order-id]');
       if (!card) return;
       const order = orders.find((o) => o.id === card.dataset.orderId);
@@ -281,17 +352,18 @@
       btn.textContent = 'Yuklanmoqda...';
       try {
         if (btn.dataset.next) {
-          await api(`/admin/orders/${activeOrder.id}/status`, { method: 'PUT', body: JSON.stringify({ status: btn.dataset.next }) });
+          await transitionOrder(activeOrder.id, btn.dataset.next);
         } else if (btn.dataset.cancel) {
           await api(`/admin/orders/${activeOrder.id}/cancel`, { method: 'POST' });
+          showToast('Buyurtma bekor qilindi');
         } else if (btn.dataset.tsd) {
           await api(`/admin/orders/${activeOrder.id}/send-to-tsd`, { method: 'POST' });
         } else if (btn.dataset.print) {
           await printReceipt(activeOrder);
         }
-        await refresh();
+        await refresh({ silent: true });
       } catch (err) {
-        alert(err.message || 'Xatolik');
+        showToast(err.message || 'Xatolik', true);
       } finally {
         btn.disabled = false;
         btn.textContent = original;
@@ -299,7 +371,6 @@
     };
 
     refresh();
-    setInterval(refresh, 5000);
   </script>
 </body>
 </html>
