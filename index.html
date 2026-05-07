@@ -1102,6 +1102,7 @@
     .selfie-preview-wrap { position: relative; margin-top: 8px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(121, 170, 235, 0.3); background: rgba(8, 19, 36, 0.9); }
     .selfie-preview-wrap video,
     .selfie-preview-wrap img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+    .selfie-preview-mirror { transform: scaleX(-1); }
     .selfie-guide {
       position: absolute;
       inset: 0;
@@ -1112,11 +1113,11 @@
     .selfie-guide-head {
       position: absolute;
       left: 50%;
-      top: 49%;
-      width: 56%;
-      height: 72%;
+      top: 48.5%;
+      width: min(58%, 270px);
+      height: min(74%, 340px);
       transform: translate(-50%, -50%);
-      border-radius: 45% 45% 48% 48% / 38% 38% 60% 60%;
+      border-radius: 50%;
       border: 2px solid rgba(117, 203, 255, 0.85);
       box-shadow:
         0 0 0 9999px rgba(5, 12, 24, 0.45),
@@ -1135,14 +1136,14 @@
       opacity: 0.7;
     }
     .selfie-guide-head::before {
-      bottom: -10%;
-      width: 56%;
-      height: 12%;
+      bottom: -12%;
+      width: 52%;
+      height: 11%;
     }
     .selfie-guide-head::after {
-      bottom: -19%;
-      width: 78%;
-      height: 14%;
+      bottom: -21%;
+      width: 74%;
+      height: 13%;
       border-color: rgba(116, 188, 255, 0.35);
     }
     .selfie-guide.aligned .selfie-guide-head {
@@ -1174,6 +1175,12 @@
     .selfie-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
     .auth-success { display: none; margin-top: 8px; font-size: 12px; color: #a5f3cd; }
     .auth-success.show { display: block; }
+    @media (max-width: 420px) {
+      .selfie-guide-head {
+        width: 62%;
+        height: 70%;
+      }
+    }
 
 
     .gm-btn.is-loading {
@@ -2104,16 +2111,23 @@ Oq fonli foto</div>
     let biometricSelfie = { dataUrl: '', confirmed: false, capturedAt: '' };
     let selfieFaceDetector = null;
     let selfieDetectorTimer = null;
+    let selfieFallbackTimer = null;
+    let selfieFallbackOffscreenCanvas = null;
+    let selfieFallbackLastLuma = null;
     let selfieAlignmentStartedAt = 0;
     let selfieCountdownTimer = null;
     let selfieCountdownStartedAt = 0;
     let selfieCountdownTargetAt = 0;
     let selfieIsDetectingFrame = false;
+    let selfieDetectionMode = 'none';
     let selfieForceFallbackMode = false;
     let selfieCurrentState = 'idle';
     const selfieDebugTransitions = [];
+    const SELFIE_PREVIEW_MIRRORED = true;
     const SELFIE_STABLE_MS = 1400;
     const SELFIE_COUNTDOWN_MS = 1200;
+    const SELFIE_FALLBACK_SAMPLE_W = 112;
+    const SELFIE_FALLBACK_SAMPLE_H = 144;
 
     function trackSelfieTransition(state, extra) {
       if (selfieCurrentState === state) return;
@@ -2139,6 +2153,11 @@ Oq fonli foto</div>
 
     function showSelfieGuideOverlay() {
       if (selfieGuide) selfieGuide.classList.add('show');
+    }
+
+    function applySelfieMirrorClass() {
+      if (selfieVideo) selfieVideo.classList.toggle('selfie-preview-mirror', SELFIE_PREVIEW_MIRRORED);
+      if (selfieImagePreview) selfieImagePreview.classList.toggle('selfie-preview-mirror', SELFIE_PREVIEW_MIRRORED);
     }
 
     function clearSelfieCountdown(reason) {
@@ -2169,6 +2188,19 @@ Oq fonli foto</div>
       const rx = videoWidth * 0.29;
       const ry = videoHeight * 0.36;
       return { cx, cy, rx, ry };
+    }
+
+    function drawSelfieFrameToCanvas(ctx, source, width, height, mirrored) {
+      ctx.clearRect(0, 0, width, height);
+      if (mirrored) {
+        ctx.save();
+        ctx.translate(width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(source, 0, 0, width, height);
+        ctx.restore();
+        return;
+      }
+      ctx.drawImage(source, 0, 0, width, height);
     }
 
     function isFaceInsideGuide(faceBox, videoWidth, videoHeight) {
@@ -2222,11 +2254,108 @@ Oq fonli foto</div>
           setSelfieGuideStatus(`Avto olish ${countdownLeftSec}s`, true);
         }
       } catch (_) {
+        startSelfieFallbackLoop('detector-error');
+      } finally {
+        selfieIsDetectingFrame = false;
+      }
+    }
+
+    function ensureSelfieFallbackCanvas() {
+      if (selfieFallbackOffscreenCanvas) return selfieFallbackOffscreenCanvas;
+      selfieFallbackOffscreenCanvas = document.createElement('canvas');
+      selfieFallbackOffscreenCanvas.width = SELFIE_FALLBACK_SAMPLE_W;
+      selfieFallbackOffscreenCanvas.height = SELFIE_FALLBACK_SAMPLE_H;
+      return selfieFallbackOffscreenCanvas;
+    }
+
+    function sampleSelfieFallbackAlignment() {
+      if (!selfieVideo || !selfieStream || selfieVideo.style.display === 'none') return { aligned: false, reason: 'video-hidden' };
+      const sourceWidth = selfieVideo.videoWidth || 0;
+      const sourceHeight = selfieVideo.videoHeight || 0;
+      if (!sourceWidth || !sourceHeight) return { aligned: false, reason: 'no-frame' };
+      const sampleCanvas = ensureSelfieFallbackCanvas();
+      const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+      if (!sampleCtx) return { aligned: false, reason: 'ctx-unavailable' };
+      drawSelfieFrameToCanvas(sampleCtx, selfieVideo, SELFIE_FALLBACK_SAMPLE_W, SELFIE_FALLBACK_SAMPLE_H, SELFIE_PREVIEW_MIRRORED);
+      const frame = sampleCtx.getImageData(0, 0, SELFIE_FALLBACK_SAMPLE_W, SELFIE_FALLBACK_SAMPLE_H);
+      const data = frame.data;
+      const guide = getSelfieGuideFrame(SELFIE_FALLBACK_SAMPLE_W, SELFIE_FALLBACK_SAMPLE_H);
+      let centerCount = 0;
+      let outerCount = 0;
+      let centerSum = 0;
+      let outerSum = 0;
+      let centerSqSum = 0;
+      let motionSum = 0;
+      const currentLuma = new Uint8Array(SELFIE_FALLBACK_SAMPLE_W * SELFIE_FALLBACK_SAMPLE_H);
+      for (let y = 0; y < SELFIE_FALLBACK_SAMPLE_H; y += 1) {
+        for (let x = 0; x < SELFIE_FALLBACK_SAMPLE_W; x += 1) {
+          const idx = (y * SELFIE_FALLBACK_SAMPLE_W + x);
+          const dataIdx = idx * 4;
+          const luma = (data[dataIdx] * 0.299) + (data[dataIdx + 1] * 0.587) + (data[dataIdx + 2] * 0.114);
+          currentLuma[idx] = Math.round(luma);
+          const dx = (x - guide.cx) / guide.rx;
+          const dy = (y - guide.cy) / guide.ry;
+          const inCenterOval = ((dx * dx) + (dy * dy)) <= 1;
+          if (inCenterOval) {
+            centerCount += 1;
+            centerSum += luma;
+            centerSqSum += luma * luma;
+          } else {
+            outerCount += 1;
+            outerSum += luma;
+          }
+          if (selfieFallbackLastLuma) {
+            motionSum += Math.abs(luma - selfieFallbackLastLuma[idx]);
+          }
+        }
+      }
+      selfieFallbackLastLuma = currentLuma;
+      if (!centerCount || !outerCount) return { aligned: false, reason: 'invalid-mask' };
+      const centerMean = centerSum / centerCount;
+      const outerMean = outerSum / outerCount;
+      const variance = Math.max(0, (centerSqSum / centerCount) - (centerMean * centerMean));
+      const centerStdDev = Math.sqrt(variance);
+      const motionScore = motionSum / (SELFIE_FALLBACK_SAMPLE_W * SELFIE_FALLBACK_SAMPLE_H);
+      const contrast = Math.abs(centerMean - outerMean);
+      const aligned = centerStdDev >= 20 && contrast >= 6 && motionScore <= 8.8;
+      return {
+        aligned,
+        reason: aligned ? 'stable-center' : (centerStdDev < 20 ? 'low-detail' : (contrast < 6 ? 'off-center' : 'movement')),
+        centerStdDev: Number(centerStdDev.toFixed(2)),
+        contrast: Number(contrast.toFixed(2)),
+        motionScore: Number(motionScore.toFixed(2))
+      };
+    }
+
+    function runSelfieFallbackFrame() {
+      if (selfieIsDetectingFrame) return;
+      selfieIsDetectingFrame = true;
+      try {
+        const sampled = sampleSelfieFallbackAlignment();
+        if (!sampled.aligned) {
+          selfieAlignmentStartedAt = 0;
+          clearSelfieCountdown(`fallback-${sampled.reason || 'misaligned'}`);
+          setSelfieGuideStatus("Ramkaga to'g'rilang: markazda barqaror turing.", false);
+          return;
+        }
+        if (!selfieAlignmentStartedAt) selfieAlignmentStartedAt = Date.now();
+        trackSelfieTransition('aligned', { mode: 'fallback', metrics: sampled });
+        const heldForMs = Date.now() - selfieAlignmentStartedAt;
+        if (!selfieCountdownTimer) {
+          const secondsLeft = Math.max(1, Math.ceil((SELFIE_STABLE_MS - heldForMs) / 1000));
+          setSelfieGuideStatus(`Yuz markazda (${secondsLeft}s)`, true);
+        }
+        if (heldForMs >= SELFIE_STABLE_MS) {
+          const countdownLeftMs = Math.max(0, selfieCountdownTargetAt - Date.now());
+          const countdownLeftSec = Math.max(1, Math.ceil(countdownLeftMs / 1000));
+          if (!selfieCountdownTimer) startSelfieCountdown();
+          setSelfieGuideStatus(`Avto olish ${countdownLeftSec}s`, true);
+        }
+      } catch (_) {
         stopSelfieDetectionLoop();
-        showSelfieGuideOverlay();
-        trackSelfieTransition('align_required', { reason: 'detector-error' });
         setSelfieGuideStatus("Ramkaga to'g'rilang, so'ng qo'lda oling.", false);
-        if (selfieHint) selfieHint.textContent = "Avto aniqlash ishlamadi. Ramkaga to'g'rilang va \"Selfieni olish\" tugmasini qo'lda bosing.";
+        trackSelfieTransition('align_required', { reason: 'fallback-error' });
+        if (selfieHint) selfieHint.textContent = "Avto aniqlash ishlamadi. Ramkaga to'g'rilang va qo'lda selfie oling.";
       } finally {
         selfieIsDetectingFrame = false;
       }
@@ -2237,13 +2366,31 @@ Oq fonli foto</div>
         clearInterval(selfieDetectorTimer);
         selfieDetectorTimer = null;
       }
+      if (selfieFallbackTimer) {
+        clearInterval(selfieFallbackTimer);
+        selfieFallbackTimer = null;
+      }
       clearSelfieCountdown();
       selfieAlignmentStartedAt = 0;
       selfieIsDetectingFrame = false;
       selfieFaceDetector = null;
+      selfieFallbackLastLuma = null;
+      selfieDetectionMode = 'none';
       if (selfieGuide) {
         selfieGuide.classList.remove('aligned');
       }
+    }
+
+    function startSelfieFallbackLoop(reason) {
+      stopSelfieDetectionLoop();
+      showSelfieGuideOverlay();
+      selfieDetectionMode = 'fallback';
+      setSelfieGuideStatus("Ramkaga to'g'rilang.", false);
+      trackSelfieTransition('align_required', { reason: reason || 'fallback-enabled', mode: 'fallback' });
+      selfieFallbackTimer = setInterval(() => {
+        runSelfieFallbackFrame();
+      }, 250);
+      if (selfieHint) selfieHint.textContent = "Yengil avto aniqlash rejimi yoqildi. Yuzni oval markazida barqaror ushlab turing.";
     }
 
     function setupSelfieFallbackDebugHook() {
@@ -2428,6 +2575,7 @@ Oq fonli foto</div>
           selfieVideo.style.display = 'block';
         }
         if (selfieImagePreview) selfieImagePreview.style.display = 'none';
+        applySelfieMirrorClass();
         if (selfiePreviewWrap) selfiePreviewWrap.style.display = 'block';
         if (selfieActions) selfieActions.style.display = 'grid';
         if (confirmSelfieBtn) confirmSelfieBtn.disabled = true;
@@ -2437,23 +2585,18 @@ Oq fonli foto</div>
         if (faceDetectorSupported) {
           try {
             selfieFaceDetector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+            selfieDetectionMode = 'native';
             setSelfieGuideStatus("Ramkaga to'g'rilang.", false);
             selfieDetectorTimer = setInterval(() => {
               runSelfieDetectionFrame();
             }, 220);
-            trackSelfieTransition('align_required');
+            trackSelfieTransition('align_required', { mode: 'native' });
             if (selfieHint) selfieHint.textContent = "Ramkaga to'g'rilang. Yuz barqaror qolsa countdown boshlanadi, aks holda reset bo'ladi.";
           } catch (_) {
-            stopSelfieDetectionLoop();
-            setSelfieGuideStatus("Ramkaga to'g'rilang, so'ng qo'lda oling.", false);
-            trackSelfieTransition('align_required', { reason: 'detector-init-failed' });
-            if (selfieHint) selfieHint.textContent = "Avto aniqlashni ishga tushirib bo'lmadi. Ramkaga to'g'rilang va qo'lda selfie oling.";
+            startSelfieFallbackLoop('detector-init-failed');
           }
         } else {
-          stopSelfieDetectionLoop();
-          setSelfieGuideStatus("Ramkaga to'g'rilang, so'ng qo'lda oling.", false);
-          trackSelfieTransition('align_required', { reason: 'unsupported' });
-          if (selfieHint) selfieHint.textContent = "Ushbu brauzerda avto aniqlash yo'q (iOS/Safari). Ramkaga to'g'rilang va qo'lda selfie oling.";
+          startSelfieFallbackLoop('native-unsupported');
         }
       } catch (_) {
         setFieldError(null, selfieError, 'Kameraga ruxsat berilmadi yoki mavjud emas. Ruxsatni yoqib qayta urinib ko‘ring.');
@@ -2465,6 +2608,7 @@ Oq fonli foto</div>
     function captureSelfieFrame(options) {
       if (!selfieVideo || !selfieCanvas || !selfieImagePreview) return;
       const captureOptions = options && typeof options === 'object' ? options : {};
+      const activeDetectionMode = selfieDetectionMode;
       stopSelfieDetectionLoop();
       const width = selfieVideo.videoWidth || 720;
       const height = selfieVideo.videoHeight || 540;
@@ -2475,7 +2619,7 @@ Oq fonli foto</div>
       selfieCanvas.width = width;
       selfieCanvas.height = height;
       const ctx = selfieCanvas.getContext('2d');
-      ctx.drawImage(selfieVideo, 0, 0, width, height);
+      drawSelfieFrameToCanvas(ctx, selfieVideo, width, height, SELFIE_PREVIEW_MIRRORED);
       const dataUrl = selfieCanvas.toDataURL('image/jpeg', 0.82);
       biometricSelfie = { dataUrl, confirmed: false, capturedAt: new Date().toISOString() };
       selfieImagePreview.src = dataUrl;
@@ -2487,10 +2631,10 @@ Oq fonli foto</div>
       if (selfieSuccess) selfieSuccess.classList.remove('show');
       if (selfieHint) {
         selfieHint.textContent = captureOptions.auto
-          ? 'Selfie avtomatik olindi. Endi "Tasdiqlash" tugmasini bosing.'
+          ? `Selfie avtomatik olindi (${activeDetectionMode === 'fallback' ? 'fallback' : 'native'}). Endi "Tasdiqlash" tugmasini bosing.`
           : 'Selfie olindi. Endi "Tasdiqlash" tugmasini bosing.';
       }
-      trackSelfieTransition('captured', { auto: Boolean(captureOptions.auto) });
+      trackSelfieTransition('captured', { auto: Boolean(captureOptions.auto), mode: activeDetectionMode || 'manual' });
     }
 
     function confirmSelfieFrame() {
@@ -2510,14 +2654,19 @@ Oq fonli foto</div>
       selfieDebugTransitions.length = 0;
       selfieCurrentState = '';
       trackSelfieTransition('idle');
-      trackSelfieTransition('align_required', { reason: 'camera-ready' });
-      trackSelfieTransition('aligned');
+      trackSelfieTransition('align_required', { reason: 'camera-ready', mode: 'native' });
+      trackSelfieTransition('aligned', { mode: 'native' });
       trackSelfieTransition('countdown');
-      trackSelfieTransition('captured');
-      trackSelfieTransition('align_required', { reason: 'misaligned-reset-check' });
+      trackSelfieTransition('captured', { auto: true, mode: 'native' });
+      trackSelfieTransition('align_required', { reason: 'misaligned-reset-check', mode: 'native' });
+      trackSelfieTransition('aligned', { mode: 'fallback' });
+      trackSelfieTransition('countdown');
+      trackSelfieTransition('captured', { auto: true, mode: 'fallback' });
       window.__gmSelfieDebug = window.__gmSelfieDebug || {};
       window.__gmSelfieDebug.transitions = selfieDebugTransitions.slice();
-      return selfieDebugTransitions.slice();
+      const transitionStates = selfieDebugTransitions.map((item) => item.state);
+      const hasCoreFlow = transitionStates.join('>').includes('align_required>aligned>countdown>captured');
+      return { transitions: selfieDebugTransitions.slice(), hasCoreFlow };
     }
 
     function validateBiometricBlock(silent) {
