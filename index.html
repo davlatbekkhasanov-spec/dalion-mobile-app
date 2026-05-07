@@ -1099,8 +1099,6 @@
     .auth-success { display: none; margin-top: 8px; font-size: 12px; color: #a5f3cd; }
     .auth-success.show { display: block; }
 
-    .otp-row { display: flex; gap: 8px; align-items: center; }
-    .otp-row .gm-btn { flex: 1; }
 
     .gm-btn.is-loading {
       position: relative;
@@ -1653,11 +1651,12 @@
           <div class="auth-trust-item"><span class="auth-trust-icon">💬</span><span><strong>24/7 qo‘llab-quvvatlash</strong> — har bir buyurtmaga operator</span></div>
         </div>
         <div class="auth-consent">
-          Biometrik tekshiruv (selfie) uchun rozilik: men ushbu akkaunt egasi sifatida yuz suratini olish, tekshirish va xizmat xavfsizligi maqsadida saqlashga roziman.
+          Hisobingizni himoya qilish va buyurtmalarni xavfsiz tasdiqlash uchun bir martalik selfie olinadi.
           <label class="auth-consent-check" for="biometricConsentCheckbox">
             <input type="checkbox" id="biometricConsentCheckbox" />
-            <span>Biometrik selfie ma’lumotlarimni qayta ishlash va saqlashga roziman.</span>
+            <span>Akkauntimni himoya qilish uchun selfie tasdig‘imdan foydalanilishiga roziman.</span>
           </label>
+          <small class="auth-hint">Ma’lumotlar faqat xizmat sifati va xavfsizlik uchun ishlatiladi, uchinchi tomonlarga berilmaydi.</small>
           <small class="auth-error" id="biometricConsentError">Davom etish uchun biometrik rozilikni belgilang.</small>
         </div>
         <div class="auth-selfie-card">
@@ -1677,25 +1676,6 @@
           <small class="auth-success" id="selfieSuccess">Selfie tasdiqlandi. Davom etishingiz mumkin.</small>
         </div>
 
-        <div class="list-card gm-card" style="margin-top:10px;padding:10px;">
-          <div class="muted" style="margin-bottom:8px;">OTP tasdiqlash (ixtiyoriy)</div>
-          <div class="otp-row">
-            <button type="button" class="btn gm-btn gm-btn-secondary btn-secondary" id="requestOtpBtn">OTP olish</button>
-          </div>
-          <input
-            id="otpCodeInput"
-            class="auth-input"
-            placeholder="OTP kod (4–6 raqam)"
-            inputmode="numeric"
-            autocomplete="one-time-code"
-            maxlength="6"
-            style="margin-top:8px;"
-            aria-label="OTP kod"
-          />
-          <small class="auth-error" id="authOtpError">OTP kodni kiriting (4–6 raqam)</small>
-          <button type="button" class="btn gm-btn gm-btn-secondary btn-secondary" id="verifyOtpBtn" style="margin-top:8px;">OTP ni tekshirish</button>
-          <div id="devOtpHint" class="muted" style="margin-top:8px;display:none;"></div>
-        </div>
         <button type="button" class="btn gm-btn gm-btn-primary btn-primary" id="submitAuthBtn" style="margin-top:10px;">Davom etish</button>
       </div>
     </div>
@@ -1993,9 +1973,6 @@ Oq fonli foto</div>
     const closeAuthSheetBtn = document.getElementById('closeAuthSheetBtn');
     const authName = document.getElementById('authName');
     const authPhone = document.getElementById('authPhone');
-    const requestOtpBtn = document.getElementById('requestOtpBtn');
-    const otpCodeInput = document.getElementById('otpCodeInput');
-    const verifyOtpBtn = document.getElementById('verifyOtpBtn');
     const biometricConsentCheckbox = document.getElementById('biometricConsentCheckbox');
     const biometricConsentError = document.getElementById('biometricConsentError');
     const startFaceIdBtn = document.getElementById('startFaceIdBtn');
@@ -2009,19 +1986,13 @@ Oq fonli foto</div>
     const selfieHint = document.getElementById('selfieHint');
     const selfieError = document.getElementById('selfieError');
     const selfieSuccess = document.getElementById('selfieSuccess');
-    const devOtpHint = document.getElementById('devOtpHint');
     const submitAuthBtn = document.getElementById('submitAuthBtn');
     const authNameError = document.getElementById('authNameError');
     const authPhoneError = document.getElementById('authPhoneError');
-    const authOtpError = document.getElementById('authOtpError');
     const authPhoneHint = document.getElementById('authPhoneHint');
 
-    const OTP_RESEND_COOLDOWN_SEC = 30;
-    let otpResendTimer = null;
-    let otpResendUntil = 0;
     let selfieStream = null;
     let biometricSelfie = { dataUrl: '', confirmed: false, capturedAt: '' };
-    const requestOtpDefaultLabel = requestOtpBtn?.textContent || 'OTP olish';
 
     const gmAnalytics = (() => {
       const STORAGE_KEY = 'gm_events';
@@ -2110,17 +2081,9 @@ Oq fonli foto</div>
       return ok;
     }
 
-    function validateAuthOtp(silent) {
-      const code = String(otpCodeInput?.value || '').replace(/\D/g, '');
-      const ok = code.length >= 4 && code.length <= 6;
-      if (!silent) setFieldError(otpCodeInput, authOtpError, ok ? '' : 'OTP kodni kiriting (4–6 raqam)');
-      return ok;
-    }
-
     function clearAuthErrors() {
       setFieldError(authName, authNameError, '');
       setFieldError(authPhone, authPhoneError, '');
-      setFieldError(otpCodeInput, authOtpError, '');
       setFieldError(null, biometricConsentError, '');
       setFieldError(null, selfieError, '');
       if (authPhoneHint) authPhoneHint.style.display = '';
@@ -2236,37 +2199,6 @@ Oq fonli foto</div>
       }
     }
 
-    function clearOtpCooldown() {
-      if (otpResendTimer) {
-        clearInterval(otpResendTimer);
-        otpResendTimer = null;
-      }
-      otpResendUntil = 0;
-      if (requestOtpBtn) {
-        requestOtpBtn.textContent = requestOtpDefaultLabel;
-        requestOtpBtn.classList.remove('is-disabled');
-        requestOtpBtn.removeAttribute('disabled');
-      }
-    }
-
-    function startOtpCooldown(seconds = OTP_RESEND_COOLDOWN_SEC) {
-      if (!requestOtpBtn) return;
-      clearOtpCooldown();
-      otpResendUntil = Date.now() + seconds * 1000;
-      const tick = () => {
-        const remaining = Math.max(0, Math.ceil((otpResendUntil - Date.now()) / 1000));
-        if (remaining <= 0) {
-          clearOtpCooldown();
-          return;
-        }
-        requestOtpBtn.textContent = `Qayta yuborish (${remaining}s)`;
-        requestOtpBtn.classList.add('is-disabled');
-        requestOtpBtn.setAttribute('disabled', 'true');
-      };
-      tick();
-      otpResendTimer = setInterval(tick, 1000);
-    }
-
     if (authPhone) {
       authPhone.addEventListener('input', (e) => {
         const cursorAtEnd = (e.target.selectionStart ?? 0) === e.target.value.length;
@@ -2293,13 +2225,6 @@ Oq fonli foto</div>
       });
     }
 
-    if (otpCodeInput) {
-      otpCodeInput.addEventListener('input', (e) => {
-        const digits = String(e.target.value || '').replace(/\D/g, '').slice(0, 6);
-        if (digits !== e.target.value) e.target.value = digits;
-        if (authOtpError?.classList.contains('show')) validateAuthOtp();
-      });
-    }
     const toast = document.getElementById('toast');
     const introScreen = document.getElementById('introScreen');
     const homeProducts = document.getElementById('homeProducts');
@@ -2677,48 +2602,8 @@ Oq fonli foto</div>
       resetSelfieState();
       authSheetOverlay.classList.remove('show');
       showToast("Ro'yxatdan o'tildi");
-      gmAnalytics.track('register_success', { hasOtp: Boolean(currentUser.phoneVerified) });
+      gmAnalytics.track('register_success', { hasBiometric: true });
       return true;
-    }
-
-    async function requestOtpCode() {
-      if (!validateAuthPhone()) {
-        authPhone?.focus();
-        showToast('Telefon raqamni to‘g‘ri kiriting');
-        return;
-      }
-      const phoneValue = normalizedAuthPhone();
-      const out = await api('/auth/request-otp', { method: 'POST', body: JSON.stringify({ phone: phoneValue }) });
-      if (out.devOtp) {
-        devOtpHint.style.display = 'block';
-        devOtpHint.textContent = `Dev OTP (mock): ${out.devOtp}`;
-      } else {
-        devOtpHint.style.display = 'none';
-        devOtpHint.textContent = '';
-      }
-      startOtpCooldown(OTP_RESEND_COOLDOWN_SEC);
-      gmAnalytics.track('otp_request', { phone: phoneValue });
-      showToast('OTP yuborildi');
-    }
-
-    async function verifyOtpCode() {
-      const phoneOk = validateAuthPhone();
-      const otpOk = validateAuthOtp();
-      if (!phoneOk || !otpOk) {
-        (!phoneOk ? authPhone : otpCodeInput)?.focus();
-        showToast(!phoneOk ? 'Telefon raqam noto‘g‘ri' : 'OTP kod 4–6 raqamdan iborat bo‘lishi kerak');
-        return;
-      }
-      const phoneValue = normalizedAuthPhone();
-      const codeValue = String(otpCodeInput.value || '').trim();
-      const out = await api('/auth/verify-otp', { method: 'POST', body: JSON.stringify({ phone: phoneValue, code: codeValue }) });
-      if (currentUser && String(currentUser.phone || '') === phoneValue) {
-        currentUser.phoneVerified = Boolean(out.user?.phoneVerified);
-        currentUser.otpVerifiedAt = out.user?.otpVerifiedAt || null;
-        localStorage.setItem('globusUser', JSON.stringify(currentUser));
-      }
-      gmAnalytics.track('otp_verify', { verified: Boolean(out.user?.phoneVerified) });
-      showToast('Telefon OTP orqali tasdiqlandi');
     }
 
     function requireAuthOrIntro() {
@@ -3519,33 +3404,6 @@ Oq fonli foto</div>
     });
     biometricConsentCheckbox?.addEventListener('change', () => {
       if (biometricConsentError?.classList.contains('show')) validateBiometricBlock();
-    });
-
-    requestOtpBtn?.addEventListener('click', async () => {
-      if (otpResendUntil && Date.now() < otpResendUntil) return;
-      setBtnLoading(requestOtpBtn, true);
-      try {
-        await requestOtpCode();
-      } catch (error) {
-        showToast(error.message || 'OTP yuborishda xatolik');
-      } finally {
-        requestOtpBtn.classList.remove('is-loading');
-        if (!(otpResendUntil && Date.now() < otpResendUntil)) {
-          requestOtpBtn.removeAttribute('disabled');
-          requestOtpBtn.classList.remove('is-disabled');
-        }
-      }
-    });
-
-    verifyOtpBtn?.addEventListener('click', async () => {
-      setBtnLoading(verifyOtpBtn, true);
-      try {
-        await verifyOtpCode();
-      } catch (error) {
-        showToast(error.message || 'OTP tekshirishda xatolik');
-      } finally {
-        setBtnLoading(verifyOtpBtn, false);
-      }
     });
 
     logoutBtn?.addEventListener('click', () => {
