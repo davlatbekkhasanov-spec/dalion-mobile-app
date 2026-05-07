@@ -1964,6 +1964,8 @@ Oq fonli foto</div>
     const DEFAULT_LOCATION_CITY = 'Samarqand';
     const DEFAULT_LOCATION_ADDRESS = 'Samarqand';
     const STORE_COORDS = { lat: 39.654722, lng: 66.958972 };
+    const MAX_REASONABLE_DISTANCE_KM = 120;
+    const MAX_DELIVERY_FEE = 300000;
     let currentLang = localStorage.getItem('gm_lang') || 'uz';
     let currentUser = null;
     let customerLocation = { lat: null, lng: null, accuracy: null, addressText: '', landmarkText: '', permissionDenied: false };
@@ -2717,8 +2719,26 @@ Oq fonli foto</div>
       return cartItemsSnapshot.reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
     }
 
+    function isValidCoordinatePair(lat, lng) {
+      const latNum = Number(lat);
+      const lngNum = Number(lng);
+      return Number.isFinite(latNum) && Number.isFinite(lngNum) && latNum >= -90 && latNum <= 90 && lngNum >= -180 && lngNum <= 180;
+    }
+
+    function normalizeDistanceKm(distanceKm) {
+      const km = Number(distanceKm);
+      if (!Number.isFinite(km) || km <= 0 || km > MAX_REASONABLE_DISTANCE_KM) return null;
+      return km;
+    }
+
+    function normalizeDeliveryPrice(deliveryPrice) {
+      const price = Number(deliveryPrice);
+      if (!Number.isFinite(price) || price < 0) return null;
+      return Math.min(MAX_DELIVERY_FEE, Math.round(price));
+    }
+
     function computeDistanceKmFromStore() {
-      if (!Number.isFinite(Number(customerLocation.lat)) || !Number.isFinite(Number(customerLocation.lng))) return null;
+      if (!isValidCoordinatePair(customerLocation.lat, customerLocation.lng)) return null;
       const toRad = (n) => (n * Math.PI) / 180;
       const lat1 = Number(STORE_COORDS.lat);
       const lon1 = Number(STORE_COORDS.lng);
@@ -2727,22 +2747,59 @@ Oq fonli foto</div>
       const dLat = toRad(lat2 - lat1);
       const dLon = toRad(lon2 - lon1);
       const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * (Math.sin(dLon / 2) ** 2);
-      return 6371 * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+      const rawDistance = 6371 * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+      return normalizeDistanceKm(rawDistance);
     }
 
     function computeDeliveryPrice(distanceKm) {
-      if (!Number.isFinite(Number(distanceKm)) || Number(distanceKm) <= 0) return null;
-      if (distanceKm <= 3) return 18000;
-      return Math.round(18000 + ((distanceKm - 3) * 4000));
+      const safeDistance = normalizeDistanceKm(distanceKm);
+      if (safeDistance === null) return null;
+      if (safeDistance <= 3) return 18000;
+      return normalizeDeliveryPrice(18000 + ((safeDistance - 3) * 4000));
     }
 
     function hasResolvedCustomerLocation() {
-      return Number.isFinite(Number(customerLocation.lat)) && Number.isFinite(Number(customerLocation.lng));
+      return isValidCoordinatePair(customerLocation.lat, customerLocation.lng);
+    }
+
+    function getDeliveryComputationState() {
+      const locationResolved = hasResolvedCustomerLocation();
+      if (!locationResolved) {
+        return {
+          state: 'pending',
+          distanceKm: null,
+          deliveryPrice: null,
+          distanceText: 'Masofa: manzil aniqlangach ko‘rinadi',
+          priceText: 'Narx: manzil aniqlangach hisoblanadi',
+          cartDeliveryText: 'Manzil aniqlangach hisoblanadi'
+        };
+      }
+      const distanceKm = computeDistanceKmFromStore();
+      const deliveryPrice = computeDeliveryPrice(distanceKm);
+      const safeDistanceKm = normalizeDistanceKm(distanceKm);
+      const safeDeliveryPrice = normalizeDeliveryPrice(deliveryPrice);
+      if (safeDistanceKm === null || safeDeliveryPrice === null) {
+        return {
+          state: 'invalid',
+          distanceKm: null,
+          deliveryPrice: null,
+          distanceText: 'Masofa: aniqlanmadi, iltimos manzilni tekshiring',
+          priceText: 'Narx: vaqtincha hisoblanmadi',
+          cartDeliveryText: 'Lokatsiya xatosi, qayta urinib ko‘ring'
+        };
+      }
+      return {
+        state: 'ready',
+        distanceKm: safeDistanceKm,
+        deliveryPrice: safeDeliveryPrice,
+        distanceText: `Masofa: ${safeDistanceKm.toFixed(2)} km`,
+        priceText: `Narx: ${money(safeDeliveryPrice)}`,
+        cartDeliveryText: money(safeDeliveryPrice)
+      };
     }
 
     function getCheckoutTotalsSnapshot() {
-      const distanceKm = computeDistanceKmFromStore();
-      const deliveryPrice = computeDeliveryPrice(distanceKm);
+      const deliveryState = getDeliveryComputationState();
       const productsSubtotal = totalPrice();
       const discountAmount = cartItemsSnapshot.reduce((sum, item) => {
         const qty = Number(item.quantity || cart[item.id] || 0);
@@ -2751,11 +2808,12 @@ Oq fonli foto</div>
         if (!qty || !(oldPrice > currentPrice)) return sum;
         return sum + ((oldPrice - currentPrice) * qty);
       }, 0);
-      const safeDeliveryPrice = Number.isFinite(Number(deliveryPrice)) ? Number(deliveryPrice) : 0;
+      const safeDeliveryPrice = deliveryState.state === 'ready' ? Number(deliveryState.deliveryPrice) : 0;
       const finalTotal = productsSubtotal + safeDeliveryPrice;
       return {
         productsSubtotal,
-        distanceKm,
+        distanceKm: deliveryState.distanceKm,
+        deliveryState: deliveryState.state,
         deliveryPrice: safeDeliveryPrice,
         discountAmount,
         finalTotal
@@ -2989,12 +3047,11 @@ Oq fonli foto</div>
       }).join('');
 
       const subtotal = totalPrice();
-      const distanceKm = computeDistanceKmFromStore();
-      const deliveryPrice = computeDeliveryPrice(distanceKm);
-      const hasDelivery = Number.isFinite(Number(deliveryPrice));
+      const deliveryState = getDeliveryComputationState();
+      const hasDelivery = deliveryState.state === 'ready';
       cartSubtotal.textContent = money(subtotal);
-      cartDelivery.textContent = hasDelivery ? money(deliveryPrice) : 'Manzil aniqlangach hisoblanadi';
-      cartTotalPrice.textContent = money(subtotal + (hasDelivery ? Number(deliveryPrice) : 0));
+      cartDelivery.textContent = deliveryState.cartDeliveryText;
+      cartTotalPrice.textContent = money(subtotal + (hasDelivery ? Number(deliveryState.deliveryPrice) : 0));
 
       const cartUpsell = getCartUpsellProducts();
       if (cartUpsell.length) {
@@ -3026,26 +3083,25 @@ Oq fonli foto</div>
         `;
       }).join('');
 
-      const distanceKmLive = computeDistanceKmFromStore();
-      const deliveryPrice = computeDeliveryPrice(distanceKmLive);
-      const hasDelivery = Number.isFinite(Number(deliveryPrice));
+      const deliveryState = getDeliveryComputationState();
+      const hasDelivery = deliveryState.state === 'ready';
       const deliveryEta = homePayload?.settings?.deliveryTimeText || homePayload?.delivery_info?.time || 'Samarqand bo‘ylab odatda 1–4 soat (tirbandlik va yuklamaga qarab)';
       const subtotal = totalPrice();
-      const orderTotal = subtotal + (hasDelivery ? Number(deliveryPrice) : 0);
+      const safeDeliveryPrice = hasDelivery ? Number(deliveryState.deliveryPrice) : 0;
+      const orderTotal = subtotal + safeDeliveryPrice;
       checkoutTotal.textContent = `Jami: ${money(orderTotal)}`;
       checkoutSubtotal.textContent = money(subtotal);
-      checkoutDeliveryPrice.textContent = hasDelivery ? money(deliveryPrice) : 'Manzil aniqlangach hisoblanadi';
+      checkoutDeliveryPrice.textContent = hasDelivery ? money(safeDeliveryPrice) : deliveryState.cartDeliveryText;
       checkoutGrandTotal.textContent = money(orderTotal);
       checkoutSavedAddress.textContent = `Saqlangan manzil: ${currentUser?.address || 'Manzil qo‘shilmagan'}`;
       checkoutLocation.textContent = `Manzil: ${resolvePreferredAddress()}`;
       checkoutLandmark.textContent = `Orientir: ${customerLocation.landmarkText || landmarkInput.value || '-'}`;
-      checkoutGeo.textContent = Number.isFinite(Number(customerLocation.lat)) && Number.isFinite(Number(customerLocation.lng))
+      checkoutGeo.textContent = isValidCoordinatePair(customerLocation.lat, customerLocation.lng)
         ? `Geo: ${Number(customerLocation.lat).toFixed(6)}, ${Number(customerLocation.lng).toFixed(6)} (±${Math.round(Number(customerLocation.accuracy || 0))}m)`
         : 'Geo: olinmagan';
-      const distanceKm = Number.isFinite(Number(distanceKmLive)) ? Number(distanceKmLive) : null;
-      checkoutDistance.textContent = Number.isFinite(distanceKm) ? `Masofa: ${distanceKm.toFixed(2)} km` : 'Masofa: manzil aniqlangach ko‘rinadi';
+      checkoutDistance.textContent = deliveryState.distanceText;
       checkoutTime.textContent = `ETA: ${deliveryEta}`;
-      checkoutPrice.textContent = hasDelivery ? `Narx: ${money(deliveryPrice)}` : 'Narx: manzil aniqlangach hisoblanadi';
+      checkoutPrice.textContent = deliveryState.priceText;
       const checkoutLocationHint = document.getElementById('checkoutLocationHint');
       if (checkoutLocationHint) {
         checkoutLocationHint.textContent = customerLocation.permissionDenied
@@ -3389,8 +3445,19 @@ Oq fonli foto</div>
         return;
       }
       navigator.geolocation.getCurrentPosition(async (pos) => {
-        customerLocation.lat = pos.coords.latitude;
-        customerLocation.lng = pos.coords.longitude;
+        const nextLat = Number(pos.coords.latitude);
+        const nextLng = Number(pos.coords.longitude);
+        if (!isValidCoordinatePair(nextLat, nextLng)) {
+          customerLocation.lat = null;
+          customerLocation.lng = null;
+          customerLocation.accuracy = null;
+          customerLocation.permissionDenied = false;
+          renderCheckout();
+          showToast('Lokatsiya noto‘g‘ri formatda keldi, qayta urinib ko‘ring');
+          return;
+        }
+        customerLocation.lat = nextLat;
+        customerLocation.lng = nextLng;
         customerLocation.accuracy = pos.coords.accuracy;
         customerLocation.permissionDenied = false;
         const geoAddress = await reverseGeocode(customerLocation.lat, customerLocation.lng);
@@ -3815,6 +3882,7 @@ Oq fonli foto</div>
           }
         }
         const checkoutTotals = getCheckoutTotalsSnapshot();
+        const safeDeliveryPayload = normalizeDeliveryPrice(checkoutTotals.deliveryPrice);
         const order = await api('/orders', {
           method: 'POST',
           body: JSON.stringify({
@@ -3832,7 +3900,7 @@ Oq fonli foto</div>
             addressText: customerLocation.addressText,
             landmarkText: customerLocation.landmarkText,
             deliveryTime: homePayload?.delivery_info?.time || 'odatiy 1–4 soat',
-            deliveryPrice: checkoutTotals.deliveryPrice,
+            deliveryPrice: safeDeliveryPayload,
             promoCode: String(promoCodeInput?.value || '').trim()
           })
         });

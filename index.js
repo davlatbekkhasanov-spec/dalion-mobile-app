@@ -18,6 +18,8 @@ const DB_FILE = path.join(__dirname, 'data.store.json');
 const ADMIN_TOKEN = process.env.ADMIN_IMPORT_TOKEN || '12345';
 const BIOMETRIC_UPLOADS_DIR = path.join(__dirname, 'uploads', 'biometric');
 const MAX_BIOMETRIC_BYTES = 1.5 * 1024 * 1024;
+const MAX_REASONABLE_DISTANCE_KM = 120;
+const MAX_DELIVERY_FEE = 300000;
 
 app.use(express.json({ limit: '3mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -67,12 +69,35 @@ function toFiniteNumber(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+function isValidLatitude(value) {
+  const n = toFiniteNumber(value);
+  return n !== null && n >= -90 && n <= 90;
+}
+
+function isValidLongitude(value) {
+  const n = toFiniteNumber(value);
+  return n !== null && n >= -180 && n <= 180;
+}
+
+function isValidLatLng(lat, lng) {
+  return isValidLatitude(lat) && isValidLongitude(lng);
+}
+
+function normalizeDistanceKm(distanceKm) {
+  const km = toFiniteNumber(distanceKm);
+  if (km === null || km <= 0 || km > MAX_REASONABLE_DISTANCE_KM) return null;
+  return km;
+}
+
 function haversineKm(lat1, lon1, lat2, lon2) {
   const a1 = toFiniteNumber(lat1);
   const b1 = toFiniteNumber(lon1);
   const a2 = toFiniteNumber(lat2);
   const b2 = toFiniteNumber(lon2);
-  if (a1 === null || b1 === null || a2 === null || b2 === null) return null;
+  if (
+    a1 === null || b1 === null || a2 === null || b2 === null ||
+    !isValidLatLng(a1, b1) || !isValidLatLng(a2, b2)
+  ) return null;
   const R = 6371;
   const dLat = ((a2 - a1) * Math.PI) / 180;
   const dLon = ((b2 - b1) * Math.PI) / 180;
@@ -84,10 +109,10 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 }
 
 function computeDeliveryPriceByDistance(distanceKm) {
-  const km = Number(distanceKm);
-  if (!Number.isFinite(km) || km <= 0) return 18000;
-  if (km <= 3) return 18000;
-  return toMoney(18000 + (km - 3) * 4000);
+  const normalizedKm = normalizeDistanceKm(distanceKm);
+  if (normalizedKm === null) return 18000;
+  if (normalizedKm <= 3) return 18000;
+  return Math.min(MAX_DELIVERY_FEE, toMoney(18000 + (normalizedKm - 3) * 4000));
 }
 
 function defaultDb() {
@@ -419,12 +444,26 @@ app.post('/api/v1/orders', (req, res) => {
   const profile = db.profiles[phone] || {};
   const storeLat = 39.654722;
   const storeLng = 66.958972;
-  const distanceKmRaw = haversineKm(storeLat, storeLng, req.body.locationLat, req.body.locationLng);
-  const distanceKm = distanceKmRaw === null ? null : Number(distanceKmRaw.toFixed(2));
-  const hasClientDeliveryPrice = Number.isFinite(Number(req.body.deliveryPrice));
-  const deliveryPrice = toMoney(
-    hasClientDeliveryPrice ? Number(req.body.deliveryPrice) : computeDeliveryPriceByDistance(distanceKmRaw)
-  );
+  const rawLocationLat = toFiniteNumber(req.body.locationLat);
+  const rawLocationLng = toFiniteNumber(req.body.locationLng);
+  const hasValidCustomerCoords = isValidLatLng(rawLocationLat, rawLocationLng);
+  const distanceKmRaw = hasValidCustomerCoords
+    ? haversineKm(storeLat, storeLng, rawLocationLat, rawLocationLng)
+    : null;
+  const safeDistanceKm = normalizeDistanceKm(distanceKmRaw);
+  const distanceKm = safeDistanceKm === null ? null : Number(safeDistanceKm.toFixed(2));
+  const clientDeliveryPrice = toFiniteNumber(req.body.deliveryPrice);
+  const safeClientDeliveryPrice = (
+    clientDeliveryPrice !== null &&
+    clientDeliveryPrice >= 0 &&
+    clientDeliveryPrice <= MAX_DELIVERY_FEE
+  )
+    ? toMoney(clientDeliveryPrice)
+    : null;
+  const fallbackDeliveryPrice = computeDeliveryPriceByDistance(safeDistanceKm);
+  const deliveryPrice = safeClientDeliveryPrice === null
+    ? fallbackDeliveryPrice
+    : Math.min(MAX_DELIVERY_FEE, safeClientDeliveryPrice);
   const subtotal = toMoney(cartSummary.subtotal);
   const total = subtotal + deliveryPrice;
   const orderNumber = String(100000 + db.orders.length + 1);
@@ -437,10 +476,13 @@ app.post('/api/v1/orders', (req, res) => {
     location: String(req.body.location || '').trim(),
     addressText: String(req.body.addressText || '').trim(),
     landmarkText: String(req.body.landmarkText || '').trim(),
-    locationLat: Number(req.body.locationLat),
-    locationLng: Number(req.body.locationLng),
+    locationLat: hasValidCustomerCoords ? rawLocationLat : null,
+    locationLng: hasValidCustomerCoords ? rawLocationLng : null,
     locationAccuracy: Number(req.body.locationAccuracy || 0),
     distanceKm,
+    distanceValid: distanceKm !== null,
+    deliveryFallbackApplied: safeDistanceKm === null,
+    deliveryPriceCapped: deliveryPrice >= MAX_DELIVERY_FEE,
     paymentMethod: String(req.body.paymentMethod || 'cash'),
     paymentStatus: String(req.body.paymentStatus || 'pending'),
     status: 'created',
