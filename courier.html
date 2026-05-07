@@ -46,8 +46,8 @@
         <button id="openYandexNav" type="button">Yandex Maps</button>
       </div>
       <div id="courierMap"></div>
-      <input id="courierName" placeholder="Courier name" />
-      <input id="courierPhone" placeholder="Courier phone" />
+      <input id="courierName" placeholder="Kuryer ismi" />
+      <input id="courierPhone" placeholder="Kuryer telefoni" />
       <button id="acceptBtn" class="primary">Buyurtmani qabul qildim</button>
       <button id="deliverBtn" style="display:none;">Mijozga topshirildi</button>
       <div id="successMsg" class="muted" style="display:none;margin-top:10px;color:#9dffcc;">Buyurtma yakunlandi</div>
@@ -93,7 +93,7 @@
     }
     function render(){
       if(!order) return;
-      document.getElementById('orderInfo').innerHTML = `#${order.orderNumber} · ${(order.items||[]).length} item · ${Number(order.total||0).toLocaleString('ru-RU')} so'm<br>${order.customerAddress || order.location || '-'}`;
+      document.getElementById('orderInfo').innerHTML = `#${order.orderNumber} · ${(order.items||[]).length} ta mahsulot · ${Number(order.total||0).toLocaleString('ru-RU')} so'm<br>${order.customerAddress || order.location || '-'}`;
       document.getElementById('destinationMeta').innerHTML = `#${order.orderNumber || '-'}<br>Manzil: ${order.addressText || order.customerAddress || order.location || '-'}<br>Orientir: ${order.landmarkText || '-'}<br>Jami: ${Number(order.total || 0).toLocaleString('ru-RU')} so'm`;
       document.getElementById('msg').textContent = `Status: ${order.status}`;
       const acceptBtn = document.getElementById('acceptBtn');
@@ -103,7 +103,7 @@
       const phoneInput = document.getElementById('courierPhone');
       successMsg.style.display = 'none';
 
-      if (order.status === 'waiting_courier') {
+      if (order.status === 'ready_for_courier' || order.status === 'courier_assigned') {
         nameInput.style.display = 'block';
         phoneInput.style.display = 'block';
         nameInput.readOnly = false;

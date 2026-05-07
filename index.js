@@ -192,11 +192,18 @@ function ensureDbShape() {
   if (!Array.isArray(db.shorts)) db.shorts = [];
   db.orders = db.orders.map((order) => {
     const normalizedStatus = normalizeOrderStatus(order.status);
+    const hasCourierTerminalStatus = ['delivered', 'cancelled'].includes(normalizedStatus);
     return {
       ...order,
       status: normalizedStatus,
       delivery_status: normalizeOrderStatus(order.delivery_status || normalizedStatus),
-      updated_at: order.updated_at || order.created_at || nowIso()
+      updated_at: order.updated_at || order.created_at || nowIso(),
+      courierToken: order.courierToken || randomId('crt'),
+      courierTokenUsed: order.courierTokenUsed === undefined ? hasCourierTerminalStatus : Boolean(order.courierTokenUsed),
+      courierLocationLat: toFiniteNumber(order.courierLocationLat),
+      courierLocationLng: toFiniteNumber(order.courierLocationLng),
+      courierLocationAccuracy: toFiniteNumber(order.courierLocationAccuracy),
+      courierLocationUpdatedAt: order.courierLocationUpdatedAt || null
     };
   });
 }
@@ -263,6 +270,12 @@ function orderPublic(order) {
     ...order,
     items: Array.isArray(order.items) ? order.items : []
   };
+}
+
+function ensureCourierToken(order) {
+  if (!order) return '';
+  if (!order.courierToken) order.courierToken = randomId('crt');
+  return order.courierToken;
 }
 
 const TERMINAL_ORDER_STATUSES = new Set(['delivered', 'cancelled']);
@@ -546,13 +559,30 @@ app.post('/api/v1/orders', (req, res) => {
     updated_at: createdAt,
     courierName: '',
     courierPhone: '',
+    courierToken: randomId('crt'),
+    courierTokenUsed: false,
     courierLocationLat: null,
-    courierLocationLng: null
+    courierLocationLng: null,
+    courierLocationAccuracy: null,
+    courierLocationUpdatedAt: null
   };
   db.orders.unshift(order);
   db.carts[phone] = {};
   saveDb();
   return res.json({ ok: true, orderNumber, status: order.status, paymentStatus: order.paymentStatus });
+});
+
+app.get('/api/v1/orders/:orderNumber/status', (req, res) => {
+  const order = db.orders.find((o) => String(o.orderNumber) === String(req.params.orderNumber));
+  if (!order) return res.status(404).json({ ok: false, message: 'Buyurtma topilmadi' });
+  const normalizedStatus = normalizeOrderStatus(order.status);
+  return res.json({
+    ok: true,
+    orderNumber: order.orderNumber,
+    status: normalizedStatus,
+    paymentStatus: order.paymentStatus || 'pending',
+    updatedAt: order.updated_at || order.created_at || nowIso()
+  });
 });
 
 app.get('/api/v1/orders/:orderNumber/track', (req, res) => {
@@ -943,10 +973,89 @@ app.put('/api/v1/admin/orders/:id/status', requireAdmin, (req, res) => {
   }
   o.status = requestedStatus;
   o.delivery_status = o.status;
-  if (o.status === 'delivered' && o.paymentStatus === 'pending') o.paymentStatus = 'paid';
+  if (o.status === 'delivered' && ['pending', 'unpaid'].includes(String(o.paymentStatus || ''))) o.paymentStatus = 'paid';
+  if (o.status === 'delivered' || o.status === 'cancelled') o.courierTokenUsed = true;
+  ensureCourierToken(o);
   applyOrderUpdateTimestamp(o);
   saveDb();
   return res.json({ ok: true, order: orderPublic(o) });
+});
+
+app.get('/api/v1/admin/orders/:id/qr', requireAdmin, async (req, res) => {
+  const order = db.orders.find((x) => x.id === req.params.id);
+  if (!order) return res.status(404).json({ ok: false, message: 'Order topilmadi' });
+  ensureCourierToken(order);
+  const courierUrl = `${req.protocol}://${req.get('host')}/courier/${encodeURIComponent(order.courierToken)}`;
+  try {
+    const qrDataUrl = await require('qrcode').toDataURL(courierUrl, { width: 280, margin: 1 });
+    saveDb();
+    return res.json({ ok: true, courierUrl, qrDataUrl });
+  } catch {
+    return res.status(500).json({ ok: false, message: 'QR yaratilmadi' });
+  }
+});
+
+app.get('/api/v1/courier/:token', (req, res) => {
+  const token = String(req.params.token || '').trim();
+  const order = db.orders.find((o) => String(o.courierToken || '') === token);
+  if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
+  if (order.courierTokenUsed && !['out_for_delivery', 'courier_assigned'].includes(normalizeOrderStatus(order.status))) {
+    return res.status(410).json({ ok: false, message: 'Bu QR kod yaroqsiz yoki ishlatilgan' });
+  }
+  return res.json({ ok: true, order: orderPublic(order) });
+});
+
+app.post('/api/v1/courier/:token/accept', (req, res) => {
+  const token = String(req.params.token || '').trim();
+  const order = db.orders.find((o) => String(o.courierToken || '') === token);
+  if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
+  const currentStatus = normalizeOrderStatus(order.status);
+  if (!['ready_for_courier', 'courier_assigned', 'out_for_delivery'].includes(currentStatus)) {
+    return res.status(409).json({ ok: false, message: `Bu statusda qabul qilib bo'lmaydi: ${currentStatus}` });
+  }
+  order.courierName = String(req.body.courierName || order.courierName || '').trim();
+  order.courierPhone = String(req.body.courierPhone || order.courierPhone || '').trim();
+  order.status = 'out_for_delivery';
+  order.delivery_status = 'out_for_delivery';
+  order.courierTokenUsed = false;
+  applyOrderUpdateTimestamp(order);
+  saveDb();
+  return res.json({ ok: true, order: orderPublic(order) });
+});
+
+app.post('/api/v1/courier/:token/location', (req, res) => {
+  const token = String(req.params.token || '').trim();
+  const order = db.orders.find((o) => String(o.courierToken || '') === token);
+  if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
+  if (normalizeOrderStatus(order.status) !== 'out_for_delivery') {
+    return res.status(409).json({ ok: false, message: 'Lokatsiya faqat yo‘lda statusida qabul qilinadi' });
+  }
+  const lat = toFiniteNumber(req.body.lat);
+  const lng = toFiniteNumber(req.body.lng);
+  if (!isValidLatLng(lat, lng)) return res.status(400).json({ ok: false, message: 'Lokatsiya noto‘g‘ri' });
+  order.courierLocationLat = lat;
+  order.courierLocationLng = lng;
+  order.courierLocationAccuracy = toFiniteNumber(req.body.accuracy);
+  order.courierLocationUpdatedAt = nowIso();
+  applyOrderUpdateTimestamp(order);
+  saveDb();
+  return res.json({ ok: true, order: orderPublic(order) });
+});
+
+app.post('/api/v1/courier/:token/deliver', (req, res) => {
+  const token = String(req.params.token || '').trim();
+  const order = db.orders.find((o) => String(o.courierToken || '') === token);
+  if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
+  if (normalizeOrderStatus(order.status) !== 'out_for_delivery') {
+    return res.status(409).json({ ok: false, message: 'Buyurtma hali yo‘lda emas' });
+  }
+  order.status = 'delivered';
+  order.delivery_status = 'delivered';
+  if (['pending', 'unpaid'].includes(String(order.paymentStatus || ''))) order.paymentStatus = 'paid';
+  order.courierTokenUsed = true;
+  applyOrderUpdateTimestamp(order);
+  saveDb();
+  return res.json({ ok: true, order: orderPublic(order) });
 });
 
 app.post('/api/v1/admin/store/reload', requireAdmin, (req, res) => {

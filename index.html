@@ -928,6 +928,7 @@
 
     
     html, body { overflow-x: hidden; }
+    input, textarea, select { font-size: 16px; }
     .gm-btn, .btn, .quick-add-btn, .pay-btn, .icon-btn, .tab { min-height: 48px; }
     .title, .gm-title-md { line-height: 1.3; }
     .price, .modal-price-main, #cartTotalPrice, #checkoutTotal { letter-spacing: .2px; }
@@ -2720,21 +2721,32 @@ Oq fonli foto</div>
     function orderStatusLabel(status) {
       return {
         new: 'Buyurtma qabul qilindi',
+        created: 'Buyurtma qabul qilindi',
+        payment_pending: 'To‘lov tekshirilmoqda',
+        payment_confirmed: 'To‘lov tasdiqlandi',
         sent_to_tsd: 'Yig‘ish jarayonida',
         picking: 'Yig‘ish jarayonida',
+        preparing: 'Yig‘ish jarayonida',
         picked: 'Kurierga tayyorlanmoqda',
         waiting_courier: 'Kurier biriktirilmoqda',
+        ready_for_courier: 'Kurier biriktirilmoqda',
+        courier_assigned: 'Kurier biriktirildi',
         out_for_delivery: 'Yo‘lda',
         delivered: 'Yetkazib berildi',
-        cancelled: 'Bekor qilingan',
-        created: 'Yaratildi',
-        pending_payment: 'To‘lov kutilmoqda',
-        paid: 'To‘landi'
+        cancelled: 'Bekor qilingan'
       }[status] || status || '-';
     }
 
+    function paymentStatusLabel(status) {
+      return {
+        pending: 'To‘lov tekshirilmoqda',
+        unpaid: 'To‘lanmagan',
+        paid: 'To‘langan'
+      }[String(status || '').toLowerCase()] || (status || '-');
+    }
+
     function isActiveOrderStatus(status) {
-      return ['new', 'sent_to_tsd', 'picking', 'picked', 'waiting_courier', 'out_for_delivery'].includes(String(status || ''));
+      return ['created', 'payment_pending', 'payment_confirmed', 'preparing', 'ready_for_courier', 'courier_assigned', 'out_for_delivery'].includes(String(status || ''));
     }
 
     function totalQty() {
@@ -3337,7 +3349,7 @@ Oq fonli foto</div>
             <div style="margin-top:8px;display:grid;gap:6px;">
               ${(o.items || []).length ? (o.items || []).map((item) => `<div class="muted">${item.name || '-'} · ${item.quantity || 0} ta · ${money(item.price || 0)}</div>`).join('') : '<div class="muted">Mahsulotlar topilmadi</div>'}
               <div class="muted">Manzil: ${o.customerAddress || o.addressText || o.location || '-'}</div>
-              <div class="muted">To‘lov: ${o.paymentMethod === 'payme' ? 'Payme' : (o.paymentMethod || '-')} / ${o.paymentStatus === 'pending' ? "To‘lov kutilmoqda" : (o.paymentStatus || '-')}</div>
+          <div class="muted">To‘lov: ${o.paymentMethod === 'payme' ? 'Payme' : (o.paymentMethod || '-')} / ${paymentStatusLabel(o.paymentStatus)}</div>
             </div>
           </details>
           <div style="display:flex;gap:8px;margin-top:10px;">
@@ -3537,7 +3549,7 @@ Oq fonli foto</div>
       if (!latestOrderNumber) return;
       try {
         const data = await api(`/orders/${encodeURIComponent(latestOrderNumber)}/track`);
-        successOrderStatus.textContent = `Status: ${orderStatusLabel(data.order?.status)}`;
+        successOrderStatus.textContent = `Holat: ${orderStatusLabel(data.order?.status)}`;
         if (!isActiveOrderStatus(data.order?.status)) {
           pushOrderHistory(data.order);
           activeOrderNumber = '';
