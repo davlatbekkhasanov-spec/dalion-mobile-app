@@ -1109,25 +1109,51 @@
       display: none;
     }
     .selfie-guide.show { display: block; }
-    .selfie-guide-oval {
+    .selfie-guide-head {
       position: absolute;
       left: 50%;
       top: 49%;
-      width: 58%;
+      width: 56%;
       height: 72%;
       transform: translate(-50%, -50%);
-      border-radius: 50%;
+      border-radius: 45% 45% 48% 48% / 38% 38% 60% 60%;
       border: 2px solid rgba(117, 203, 255, 0.85);
       box-shadow:
         0 0 0 9999px rgba(5, 12, 24, 0.45),
         0 0 24px rgba(78, 177, 255, 0.38);
       transition: border-color .2s ease, box-shadow .2s ease;
     }
-    .selfie-guide.aligned .selfie-guide-oval {
+    .selfie-guide-head::before,
+    .selfie-guide-head::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 1px solid rgba(116, 188, 255, 0.5);
+      border-top: none;
+      border-radius: 0 0 22px 22px;
+      opacity: 0.7;
+    }
+    .selfie-guide-head::before {
+      bottom: -10%;
+      width: 56%;
+      height: 12%;
+    }
+    .selfie-guide-head::after {
+      bottom: -19%;
+      width: 78%;
+      height: 14%;
+      border-color: rgba(116, 188, 255, 0.35);
+    }
+    .selfie-guide.aligned .selfie-guide-head {
       border-color: rgba(92, 248, 166, 0.95);
       box-shadow:
         0 0 0 9999px rgba(5, 12, 24, 0.4),
         0 0 26px rgba(92, 248, 166, 0.44);
+    }
+    .selfie-guide.aligned .selfie-guide-head::before,
+    .selfie-guide.aligned .selfie-guide-head::after {
+      border-color: rgba(128, 255, 194, 0.58);
     }
     .selfie-guide-status {
       position: absolute;
@@ -1721,7 +1747,7 @@
             <img id="selfieImagePreview" alt="Selfie preview" style="display:none;" />
             <canvas id="selfieCanvas" style="display:none;"></canvas>
             <div class="selfie-guide" id="selfieGuide">
-              <div class="selfie-guide-oval"></div>
+              <div class="selfie-guide-head"></div>
               <div class="selfie-guide-status" id="selfieGuideStatus">Yuzingizni oval ichiga joylashtiring.</div>
             </div>
           </div>
@@ -2079,15 +2105,15 @@ Oq fonli foto</div>
     let selfieFaceDetector = null;
     let selfieDetectorTimer = null;
     let selfieAlignmentStartedAt = 0;
-    let selfieAutoCaptureTimer = null;
-    let selfieFallbackCountdownTimer = null;
+    let selfieCountdownTimer = null;
+    let selfieCountdownStartedAt = 0;
+    let selfieCountdownTargetAt = 0;
     let selfieIsDetectingFrame = false;
-    let selfieAutoCapturePending = false;
     let selfieForceFallbackMode = false;
     let selfieCurrentState = 'idle';
     const selfieDebugTransitions = [];
     const SELFIE_STABLE_MS = 1400;
-    const SELFIE_FALLBACK_AUTO_MS = 2000;
+    const SELFIE_COUNTDOWN_MS = 1200;
 
     function trackSelfieTransition(state, extra) {
       if (selfieCurrentState === state) return;
@@ -2115,32 +2141,26 @@ Oq fonli foto</div>
       if (selfieGuide) selfieGuide.classList.add('show');
     }
 
-    function beginFallbackAutoCapture() {
-      if (!selfieVideo || selfieVideo.style.display === 'none' || !selfieStream) return;
-      if (selfieAutoCaptureTimer) {
-        clearTimeout(selfieAutoCaptureTimer);
-        selfieAutoCaptureTimer = null;
+    function clearSelfieCountdown(reason) {
+      if (selfieCountdownTimer) {
+        clearTimeout(selfieCountdownTimer);
+        selfieCountdownTimer = null;
       }
-      if (selfieFallbackCountdownTimer) {
-        clearInterval(selfieFallbackCountdownTimer);
-        selfieFallbackCountdownTimer = null;
-      }
-      const deadline = Date.now() + SELFIE_FALLBACK_AUTO_MS;
-      const renderCountdown = () => {
-        const msLeft = Math.max(0, deadline - Date.now());
-        const secondsLeft = Math.max(1, Math.ceil(msLeft / 1000));
-        setSelfieGuideStatus(`Avto olish ${secondsLeft} soniya`, false);
-      };
-      renderCountdown();
-      selfieFallbackCountdownTimer = setInterval(renderCountdown, 250);
-      selfieAutoCaptureTimer = setTimeout(() => {
-        if (selfieFallbackCountdownTimer) {
-          clearInterval(selfieFallbackCountdownTimer);
-          selfieFallbackCountdownTimer = null;
-        }
-        captureSelfieFrame({ auto: true, fallback: true });
-      }, SELFIE_FALLBACK_AUTO_MS);
-      trackSelfieTransition('countdown', { mode: 'fallback' });
+      selfieCountdownStartedAt = 0;
+      selfieCountdownTargetAt = 0;
+      if (reason) trackSelfieTransition('align_required', { reason });
+    }
+
+    function startSelfieCountdown() {
+      if (selfieCountdownTimer || !selfieStream || !selfieVideo || selfieVideo.style.display === 'none') return;
+      selfieCountdownStartedAt = Date.now();
+      selfieCountdownTargetAt = selfieCountdownStartedAt + SELFIE_COUNTDOWN_MS;
+      trackSelfieTransition('countdown');
+      selfieCountdownTimer = setTimeout(() => {
+        selfieCountdownTimer = null;
+        if (!selfieStream || !selfieVideo || selfieVideo.style.display === 'none') return;
+        captureSelfieFrame({ auto: true });
+      }, SELFIE_COUNTDOWN_MS);
     }
 
     function getSelfieGuideFrame(videoWidth, videoHeight) {
@@ -2175,39 +2195,38 @@ Oq fonli foto</div>
         const firstFace = Array.isArray(faces) && faces.length ? faces[0] : null;
         if (!firstFace) {
           selfieAlignmentStartedAt = 0;
-          setSelfieGuideStatus('Avto aniqlash', false);
-          trackSelfieTransition('detecting', { reason: 'no-face' });
+          clearSelfieCountdown('no-face');
+          setSelfieGuideStatus("Ramkaga to'g'rilang: yuz topilmadi.", false);
           return;
         }
         const aligned = isFaceInsideGuide(firstFace.boundingBox, width, height);
         if (!aligned) {
           selfieAlignmentStartedAt = 0;
-          selfieAutoCapturePending = false;
-          setSelfieGuideStatus('Avto aniqlash', false);
-          trackSelfieTransition('detecting', { reason: 'misaligned' });
+          clearSelfieCountdown('misaligned');
+          setSelfieGuideStatus("Ramkaga to'g'rilang: yuz markazda emas.", false);
           return;
         }
         if (!selfieAlignmentStartedAt) selfieAlignmentStartedAt = Date.now();
         trackSelfieTransition('aligned');
         const heldForMs = Date.now() - selfieAlignmentStartedAt;
-        if (!selfieAutoCapturePending) {
+        if (!selfieCountdownTimer) {
           const secondsLeft = Math.max(1, Math.ceil((SELFIE_STABLE_MS - heldForMs) / 1000));
-          setSelfieGuideStatus(`Avto olish ${secondsLeft} soniya`, true);
+          setSelfieGuideStatus(`Barqaror turing (${secondsLeft}s)`, true);
         }
-        if (heldForMs >= SELFIE_STABLE_MS && !selfieAutoCapturePending) {
-          selfieAutoCapturePending = true;
-          trackSelfieTransition('countdown');
-          if (selfieAutoCaptureTimer) clearTimeout(selfieAutoCaptureTimer);
-          selfieAutoCaptureTimer = setTimeout(() => {
-            captureSelfieFrame({ auto: true });
-          }, 320);
+        if (heldForMs >= SELFIE_STABLE_MS) {
+          const countdownLeftMs = Math.max(0, selfieCountdownTargetAt - Date.now());
+          const countdownLeftSec = Math.max(1, Math.ceil(countdownLeftMs / 1000));
+          if (!selfieCountdownTimer) {
+            startSelfieCountdown();
+          }
+          setSelfieGuideStatus(`Avto olish ${countdownLeftSec}s`, true);
         }
       } catch (_) {
         stopSelfieDetectionLoop();
         showSelfieGuideOverlay();
-        beginFallbackAutoCapture();
-        if (selfieHint) selfieHint.textContent = 'Avto aniqlash ishlamadi. Avto olish 2 soniyada bajariladi, xohlasangiz qo‘lda olishingiz mumkin.';
-        trackSelfieTransition('fallback_auto', { reason: 'detector-error' });
+        trackSelfieTransition('align_required', { reason: 'detector-error' });
+        setSelfieGuideStatus("Ramkaga to'g'rilang, so'ng qo'lda oling.", false);
+        if (selfieHint) selfieHint.textContent = "Avto aniqlash ishlamadi. Ramkaga to'g'rilang va \"Selfieni olish\" tugmasini qo'lda bosing.";
       } finally {
         selfieIsDetectingFrame = false;
       }
@@ -2218,16 +2237,8 @@ Oq fonli foto</div>
         clearInterval(selfieDetectorTimer);
         selfieDetectorTimer = null;
       }
-      if (selfieAutoCaptureTimer) {
-        clearTimeout(selfieAutoCaptureTimer);
-        selfieAutoCaptureTimer = null;
-      }
-      if (selfieFallbackCountdownTimer) {
-        clearInterval(selfieFallbackCountdownTimer);
-        selfieFallbackCountdownTimer = null;
-      }
+      clearSelfieCountdown();
       selfieAlignmentStartedAt = 0;
-      selfieAutoCapturePending = false;
       selfieIsDetectingFrame = false;
       selfieFaceDetector = null;
       if (selfieGuide) {
@@ -2242,15 +2253,7 @@ Oq fonli foto</div>
         selfieForceFallbackMode = Boolean(value);
         return selfieForceFallbackMode;
       };
-      window.__gmSelfieDebug.runFallbackSmoke = () => {
-        const previous = selfieForceFallbackMode;
-        selfieForceFallbackMode = true;
-        trackSelfieTransition('fallback_smoke_started');
-        trackSelfieTransition('fallback_manual');
-        selfieForceFallbackMode = previous;
-        trackSelfieTransition('fallback_smoke_done');
-        return selfieDebugTransitions.slice(-3);
-      };
+      window.__gmSelfieDebug.runStrictFlowSmoke = () => runSelfieStrictFlowSmoke();
     }
     setupSelfieFallbackDebugHook();
 
@@ -2402,7 +2405,7 @@ Oq fonli foto</div>
       }
       if (selfieHint) selfieHint.style.display = '';
       if (selfieSuccess) selfieSuccess.classList.remove('show');
-      setSelfieGuideStatus('Yuzingizni oval ichiga joylashtiring.', false);
+      setSelfieGuideStatus("Ramkaga to'g'rilang.", false);
       trackSelfieTransition('idle');
     }
 
@@ -2434,23 +2437,23 @@ Oq fonli foto</div>
         if (faceDetectorSupported) {
           try {
             selfieFaceDetector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
-            setSelfieGuideStatus('Avto aniqlash', false);
+            setSelfieGuideStatus("Ramkaga to'g'rilang.", false);
             selfieDetectorTimer = setInterval(() => {
               runSelfieDetectionFrame();
             }, 220);
-            trackSelfieTransition('detecting');
-            if (selfieHint) selfieHint.textContent = 'Yuzingiz oval ichida barqaror tursa selfie avtomatik olinadi. Kerak bo‘lsa qo‘lda ham olishingiz mumkin.';
+            trackSelfieTransition('align_required');
+            if (selfieHint) selfieHint.textContent = "Ramkaga to'g'rilang. Yuz barqaror qolsa countdown boshlanadi, aks holda reset bo'ladi.";
           } catch (_) {
             stopSelfieDetectionLoop();
-            beginFallbackAutoCapture();
-            trackSelfieTransition('fallback_auto', { reason: 'detector-init-failed' });
-            if (selfieHint) selfieHint.textContent = 'Avto aniqlash qo‘llab-quvvatlanmadi. Avto olish 2 soniyada bajariladi, xohlasangiz qo‘lda oling.';
+            setSelfieGuideStatus("Ramkaga to'g'rilang, so'ng qo'lda oling.", false);
+            trackSelfieTransition('align_required', { reason: 'detector-init-failed' });
+            if (selfieHint) selfieHint.textContent = "Avto aniqlashni ishga tushirib bo'lmadi. Ramkaga to'g'rilang va qo'lda selfie oling.";
           }
         } else {
           stopSelfieDetectionLoop();
-          beginFallbackAutoCapture();
-          trackSelfieTransition('fallback_auto', { reason: 'unsupported' });
-          if (selfieHint) selfieHint.textContent = 'Ushbu brauzerda avto aniqlash yo‘q (Safari/iOS). Avto olish 2 soniyada bajariladi, qo‘lda olish ham mumkin.';
+          setSelfieGuideStatus("Ramkaga to'g'rilang, so'ng qo'lda oling.", false);
+          trackSelfieTransition('align_required', { reason: 'unsupported' });
+          if (selfieHint) selfieHint.textContent = "Ushbu brauzerda avto aniqlash yo'q (iOS/Safari). Ramkaga to'g'rilang va qo'lda selfie oling.";
         }
       } catch (_) {
         setFieldError(null, selfieError, 'Kameraga ruxsat berilmadi yoki mavjud emas. Ruxsatni yoqib qayta urinib ko‘ring.');
@@ -2501,6 +2504,20 @@ Oq fonli foto</div>
       if (selfieSuccess) selfieSuccess.classList.add('show');
       setFieldError(null, selfieError, '');
       trackSelfieTransition('confirmed');
+    }
+
+    function runSelfieStrictFlowSmoke() {
+      selfieDebugTransitions.length = 0;
+      selfieCurrentState = '';
+      trackSelfieTransition('idle');
+      trackSelfieTransition('align_required', { reason: 'camera-ready' });
+      trackSelfieTransition('aligned');
+      trackSelfieTransition('countdown');
+      trackSelfieTransition('captured');
+      trackSelfieTransition('align_required', { reason: 'misaligned-reset-check' });
+      window.__gmSelfieDebug = window.__gmSelfieDebug || {};
+      window.__gmSelfieDebug.transitions = selfieDebugTransitions.slice();
+      return selfieDebugTransitions.slice();
     }
 
     function validateBiometricBlock(silent) {
