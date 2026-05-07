@@ -566,6 +566,33 @@ app.get('/api/v1/customer/orders', (req, res) => {
   return res.json({ ok: true, orders });
 });
 
+app.get('/api/v1/orders-display/feed', (req, res) => {
+  const activeStatuses = new Set([
+    'new',
+    'created',
+    'payment_pending',
+    'payment_confirmed',
+    'sent_to_tsd',
+    'picking',
+    'picked',
+    'waiting_courier',
+    'courier_assigned',
+    'out_for_delivery',
+    'delivered',
+    'cancelled'
+  ]);
+  const feedOrders = db.orders
+    .filter((order) => activeStatuses.has(String(order.status || '').trim()))
+    .slice(0, 300)
+    .map(orderPublic);
+  return res.json({
+    ok: true,
+    total: feedOrders.length,
+    updatedAt: nowIso(),
+    orders: feedOrders
+  });
+});
+
 // Admin API
 app.get('/api/v1/admin/banners', requireAdmin, (req, res) => {
   res.json({ ok: true, banners: db.banners });

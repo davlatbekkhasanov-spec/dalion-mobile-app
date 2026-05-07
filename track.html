@@ -124,10 +124,53 @@ function resolveOrderCoord(pointKeys=[]){
   return null;
 }
 function setMapFallback(message){
-  mapFallback.textContent=message||'Xarita mavjud emas';
+  mapFallback.innerHTML=`<div>${message||'Xarita mavjud emas'}</div>`;
   mapFallback.style.display='grid';
   courierMapEl.style.display='none';
   mapNote.style.display='none';
+}
+function buildStaticMapUrl(points){
+  const size='900x520';
+  const markerParts=points
+    .filter((p)=>hasCoord(p?.lat,p?.lng))
+    .map((p)=>`${p.lat},${p.lng},${p.color}`);
+  const pathParts=points
+    .filter((p)=>hasCoord(p?.lat,p?.lng))
+    .map((p)=>`${p.lat},${p.lng}`);
+  const params=[
+    `size=${encodeURIComponent(size)}`,
+    `markers=${encodeURIComponent(markerParts.join('|'))}`,
+    `path=${encodeURIComponent(pathParts.join('|'))}`
+  ];
+  return `https://staticmap.openstreetmap.de/staticmap.php?${params.join('&')}`;
+}
+function renderStaticRouteFallback(destinationPoint,courierPoint,isCourierActive,reasonText){
+  if(!destinationPoint){
+    setMapFallback('Mijoz manzili koordinatalari topilmadi');
+    return;
+  }
+  const startPoint=(isCourierActive&&courierPoint)?courierPoint:WAREHOUSE_COORDS;
+  const originLabel=isCourierActive?'Kurier nuqtasi':'Ombor nuqtasi';
+  const staticMapUrl=buildStaticMapUrl([
+    {lat:startPoint.lat,lng:startPoint.lng,color:isCourierActive?'red':'blue'},
+    {lat:destinationPoint.lat,lng:destinationPoint.lng,color:'green'}
+  ]);
+  const startLink=`https://www.openstreetmap.org/?mlat=${startPoint.lat}&mlon=${startPoint.lng}#map=15/${startPoint.lat}/${startPoint.lng}`;
+  const destinationLink=`https://www.openstreetmap.org/?mlat=${destinationPoint.lat}&mlon=${destinationPoint.lng}#map=15/${destinationPoint.lat}/${destinationPoint.lng}`;
+  mapFallback.innerHTML=`
+    <div style="display:grid;gap:10px;width:100%;padding:14px;">
+      <div style="font-size:13px;color:#475467;">${reasonText||'Interaktiv xarita vaqtincha ishlamayapti. Marshrut soddalashtirilgan ko‘rinishda ko‘rsatildi.'}</div>
+      <img src="${staticMapUrl}" alt="Marshrut ko‘rinishi" style="width:100%;max-height:320px;object-fit:cover;border-radius:12px;border:1px solid #d0d5dd;background:#f8fafc;" />
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="${startLink}" target="_blank" rel="noopener" class="icon-btn" style="text-decoration:none;">${originLabel}</a>
+        <a href="${destinationLink}" target="_blank" rel="noopener" class="icon-btn" style="text-decoration:none;">Mijoz manzili</a>
+      </div>
+    </div>
+  `;
+  mapFallback.style.display='grid';
+  courierMapEl.style.display='none';
+  mapNote.textContent=isCourierActive?'Kurier yo‘lda: soddalashtirilgan marshrut ko‘rsatildi':'Kurier hali biriktirilmagan: ombor → mijoz marshruti ko‘rsatildi';
+  mapNote.style.display='block';
 }
 function ensureYandexReady(){
   if(!window.ymaps||typeof window.ymaps.ready!=='function') return Promise.reject(new Error('Yandex API unavailable'));
@@ -174,13 +217,13 @@ function renderMap(){if(!order)return;
   }
   const cLat=hasCourier?courierPoint.lat:null, cLng=hasCourier?courierPoint.lng:null;
   const dLat=hasDestination?destinationPoint.lat:null, dLng=hasDestination?destinationPoint.lng:null;
+  const isCourierActive=COURIER_ACTIVE_STATUSES.includes(String(order.status||''))&&hasCourier;
   ensureYandexReady().then((ymaps)=>{
     mapFallback.style.display='none';
     courierMapEl.style.display='block';
     if(!courierMap){
       courierMap=new ymaps.Map('courierMap',{center:hasDestination?[dLat,dLng]:[WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],zoom:14,controls:['zoomControl']},{suppressMapOpenBlock:true});
     }
-    const isCourierActive=COURIER_ACTIVE_STATUSES.includes(String(order.status||''))&&hasCourier;
     mapNote.textContent=isCourierActive?'Kurier yo‘lda: joriy marshrut ko‘rsatilmoqda':'Kurier hali biriktirilmagan, marshrut tayyor';
     mapNote.style.display='block';
     if(isCourierActive){
@@ -245,7 +288,9 @@ function renderMap(){if(!order)return;
       courierMap.geoObjects.add(routeLine);
     }
     fitTwoPointsSafe(start,[dLat,dLng]);
-  }).catch(()=>setMapFallback('Xarita vaqtincha mavjud emas'));
+  }).catch(()=>{
+    renderStaticRouteFallback(destinationPoint,courierPoint,isCourierActive,'Yandex xarita vaqtincha mavjud emas. OSM marshrut ko‘rinishi yoqildi.');
+  });
 }
 function render(){if(!order)return;renderState('content');const ui=statusUx[order.status]||statusUx.new;statusBadge.textContent=ui.badge;bigStatus.textContent=ui.title;bigStatusNote.textContent=ui.note;
 meta.textContent=`#${order.orderNumber} · ${new Date(order.created_at||Date.now()).toLocaleString('ru-RU')}`;etaText.textContent=order.etaLiveText||order.deliveryEta||order.estimatedTime||'Samarqand bo‘ylab odatda 1–4 soat';payment.textContent=`${order.paymentMethod||'-'} / ${order.paymentStatus||'-'} (xavfsiz tasdiqlash)`;total.textContent=money(order.total);

@@ -69,7 +69,7 @@
       mapsUrl: 'https://maps.google.com/maps?q=39.654572,66.958871&ll=39.654572,66.958871&z=16'
     };
     const statusGroups = [
-      { key: 'new', label: 'Yangi', statuses: ['new'] },
+      { key: 'new', label: 'Yangi', statuses: ['new', 'created', 'payment_pending', 'payment_confirmed'] },
       { key: 'sent_to_tsd', label: 'Tovar terilmoqda', statuses: ['sent_to_tsd'] },
       { key: 'picking', label: 'Terilmoqda', statuses: ['picking'] },
       { key: 'picked_waiting', label: 'Tayyor / Kurier kutilyapti', statuses: ['picked', 'waiting_courier'] },
@@ -210,12 +210,27 @@
       w.print();
     }
 
+    async function loadDisplayOrders() {
+      try {
+        const { orders: feedOrders } = await fetch('/api/v1/orders-display/feed', {
+          headers: { 'Content-Type': 'application/json' }
+        }).then(async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.message || 'Display feed error');
+          return data;
+        });
+        return { orders: Array.isArray(feedOrders) ? feedOrders : [], source: 'display-feed' };
+      } catch (_) {
+        const { orders: adminOrders } = await api('/admin/orders');
+        return { orders: Array.isArray(adminOrders) ? adminOrders : [], source: 'admin-feed' };
+      }
+    }
+
     async function refresh() {
       const token = getToken();
-      document.getElementById('tokenRequired').style.display = token ? 'none' : 'block';
-      if (!token) return;
+      document.getElementById('tokenRequired').style.display = 'none';
       try {
-        const { orders: list } = await api('/admin/orders');
+        const { orders: list, source } = await loadDisplayOrders();
         orders = list || [];
         renderColumns();
         if (activeOrder) {
@@ -224,11 +239,12 @@
         }
         document.getElementById('online').textContent = 'Online';
         document.getElementById('online').classList.remove('offline');
-        document.getElementById('network').textContent = '';
+        document.getElementById('network').textContent = source === 'display-feed' ? '' : 'Display feed mavjud emas, admin feed ishlatilmoqda';
       } catch (e) {
+        document.getElementById('tokenRequired').style.display = token ? 'none' : 'block';
         document.getElementById('online').textContent = 'Offline';
         document.getElementById('online').classList.add('offline');
-        document.getElementById('network').textContent = 'Aloqa uzildi, qayta ulanmoqda...';
+        document.getElementById('network').textContent = token ? 'Aloqa uzildi, qayta ulanmoqda...' : 'Display uchun token yoki server aloqasi kerak';
       } finally {
         document.getElementById('lastUpdated').textContent = `Oxirgi yangilanish: ${new Date().toLocaleTimeString('ru-RU')}`;
       }
