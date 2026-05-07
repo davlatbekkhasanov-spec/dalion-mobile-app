@@ -2174,6 +2174,43 @@ Oq fonli foto</div>
       if (reason) trackSelfieTransition('align_required', { reason });
     }
 
+    function finalizeSelfieCountdown(mode, source) {
+      if (!selfieCountdownTargetAt || Date.now() < selfieCountdownTargetAt) return false;
+      if (selfieCountdownTimer) {
+        clearTimeout(selfieCountdownTimer);
+        selfieCountdownTimer = null;
+      }
+      const stillEligible = selfieAutoCaptureEligible
+        && selfieCurrentState === 'countdown'
+        && selfieDetectionMode === mode;
+      if (!stillEligible) {
+        selfieAutoCaptureEligible = false;
+        return false;
+      }
+      if (!selfieStream || !selfieVideo || selfieVideo.style.display === 'none') {
+        selfieAutoCaptureEligible = false;
+        return false;
+      }
+      trackSelfieTransition('countdown_complete', { mode, source: source || 'timer' });
+      trackSelfieTransition('capture_called', { auto: true, mode, source: source || 'timer' });
+      captureSelfieFrame({ auto: true, mode });
+      selfieAutoCaptureEligible = false;
+      return true;
+    }
+
+    function scheduleSelfieCountdownCheck(mode) {
+      if (!selfieCountdownTargetAt) return;
+      const timeLeftMs = selfieCountdownTargetAt - Date.now();
+      if (timeLeftMs <= 0) {
+        finalizeSelfieCountdown(mode, 'timer');
+        return;
+      }
+      selfieCountdownTimer = setTimeout(() => {
+        selfieCountdownTimer = null;
+        scheduleSelfieCountdownCheck(mode);
+      }, Math.min(140, timeLeftMs));
+    }
+
     function startSelfieCountdown(mode) {
       if (selfieCountdownTimer || !selfieStream || !selfieVideo || selfieVideo.style.display === 'none') return;
       if (!SELFIE_AUTO_CAPTURE_MODES.has(mode || '')) return;
@@ -2182,16 +2219,7 @@ Oq fonli foto</div>
       selfieCountdownStartedAt = Date.now();
       selfieCountdownTargetAt = selfieCountdownStartedAt + SELFIE_COUNTDOWN_MS;
       trackSelfieTransition('countdown', { mode });
-      selfieCountdownTimer = setTimeout(() => {
-        selfieCountdownTimer = null;
-        const stillEligible = selfieAutoCaptureEligible
-          && selfieCurrentState === 'countdown'
-          && selfieDetectionMode === mode;
-        selfieAutoCaptureEligible = false;
-        if (!stillEligible) return;
-        if (!selfieStream || !selfieVideo || selfieVideo.style.display === 'none') return;
-        captureSelfieFrame({ auto: true, mode });
-      }, SELFIE_COUNTDOWN_MS);
+      scheduleSelfieCountdownCheck(mode);
     }
 
     function getSelfieGuideFrame(videoWidth, videoHeight) {
@@ -2290,9 +2318,10 @@ Oq fonli foto</div>
           setSelfieGuideStatus(`Barqaror turing (${secondsLeft}s)`, true);
         }
         if (heldForMs >= SELFIE_STABLE_MS) {
+          if (selfieCountdownTargetAt) finalizeSelfieCountdown('native', 'frame-loop');
           const countdownLeftMs = Math.max(0, selfieCountdownTargetAt - Date.now());
           const countdownLeftSec = Math.max(1, Math.ceil(countdownLeftMs / 1000));
-          if (!selfieCountdownTimer) {
+          if (!selfieCountdownTargetAt) {
             startSelfieCountdown('native');
           }
           setSelfieGuideStatus(`Avto olish ${countdownLeftSec}s`, true);
@@ -2390,9 +2419,10 @@ Oq fonli foto</div>
           setSelfieGuideStatus(`Yuz markazda (${secondsLeft}s)`, true);
         }
         if (heldForMs >= SELFIE_STABLE_MS) {
+          if (selfieCountdownTargetAt) finalizeSelfieCountdown('fallback', 'frame-loop');
           const countdownLeftMs = Math.max(0, selfieCountdownTargetAt - Date.now());
           const countdownLeftSec = Math.max(1, Math.ceil(countdownLeftMs / 1000));
-          if (!selfieCountdownTimer) startSelfieCountdown('fallback');
+          if (!selfieCountdownTargetAt) startSelfieCountdown('fallback');
           setSelfieGuideStatus(`Avto olish ${countdownLeftSec}s`, true);
         }
       } catch (_) {
