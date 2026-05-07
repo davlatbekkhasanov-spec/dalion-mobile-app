@@ -38,8 +38,8 @@
     .toast{position:fixed;right:14px;bottom:14px;max-width:360px;background:#0b1a2f;color:#d4ecff;border:1px solid var(--line);padding:10px 12px;border-radius:12px;display:none;z-index:20}
     .toast.show{display:block}
     .toast.err{border-color:#a0485b;color:#ffd7e0;background:#2a1119}
-    .card-actions{display:flex;gap:8px;margin-top:8px}
-    .card-actions button{padding:8px 10px;border-radius:10px}
+    .card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;position:relative;z-index:2}
+    .card-actions button{padding:8px 10px;border-radius:10px;min-height:40px}
   </style>
 </head>
 <body>
@@ -98,6 +98,9 @@
       out_for_delivery: ['delivered', 'cancelled']
     };
 
+    function normalizeStatus(status) {
+      return String(status || '').trim().toLowerCase();
+    }
     function getToken(){ return localStorage.getItem(tokenKey) || ''; }
     function fmt(v){ return v ? new Date(v).toLocaleTimeString('ru-RU') : '-'; }
     function showToast(message, isError = false) {
@@ -110,17 +113,18 @@
     }
     function getNextTransition(order) {
       if (!order) return null;
-      if (order.status === 'created' || order.status === 'payment_pending' || order.status === 'payment_confirmed') {
+      const status = normalizeStatus(order.status);
+      if (status === 'created' || status === 'payment_pending' || status === 'payment_confirmed') {
         return { to: 'preparing', label: 'Tovar terilmoqda' };
       }
-      if (order.status === 'preparing') return { to: 'ready_for_courier', label: 'Kurier kutilmoqda' };
-      if (order.status === 'ready_for_courier') {
+      if (status === 'preparing') return { to: 'ready_for_courier', label: 'Kurier kutilmoqda' };
+      if (status === 'ready_for_courier') {
         return order.courierName
           ? { to: 'out_for_delivery', label: 'Kurier yo‘lga chiqdi' }
           : { to: 'courier_assigned', label: 'Kurier biriktirish' };
       }
-      if (order.status === 'courier_assigned') return { to: 'out_for_delivery', label: 'Yetkazishga chiqarish' };
-      if (order.status === 'out_for_delivery') return { to: 'delivered', label: 'Yetkazildi' };
+      if (status === 'courier_assigned') return { to: 'out_for_delivery', label: 'Yetkazishga chiqarish' };
+      if (status === 'out_for_delivery') return { to: 'delivered', label: 'Yetkazildi' };
       return null;
     }
 
@@ -138,7 +142,7 @@
     function renderColumns() {
       const grouped = statusGroups.map((group) => ({
         ...group,
-        items: orders.filter((o) => group.statuses.includes(o.status))
+        items: orders.filter((o) => group.statuses.includes(normalizeStatus(o.status)))
       }));
       document.getElementById('columns').innerHTML = grouped.map((group) => `
         <section class="col">
@@ -159,7 +163,7 @@
                 <div class="card-actions">
                   ${(() => {
                     const next = getNextTransition(o);
-                    return next ? `<button data-quick-next="${next.to}" data-order-id="${o.id}" class="primary">${next.label}</button>` : '';
+                    return next ? `<button type="button" data-quick-next="${next.to}" data-order-id="${o.id}" class="primary">${next.label}</button>` : '';
                   })()}
                 </div>
               </article>
@@ -171,6 +175,7 @@
 
     function renderModal(order) {
       activeOrder = order;
+      const status = normalizeStatus(order.status);
       document.getElementById('mOrderTitle').textContent = `#${order.orderNumber || order.id}`;
       const mapLink = (Number.isFinite(Number(order.locationLat)) && Number.isFinite(Number(order.locationLng)))
         ? `https://maps.google.com/?q=${order.locationLat},${order.locationLng}` : '';
@@ -192,13 +197,13 @@
       const actions = [];
       const next = getNextTransition(order);
       if (next) actions.push(`<button class="primary" data-next="${next.to}">${next.label}</button>`);
-      if (order.status !== 'delivered' && order.status !== 'cancelled') {
+      if (status !== 'delivered' && status !== 'cancelled') {
         actions.push('<button class="full" data-cancel="1">Bekor qilish</button>');
       }
-      if (order.status === 'out_for_delivery') {
+      if (status === 'out_for_delivery') {
         actions.push(`<button disabled class="full">Kurierda: ${order.courierName || '-'} ${order.courierPhone || ''}</button>`);
       }
-      if (order.status === 'delivered') {
+      if (status === 'delivered') {
         actions.push('<button disabled class="full">Yetkazildi</button>');
       }
       document.getElementById('mActions').innerHTML = actions.join('');
@@ -206,17 +211,19 @@
     }
 
     async function transitionOrder(orderId, nextStatus) {
-      const target = orders.find((o) => o.id === orderId);
+      const target = orders.find((o) => String(o.id) === String(orderId));
       if (!target) throw new Error('Order topilmadi');
-      const allowed = allowedTransitions[target.status] || [];
-      if (!allowed.includes(nextStatus)) throw new Error(`Mumkin bo‘lmagan status o‘tishi: ${target.status} -> ${nextStatus}`);
+      const currentStatus = normalizeStatus(target.status);
+      const targetStatus = normalizeStatus(nextStatus);
+      const allowed = allowedTransitions[currentStatus] || [];
+      if (!allowed.includes(targetStatus)) throw new Error(`Mumkin bo‘lmagan status o‘tishi: ${currentStatus} -> ${targetStatus}`);
       const previous = orders.map((o) => ({ ...o }));
       const now = new Date().toISOString();
-      orders = orders.map((o) => o.id === orderId ? { ...o, status: nextStatus, updated_at: now } : o);
+      orders = orders.map((o) => String(o.id) === String(orderId) ? { ...o, status: targetStatus, updated_at: now } : o);
       renderColumns();
       try {
-        await api(`/admin/orders/${orderId}/status`, { method: 'PUT', body: JSON.stringify({ status: nextStatus }) });
-        showToast(`Holat yangilandi: ${nextStatus}`);
+        await api(`/admin/orders/${orderId}/status`, { method: 'PUT', body: JSON.stringify({ status: targetStatus }) });
+        showToast(`Holat yangilandi: ${targetStatus}`);
         await refresh({ silent: true });
       } catch (err) {
         orders = previous;
@@ -327,9 +334,18 @@
     document.getElementById('columns').onclick = (e) => {
       const quickBtn = e.target.closest('[data-quick-next]');
       if (quickBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (quickBtn.disabled) return;
         const orderId = quickBtn.dataset.orderId;
+        const prevText = quickBtn.textContent;
+        quickBtn.disabled = true;
+        quickBtn.textContent = 'Yuklanmoqda...';
         transitionOrder(orderId, quickBtn.dataset.quickNext).catch((err) => {
           showToast(err.message || 'Holatni o‘zgartirib bo‘lmadi', true);
+        }).finally(() => {
+          quickBtn.disabled = false;
+          quickBtn.textContent = prevText;
         });
         return;
       }
