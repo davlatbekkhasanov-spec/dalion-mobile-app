@@ -2080,12 +2080,14 @@ Oq fonli foto</div>
     let selfieDetectorTimer = null;
     let selfieAlignmentStartedAt = 0;
     let selfieAutoCaptureTimer = null;
+    let selfieFallbackCountdownTimer = null;
     let selfieIsDetectingFrame = false;
     let selfieAutoCapturePending = false;
     let selfieForceFallbackMode = false;
     let selfieCurrentState = 'idle';
     const selfieDebugTransitions = [];
     const SELFIE_STABLE_MS = 1400;
+    const SELFIE_FALLBACK_AUTO_MS = 2000;
 
     function trackSelfieTransition(state, extra) {
       if (selfieCurrentState === state) return;
@@ -2107,6 +2109,38 @@ Oq fonli foto</div>
     function setSelfieGuideStatus(text, aligned) {
       if (selfieGuideStatus && text) selfieGuideStatus.textContent = text;
       if (selfieGuide) selfieGuide.classList.toggle('aligned', Boolean(aligned));
+    }
+
+    function showSelfieGuideOverlay() {
+      if (selfieGuide) selfieGuide.classList.add('show');
+    }
+
+    function beginFallbackAutoCapture() {
+      if (!selfieVideo || selfieVideo.style.display === 'none' || !selfieStream) return;
+      if (selfieAutoCaptureTimer) {
+        clearTimeout(selfieAutoCaptureTimer);
+        selfieAutoCaptureTimer = null;
+      }
+      if (selfieFallbackCountdownTimer) {
+        clearInterval(selfieFallbackCountdownTimer);
+        selfieFallbackCountdownTimer = null;
+      }
+      const deadline = Date.now() + SELFIE_FALLBACK_AUTO_MS;
+      const renderCountdown = () => {
+        const msLeft = Math.max(0, deadline - Date.now());
+        const secondsLeft = Math.max(1, Math.ceil(msLeft / 1000));
+        setSelfieGuideStatus(`Avto olish ${secondsLeft} soniya`, false);
+      };
+      renderCountdown();
+      selfieFallbackCountdownTimer = setInterval(renderCountdown, 250);
+      selfieAutoCaptureTimer = setTimeout(() => {
+        if (selfieFallbackCountdownTimer) {
+          clearInterval(selfieFallbackCountdownTimer);
+          selfieFallbackCountdownTimer = null;
+        }
+        captureSelfieFrame({ auto: true, fallback: true });
+      }, SELFIE_FALLBACK_AUTO_MS);
+      trackSelfieTransition('countdown', { mode: 'fallback' });
     }
 
     function getSelfieGuideFrame(videoWidth, videoHeight) {
@@ -2141,7 +2175,7 @@ Oq fonli foto</div>
         const firstFace = Array.isArray(faces) && faces.length ? faces[0] : null;
         if (!firstFace) {
           selfieAlignmentStartedAt = 0;
-          setSelfieGuideStatus('Yuz topilmadi. Kamera markaziga qarang.', false);
+          setSelfieGuideStatus('Avto aniqlash', false);
           trackSelfieTransition('detecting', { reason: 'no-face' });
           return;
         }
@@ -2149,18 +2183,20 @@ Oq fonli foto</div>
         if (!aligned) {
           selfieAlignmentStartedAt = 0;
           selfieAutoCapturePending = false;
-          setSelfieGuideStatus('Yuzingizni oval ichiga joylashtiring.', false);
+          setSelfieGuideStatus('Avto aniqlash', false);
           trackSelfieTransition('detecting', { reason: 'misaligned' });
           return;
         }
-        setSelfieGuideStatus('Ajoyib! Shu holatda 1-2 soniya turing.', true);
         if (!selfieAlignmentStartedAt) selfieAlignmentStartedAt = Date.now();
         trackSelfieTransition('aligned');
         const heldForMs = Date.now() - selfieAlignmentStartedAt;
+        if (!selfieAutoCapturePending) {
+          const secondsLeft = Math.max(1, Math.ceil((SELFIE_STABLE_MS - heldForMs) / 1000));
+          setSelfieGuideStatus(`Avto olish ${secondsLeft} soniya`, true);
+        }
         if (heldForMs >= SELFIE_STABLE_MS && !selfieAutoCapturePending) {
           selfieAutoCapturePending = true;
           trackSelfieTransition('countdown');
-          setSelfieGuideStatus('Rasm olinmoqda...', true);
           if (selfieAutoCaptureTimer) clearTimeout(selfieAutoCaptureTimer);
           selfieAutoCaptureTimer = setTimeout(() => {
             captureSelfieFrame({ auto: true });
@@ -2168,9 +2204,10 @@ Oq fonli foto</div>
         }
       } catch (_) {
         stopSelfieDetectionLoop();
-        setSelfieGuideStatus('Avto aniqlash o‘chiq. Selfieni qo‘lda oling.', false);
-        if (selfieHint) selfieHint.textContent = 'Qurilmada avto aniqlash ishlamadi, iltimos "Selfieni olish" tugmasidan foydalaning.';
-        trackSelfieTransition('fallback_manual', { reason: 'detector-error' });
+        showSelfieGuideOverlay();
+        beginFallbackAutoCapture();
+        if (selfieHint) selfieHint.textContent = 'Avto aniqlash ishlamadi. Avto olish 2 soniyada bajariladi, xohlasangiz qo‘lda olishingiz mumkin.';
+        trackSelfieTransition('fallback_auto', { reason: 'detector-error' });
       } finally {
         selfieIsDetectingFrame = false;
       }
@@ -2185,12 +2222,15 @@ Oq fonli foto</div>
         clearTimeout(selfieAutoCaptureTimer);
         selfieAutoCaptureTimer = null;
       }
+      if (selfieFallbackCountdownTimer) {
+        clearInterval(selfieFallbackCountdownTimer);
+        selfieFallbackCountdownTimer = null;
+      }
       selfieAlignmentStartedAt = 0;
       selfieAutoCapturePending = false;
       selfieIsDetectingFrame = false;
       selfieFaceDetector = null;
       if (selfieGuide) {
-        selfieGuide.classList.remove('show');
         selfieGuide.classList.remove('aligned');
       }
     }
@@ -2389,12 +2429,12 @@ Oq fonli foto</div>
         if (selfieActions) selfieActions.style.display = 'grid';
         if (confirmSelfieBtn) confirmSelfieBtn.disabled = true;
         if (selfieHint) selfieHint.style.display = '';
+        showSelfieGuideOverlay();
         const faceDetectorSupported = !selfieForceFallbackMode && typeof window.FaceDetector === 'function';
         if (faceDetectorSupported) {
           try {
             selfieFaceDetector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
-            if (selfieGuide) selfieGuide.classList.add('show');
-            setSelfieGuideStatus('Yuzingizni oval ichiga joylashtiring.', false);
+            setSelfieGuideStatus('Avto aniqlash', false);
             selfieDetectorTimer = setInterval(() => {
               runSelfieDetectionFrame();
             }, 220);
@@ -2402,13 +2442,15 @@ Oq fonli foto</div>
             if (selfieHint) selfieHint.textContent = 'Yuzingiz oval ichida barqaror tursa selfie avtomatik olinadi. Kerak bo‘lsa qo‘lda ham olishingiz mumkin.';
           } catch (_) {
             stopSelfieDetectionLoop();
-            trackSelfieTransition('fallback_manual', { reason: 'detector-init-failed' });
-            if (selfieHint) selfieHint.textContent = 'Avto aniqlash qo‘llab-quvvatlanmadi. Selfieni qo‘lda oling va tasdiqlang.';
+            beginFallbackAutoCapture();
+            trackSelfieTransition('fallback_auto', { reason: 'detector-init-failed' });
+            if (selfieHint) selfieHint.textContent = 'Avto aniqlash qo‘llab-quvvatlanmadi. Avto olish 2 soniyada bajariladi, xohlasangiz qo‘lda oling.';
           }
         } else {
           stopSelfieDetectionLoop();
-          trackSelfieTransition('fallback_manual', { reason: 'unsupported' });
-          if (selfieHint) selfieHint.textContent = 'Ushbu brauzerda avto aniqlash yo‘q (masalan Safari/iOS). Selfieni qo‘lda oling va tasdiqlang.';
+          beginFallbackAutoCapture();
+          trackSelfieTransition('fallback_auto', { reason: 'unsupported' });
+          if (selfieHint) selfieHint.textContent = 'Ushbu brauzerda avto aniqlash yo‘q (Safari/iOS). Avto olish 2 soniyada bajariladi, qo‘lda olish ham mumkin.';
         }
       } catch (_) {
         setFieldError(null, selfieError, 'Kameraga ruxsat berilmadi yoki mavjud emas. Ruxsatni yoqib qayta urinib ko‘ring.');
@@ -2436,6 +2478,7 @@ Oq fonli foto</div>
       selfieImagePreview.src = dataUrl;
       selfieImagePreview.style.display = 'block';
       selfieVideo.style.display = 'none';
+      if (selfieGuide) selfieGuide.classList.remove('show');
       if (confirmSelfieBtn) confirmSelfieBtn.disabled = false;
       setFieldError(null, selfieError, '');
       if (selfieSuccess) selfieSuccess.classList.remove('show');
@@ -3889,6 +3932,7 @@ Oq fonli foto</div>
       await startSelfieCapture();
     });
     captureSelfieBtn?.addEventListener('click', () => {
+      setSelfieGuideStatus('Qo‘lda olish', false);
       captureSelfieFrame();
     });
     confirmSelfieBtn?.addEventListener('click', () => {
