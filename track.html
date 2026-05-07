@@ -113,20 +113,37 @@ const hasCoord=(a,b)=>{
   const lat=Number(a), lng=Number(b);
   return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180;
 };
+function resolveOrderCoord(pointKeys=[]){
+  if(!order) return null;
+  for(const [latKey,lngKey] of pointKeys){
+    const lat=order?.[latKey], lng=order?.[lngKey];
+    if(hasCoord(lat,lng)) return {lat:Number(lat),lng:Number(lng)};
+  }
+  return null;
+}
 function renderState(m){stateLoading.style.display=m==='loading'?'block':'none';stateError.style.display=m==='error'?'block':'none';stateEmpty.style.display=m==='empty'?'block':'none';trackingContent.style.display=m==='content'?'block':'none';}
 function stepIndex(status){return Math.max(0,timelineSteps.findIndex(s=>s.statuses.includes(status)));}
 function money(v){return `${Number(v||0).toLocaleString('ru-RU')} so'm`;}
-function renderMap(){if(!order)return;const hasDestination=hasCoord(order.locationLat,order.locationLng);const hasCourier=hasCoord(order.courierLocationLat,order.courierLocationLng);const showMap=hasDestination||hasCourier;if(!showMap){mapFallback.textContent='Xarita vaqtincha mavjud emas: lokatsiya ma’lumotlari noto‘g‘ri yoki aniqlanmagan';mapFallback.style.display='grid';courierMapEl.style.display='none';return;}mapFallback.style.display='none';courierMapEl.style.display='block';
-  const cLat=Number(order.courierLocationLat), cLng=Number(order.courierLocationLng);
-  const dLat=Number(order.locationLat), dLng=Number(order.locationLng);
-  if(!courierMap && window.L){courierMap=L.map('courierMap',{zoomControl:true}).setView(hasCoord(dLat,dLng)?[dLat,dLng]:[WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],14);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(courierMap);} if(!courierMap){mapFallback.style.display='grid';mapFallback.textContent='Xarita yuklanmadi';return;} courierMap.invalidateSize();
-  const isCourierActive=COURIER_ACTIVE_STATUSES.includes(String(order.status||''))&&hasCoord(cLat,cLng);
+function renderMap(){if(!order)return;
+  if(!window.L){mapFallback.textContent='Xarita kutubxonasi yuklanmadi';mapFallback.style.display='grid';courierMapEl.style.display='none';return;}
+  mapFallback.style.display='none';courierMapEl.style.display='block';
+  const destinationPoint=resolveOrderCoord([['locationLat','locationLng'],['customerLat','customerLng'],['latitude','longitude']]);
+  const courierPoint=resolveOrderCoord([['courierLocationLat','courierLocationLng'],['courierLat','courierLng']]);
+  const hasDestination=Boolean(destinationPoint);
+  const hasCourier=Boolean(courierPoint);
+  const cLat=hasCourier?courierPoint.lat:null, cLng=hasCourier?courierPoint.lng:null;
+  const dLat=hasDestination?destinationPoint.lat:null, dLng=hasDestination?destinationPoint.lng:null;
+  if(!courierMap){courierMap=L.map('courierMap',{zoomControl:true}).setView(hasDestination?[dLat,dLng]:[WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],14);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(courierMap);}
+  if(!courierMap){mapFallback.style.display='grid';mapFallback.textContent='Xarita yuklanmadi';return;} courierMap.invalidateSize();
+  const isCourierActive=COURIER_ACTIVE_STATUSES.includes(String(order.status||''))&&hasCourier;
   if(isCourierActive){if(!courierMarker)courierMarker=L.marker([cLat,cLng]).addTo(courierMap).bindPopup('Kurier'); else courierMarker.setLatLng([cLat,cLng]);if(lastCourierPoint&&smoothMoveTimer)clearInterval(smoothMoveTimer);if(lastCourierPoint&&hasCoord(lastCourierPoint.lat,lastCourierPoint.lng)){const steps=8;let i=0;const from={...lastCourierPoint};smoothMoveTimer=setInterval(()=>{i+=1;const k=Math.min(1,i/steps);const lat=from.lat+((cLat-from.lat)*k);const lng=from.lng+((cLng-from.lng)*k);courierMarker.setLatLng([lat,lng]);if(i>=steps)clearInterval(smoothMoveTimer);},450);}lastCourierPoint={lat:cLat,lng:cLng};}
   else if(courierMarker){courierMap.removeLayer(courierMarker);courierMarker=null;lastCourierPoint=null;if(smoothMoveTimer)clearInterval(smoothMoveTimer);}
   if(!warehouseMarker){const warehouseIcon=L.divIcon({className:'warehouse-marker-wrap',html:'<div class="warehouse-pin">📦</div>',iconSize:[28,28],iconAnchor:[14,14]});warehouseMarker=L.marker([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],{icon:warehouseIcon}).addTo(courierMap).bindPopup('Ombor');}
   else warehouseMarker.setLatLng([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng]);
-  if(hasCoord(dLat,dLng)){if(!destinationMarker)destinationMarker=L.marker([dLat,dLng]).addTo(courierMap).bindPopup('Mijoz manzili'); else destinationMarker.setLatLng([dLat,dLng]);}
-  if(hasCoord(dLat,dLng)){const start=isCourierActive?[cLat,cLng]:[WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng];if(routeLine)routeLine.setLatLngs([start,[dLat,dLng]]);else routeLine=L.polyline([start,[dLat,dLng]],{color:'#6a4dff',weight:4,opacity:.8,dashArray:isCourierActive?null:'6 8'}).addTo(courierMap);if(routeLine&&routeLine.setStyle)routeLine.setStyle({dashArray:isCourierActive?null:'6 8'});courierMap.fitBounds([start,[dLat,dLng]],{padding:[30,30]});}
+  if(hasDestination){if(!destinationMarker)destinationMarker=L.marker([dLat,dLng]).addTo(courierMap).bindPopup('Mijoz manzili'); else destinationMarker.setLatLng([dLat,dLng]);}
+  else if(destinationMarker){courierMap.removeLayer(destinationMarker);destinationMarker=null;}
+  if(hasDestination){const start=isCourierActive?[cLat,cLng]:[WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng];if(routeLine)routeLine.setLatLngs([start,[dLat,dLng]]);else routeLine=L.polyline([start,[dLat,dLng]],{color:'#6a4dff',weight:4,opacity:.8,dashArray:isCourierActive?null:'6 8'}).addTo(courierMap);if(routeLine&&routeLine.setStyle)routeLine.setStyle({dashArray:isCourierActive?null:'6 8'});courierMap.fitBounds([start,[dLat,dLng]],{padding:[30,30]});}
+  else if(routeLine){courierMap.removeLayer(routeLine);routeLine=null;}
   else if(isCourierActive) courierMap.setView([cLat,cLng],14); else courierMap.setView([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],14);
 }
 function render(){if(!order)return;renderState('content');const ui=statusUx[order.status]||statusUx.new;statusBadge.textContent=ui.badge;bigStatus.textContent=ui.title;bigStatusNote.textContent=ui.note;

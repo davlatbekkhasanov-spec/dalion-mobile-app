@@ -1531,7 +1531,7 @@
     .tab.active { color:#5b4cff; }
     .tab.active b { background:linear-gradient(130deg,#ede9fe,#ddd6fe); border-color:#c4b5fd; box-shadow:none; }
     .cart-badge { background:#ef4444; color:#fff; }
-    .home-search-lg { position: sticky; top: 64px; z-index: 7; }
+    .home-search-lg { position: static; }
 
   
     .profile-hero{background:linear-gradient(135deg,#5b4cff,#8b6bff);color:#fff;border:none}
@@ -1565,7 +1565,9 @@
     .logo-row { justify-content:flex-start; }
     .name { font-size:22px; font-weight:800; }
     .location { font-size:13px; color:#667085; margin-top:4px; }
-    .home-search-lg { position: sticky; top: 78px; z-index: 8; min-height:52px; border-radius:16px; font-size:16px; padding:0 16px; margin-bottom:10px; box-shadow:0 4px 14px rgba(16,24,40,.08); }
+    #homeView.active .home-top-sticky { position: sticky; top: 0; z-index: 8; }
+    .home-search-lg { min-height:52px; border-radius:16px; font-size:16px; padding:0 16px; margin-bottom:10px; box-shadow:0 4px 14px rgba(16,24,40,.08); }
+    #searchView .catalog-search-sticky { top: 0; z-index: 9; }
     .home-scroll .promo { flex: 0 0 100%; border-radius:20px; min-height:140px; padding:14px; background:linear-gradient(135deg,#6b4dff,#8f67ff); box-shadow:0 8px 24px rgba(91,76,255,.26); }
     .promo h3 { font-size:22px; font-weight:800; margin:0 0 6px; }
     .promo p { font-size:14px; margin:0; }
@@ -2630,6 +2632,17 @@ Oq fonli foto</div>
       }
     }
 
+    function applyResolvedAddress(addressText) {
+      const normalized = String(addressText || '').trim();
+      if (!normalized) return;
+      customerLocation.addressText = normalized;
+      if (manualAddress) manualAddress.value = normalized;
+      if (currentUser?.phone) {
+        currentUser.address = normalized;
+        localStorage.setItem('globusUser', JSON.stringify(currentUser));
+      }
+    }
+
     async function submitAuth() {
       const nameOk = validateAuthName();
       const phoneOk = validateAuthPhone();
@@ -3461,7 +3474,8 @@ Oq fonli foto</div>
         customerLocation.accuracy = pos.coords.accuracy;
         customerLocation.permissionDenied = false;
         const geoAddress = await reverseGeocode(customerLocation.lat, customerLocation.lng);
-        customerLocation.addressText = geoAddress || customerLocation.addressText || 'Lokatsiya olindi';
+        const fallbackGeoAddress = `Geo: ${nextLat.toFixed(6)}, ${nextLng.toFixed(6)}`;
+        applyResolvedAddress(geoAddress || customerLocation.addressText || fallbackGeoAddress);
         closeLocationDeniedModal();
         renderCheckout();
         showToast(geoAddress ? 'Manzil aniqlandi' : 'Lokatsiya olindi');
