@@ -10,9 +10,10 @@
     .wrap{max-width:720px;margin:0 auto;padding:12px 12px 130px;overflow-x:hidden}
     .map-stage{position:relative;border-radius:22px;overflow:hidden;background:#dde6ff;box-shadow:var(--shadow);min-height:52vh}
     #courierMap{height:52vh;min-height:360px;display:none}
-    .map-fallback{height:52vh;min-height:360px;display:grid;place-items:center;background:linear-gradient(180deg,#dde8ff,#d4dbf5);color:#475467;font-weight:700;text-align:center;padding:20px}
+    #courierMap img{max-width:none}
+    .map-fallback{height:52vh;min-height:360px;display:grid;place-items:center;background:linear-gradient(180deg,#dde8ff,#d4dbf5);color:#475467;font-weight:600;text-align:center;padding:20px}
     .top-chip{position:absolute;top:14px;left:14px;z-index:6;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:12px;font-weight:700}
-    .map-note{position:absolute;left:14px;bottom:14px;z-index:6;background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:12px;color:#475467}
+    .map-note{position:absolute;left:14px;bottom:14px;z-index:6;background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:12px;color:#475467;max-width:calc(100% - 28px)}
     .float-actions{position:absolute;top:14px;right:14px;z-index:6;display:flex;gap:8px}
     .icon-btn{border:1px solid var(--line);background:#fff;border-radius:12px;min-height:44px;padding:0 12px;font-weight:700;color:#344054;cursor:pointer}
     .sheet{margin-top:-34px;position:relative;z-index:7;background:var(--card);border-radius:24px 24px 0 0;padding:14px 14px 18px;box-shadow:0 -6px 22px rgba(16,24,40,.08)}
@@ -40,6 +41,15 @@
       font-size:14px;font-weight:700;border:2px solid #fff;box-shadow:0 6px 14px rgba(37,99,235,.35);
     }
     .state{border:1px dashed #cbd5e1;border-radius:16px;padding:14px;text-align:center;background:#fff}
+    .leaflet-pin{
+      width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+      display:grid;place-items:center;border:2px solid #fff;box-shadow:0 4px 10px rgba(16,24,40,.25);
+      font-size:14px;font-weight:700;color:#fff;
+    }
+    .leaflet-pin > span{transform:rotate(45deg);}
+    .leaflet-pin.warehouse{background:#2563eb}
+    .leaflet-pin.courier{background:#ef4444}
+    .leaflet-pin.dest{background:#12b76a}
   </style>
 </head>
 <body>
@@ -103,224 +113,627 @@
 <div class="sticky-actions"><div class="inner"><a id="callBtn" class="call-btn" href="#">Qo‘ng‘iroq</a><button class="support-btn" id="supportBtn">Qo‘llab-quvvatlash</button></div></div>
 
 <!-- Security: restrict this API key by allowed production domains in Yandex cabinet. -->
-<script src="https://api-maps.yandex.ru/2.1/?apikey=98fbccfc-0ccc-46cc-923a-cfc8b9267d3e&lang=uz_UZ"></script>
+<script src="https://api-maps.yandex.ru/2.1/?apikey=98fbccfc-0ccc-46cc-923a-cfc8b9267d3e&lang=uz_UZ" async onerror="window.__yandexMapsFailed=true;"></script>
 <script>
-const orderNumber = decodeURIComponent(location.pathname.split('/').pop());
-const timelineSteps=[{label:'Buyurtma qabul qilindi',statuses:['created','payment_pending','payment_confirmed']},{label:'Yig‘ish va tayyorlash',statuses:['preparing','ready_for_courier','courier_assigned']},{label:'Yetkazib berish jarayoni',statuses:['out_for_delivery']},{label:'Buyurtma topshirildi',statuses:['delivered']}];
-const statusUx={created:{title:'Buyurtma qabul qilindi',note:'Buyurtma muvaffaqiyatli ro‘yxatdan o‘tdi.',badge:'Qabul qilindi'},payment_pending:{title:'To‘lov tekshirilmoqda',note:'To‘lov bo‘yicha holat tasdiqlanmoqda.',badge:'To‘lov tekshirilmoqda'},payment_confirmed:{title:'To‘lov tasdiqlandi',note:'To‘lov qabul qilindi, buyurtma yig‘ishga o‘tkazildi.',badge:'To‘lov tasdiqlandi'},preparing:{title:'Buyurtma tayyorlanmoqda',note:'Buyurtma jo‘natishga tayyorlanmoqda.',badge:'Tayyorlanmoqda'},ready_for_courier:{title:'Kurier kutilmoqda',note:'Buyurtma topshirish uchun kurier navbatida.',badge:'Kurier kutilmoqda'},courier_assigned:{title:'Kurier biriktirildi',note:'Kurier buyurtmangizni qabul qilishga yo‘lda.',badge:'Kurier biriktirildi'},out_for_delivery:{title:'Buyurtma yo‘lda',note:'Kurier buyurtmangizni manzilga olib ketmoqda.',badge:'Yo‘lda'},delivered:{title:'Buyurtma topshirildi',note:'Buyurtma manzilga muvaffaqiyatli yetkazildi.',badge:'Yakunlandi'},cancelled:{title:'Buyurtma bekor qilindi',note:'Sababni aniqlash uchun qo‘llab-quvvatlash bilan bog‘laning.',badge:'Bekor qilindi'}};
-const WAREHOUSE_COORDS={lat:39.654722,lng:66.958972};
-const COURIER_ACTIVE_STATUSES=['out_for_delivery','delivered'];
-let order=null,firstLoadDone=false,courierMap=null,courierMarker=null,destinationMarker=null,warehouseMarker=null,routeLine=null,lastCourierPoint=null,smoothMoveTimer=null,yandexReadyPromise=null,pollDelay=2500,pollTimer=null,isRefreshing=false;
-async function api(path,opt={}){const res=await fetch('/api/v1'+path,{headers:{'Content-Type':'application/json'},...opt});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.message||'Xatolik');return data;}
-const hasCoord=(a,b)=>{
-  const lat=Number(a), lng=Number(b);
-  return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180;
-};
-function resolveOrderCoord(pointKeys=[]){
-  if(!order) return null;
-  for(const [latKey,lngKey] of pointKeys){
-    const lat=order?.[latKey], lng=order?.[lngKey];
-    if(hasCoord(lat,lng)) return {lat:Number(lat),lng:Number(lng)};
-  }
-  return null;
-}
-function setMapFallback(message){
-  mapFallback.innerHTML=`<div>${message||'Xarita mavjud emas'}</div>`;
-  mapFallback.style.display='grid';
-  courierMapEl.style.display='none';
-  mapNote.style.display='none';
-}
-function waitForMapContainerReady(timeoutMs=2200){
-  return new Promise((resolve,reject)=>{
-    const started=Date.now();
-    const check=()=>{
-      const rect=courierMapEl.getBoundingClientRect();
-      if(rect.width>10&&rect.height>10){
-        resolve();
-        return;
-      }
-      if(Date.now()-started>=timeoutMs){
-        reject(new Error('Map container not ready'));
-        return;
-      }
-      requestAnimationFrame(check);
-    };
-    requestAnimationFrame(check);
-  });
-}
-function renderStaticRouteFallback(destinationPoint,courierPoint,isCourierActive,reasonText){
-  if(!destinationPoint){
-    setMapFallback('Mijoz manzili koordinatalari topilmadi');
-    return;
-  }
-  const startPoint=(isCourierActive&&courierPoint)?courierPoint:WAREHOUSE_COORDS;
-  const originLabel=isCourierActive?'Kurier nuqtasi':'Ombor nuqtasi';
-  const startLink=`https://www.openstreetmap.org/?mlat=${startPoint.lat}&mlon=${startPoint.lng}#map=15/${startPoint.lat}/${startPoint.lng}`;
-  const destinationLink=`https://www.openstreetmap.org/?mlat=${destinationPoint.lat}&mlon=${destinationPoint.lng}#map=15/${destinationPoint.lat}/${destinationPoint.lng}`;
-  mapFallback.innerHTML=`
-    <div style="display:grid;gap:10px;width:100%;padding:14px;">
-      <div style="font-size:13px;color:#475467;">${reasonText||'Interaktiv xarita vaqtincha ishlamayapti. Marshrut soddalashtirilgan ko‘rinishda ko‘rsatildi.'}</div>
-      <div style="font-size:13px;color:#475467;border:1px solid #d0d5dd;border-radius:12px;padding:10px;background:#f8fafc;">
-        ${originLabel}: ${startPoint.lat.toFixed(6)}, ${startPoint.lng.toFixed(6)}<br/>
-        Mijoz manzili: ${destinationPoint.lat.toFixed(6)}, ${destinationPoint.lng.toFixed(6)}
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <a href="${startLink}" target="_blank" rel="noopener" class="icon-btn" style="text-decoration:none;">${originLabel}</a>
-        <a href="${destinationLink}" target="_blank" rel="noopener" class="icon-btn" style="text-decoration:none;">Mijoz manzili</a>
-      </div>
-    </div>
-  `;
-  mapFallback.style.display='grid';
-  courierMapEl.style.display='none';
-  mapNote.textContent=isCourierActive?'Kurier yo‘lda: soddalashtirilgan marshrut ko‘rsatildi':'Kurier hali biriktirilmagan: ombor → mijoz marshruti ko‘rsatildi';
-  mapNote.style.display='block';
-}
-function ensureYandexReady(){
-  if(!window.ymaps||typeof window.ymaps.ready!=='function') return Promise.reject(new Error('Yandex API unavailable'));
-  if(!yandexReadyPromise){
-    yandexReadyPromise=new Promise((resolve,reject)=>{
-      let done=false;
-      const timer=setTimeout(()=>{if(!done){done=true;reject(new Error('Yandex API timeout'));}},7000);
-      try{
-        window.ymaps.ready(()=>{
-          if(done) return;
-          done=true;
-          clearTimeout(timer);
-          resolve(window.ymaps);
-        });
-      }catch(err){
-        clearTimeout(timer);
-        reject(err);
-      }
-    });
-  }
-  return yandexReadyPromise;
-}
-function fitTwoPointsSafe(a,b){
-  if(!courierMap) return;
-  const minLat=Math.min(a[0],b[0]), maxLat=Math.max(a[0],b[0]);
-  const minLng=Math.min(a[1],b[1]), maxLng=Math.max(a[1],b[1]);
-  if(minLat===maxLat&&minLng===maxLng){
-    courierMap.setCenter([a[0],a[1]],14,{duration:250});
-    return;
-  }
-  courierMap.setBounds([[minLat,minLng],[maxLat,maxLng]],{checkZoomRange:true,zoomMargin:30,duration:250});
-}
-function renderState(m){stateLoading.style.display=m==='loading'?'block':'none';stateError.style.display=m==='error'?'block':'none';stateEmpty.style.display=m==='empty'?'block':'none';trackingContent.style.display=m==='content'?'block':'none';}
-function stepIndex(status){return Math.max(0,timelineSteps.findIndex(s=>s.statuses.includes(status)));}
-function money(v){return `${Number(v||0).toLocaleString('ru-RU')} so'm`;}
-function renderMap(){if(!order)return;
-  const destinationPoint=resolveOrderCoord([['locationLat','locationLng'],['customerLat','customerLng'],['latitude','longitude']]);
-  const courierPoint=resolveOrderCoord([['courierLocationLat','courierLocationLng'],['courierLat','courierLng']]);
-  const hasDestination=Boolean(destinationPoint);
-  const hasCourier=Boolean(courierPoint);
-  if(!hasDestination){
-    setMapFallback('Mijoz manzili koordinatalari topilmadi');
-    return;
-  }
-  const cLat=hasCourier?courierPoint.lat:null, cLng=hasCourier?courierPoint.lng:null;
-  const dLat=hasDestination?destinationPoint.lat:null, dLng=hasDestination?destinationPoint.lng:null;
-  const isCourierActive=COURIER_ACTIVE_STATUSES.includes(String(order.status||''))&&hasCourier;
-  ensureYandexReady().then((ymaps)=>{
-    mapFallback.style.display='none';
-    courierMapEl.style.display='block';
-    return waitForMapContainerReady().then(()=>{
-      if(!courierMap){
-        courierMap=new ymaps.Map('courierMap',{center:hasDestination?[dLat,dLng]:[WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],zoom:14,controls:['zoomControl']},{suppressMapOpenBlock:true});
-      }else{
-        courierMap.container.fitToViewport();
-      }
-    });
-  }).then(()=>{
-    mapNote.textContent=isCourierActive?'Kurier yo‘lda: joriy marshrut ko‘rsatilmoqda':'Kurier hali biriktirilmagan, marshrut tayyor';
-    mapNote.style.display='block';
-    if(isCourierActive){
-      if(!courierMarker){
-        courierMarker=new ymaps.Placemark([cLat,cLng],{balloonContent:'Kurier'},{preset:'islands#redDeliveryIcon'});
-        courierMap.geoObjects.add(courierMarker);
-      }else{
-        courierMarker.geometry.setCoordinates([cLat,cLng]);
-      }
-      if(lastCourierPoint&&smoothMoveTimer)clearInterval(smoothMoveTimer);
-      if(lastCourierPoint&&hasCoord(lastCourierPoint.lat,lastCourierPoint.lng)){
-        const steps=8;let i=0;const from={...lastCourierPoint};
-        smoothMoveTimer=setInterval(()=>{
-          i+=1;
-          const k=Math.min(1,i/steps);
-          const lat=from.lat+((cLat-from.lat)*k);
-          const lng=from.lng+((cLng-from.lng)*k);
-          if(courierMarker?.geometry) courierMarker.geometry.setCoordinates([lat,lng]);
-          if(i>=steps)clearInterval(smoothMoveTimer);
-        },450);
-      }
-      lastCourierPoint={lat:cLat,lng:cLng};
-    }else if(courierMarker){
-      courierMap.geoObjects.remove(courierMarker);
-      courierMarker=null;
-      lastCourierPoint=null;
-      if(smoothMoveTimer)clearInterval(smoothMoveTimer);
-    }
-    if(!isCourierActive){
-      if(!warehouseMarker){
-        warehouseMarker=new ymaps.Placemark([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],{balloonContent:'Ombor',iconContent:'📦'},{preset:'islands#blueStretchyIcon'});
-        courierMap.geoObjects.add(warehouseMarker);
-      }else{
-        warehouseMarker.geometry.setCoordinates([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng]);
-      }
-    }else if(warehouseMarker){
-      courierMap.geoObjects.remove(warehouseMarker);
-      warehouseMarker=null;
-    }
-    if(hasDestination){
-      if(!destinationMarker){
-        destinationMarker=new ymaps.Placemark([dLat,dLng],{balloonContent:'Mijoz manzili'},{preset:'islands#greenDotIcon'});
-        courierMap.geoObjects.add(destinationMarker);
-      }else{
-        destinationMarker.geometry.setCoordinates([dLat,dLng]);
-      }
-    }else if(destinationMarker){
-      courierMap.geoObjects.remove(destinationMarker);
-      destinationMarker=null;
-    }
-    const start=isCourierActive?[cLat,cLng]:[WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng];
-    if(routeLine){
-      routeLine.geometry.setCoordinates([start,[dLat,dLng]]);
-      routeLine.options.set({strokeStyle:isCourierActive?'solid':'dash'});
-    }else{
-      routeLine=new ymaps.Polyline([start,[dLat,dLng]],{},{
-        strokeColor:'#6a4dff',
-        strokeWidth:4,
-        strokeOpacity:0.8,
-        strokeStyle:isCourierActive?'solid':'dash'
+(function(){
+  'use strict';
+
+  var orderNumber = decodeURIComponent(location.pathname.split('/').pop());
+  var $ = function(id){ return document.getElementById(id); };
+
+  // Explicit DOM references (do NOT rely on implicit window-id globals).
+  var courierMapEl   = $('courierMap');
+  var mapFallbackEl  = $('mapFallback');
+  var mapNoteEl      = $('mapNote');
+  var statusBadgeEl  = $('statusBadge');
+  var refreshBtnEl   = $('refreshBtn');
+  var stateLoadingEl = $('stateLoading');
+  var stateErrorEl   = $('stateError');
+  var stateEmptyEl   = $('stateEmpty');
+  var trackingContentEl = $('trackingContent');
+  var bigStatusEl    = $('bigStatus');
+  var bigStatusNoteEl= $('bigStatusNote');
+  var liveInfoEl     = $('liveInfo');
+  var metaEl         = $('meta');
+  var etaTextEl      = $('etaText');
+  var paymentEl      = $('payment');
+  var totalEl        = $('total');
+  var timelineEl     = $('timeline');
+  var courierStatusEl= $('courierStatus');
+  var courierCardEl  = $('courierCard');
+  var addressEl      = $('address');
+  var deliveryInfoEl = $('deliveryInfo');
+  var itemsEl        = $('items');
+  var callBtnEl      = $('callBtn');
+  var supportBtnEl   = $('supportBtn');
+  var feedbackCardEl = $('feedbackCard');
+  var ratingEl       = $('rating');
+  var commentEl      = $('comment');
+  var sendFeedbackEl = $('sendFeedback');
+  var feedbackMsgEl  = $('feedbackMsg');
+
+  var timelineSteps = [
+    {label:'Buyurtma qabul qilindi',statuses:['created','payment_pending','payment_confirmed']},
+    {label:'Yig‘ish va tayyorlash',statuses:['preparing','ready_for_courier','courier_assigned']},
+    {label:'Yetkazib berish jarayoni',statuses:['out_for_delivery']},
+    {label:'Buyurtma topshirildi',statuses:['delivered']}
+  ];
+  var statusUx = {
+    created:           {title:'Buyurtma qabul qilindi',     note:'Buyurtma muvaffaqiyatli ro‘yxatdan o‘tdi.',                 badge:'Qabul qilindi'},
+    payment_pending:   {title:'To‘lov tekshirilmoqda',      note:'To‘lov bo‘yicha holat tasdiqlanmoqda.',                     badge:'To‘lov tekshirilmoqda'},
+    payment_confirmed: {title:'To‘lov tasdiqlandi',         note:'To‘lov qabul qilindi, buyurtma yig‘ishga o‘tkazildi.',     badge:'To‘lov tasdiqlandi'},
+    preparing:         {title:'Buyurtma tayyorlanmoqda',    note:'Buyurtma jo‘natishga tayyorlanmoqda.',                      badge:'Tayyorlanmoqda'},
+    ready_for_courier: {title:'Kurier kutilmoqda',          note:'Buyurtma topshirish uchun kurier navbatida.',               badge:'Kurier kutilmoqda'},
+    courier_assigned:  {title:'Kurier biriktirildi',        note:'Kurier buyurtmangizni qabul qilishga yo‘lda.',              badge:'Kurier biriktirildi'},
+    out_for_delivery:  {title:'Buyurtma yo‘lda',            note:'Kurier buyurtmangizni manzilga olib ketmoqda.',             badge:'Yo‘lda'},
+    delivered:         {title:'Buyurtma topshirildi',       note:'Buyurtma manzilga muvaffaqiyatli yetkazildi.',             badge:'Yakunlandi'},
+    cancelled:         {title:'Buyurtma bekor qilindi',     note:'Sababni aniqlash uchun qo‘llab-quvvatlash bilan bog‘laning.',badge:'Bekor qilindi'}
+  };
+
+  var WAREHOUSE_COORDS = {lat:39.654722, lng:66.958972};
+  var COURIER_ACTIVE_STATUSES = ['out_for_delivery','delivered'];
+
+  // App state
+  var order = null;
+  var firstLoadDone = false;
+  var pollDelay = 2500;
+  var pollTimer = null;
+  var isRefreshing = false;
+
+  // Map provider state
+  var activeProvider = null; // 'yandex' | 'leaflet' | 'static'
+  var yandexReadyPromise = null;
+  var leafletReadyPromise = null;
+
+  // Yandex objects
+  var yMap = null, yCourierMarker = null, yDestMarker = null, yWarehouseMarker = null, yRouteLine = null;
+  // Leaflet objects
+  var lMap = null, lCourierMarker = null, lDestMarker = null, lWarehouseMarker = null, lRouteLine = null;
+  // Smooth move
+  var lastCourierPoint = null;
+  var smoothMoveTimer = null;
+
+  function api(path, opt){
+    opt = opt || {};
+    var headers = {'Content-Type':'application/json'};
+    var merged = Object.assign({}, opt, {headers: Object.assign(headers, opt.headers || {})});
+    return fetch('/api/v1' + path, merged).then(function(res){
+      return res.json().catch(function(){ return {}; }).then(function(data){
+        if (!res.ok) throw new Error((data && data.message) || 'Xatolik');
+        return data;
       });
-      courierMap.geoObjects.add(routeLine);
+    });
+  }
+
+  function hasCoord(a, b){
+    var lat = Number(a), lng = Number(b);
+    return Number.isFinite(lat) && Number.isFinite(lng) && lat>=-90 && lat<=90 && lng>=-180 && lng<=180;
+  }
+
+  function resolveOrderCoord(pointKeys){
+    if (!order) return null;
+    for (var i=0; i<pointKeys.length; i++){
+      var latKey = pointKeys[i][0], lngKey = pointKeys[i][1];
+      var lat = order[latKey], lng = order[lngKey];
+      if (hasCoord(lat, lng)) return {lat:Number(lat), lng:Number(lng)};
     }
-    fitTwoPointsSafe(start,[dLat,dLng]);
-    setTimeout(()=>{ if(courierMap) courierMap.container.fitToViewport(); },60);
-  }).catch(()=>{
-    renderStaticRouteFallback(destinationPoint,courierPoint,isCourierActive,'Yandex xarita vaqtincha mavjud emas. OSM marshrut ko‘rinishi yoqildi.');
-  });
-}
-function render(){if(!order)return;renderState('content');const ui=statusUx[order.status]||statusUx.created;statusBadge.textContent=ui.badge;bigStatus.textContent=ui.title;bigStatusNote.textContent=ui.note;
-meta.textContent=`#${order.orderNumber} · ${new Date(order.created_at||Date.now()).toLocaleString('ru-RU')}`;etaText.textContent=order.etaLiveText||order.deliveryEta||order.estimatedTime||'Samarqand bo‘ylab odatda 1–4 soat';payment.textContent=`${order.paymentMethod||'-'} / ${order.paymentStatus||'-'} (xavfsiz tasdiqlash)`;total.textContent=money(order.total);
-const idx=stepIndex(order.status);timeline.innerHTML=timelineSteps.map((s,i)=>`<div class="step ${i<idx?'done':''} ${i===idx?'active':''}"><div class="dot"></div><span>${s.label}</span></div>`).join('');
-address.textContent=order.addressText||order.customerAddress||order.location||'Manzil kiritilmagan';deliveryInfo.textContent=`Buyurtma: #${order.orderNumber} · ${order.landmarkText?`Orientir: ${order.landmarkText}`:'Orientir ko‘rsatilmagan'} · ETA: ${order.etaLiveText||order.deliveryEta||order.estimatedTime||'1–4 soat'}`;
-items.innerHTML=(order.items||[]).map(i=>`${i.name} × ${i.quantity} = ${money(i.subtotal)}`).join('<br>') || 'Mahsulotlar ro‘yxati mavjud emas';
-const hasCourier=Boolean(order.courierName);courierStatus.textContent=hasCourier?'Faol':'Kutilmoqda';
-const ratingText=Number(order.courierRating)>0?`<div class="muted">Reyting: ${Number(order.courierRating).toFixed(1)}</div>`:'';
-const vehicleText=order.courierVehicle||order.courierVehicleNumber?`<div class="muted">${order.courierVehicle||''} ${order.courierVehicleNumber||''}</div>`:'';
-courierCard.innerHTML=hasCourier?`<div><strong>${order.courierName}</strong>${vehicleText}${ratingText}</div>`:'Kurier biriktirilmoqda';
-callBtn.href=order.courierPhone?`tel:${order.courierPhone}`:'#';callBtn.textContent=order.courierPhone?'Qo‘ng‘iroq qilish':'Raqam yo‘q';
-liveInfo.textContent=`Oxirgi yangilanish: ${new Date(order.trackingUpdatedAt||order.updated_at||Date.now()).toLocaleTimeString('ru-RU')} · interval ${Math.round(pollDelay/1000)}s`;
-if(order.status==='cancelled'){etaText.textContent='Bekor qilingan'; callBtn.textContent='Qo‘llab-quvvatlash'; callBtn.href='tel:+998557010070';}
-if(order.status==='delivered'){etaText.textContent='Yetkazildi'; callBtn.textContent='Qo‘llab-quvvatlash';}
-renderMap();
-feedbackCard.style.display=order.status==='delivered'?'block':'none';sendFeedback.disabled=!!order.feedbackAt; if(order.feedbackAt)feedbackMsg.textContent='Rahmat, fikringiz qabul qilindi';
-}
-async function refresh(){if(isRefreshing)return;isRefreshing=true;try{if(!firstLoadDone)renderState('loading');const data=await api(`/orders/${encodeURIComponent(orderNumber)}/track`);order=data.order;if(!order)return renderState('empty');firstLoadDone=true;pollDelay=2500;render();}catch(e){if(!firstLoadDone)renderState('error');pollDelay=Math.min(12000,Math.round(pollDelay*1.5));bigStatusNote.textContent=`Aloqa tiklanmoqda... qayta urinish ${Math.round(pollDelay/1000)}s`; }finally{isRefreshing=false;clearTimeout(pollTimer);pollTimer=setTimeout(refresh,pollDelay);}}
-refreshBtn.onclick=refresh; supportBtn.onclick=()=>{alert('Qo‘llab-quvvatlash: +998 55 701 00 70 (buyurtma raqamini tayyorlab qo‘ying).');};
-sendFeedback.onclick=async()=>{try{const out=await api(`/orders/${encodeURIComponent(orderNumber)}/feedback`,{method:'POST',body:JSON.stringify({feedbackRating:rating.value,feedbackComment:comment.value})});order=out.order;render();}catch(e){alert(e.message);}};
-refresh();
+    return null;
+  }
+
+  function escapeHtml(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function showFallback(html){
+    if (!mapFallbackEl) return;
+    mapFallbackEl.innerHTML = html;
+    mapFallbackEl.style.display = 'grid';
+    if (courierMapEl) courierMapEl.style.display = 'none';
+  }
+
+  function setMapFallback(message){
+    showFallback('<div>'+ escapeHtml(message || 'Xarita mavjud emas') +'</div>');
+    if (mapNoteEl) mapNoteEl.style.display = 'none';
+  }
+
+  function showInteractiveMap(){
+    if (mapFallbackEl) mapFallbackEl.style.display = 'none';
+    if (courierMapEl) courierMapEl.style.display = 'block';
+  }
+
+  function setMapNote(text){
+    if (!mapNoteEl) return;
+    if (!text){ mapNoteEl.style.display = 'none'; mapNoteEl.textContent = ''; return; }
+    mapNoteEl.textContent = text;
+    mapNoteEl.style.display = 'block';
+  }
+
+  function waitForMapContainerReady(timeoutMs){
+    timeoutMs = timeoutMs || 2200;
+    return new Promise(function(resolve, reject){
+      if (!courierMapEl){ reject(new Error('Map container missing')); return; }
+      var started = Date.now();
+      var check = function(){
+        var rect = courierMapEl.getBoundingClientRect();
+        if (rect.width > 10 && rect.height > 10){ resolve(); return; }
+        if (Date.now() - started >= timeoutMs){ reject(new Error('Map container not ready')); return; }
+        requestAnimationFrame(check);
+      };
+      requestAnimationFrame(check);
+    });
+  }
+
+  function renderStaticRouteFallback(destinationPoint, courierPoint, isCourierActive, reasonText){
+    if (!destinationPoint){
+      setMapFallback('Mijoz manzili koordinatalari topilmadi');
+      return;
+    }
+    var startPoint = (isCourierActive && courierPoint) ? courierPoint : WAREHOUSE_COORDS;
+    var originLabel = isCourierActive ? 'Kurier nuqtasi' : 'Ombor nuqtasi';
+    var startLink = 'https://www.openstreetmap.org/?mlat='+startPoint.lat+'&mlon='+startPoint.lng+'#map=15/'+startPoint.lat+'/'+startPoint.lng;
+    var destinationLink = 'https://www.openstreetmap.org/?mlat='+destinationPoint.lat+'&mlon='+destinationPoint.lng+'#map=15/'+destinationPoint.lat+'/'+destinationPoint.lng;
+    var routeLink = 'https://www.openstreetmap.org/directions?from='+startPoint.lat+'%2C'+startPoint.lng+'&to='+destinationPoint.lat+'%2C'+destinationPoint.lng;
+    var html = ''+
+      '<div style="display:grid;gap:10px;width:100%;padding:14px;">'+
+        '<div style="font-size:13px;color:#475467;">'+ escapeHtml(reasonText || 'Interaktiv xarita vaqtincha ishlamayapti. Marshrut soddalashtirilgan ko‘rinishda ko‘rsatildi.') +'</div>'+
+        '<div style="font-size:13px;color:#475467;border:1px solid #d0d5dd;border-radius:12px;padding:10px;background:#f8fafc;text-align:left;line-height:1.5;">'+
+          '<div><strong>'+ escapeHtml(originLabel) +':</strong> '+ startPoint.lat.toFixed(6) +', '+ startPoint.lng.toFixed(6) +'</div>'+
+          '<div><strong>Mijoz manzili:</strong> '+ destinationPoint.lat.toFixed(6) +', '+ destinationPoint.lng.toFixed(6) +'</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">'+
+          '<a href="'+ startLink +'" target="_blank" rel="noopener" class="icon-btn" style="text-decoration:none;">'+ escapeHtml(originLabel) +'</a>'+
+          '<a href="'+ destinationLink +'" target="_blank" rel="noopener" class="icon-btn" style="text-decoration:none;">Mijoz manzili</a>'+
+          '<a href="'+ routeLink +'" target="_blank" rel="noopener" class="icon-btn" style="text-decoration:none;background:#6a4dff;color:#fff;border-color:#6a4dff;">Marshrutni ochish</a>'+
+        '</div>'+
+      '</div>';
+    showFallback(html);
+    setMapNote(isCourierActive
+      ? 'Kurier yo‘lda: soddalashtirilgan marshrut ko‘rsatildi'
+      : 'Kurier hali biriktirilmagan: ombor → mijoz marshruti ko‘rsatildi');
+    activeProvider = 'static';
+  }
+
+  // ---------- Yandex ----------
+  function ensureYandexReady(){
+    if (window.__yandexMapsFailed) return Promise.reject(new Error('Yandex script error'));
+    if (!window.ymaps || typeof window.ymaps.ready !== 'function') return Promise.reject(new Error('Yandex API unavailable'));
+    if (!yandexReadyPromise){
+      yandexReadyPromise = new Promise(function(resolve, reject){
+        var done = false;
+        var timer = setTimeout(function(){
+          if (done) return;
+          done = true;
+          reject(new Error('Yandex API timeout'));
+        }, 6000);
+        try {
+          window.ymaps.ready(function(){
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            if (!window.ymaps || !window.ymaps.Map){ reject(new Error('Yandex Map class missing')); return; }
+            resolve(window.ymaps);
+          });
+        } catch (err){
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          reject(err);
+        }
+      });
+      yandexReadyPromise.catch(function(){ /* allow re-evaluation later if needed */ });
+    }
+    return yandexReadyPromise;
+  }
+
+  function clearLeafletObjects(){
+    if (lRouteLine && lMap) { try { lMap.removeLayer(lRouteLine); } catch (e) {} }
+    if (lCourierMarker && lMap) { try { lMap.removeLayer(lCourierMarker); } catch (e) {} }
+    if (lDestMarker && lMap) { try { lMap.removeLayer(lDestMarker); } catch (e) {} }
+    if (lWarehouseMarker && lMap) { try { lMap.removeLayer(lWarehouseMarker); } catch (e) {} }
+    if (lMap) { try { lMap.remove(); } catch (e) {} }
+    lRouteLine = lCourierMarker = lDestMarker = lWarehouseMarker = lMap = null;
+  }
+
+  function fitTwoPointsYandex(a, b){
+    if (!yMap) return;
+    var minLat = Math.min(a[0], b[0]), maxLat = Math.max(a[0], b[0]);
+    var minLng = Math.min(a[1], b[1]), maxLng = Math.max(a[1], b[1]);
+    if (minLat === maxLat && minLng === maxLng){
+      yMap.setCenter([a[0], a[1]], 14, {duration:250});
+      return;
+    }
+    yMap.setBounds([[minLat,minLng],[maxLat,maxLng]], {checkZoomRange:true, zoomMargin:30, duration:250});
+  }
+
+  function renderYandex(destinationPoint, courierPoint, isCourierActive){
+    return ensureYandexReady().then(function(ymaps){
+      // If we previously rendered Leaflet, tear it down before reusing the container.
+      if (activeProvider === 'leaflet') clearLeafletObjects();
+      showInteractiveMap();
+      return waitForMapContainerReady().then(function(){
+        var dLat = destinationPoint.lat, dLng = destinationPoint.lng;
+        var cLat = courierPoint ? courierPoint.lat : null;
+        var cLng = courierPoint ? courierPoint.lng : null;
+
+        if (!yMap){
+          yMap = new ymaps.Map(courierMapEl, {
+            center:[dLat, dLng],
+            zoom:14,
+            controls:['zoomControl']
+          }, {suppressMapOpenBlock:true});
+        } else {
+          try { yMap.container.fitToViewport(); } catch (e) {}
+        }
+
+        // Courier marker
+        if (isCourierActive){
+          if (!yCourierMarker){
+            yCourierMarker = new ymaps.Placemark([cLat, cLng], {balloonContent:'Kurier'}, {preset:'islands#redDeliveryIcon'});
+            yMap.geoObjects.add(yCourierMarker);
+          } else {
+            yCourierMarker.geometry.setCoordinates([cLat, cLng]);
+          }
+          if (smoothMoveTimer){ clearInterval(smoothMoveTimer); smoothMoveTimer = null; }
+          if (lastCourierPoint && hasCoord(lastCourierPoint.lat, lastCourierPoint.lng)){
+            var steps = 8, i = 0;
+            var from = {lat:lastCourierPoint.lat, lng:lastCourierPoint.lng};
+            smoothMoveTimer = setInterval(function(){
+              i += 1;
+              var k = Math.min(1, i/steps);
+              var lat = from.lat + ((cLat - from.lat) * k);
+              var lng = from.lng + ((cLng - from.lng) * k);
+              if (yCourierMarker && yCourierMarker.geometry) yCourierMarker.geometry.setCoordinates([lat, lng]);
+              if (i >= steps){ clearInterval(smoothMoveTimer); smoothMoveTimer = null; }
+            }, 450);
+          }
+          lastCourierPoint = {lat:cLat, lng:cLng};
+        } else if (yCourierMarker){
+          try { yMap.geoObjects.remove(yCourierMarker); } catch (e) {}
+          yCourierMarker = null;
+          lastCourierPoint = null;
+          if (smoothMoveTimer){ clearInterval(smoothMoveTimer); smoothMoveTimer = null; }
+        }
+
+        // Warehouse marker (shown when courier not yet active)
+        if (!isCourierActive){
+          if (!yWarehouseMarker){
+            yWarehouseMarker = new ymaps.Placemark(
+              [WAREHOUSE_COORDS.lat, WAREHOUSE_COORDS.lng],
+              {balloonContent:'Ombor', iconContent:'📦'},
+              {preset:'islands#blueStretchyIcon'}
+            );
+            yMap.geoObjects.add(yWarehouseMarker);
+          } else {
+            yWarehouseMarker.geometry.setCoordinates([WAREHOUSE_COORDS.lat, WAREHOUSE_COORDS.lng]);
+          }
+        } else if (yWarehouseMarker){
+          try { yMap.geoObjects.remove(yWarehouseMarker); } catch (e) {}
+          yWarehouseMarker = null;
+        }
+
+        // Destination marker (always)
+        if (!yDestMarker){
+          yDestMarker = new ymaps.Placemark([dLat, dLng], {balloonContent:'Mijoz manzili'}, {preset:'islands#greenDotIcon'});
+          yMap.geoObjects.add(yDestMarker);
+        } else {
+          yDestMarker.geometry.setCoordinates([dLat, dLng]);
+        }
+
+        // Route line: courier->dest if active, otherwise warehouse->dest.
+        var start = isCourierActive ? [cLat, cLng] : [WAREHOUSE_COORDS.lat, WAREHOUSE_COORDS.lng];
+        var end = [dLat, dLng];
+        if (yRouteLine){
+          yRouteLine.geometry.setCoordinates([start, end]);
+          try { yRouteLine.options.set({strokeStyle: isCourierActive ? 'solid' : 'dash'}); } catch (e) {}
+        } else {
+          yRouteLine = new ymaps.Polyline([start, end], {}, {
+            strokeColor:'#6a4dff',
+            strokeWidth:4,
+            strokeOpacity:0.8,
+            strokeStyle: isCourierActive ? 'solid' : 'dash'
+          });
+          yMap.geoObjects.add(yRouteLine);
+        }
+
+        fitTwoPointsYandex(start, end);
+        setTimeout(function(){ try { if (yMap) yMap.container.fitToViewport(); } catch (e) {} }, 60);
+
+        setMapNote(isCourierActive
+          ? 'Kurier yo‘lda: joriy marshrut ko‘rsatilmoqda'
+          : 'Kurier hali biriktirilmagan, marshrut tayyor');
+        activeProvider = 'yandex';
+      });
+    });
+  }
+
+  // ---------- Leaflet ----------
+  function ensureLeafletReady(){
+    if (window.L && window.L.map) return Promise.resolve(window.L);
+    if (!leafletReadyPromise){
+      leafletReadyPromise = new Promise(function(resolve, reject){
+        var cssId = 'leaflet-css';
+        if (!document.getElementById(cssId)){
+          var link = document.createElement('link');
+          link.id = cssId;
+          link.rel = 'stylesheet';
+          link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+          link.crossOrigin = '';
+          document.head.appendChild(link);
+        }
+        var existing = document.getElementById('leaflet-js');
+        if (existing){
+          // already loading; wait briefly
+          var waited = 0;
+          var poll = setInterval(function(){
+            waited += 100;
+            if (window.L && window.L.map){ clearInterval(poll); resolve(window.L); return; }
+            if (waited >= 8000){ clearInterval(poll); reject(new Error('Leaflet load timeout (existing)')); }
+          }, 100);
+          return;
+        }
+        var script = document.createElement('script');
+        script.id = 'leaflet-js';
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.async = true;
+        script.crossOrigin = '';
+        var timer = setTimeout(function(){ reject(new Error('Leaflet load timeout')); }, 8000);
+        script.onload = function(){
+          clearTimeout(timer);
+          if (window.L && window.L.map) resolve(window.L);
+          else reject(new Error('Leaflet missing after load'));
+        };
+        script.onerror = function(){ clearTimeout(timer); reject(new Error('Leaflet script error')); };
+        document.head.appendChild(script);
+      });
+      leafletReadyPromise.catch(function(){ leafletReadyPromise = null; });
+    }
+    return leafletReadyPromise;
+  }
+
+  function clearYandexObjects(){
+    if (yMap){
+      try { yMap.destroy(); } catch (e) {}
+    }
+    yMap = yCourierMarker = yDestMarker = yWarehouseMarker = yRouteLine = null;
+  }
+
+  function makeLeafletPin(L, kind, content){
+    return L.divIcon({
+      className: '',
+      html: '<div class="leaflet-pin '+ kind +'"><span>'+ (content || '') +'</span></div>',
+      iconSize: [30, 30],
+      iconAnchor: [15, 30]
+    });
+  }
+
+  function renderLeaflet(destinationPoint, courierPoint, isCourierActive){
+    return ensureLeafletReady().then(function(L){
+      if (activeProvider === 'yandex') clearYandexObjects();
+      // Reset container in case Yandex left styles in it
+      courierMapEl.innerHTML = '';
+      showInteractiveMap();
+      return waitForMapContainerReady().then(function(){
+        var dLat = destinationPoint.lat, dLng = destinationPoint.lng;
+        var cLat = courierPoint ? courierPoint.lat : null;
+        var cLng = courierPoint ? courierPoint.lng : null;
+
+        if (!lMap){
+          lMap = L.map(courierMapEl, {zoomControl:true, attributionControl:true}).setView([dLat, dLng], 14);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+          }).addTo(lMap);
+        } else {
+          setTimeout(function(){ try { lMap.invalidateSize(); } catch (e) {} }, 60);
+        }
+
+        if (isCourierActive){
+          var cLatLng = [cLat, cLng];
+          if (!lCourierMarker){
+            lCourierMarker = L.marker(cLatLng, {icon: makeLeafletPin(L, 'courier', '🚴')}).addTo(lMap).bindPopup('Kurier');
+          } else {
+            lCourierMarker.setLatLng(cLatLng);
+          }
+        } else if (lCourierMarker){
+          try { lMap.removeLayer(lCourierMarker); } catch (e) {}
+          lCourierMarker = null;
+        }
+
+        if (!isCourierActive){
+          var wLatLng = [WAREHOUSE_COORDS.lat, WAREHOUSE_COORDS.lng];
+          if (!lWarehouseMarker){
+            lWarehouseMarker = L.marker(wLatLng, {icon: makeLeafletPin(L, 'warehouse', '📦')}).addTo(lMap).bindPopup('Ombor');
+          } else {
+            lWarehouseMarker.setLatLng(wLatLng);
+          }
+        } else if (lWarehouseMarker){
+          try { lMap.removeLayer(lWarehouseMarker); } catch (e) {}
+          lWarehouseMarker = null;
+        }
+
+        var dLatLng = [dLat, dLng];
+        if (!lDestMarker){
+          lDestMarker = L.marker(dLatLng, {icon: makeLeafletPin(L, 'dest', '📍')}).addTo(lMap).bindPopup('Mijoz manzili');
+        } else {
+          lDestMarker.setLatLng(dLatLng);
+        }
+
+        var start = isCourierActive ? [cLat, cLng] : [WAREHOUSE_COORDS.lat, WAREHOUSE_COORDS.lng];
+        var end = dLatLng;
+        var routeStyle = {
+          color:'#6a4dff', weight:4, opacity:0.85,
+          dashArray: isCourierActive ? null : '8, 8'
+        };
+        if (lRouteLine){
+          try { lMap.removeLayer(lRouteLine); } catch (e) {}
+          lRouteLine = null;
+        }
+        lRouteLine = L.polyline([start, end], routeStyle).addTo(lMap);
+
+        try {
+          var bounds = L.latLngBounds([start, end]);
+          if (bounds.isValid()) lMap.fitBounds(bounds, {padding:[40, 40], maxZoom:16});
+        } catch (e) {}
+
+        setMapNote(isCourierActive
+          ? 'Kurier yo‘lda: OSM xaritada marshrut ko‘rsatilmoqda'
+          : 'Yandex mavjud emas: OSM xarita yoqildi (ombor → mijoz)');
+        activeProvider = 'leaflet';
+      });
+    });
+  }
+
+  // ---------- Top-level render orchestration ----------
+  function renderState(m){
+    if (stateLoadingEl)   stateLoadingEl.style.display   = m === 'loading' ? 'block' : 'none';
+    if (stateErrorEl)     stateErrorEl.style.display     = m === 'error'   ? 'block' : 'none';
+    if (stateEmptyEl)     stateEmptyEl.style.display     = m === 'empty'   ? 'block' : 'none';
+    if (trackingContentEl)trackingContentEl.style.display= m === 'content' ? 'block' : 'none';
+  }
+
+  function stepIndex(status){
+    var idx = timelineSteps.findIndex(function(s){ return s.statuses.indexOf(status) !== -1; });
+    return Math.max(0, idx);
+  }
+
+  function money(v){ return Number(v || 0).toLocaleString('ru-RU') + ' so\'m'; }
+
+  function renderMap(){
+    if (!order) return;
+    var destinationPoint = resolveOrderCoord([['locationLat','locationLng'],['customerLat','customerLng'],['latitude','longitude']]);
+    var courierPoint = resolveOrderCoord([['courierLocationLat','courierLocationLng'],['courierLat','courierLng']]);
+    var hasDestination = Boolean(destinationPoint);
+    var hasCourier = Boolean(courierPoint);
+
+    if (!hasDestination){
+      setMapFallback('Mijoz manzili koordinatalari topilmadi');
+      return;
+    }
+
+    var isCourierActive = COURIER_ACTIVE_STATUSES.indexOf(String(order.status || '')) !== -1 && hasCourier;
+
+    // 1) Yandex first.
+    renderYandex(destinationPoint, courierPoint, isCourierActive)
+      .catch(function(yandexErr){
+        // 2) Leaflet OSM fallback.
+        return renderLeaflet(destinationPoint, courierPoint, isCourierActive)
+          .catch(function(leafletErr){
+            // 3) Static text+links fallback.
+            renderStaticRouteFallback(
+              destinationPoint, courierPoint, isCourierActive,
+              'Interaktiv xarita vaqtincha mavjud emas. Marshrut soddalashtirilgan ko‘rinishda ko‘rsatildi.'
+            );
+          });
+      });
+  }
+
+  function render(){
+    if (!order) return;
+    renderState('content');
+    var ui = statusUx[order.status] || statusUx.created;
+    statusBadgeEl.textContent  = ui.badge;
+    bigStatusEl.textContent    = ui.title;
+    bigStatusNoteEl.textContent= ui.note;
+    metaEl.textContent = '#'+ order.orderNumber +' · '+ new Date(order.created_at || Date.now()).toLocaleString('ru-RU');
+    etaTextEl.textContent = order.etaLiveText || order.deliveryEta || order.estimatedTime || 'Samarqand bo‘ylab odatda 1–4 soat';
+    paymentEl.textContent = (order.paymentMethod || '-') + ' / ' + (order.paymentStatus || '-') + ' (xavfsiz tasdiqlash)';
+    totalEl.textContent = money(order.total);
+
+    var idx = stepIndex(order.status);
+    timelineEl.innerHTML = timelineSteps.map(function(s, i){
+      var cls = (i < idx ? 'done' : '') + ' ' + (i === idx ? 'active' : '');
+      return '<div class="step '+ cls +'"><div class="dot"></div><span>'+ escapeHtml(s.label) +'</span></div>';
+    }).join('');
+
+    addressEl.textContent = order.addressText || order.customerAddress || order.location || 'Manzil kiritilmagan';
+    var landmarkPart = order.landmarkText ? ('Orientir: ' + order.landmarkText) : 'Orientir ko‘rsatilmagan';
+    deliveryInfoEl.textContent = 'Buyurtma: #'+ order.orderNumber +' · '+ landmarkPart +' · ETA: '+ (order.etaLiveText || order.deliveryEta || order.estimatedTime || '1–4 soat');
+    itemsEl.innerHTML = ((order.items || []).map(function(i){
+      return escapeHtml(i.name) + ' × ' + escapeHtml(i.quantity) + ' = ' + money(i.subtotal);
+    }).join('<br>')) || 'Mahsulotlar ro‘yxati mavjud emas';
+
+    var hasCourier = Boolean(order.courierName);
+    courierStatusEl.textContent = hasCourier ? 'Faol' : 'Kutilmoqda';
+    var ratingText = Number(order.courierRating) > 0 ? ('<div class="muted">Reyting: '+ Number(order.courierRating).toFixed(1) +'</div>') : '';
+    var vehicleText = (order.courierVehicle || order.courierVehicleNumber)
+      ? ('<div class="muted">'+ escapeHtml(order.courierVehicle || '') +' '+ escapeHtml(order.courierVehicleNumber || '') +'</div>')
+      : '';
+    courierCardEl.innerHTML = hasCourier
+      ? ('<div><strong>'+ escapeHtml(order.courierName) +'</strong>'+ vehicleText + ratingText +'</div>')
+      : 'Kurier biriktirilmoqda';
+    callBtnEl.href = order.courierPhone ? ('tel:' + order.courierPhone) : '#';
+    callBtnEl.textContent = order.courierPhone ? 'Qo‘ng‘iroq qilish' : 'Raqam yo‘q';
+
+    liveInfoEl.textContent = 'Oxirgi yangilanish: '+ new Date(order.trackingUpdatedAt || order.updated_at || Date.now()).toLocaleTimeString('ru-RU') +' · interval '+ Math.round(pollDelay/1000) +'s';
+
+    if (order.status === 'cancelled'){
+      etaTextEl.textContent = 'Bekor qilingan';
+      callBtnEl.textContent = 'Qo‘llab-quvvatlash';
+      callBtnEl.href = 'tel:+998557010070';
+    }
+    if (order.status === 'delivered'){
+      etaTextEl.textContent = 'Yetkazildi';
+      callBtnEl.textContent = 'Qo‘llab-quvvatlash';
+    }
+
+    try { renderMap(); } catch (mapErr){
+      // Last-ditch safety so a map error never breaks the rest of the page.
+      try {
+        var dest = resolveOrderCoord([['locationLat','locationLng'],['customerLat','customerLng'],['latitude','longitude']]);
+        var courier = resolveOrderCoord([['courierLocationLat','courierLocationLng'],['courierLat','courierLng']]);
+        var active = COURIER_ACTIVE_STATUSES.indexOf(String(order.status || '')) !== -1 && Boolean(courier);
+        renderStaticRouteFallback(dest, courier, active, 'Xarita render qilishda kutilmagan xatolik. Soddalashtirilgan marshrut.');
+      } catch (e2){
+        setMapFallback('Xarita vaqtincha mavjud emas');
+      }
+    }
+
+    feedbackCardEl.style.display = order.status === 'delivered' ? 'block' : 'none';
+    sendFeedbackEl.disabled = !!order.feedbackAt;
+    if (order.feedbackAt) feedbackMsgEl.textContent = 'Rahmat, fikringiz qabul qilindi';
+  }
+
+  function refresh(){
+    if (isRefreshing) return;
+    isRefreshing = true;
+    if (!firstLoadDone) renderState('loading');
+    api('/orders/'+ encodeURIComponent(orderNumber) +'/track').then(function(data){
+      order = data.order;
+      if (!order){ renderState('empty'); return; }
+      firstLoadDone = true;
+      pollDelay = 2500;
+      render();
+    }).catch(function(){
+      if (!firstLoadDone) renderState('error');
+      pollDelay = Math.min(12000, Math.round(pollDelay * 1.5));
+      if (bigStatusNoteEl) bigStatusNoteEl.textContent = 'Aloqa tiklanmoqda... qayta urinish '+ Math.round(pollDelay/1000) +'s';
+    }).then(function(){
+      isRefreshing = false;
+      clearTimeout(pollTimer);
+      pollTimer = setTimeout(refresh, pollDelay);
+    });
+  }
+
+  if (refreshBtnEl) refreshBtnEl.onclick = refresh;
+  if (supportBtnEl) supportBtnEl.onclick = function(){
+    alert('Qo‘llab-quvvatlash: +998 55 701 00 70 (buyurtma raqamini tayyorlab qo‘ying).');
+  };
+  if (sendFeedbackEl) sendFeedbackEl.onclick = function(){
+    api('/orders/'+ encodeURIComponent(orderNumber) +'/feedback', {
+      method:'POST',
+      body: JSON.stringify({
+        feedbackRating: ratingEl ? ratingEl.value : null,
+        feedbackComment: commentEl ? commentEl.value : ''
+      })
+    }).then(function(out){ order = out.order; render(); })
+      .catch(function(e){ alert(e && e.message ? e.message : 'Xatolik'); });
+  };
+
+  // Kick off
+  refresh();
+})();
 </script>
 </body>
 </html>
