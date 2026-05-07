@@ -38,6 +38,10 @@
     .metric{padding:8px;border:1px solid var(--line);border-radius:8px;background:#0c1a33}
     .metric b{font-size:18px;display:block}
     .thumb{width:72px;height:72px;border-radius:10px;object-fit:cover;border:1px solid var(--line);background:#071121}
+    .action-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+    .action-primary{border-color:#5af5b4;color:#d9ffec}
+    .action-secondary{border-color:#6f8bb9;color:#c5d8f5}
+    .action-danger{border-color:#d96f8a;color:#ffd7e1}
   </style>
 </head>
 <body>
@@ -735,14 +739,28 @@
     };
 
     const orderNext = {
-      created: ['To‘lov kutilmoqda', 'payment_pending'],
+      created: ['To‘lovni kutish holatiga o‘tkazish', 'payment_pending'],
       payment_pending: ['To‘lov tasdiqlandi', 'payment_confirmed'],
-      payment_confirmed: ['Tayyorlashni boshlash', 'preparing'],
-      preparing: ['Kurierga tayyor', 'ready_for_courier'],
-      ready_for_courier: ['Kurier biriktirish', 'courier_assigned'],
-      courier_assigned: ['Yo‘lga chiqdi', 'out_for_delivery'],
-      out_for_delivery: ['Yetkazildi', 'delivered']
+      payment_confirmed: ['Yig‘ishni boshlash', 'preparing'],
+      preparing: ['Kurierga tayyor deb belgilash', 'ready_for_courier'],
+      ready_for_courier: ['Kurier biriktirilgan deb belgilash', 'courier_assigned'],
+      courier_assigned: ['Yetkazib berishga chiqarish', 'out_for_delivery'],
+      out_for_delivery: ['Yetkazib berildi deb yopish', 'delivered']
     };
+
+    function adminStatusLabel(status) {
+      return {
+        created: 'Qabul qilindi',
+        payment_pending: 'To‘lov kutilmoqda',
+        payment_confirmed: 'To‘lov tasdiqlandi',
+        preparing: 'Yig‘ilmoqda',
+        ready_for_courier: 'Kurierga tayyor',
+        courier_assigned: 'Kurier biriktirilgan',
+        out_for_delivery: 'Yetkazib berishda',
+        delivered: 'Yetkazib berildi',
+        cancelled: 'Bekor qilingan'
+      }[status] || status;
+    }
 
     async function loadOrdersAdmin(){
       const {orders} = await api('/admin/orders');
@@ -759,19 +777,20 @@
       });
       wrap.innerHTML = statuses.map((s)=>`
         <div class="item">
-          <b>${s} (${buckets[s].length})</b>
+          <b>${adminStatusLabel(s)} (${buckets[s].length})</b>
           <div class="list">
             ${buckets[s].map((o)=>`
               <div class="item">
                 <div><b>#${o.orderNumber || o.id}</b> · ${new Date(o.created_at).toLocaleTimeString('ru-RU')}</div>
                 <div class="muted">${o.customerName || 'Mehmon'} | ${o.customerPhone || '-'} | ${o.customerAddress || o.location || '-'}</div>
-                <div class="muted">To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatus || '-'} · Delivery: ${o.delivery_status || '-'}</div>
+                <div class="muted">To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatus || '-'} · Yetkazish: ${adminStatusLabel(o.status)}</div>
                 <div class="muted">${(o.items || []).length} item · ${Number(o.total || 0).toLocaleString('ru-RU')} so'm</div>
                 <div class="muted">Kurier: ${o.courierName || 'Kurier biriktirilmoqda'} ${o.courierPhone ? `(${o.courierPhone})` : ''}</div>
-                <div class="row">
-                  ${orderNext[o.status] ? `<button data-id="${o.id}" data-next="${orderNext[o.status][1]}">${orderNext[o.status][0]}</button>` : ''}
-                  ${o.status === 'ready_for_courier' ? `<button data-id="${o.id}" data-assign="1">Kurier biriktirish</button>` : ''}
-                  ${o.status !== 'cancelled' && o.status !== 'delivered' ? `<button data-id="${o.id}" data-cancel="1">Bekor qilish</button>` : ''}
+                <div class="muted" style="margin-top:6px;">Tezkor amallar:</div>
+                <div class="action-group">
+                  ${orderNext[o.status] ? `<button class="action-primary" data-id="${o.id}" data-next="${orderNext[o.status][1]}">${orderNext[o.status][0]}</button>` : ''}
+                  ${o.status === 'ready_for_courier' ? `<button class="action-secondary" data-id="${o.id}" data-assign="1">Kurier ma'lumotini kiritish</button>` : ''}
+                  ${o.status !== 'cancelled' && o.status !== 'delivered' ? `<button class="action-danger" data-id="${o.id}" data-cancel="1">Buyurtmani bekor qilish</button>` : ''}
                 </div>
               </div>
             `).join('')}

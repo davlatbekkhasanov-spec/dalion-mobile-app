@@ -1646,9 +1646,9 @@
         <small class="auth-error" id="authPhoneError">Telefon raqamni to‘liq kiriting (+998 XX XXX XX XX)</small>
 
         <div class="auth-trust" aria-label="Bizning afzalliklar">
-          <div class="auth-trust-item"><span class="auth-trust-icon">🚀</span><span><strong>Yetkazib berish</strong> — Samarqand bo‘ylab odatda 1–4 soat</span></div>
-          <div class="auth-trust-item"><span class="auth-trust-icon">🔒</span><span><strong>Xavfsiz to‘lov</strong> — Payme va naqd to‘lov qabul qilamiz</span></div>
-          <div class="auth-trust-item"><span class="auth-trust-icon">💬</span><span><strong>24/7 qo‘llab-quvvatlash</strong> — har bir buyurtmaga operator</span></div>
+          <div class="auth-trust-item"><span class="auth-trust-icon">🚀</span><span><strong>Yetkazib berish</strong> — Samarqand bo‘ylab odatda 1–4 soat, vaqt tirbandlik va buyurtma yuklamasiga bog‘liq</span></div>
+          <div class="auth-trust-item"><span class="auth-trust-icon">🔒</span><span><strong>Xavfsiz to‘lov</strong> — Payme orqali rasmiy to‘lov havolasi yoki yetkazilganda naqd to‘lov</span></div>
+          <div class="auth-trust-item"><span class="auth-trust-icon">💬</span><span><strong>Qo‘llab-quvvatlash</strong> — buyurtma bo‘yicha operator siz bilan bog‘lanadi</span></div>
         </div>
         <div class="auth-consent">
           Hisobingizni himoya qilish va buyurtmalarni xavfsiz tasdiqlash uchun bir martalik selfie olinadi.
@@ -1718,7 +1718,7 @@
         <section class="products-grid" id="homeDiscountProducts"></section>
 
         <div class="section-head gm-section-header" id="fastSectionHead">
-          <h4>Tez yetkaziladi</h4>
+          <h4>Tezkor tanlovlar</h4>
         </div>
         <section class="products-grid" id="homeFastProducts"></section>
 
@@ -1823,7 +1823,7 @@
           <button class="btn btn-secondary location-premium-btn" id="captureLocationBtn">GPS orqali manzilni olish (ixtiyoriy)</button>
           <p class="muted" id="checkoutLocationHint">Lokatsiya ixtiyoriy. Istasangiz manzilni qo‘lda kiriting.</p>
           <p class="muted" id="checkoutDistance">Masofa: aniqlanmagan</p>
-          <p class="muted" id="checkoutTime">ETA: odatda 1–4 soat</p>
+          <p class="muted" id="checkoutTime">ETA: Samarqand bo‘ylab odatda 1–4 soat (tirbandlik va yuklamaga qarab)</p>
           <p class="muted" id="checkoutPrice">Narx: 12 000 so'm</p>
           <p class="field-error" id="addressValidationError"></p>
         </div>
@@ -1842,9 +1842,9 @@
             <input type="checkbox" id="cashAgreementCheckbox" />
             Buyurtma yetkazilganda summani naqd to‘lashga roziman
           </label>
-          <p class="checkout-trust">Buyurtma tasdiqlangandan keyin operator bog‘lanadi</p>
-          <p class="checkout-trust">To‘lov ma’lumotlari xavfsiz qayta ishlanadi</p>
-          <p class="checkout-trust">Yetkazib berish narxi masofaga qarab hisoblanadi</p>
+          <p class="checkout-trust">Buyurtma yuborilgach operator buyurtma tafsilotlarini aniqlashtiradi</p>
+          <p class="checkout-trust">To‘lov ma’lumotlari himoyalangan kanal orqali qayta ishlanadi</p>
+          <p class="checkout-trust">Yetkazib berish narxi va ETA manzil, tirbandlik va yuklamaga qarab hisoblanadi</p>
           <div class="checkout-summary-rows">
             <div class="list-row"><span class="muted">Mahsulotlar:</span><span id="checkoutSubtotal">0 so'm</span></div>
             <div class="list-row"><span class="muted">Yetkazib berish:</span><span id="checkoutDeliveryPrice">0 so'm</span></div>
@@ -1854,7 +1854,7 @@
           <div class="list-card gm-card gm-sticky-cta checkout-sticky-cta">
             <p class="checkout-total" id="checkoutTotal">Jami: 0 so'm</p>
             <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="confirmOrderBtn">Buyurtma berish</button>
-            <p class="muted" id="checkoutValidationHint" style="margin:4px 0 0;">Maydonlarni to‘liq to‘ldiring va to‘lov turini tanlang.</p>
+            <p class="muted" id="checkoutValidationHint" style="margin:4px 0 0;">Manzil ma'lumotlarini tekshiring va to‘lov turini tanlang.</p>
             <p class="field-error" id="paymentValidationError"></p>
           </div>
         </div>
@@ -1863,15 +1863,15 @@
       <section class="view" id="successView">
         <div class="list-card gm-card success-card">
           <h2 style="margin-bottom:8px;">Buyurtma qabul qilindi</h2>
-          <p class="muted">Operator tez orada bog'lanadi</p>
+          <p class="muted">Buyurtmangiz qabul qilindi, tez orada operator bog‘lanadi</p>
           <p class="muted" id="successOrderNumber">Buyurtma: -</p>
           <p class="muted" id="successOrderTime">Vaqt: -</p>
           <p class="muted" id="successPaymentMethod">To‘lov turi: -</p>
           <p class="muted" id="successAddress">Manzil: -</p>
           <p class="muted" id="successTotal">Jami: -</p>
           <div class="success-timeline">
-            <p class="muted" id="successOrderStatus">Status: Yangi buyurtma</p>
-            <p class="muted">To‘lov holati: To‘lov kutilmoqda</p>
+            <p class="muted" id="successOrderStatus">Holat: Buyurtma qabul qilindi</p>
+            <p class="muted">To‘lov: Tasdiqlanish jarayonida</p>
           </div>
           <a id="trackOrderBtn" class="btn gm-btn gm-btn-secondary btn-secondary" style="display:none;">Kuzatish</a>
           <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="backHomeBtn">Bosh sahifaga qaytish</button>
@@ -1896,12 +1896,12 @@
         <div class="image-box modal-image">
 Oq fonli foto</div>
         <div class="modal-rating-row">
-          <span class="gm-chip gm-chip--delivery" id="modalEta">🚚 Odatda 1–4 soat</span>
+          <span class="gm-chip gm-chip--delivery" id="modalEta">🚚 Samarqand bo‘ylab odatda 1–4 soat</span>
           <span class="gm-chip gm-chip--success" id="modalAvailability">Mavjud</span>
         </div>
         <p class="price modal-price-main" id="modalPrice">0 so'm</p>
         <p class="old-price" id="modalOldPrice">0 so'm</p>
-        <div class="modal-trust"><p id="modalTrustDelivery">🚚 Samarqand bo‘ylab odatda 1–4 soatda yetkazamiz</p></div>
+        <div class="modal-trust"><p id="modalTrustDelivery">🚚 Samarqand bo‘ylab odatda 1–4 soat ichida yetkaziladi (tirbandlikka qarab)</p></div>
         <p class="muted" id="modalDescription">Mahsulot tavsifi tez orada yangilanadi.</p>
         <div class="modal-specs" id="modalSpecs"></div>
         <div class="modal-inline-qty" id="modalQty"></div>
@@ -2627,13 +2627,13 @@ Oq fonli foto</div>
 
     function orderStatusLabel(status) {
       return {
-        new: 'Yangi buyurtma',
-        sent_to_tsd: 'Tovar terilmoqda',
-        picking: 'Tovar terilmoqda',
-        picked: 'Yig‘ildi / kurier kutilmoqda',
-        waiting_courier: 'Yig‘ildi / kurier kutilmoqda',
-        out_for_delivery: 'Kurierda',
-        delivered: 'Yetkazildi',
+        new: 'Buyurtma qabul qilindi',
+        sent_to_tsd: 'Yig‘ish jarayonida',
+        picking: 'Yig‘ish jarayonida',
+        picked: 'Kurierga tayyorlanmoqda',
+        waiting_courier: 'Kurier biriktirilmoqda',
+        out_for_delivery: 'Yo‘lda',
+        delivered: 'Yetkazib berildi',
         cancelled: 'Bekor qilingan',
         created: 'Yaratildi',
         pending_payment: 'To‘lov kutilmoqda',
@@ -2935,7 +2935,7 @@ Oq fonli foto</div>
       }).join('');
 
       const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
-      const deliveryEta = homePayload?.settings?.deliveryTimeText || homePayload?.delivery_info?.time || 'odatiy 1–4 soat';
+      const deliveryEta = homePayload?.settings?.deliveryTimeText || homePayload?.delivery_info?.time || 'Samarqand bo‘ylab odatda 1–4 soat (tirbandlik va yuklamaga qarab)';
       const subtotal = totalPrice();
       const orderTotal = subtotal + deliveryPrice;
       checkoutTotal.textContent = `Jami: ${money(orderTotal)}`;
@@ -3203,7 +3203,7 @@ Oq fonli foto</div>
       const price = Number(p.price || 0);
       const hasDiscount = oldPrice > price && price > 0;
       const discountPercent = hasDiscount ? Math.max(1, Math.round(((oldPrice - price) / oldPrice) * 100)) : 0;
-      const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || 'odatiy 1–4 soat';
+      const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || 'Samarqand bo‘ylab odatda 1–4 soat';
       modalName.textContent = p.name;
       modalCategory.textContent = normalizedCategoryName(p.categoryDisplayName || p.category);
       modalPrice.textContent = money(p.price);
@@ -3213,7 +3213,7 @@ Oq fonli foto</div>
       modalEta.textContent = `🚚 ${etaText}`;
       modalAvailability.textContent = stock > 0 ? 'Mavjud' : "Omborda yo'q";
       modalAvailability.className = `gm-chip ${stock > 0 ? 'gm-chip--success' : 'gm-chip--warning'}`;
-      modalTrustDelivery.textContent = `🚚 Yetkazib berish vaqti: ${etaText}`;
+      modalTrustDelivery.textContent = `🚚 Yetkazib berish vaqti: ${etaText} (yo‘l holatiga qarab farq qilishi mumkin)`;
       modalDescription.textContent = p.description || p.subtitle || `${p.name} uchun buyurtma berishingiz mumkin.`;
       modalSpecs.innerHTML = `<div class="spec-row"><span>Kategoriya</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
         <div class="spec-row"><span>Qoldiq</span><strong>${stock > 0 ? stock : 0} ta</strong></div>`;
@@ -3731,8 +3731,8 @@ Oq fonli foto</div>
         successTotal.textContent = Number.isFinite(Number(lastOrderData?.finalTotal))
           ? `Jami: ${money(Number(lastOrderData.finalTotal))}`
           : "Jami: Summani tekshirib bo‘lmadi";
-        const pendingText = order?.paymentStatus === 'pending' ? " · To‘lov kutilmoqda" : '';
-        successOrderStatus.textContent = `Status: ${orderStatusLabel(order.status)}${pendingText}`;
+      const pendingText = order?.paymentStatus === 'pending' ? " · To‘lov tekshirilmoqda" : '';
+      successOrderStatus.textContent = `Holat: ${orderStatusLabel(order.status)}${pendingText}`;
         if (latestOrderNumber) {
           trackOrderBtn.style.display = 'inline-flex';
           trackOrderBtn.setAttribute('href', `/track/${encodeURIComponent(latestOrderNumber)}`);
