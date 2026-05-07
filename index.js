@@ -417,12 +417,13 @@ app.post('/api/v1/orders', (req, res) => {
   const cartSummary = buildCartSummary(phone);
   if (!cartSummary.items.length) return res.status(400).json({ ok: false, message: 'Savat bo‘sh' });
   const profile = db.profiles[phone] || {};
-  const storeLat = 39.65417;
-  const storeLng = 66.95972;
+  const storeLat = 39.654722;
+  const storeLng = 66.958972;
   const distanceKmRaw = haversineKm(storeLat, storeLng, req.body.locationLat, req.body.locationLng);
   const distanceKm = distanceKmRaw === null ? null : Number(distanceKmRaw.toFixed(2));
+  const hasClientDeliveryPrice = Number.isFinite(Number(req.body.deliveryPrice));
   const deliveryPrice = toMoney(
-    req.body.deliveryPrice || computeDeliveryPriceByDistance(distanceKmRaw)
+    hasClientDeliveryPrice ? Number(req.body.deliveryPrice) : computeDeliveryPriceByDistance(distanceKmRaw)
   );
   const subtotal = toMoney(cartSummary.subtotal);
   const total = subtotal + deliveryPrice;

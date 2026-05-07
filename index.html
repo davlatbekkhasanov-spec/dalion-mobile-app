@@ -1785,7 +1785,7 @@
         </div>
         <div class="list-card gm-card gm-sticky-cta cart-summary-grid" id="cartSummary" style="display:none;">
           <div class="list-row"><span class="muted">Subtotal:</span><strong id="cartSubtotal">0 so'm</strong></div>
-          <div class="list-row"><span class="muted">Yetkazib berish:</span><span id="cartDelivery">12 000 so'm</span></div>
+          <div class="list-row"><span class="muted">Yetkazib berish:</span><span id="cartDelivery">Manzil aniqlangach hisoblanadi</span></div>
           <div class="list-row"><span class="muted">Promo kod:</span><span class="muted">—</span></div>
           <div class="list-row"><span class="muted">Jami:</span><strong id="cartTotalPrice">0 so'm</strong></div>
           <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="orderBtn">Buyurtma berish</button>
@@ -1836,9 +1836,9 @@
           <input id="promoCodeInput" class="checkout-input" placeholder="Promo kod (ixtiyoriy)" />
           <button class="btn btn-secondary location-premium-btn" id="captureLocationBtn">GPS orqali manzilni olish (ixtiyoriy)</button>
           <p class="muted" id="checkoutLocationHint">Lokatsiya ixtiyoriy. Istasangiz manzilni qo‘lda kiriting.</p>
-          <p class="muted" id="checkoutDistance">Masofa: aniqlanmagan</p>
+          <p class="muted" id="checkoutDistance">Masofa: manzil aniqlangach ko‘rinadi</p>
           <p class="muted" id="checkoutTime">ETA: Samarqand bo‘ylab odatda 1–4 soat (tirbandlik va yuklamaga qarab)</p>
-          <p class="muted" id="checkoutPrice">Narx: 12 000 so'm</p>
+          <p class="muted" id="checkoutPrice">Narx: manzil aniqlangach hisoblanadi</p>
           <p class="field-error" id="addressValidationError"></p>
         </div>
         <div class="list-card gm-card">
@@ -1963,7 +1963,7 @@ Oq fonli foto</div>
     let selectedPayment = 'payme';
     const DEFAULT_LOCATION_CITY = 'Samarqand';
     const DEFAULT_LOCATION_ADDRESS = 'Samarqand';
-    const STORE_COORDS = { lat: 39.65417, lng: 66.95972 };
+    const STORE_COORDS = { lat: 39.654722, lng: 66.958972 };
     let currentLang = localStorage.getItem('gm_lang') || 'uz';
     let currentUser = null;
     let customerLocation = { lat: null, lng: null, accuracy: null, addressText: '', landmarkText: '', permissionDenied: false };
@@ -2571,7 +2571,7 @@ Oq fonli foto</div>
       }
       checkoutLocation.textContent = `Manzil: ${delivery.location || DEFAULT_LOCATION_ADDRESS}`;
       checkoutTime.textContent = `Vaqt: ${settings.deliveryTimeText || delivery.time || 'odatiy 1–4 soat'}`;
-      checkoutPrice.textContent = `Narx: ${money(computeDeliveryPrice(computeDistanceKmFromStore()))}`;
+      checkoutPrice.textContent = 'Narx: manzil aniqlangach hisoblanadi';
 
       const shorts = homePayload?.shorts || [];
       shortsFeed.innerHTML = shorts.map((s) => `
@@ -2731,9 +2731,13 @@ Oq fonli foto</div>
     }
 
     function computeDeliveryPrice(distanceKm) {
-      if (!Number.isFinite(Number(distanceKm)) || Number(distanceKm) <= 0) return 18000;
+      if (!Number.isFinite(Number(distanceKm)) || Number(distanceKm) <= 0) return null;
       if (distanceKm <= 3) return 18000;
       return Math.round(18000 + ((distanceKm - 3) * 4000));
+    }
+
+    function hasResolvedCustomerLocation() {
+      return Number.isFinite(Number(customerLocation.lat)) && Number.isFinite(Number(customerLocation.lng));
     }
 
     function getCheckoutTotalsSnapshot() {
@@ -2747,11 +2751,12 @@ Oq fonli foto</div>
         if (!qty || !(oldPrice > currentPrice)) return sum;
         return sum + ((oldPrice - currentPrice) * qty);
       }, 0);
-      const finalTotal = productsSubtotal + deliveryPrice;
+      const safeDeliveryPrice = Number.isFinite(Number(deliveryPrice)) ? Number(deliveryPrice) : 0;
+      const finalTotal = productsSubtotal + safeDeliveryPrice;
       return {
         productsSubtotal,
         distanceKm,
-        deliveryPrice,
+        deliveryPrice: safeDeliveryPrice,
         discountAmount,
         finalTotal
       };
@@ -2984,10 +2989,12 @@ Oq fonli foto</div>
       }).join('');
 
       const subtotal = totalPrice();
-      const deliveryPrice = computeDeliveryPrice(computeDistanceKmFromStore());
+      const distanceKm = computeDistanceKmFromStore();
+      const deliveryPrice = computeDeliveryPrice(distanceKm);
+      const hasDelivery = Number.isFinite(Number(deliveryPrice));
       cartSubtotal.textContent = money(subtotal);
-      cartDelivery.textContent = money(deliveryPrice);
-      cartTotalPrice.textContent = money(subtotal + deliveryPrice);
+      cartDelivery.textContent = hasDelivery ? money(deliveryPrice) : 'Manzil aniqlangach hisoblanadi';
+      cartTotalPrice.textContent = money(subtotal + (hasDelivery ? Number(deliveryPrice) : 0));
 
       const cartUpsell = getCartUpsellProducts();
       if (cartUpsell.length) {
@@ -3021,12 +3028,13 @@ Oq fonli foto</div>
 
       const distanceKmLive = computeDistanceKmFromStore();
       const deliveryPrice = computeDeliveryPrice(distanceKmLive);
+      const hasDelivery = Number.isFinite(Number(deliveryPrice));
       const deliveryEta = homePayload?.settings?.deliveryTimeText || homePayload?.delivery_info?.time || 'Samarqand bo‘ylab odatda 1–4 soat (tirbandlik va yuklamaga qarab)';
       const subtotal = totalPrice();
-      const orderTotal = subtotal + deliveryPrice;
+      const orderTotal = subtotal + (hasDelivery ? Number(deliveryPrice) : 0);
       checkoutTotal.textContent = `Jami: ${money(orderTotal)}`;
       checkoutSubtotal.textContent = money(subtotal);
-      checkoutDeliveryPrice.textContent = money(deliveryPrice);
+      checkoutDeliveryPrice.textContent = hasDelivery ? money(deliveryPrice) : 'Manzil aniqlangach hisoblanadi';
       checkoutGrandTotal.textContent = money(orderTotal);
       checkoutSavedAddress.textContent = `Saqlangan manzil: ${currentUser?.address || 'Manzil qo‘shilmagan'}`;
       checkoutLocation.textContent = `Manzil: ${resolvePreferredAddress()}`;
@@ -3035,9 +3043,9 @@ Oq fonli foto</div>
         ? `Geo: ${Number(customerLocation.lat).toFixed(6)}, ${Number(customerLocation.lng).toFixed(6)} (±${Math.round(Number(customerLocation.accuracy || 0))}m)`
         : 'Geo: olinmagan';
       const distanceKm = Number.isFinite(Number(distanceKmLive)) ? Number(distanceKmLive) : null;
-      checkoutDistance.textContent = Number.isFinite(distanceKm) ? `Masofa: ${distanceKm.toFixed(2)} km` : 'Masofa: aniqlanmagan';
+      checkoutDistance.textContent = Number.isFinite(distanceKm) ? `Masofa: ${distanceKm.toFixed(2)} km` : 'Masofa: manzil aniqlangach ko‘rinadi';
       checkoutTime.textContent = `ETA: ${deliveryEta}`;
-      checkoutPrice.textContent = `Narx: ${money(deliveryPrice)}`;
+      checkoutPrice.textContent = hasDelivery ? `Narx: ${money(deliveryPrice)}` : 'Narx: manzil aniqlangach hisoblanadi';
       const checkoutLocationHint = document.getElementById('checkoutLocationHint');
       if (checkoutLocationHint) {
         checkoutLocationHint.textContent = customerLocation.permissionDenied
@@ -3789,7 +3797,7 @@ Oq fonli foto</div>
       }
       customerLocation.addressText = manualAddress.value.trim() || '' || '';
       customerLocation.landmarkText = landmarkInput.value.trim();
-      if (!Number.isFinite(Number(customerLocation.lat)) && !customerLocation.addressText) {
+      if (!hasResolvedCustomerLocation() && !customerLocation.addressText) {
         addressValidationError.textContent = "Manzilni kiriting yoki lokatsiyani yoqing";
         addressValidationError.style.display = 'block';
         showToast("Lokatsiyani kiriting yoki manzilni to‘ldiring");
