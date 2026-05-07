@@ -1099,9 +1099,52 @@
       background: linear-gradient(140deg, rgba(17, 40, 73, 0.55), rgba(10, 23, 43, 0.55));
       padding: 10px;
     }
-    .selfie-preview-wrap { margin-top: 8px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(121, 170, 235, 0.3); background: rgba(8, 19, 36, 0.9); }
+    .selfie-preview-wrap { position: relative; margin-top: 8px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(121, 170, 235, 0.3); background: rgba(8, 19, 36, 0.9); }
     .selfie-preview-wrap video,
     .selfie-preview-wrap img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+    .selfie-guide {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: none;
+    }
+    .selfie-guide.show { display: block; }
+    .selfie-guide-oval {
+      position: absolute;
+      left: 50%;
+      top: 49%;
+      width: 58%;
+      height: 72%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      border: 2px solid rgba(117, 203, 255, 0.85);
+      box-shadow:
+        0 0 0 9999px rgba(5, 12, 24, 0.45),
+        0 0 24px rgba(78, 177, 255, 0.38);
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .selfie-guide.aligned .selfie-guide-oval {
+      border-color: rgba(92, 248, 166, 0.95);
+      box-shadow:
+        0 0 0 9999px rgba(5, 12, 24, 0.4),
+        0 0 26px rgba(92, 248, 166, 0.44);
+    }
+    .selfie-guide-status {
+      position: absolute;
+      left: 50%;
+      bottom: 10px;
+      transform: translateX(-50%);
+      width: calc(100% - 14px);
+      padding: 6px 9px;
+      border-radius: 9px;
+      text-align: center;
+      font-size: 11px;
+      letter-spacing: .01em;
+      color: #d7ebff;
+      background: rgba(5, 14, 30, 0.7);
+      border: 1px solid rgba(114, 171, 255, 0.28);
+      backdrop-filter: blur(3px);
+    }
     .selfie-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
     .auth-success { display: none; margin-top: 8px; font-size: 12px; color: #a5f3cd; }
     .auth-success.show { display: block; }
@@ -1677,6 +1720,10 @@
             <video id="selfieVideo" autoplay playsinline muted></video>
             <img id="selfieImagePreview" alt="Selfie preview" style="display:none;" />
             <canvas id="selfieCanvas" style="display:none;"></canvas>
+            <div class="selfie-guide" id="selfieGuide">
+              <div class="selfie-guide-oval"></div>
+              <div class="selfie-guide-status" id="selfieGuideStatus">Yuzingizni oval ichiga joylashtiring.</div>
+            </div>
           </div>
           <div class="selfie-actions" id="selfieActions" style="display:none;">
             <button type="button" class="btn gm-btn gm-btn-secondary btn-secondary" id="captureSelfieBtn">Selfieni olish</button>
@@ -2020,6 +2067,8 @@ Oq fonli foto</div>
     const selfieHint = document.getElementById('selfieHint');
     const selfieError = document.getElementById('selfieError');
     const selfieSuccess = document.getElementById('selfieSuccess');
+    const selfieGuide = document.getElementById('selfieGuide');
+    const selfieGuideStatus = document.getElementById('selfieGuideStatus');
     const submitAuthBtn = document.getElementById('submitAuthBtn');
     const authNameError = document.getElementById('authNameError');
     const authPhoneError = document.getElementById('authPhoneError');
@@ -2027,6 +2076,143 @@ Oq fonli foto</div>
 
     let selfieStream = null;
     let biometricSelfie = { dataUrl: '', confirmed: false, capturedAt: '' };
+    let selfieFaceDetector = null;
+    let selfieDetectorTimer = null;
+    let selfieAlignmentStartedAt = 0;
+    let selfieAutoCaptureTimer = null;
+    let selfieIsDetectingFrame = false;
+    let selfieAutoCapturePending = false;
+    let selfieForceFallbackMode = false;
+    let selfieCurrentState = 'idle';
+    const selfieDebugTransitions = [];
+    const SELFIE_STABLE_MS = 1400;
+
+    function trackSelfieTransition(state, extra) {
+      if (selfieCurrentState === state) return;
+      selfieCurrentState = state;
+      const event = {
+        state,
+        at: new Date().toISOString(),
+        extra: extra && typeof extra === 'object' ? extra : null
+      };
+      selfieDebugTransitions.push(event);
+      while (selfieDebugTransitions.length > 40) selfieDebugTransitions.shift();
+      try {
+        console.info('[SELFIE_FLOW]', event);
+      } catch (_) {}
+      window.__gmSelfieDebug = window.__gmSelfieDebug || {};
+      window.__gmSelfieDebug.transitions = selfieDebugTransitions.slice();
+    }
+
+    function setSelfieGuideStatus(text, aligned) {
+      if (selfieGuideStatus && text) selfieGuideStatus.textContent = text;
+      if (selfieGuide) selfieGuide.classList.toggle('aligned', Boolean(aligned));
+    }
+
+    function getSelfieGuideFrame(videoWidth, videoHeight) {
+      const cx = videoWidth * 0.5;
+      const cy = videoHeight * 0.49;
+      const rx = videoWidth * 0.29;
+      const ry = videoHeight * 0.36;
+      return { cx, cy, rx, ry };
+    }
+
+    function isFaceInsideGuide(faceBox, videoWidth, videoHeight) {
+      if (!faceBox || !videoWidth || !videoHeight) return false;
+      const guide = getSelfieGuideFrame(videoWidth, videoHeight);
+      const faceCx = Number(faceBox.x || 0) + Number(faceBox.width || 0) / 2;
+      const faceCy = Number(faceBox.y || 0) + Number(faceBox.height || 0) / 2;
+      const dx = (faceCx - guide.cx) / guide.rx;
+      const dy = (faceCy - guide.cy) / guide.ry;
+      const centered = ((dx * dx) + (dy * dy)) <= 0.95;
+      const faceAreaRatio = (Number(faceBox.width || 0) * Number(faceBox.height || 0)) / (videoWidth * videoHeight);
+      const sizeValid = faceAreaRatio >= 0.08 && faceAreaRatio <= 0.5;
+      return centered && sizeValid;
+    }
+
+    async function runSelfieDetectionFrame() {
+      if (!selfieFaceDetector || selfieIsDetectingFrame || !selfieVideo || selfieVideo.style.display === 'none') return;
+      const width = selfieVideo.videoWidth || 0;
+      const height = selfieVideo.videoHeight || 0;
+      if (!width || !height || !selfieStream) return;
+      selfieIsDetectingFrame = true;
+      try {
+        const faces = await selfieFaceDetector.detect(selfieVideo);
+        const firstFace = Array.isArray(faces) && faces.length ? faces[0] : null;
+        if (!firstFace) {
+          selfieAlignmentStartedAt = 0;
+          setSelfieGuideStatus('Yuz topilmadi. Kamera markaziga qarang.', false);
+          trackSelfieTransition('detecting', { reason: 'no-face' });
+          return;
+        }
+        const aligned = isFaceInsideGuide(firstFace.boundingBox, width, height);
+        if (!aligned) {
+          selfieAlignmentStartedAt = 0;
+          selfieAutoCapturePending = false;
+          setSelfieGuideStatus('Yuzingizni oval ichiga joylashtiring.', false);
+          trackSelfieTransition('detecting', { reason: 'misaligned' });
+          return;
+        }
+        setSelfieGuideStatus('Ajoyib! Shu holatda 1-2 soniya turing.', true);
+        if (!selfieAlignmentStartedAt) selfieAlignmentStartedAt = Date.now();
+        trackSelfieTransition('aligned');
+        const heldForMs = Date.now() - selfieAlignmentStartedAt;
+        if (heldForMs >= SELFIE_STABLE_MS && !selfieAutoCapturePending) {
+          selfieAutoCapturePending = true;
+          trackSelfieTransition('countdown');
+          setSelfieGuideStatus('Rasm olinmoqda...', true);
+          if (selfieAutoCaptureTimer) clearTimeout(selfieAutoCaptureTimer);
+          selfieAutoCaptureTimer = setTimeout(() => {
+            captureSelfieFrame({ auto: true });
+          }, 320);
+        }
+      } catch (_) {
+        stopSelfieDetectionLoop();
+        setSelfieGuideStatus('Avto aniqlash o‘chiq. Selfieni qo‘lda oling.', false);
+        if (selfieHint) selfieHint.textContent = 'Qurilmada avto aniqlash ishlamadi, iltimos "Selfieni olish" tugmasidan foydalaning.';
+        trackSelfieTransition('fallback_manual', { reason: 'detector-error' });
+      } finally {
+        selfieIsDetectingFrame = false;
+      }
+    }
+
+    function stopSelfieDetectionLoop() {
+      if (selfieDetectorTimer) {
+        clearInterval(selfieDetectorTimer);
+        selfieDetectorTimer = null;
+      }
+      if (selfieAutoCaptureTimer) {
+        clearTimeout(selfieAutoCaptureTimer);
+        selfieAutoCaptureTimer = null;
+      }
+      selfieAlignmentStartedAt = 0;
+      selfieAutoCapturePending = false;
+      selfieIsDetectingFrame = false;
+      selfieFaceDetector = null;
+      if (selfieGuide) {
+        selfieGuide.classList.remove('show');
+        selfieGuide.classList.remove('aligned');
+      }
+    }
+
+    function setupSelfieFallbackDebugHook() {
+      window.__gmSelfieDebug = window.__gmSelfieDebug || {};
+      window.__gmSelfieDebug.getTransitions = () => selfieDebugTransitions.slice();
+      window.__gmSelfieDebug.forceFallback = (value) => {
+        selfieForceFallbackMode = Boolean(value);
+        return selfieForceFallbackMode;
+      };
+      window.__gmSelfieDebug.runFallbackSmoke = () => {
+        const previous = selfieForceFallbackMode;
+        selfieForceFallbackMode = true;
+        trackSelfieTransition('fallback_smoke_started');
+        trackSelfieTransition('fallback_manual');
+        selfieForceFallbackMode = previous;
+        trackSelfieTransition('fallback_smoke_done');
+        return selfieDebugTransitions.slice(-3);
+      };
+    }
+    setupSelfieFallbackDebugHook();
 
     const gmAnalytics = (() => {
       const STORAGE_KEY = 'gm_events';
@@ -2061,6 +2247,34 @@ Oq fonli foto</div>
     })();
     window.gm = window.gm || {};
     window.gm.track = gmAnalytics.track;
+
+    (function setupFrontendErrorLogger() {
+      const STORAGE_KEY = 'gm_frontend_errors';
+      const MAX_ITEMS = 60;
+      function safeRead() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          const parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (_) { return []; }
+      }
+      function safeWrite(items) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch (_) {}
+      }
+      function logError(type, message, extra) {
+        const entries = safeRead();
+        entries.push({ type, message: String(message || 'unknown error'), ts: Date.now(), extra: extra || null });
+        while (entries.length > MAX_ITEMS) entries.shift();
+        safeWrite(entries);
+      }
+      window.addEventListener('error', (event) => {
+        logError('error', event?.message, { source: event?.filename, line: event?.lineno, col: event?.colno });
+      });
+      window.addEventListener('unhandledrejection', (event) => {
+        const reason = event?.reason;
+        logError('unhandledrejection', reason?.message || String(reason || 'promise rejected'));
+      });
+    })();
 
     function formatUzPhone(raw) {
       const digits = String(raw || '').replace(/\D/g, '');
@@ -2124,6 +2338,7 @@ Oq fonli foto</div>
     }
 
     function stopSelfieStream() {
+      stopSelfieDetectionLoop();
       if (selfieStream) {
         selfieStream.getTracks().forEach((track) => track.stop());
         selfieStream = null;
@@ -2147,6 +2362,8 @@ Oq fonli foto</div>
       }
       if (selfieHint) selfieHint.style.display = '';
       if (selfieSuccess) selfieSuccess.classList.remove('show');
+      setSelfieGuideStatus('Yuzingizni oval ichiga joylashtiring.', false);
+      trackSelfieTransition('idle');
     }
 
     async function startSelfieCapture() {
@@ -2171,6 +2388,28 @@ Oq fonli foto</div>
         if (selfiePreviewWrap) selfiePreviewWrap.style.display = 'block';
         if (selfieActions) selfieActions.style.display = 'grid';
         if (confirmSelfieBtn) confirmSelfieBtn.disabled = true;
+        if (selfieHint) selfieHint.style.display = '';
+        const faceDetectorSupported = !selfieForceFallbackMode && typeof window.FaceDetector === 'function';
+        if (faceDetectorSupported) {
+          try {
+            selfieFaceDetector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+            if (selfieGuide) selfieGuide.classList.add('show');
+            setSelfieGuideStatus('Yuzingizni oval ichiga joylashtiring.', false);
+            selfieDetectorTimer = setInterval(() => {
+              runSelfieDetectionFrame();
+            }, 220);
+            trackSelfieTransition('detecting');
+            if (selfieHint) selfieHint.textContent = 'Yuzingiz oval ichida barqaror tursa selfie avtomatik olinadi. Kerak bo‘lsa qo‘lda ham olishingiz mumkin.';
+          } catch (_) {
+            stopSelfieDetectionLoop();
+            trackSelfieTransition('fallback_manual', { reason: 'detector-init-failed' });
+            if (selfieHint) selfieHint.textContent = 'Avto aniqlash qo‘llab-quvvatlanmadi. Selfieni qo‘lda oling va tasdiqlang.';
+          }
+        } else {
+          stopSelfieDetectionLoop();
+          trackSelfieTransition('fallback_manual', { reason: 'unsupported' });
+          if (selfieHint) selfieHint.textContent = 'Ushbu brauzerda avto aniqlash yo‘q (masalan Safari/iOS). Selfieni qo‘lda oling va tasdiqlang.';
+        }
       } catch (_) {
         setFieldError(null, selfieError, 'Kameraga ruxsat berilmadi yoki mavjud emas. Ruxsatni yoqib qayta urinib ko‘ring.');
       } finally {
@@ -2178,8 +2417,10 @@ Oq fonli foto</div>
       }
     }
 
-    function captureSelfieFrame() {
+    function captureSelfieFrame(options) {
       if (!selfieVideo || !selfieCanvas || !selfieImagePreview) return;
+      const captureOptions = options && typeof options === 'object' ? options : {};
+      stopSelfieDetectionLoop();
       const width = selfieVideo.videoWidth || 720;
       const height = selfieVideo.videoHeight || 540;
       if (!width || !height) {
@@ -2198,6 +2439,12 @@ Oq fonli foto</div>
       if (confirmSelfieBtn) confirmSelfieBtn.disabled = false;
       setFieldError(null, selfieError, '');
       if (selfieSuccess) selfieSuccess.classList.remove('show');
+      if (selfieHint) {
+        selfieHint.textContent = captureOptions.auto
+          ? 'Selfie avtomatik olindi. Endi "Tasdiqlash" tugmasini bosing.'
+          : 'Selfie olindi. Endi "Tasdiqlash" tugmasini bosing.';
+      }
+      trackSelfieTransition('captured', { auto: Boolean(captureOptions.auto) });
     }
 
     function confirmSelfieFrame() {
@@ -2210,6 +2457,7 @@ Oq fonli foto</div>
       if (selfieHint) selfieHint.style.display = 'none';
       if (selfieSuccess) selfieSuccess.classList.add('show');
       setFieldError(null, selfieError, '');
+      trackSelfieTransition('confirmed');
     }
 
     function validateBiometricBlock(silent) {
@@ -2719,7 +2967,23 @@ Oq fonli foto</div>
     }
 
     function orderStatusLabel(status) {
-      return {
+      const normalized = String(status || '').toLowerCase();
+      const labels = currentLang === 'ru' ? {
+        new: 'Заказ принят',
+        created: 'Заказ принят',
+        payment_pending: 'Платеж проверяется',
+        payment_confirmed: 'Платеж подтвержден',
+        sent_to_tsd: 'Сборка заказа',
+        picking: 'Сборка заказа',
+        preparing: 'Сборка заказа',
+        picked: 'Назначается курьер',
+        waiting_courier: 'Назначается курьер',
+        ready_for_courier: 'Назначается курьер',
+        courier_assigned: 'Курьер назначен',
+        out_for_delivery: 'В пути',
+        delivered: 'Доставлено',
+        cancelled: 'Отменено'
+      } : {
         new: 'Buyurtma qabul qilindi',
         created: 'Buyurtma qabul qilindi',
         payment_pending: 'To‘lov tekshirilmoqda',
@@ -2734,15 +2998,22 @@ Oq fonli foto</div>
         out_for_delivery: 'Yo‘lda',
         delivered: 'Yetkazib berildi',
         cancelled: 'Bekor qilingan'
-      }[status] || status || '-';
+      };
+      return labels[normalized] || status || '-';
     }
 
     function paymentStatusLabel(status) {
-      return {
+      const normalized = String(status || '').toLowerCase();
+      const labels = currentLang === 'ru' ? {
+        pending: 'Платеж проверяется',
+        unpaid: 'Не оплачено',
+        paid: 'Оплачено'
+      } : {
         pending: 'To‘lov tekshirilmoqda',
         unpaid: 'To‘lanmagan',
         paid: 'To‘langan'
-      }[String(status || '').toLowerCase()] || (status || '-');
+      };
+      return labels[normalized] || (status || '-');
     }
 
     function isActiveOrderStatus(status) {
