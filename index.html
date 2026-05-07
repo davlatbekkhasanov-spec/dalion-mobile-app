@@ -2130,7 +2130,7 @@ Oq fonli foto</div>
     const SELFIE_COUNTDOWN_MS = 1200;
     const SELFIE_FALLBACK_SAMPLE_W = 112;
     const SELFIE_FALLBACK_SAMPLE_H = 144;
-    const SELFIE_AUTO_CAPTURE_MODES = new Set(['native']);
+    const SELFIE_AUTO_CAPTURE_MODES = new Set(['native', 'fallback']);
 
     function trackSelfieTransition(state, extra) {
       if (selfieCurrentState === state) return;
@@ -2246,7 +2246,12 @@ Oq fonli foto</div>
       selfieAlignmentStartedAt = 0;
       setSelfieGuideStatus("Qo'lda rejim: avto olish yo'q.", false);
       trackSelfieTransition('manual_required', { reason: reason || 'detector-unavailable', details: details || null });
-      if (selfieHint) selfieHint.textContent = "Qo'lda rejim faol: bu brauzerda avto selfie yo'q.";
+      if (selfieHint) {
+        const isFallbackFailure = String(reason || '').startsWith('fallback-');
+        selfieHint.textContent = isFallbackFailure
+          ? "Avto aniqlash ishlamadi. Qo'lda rejimga o'tildi, selfieni qo'lda oling."
+          : "Qo'lda rejim faol: bu brauzerda avto selfie yo'q.";
+      }
     }
 
     async function runSelfieDetectionFrame() {
@@ -2387,14 +2392,12 @@ Oq fonli foto</div>
         if (heldForMs >= SELFIE_STABLE_MS) {
           const countdownLeftMs = Math.max(0, selfieCountdownTargetAt - Date.now());
           const countdownLeftSec = Math.max(1, Math.ceil(countdownLeftMs / 1000));
-          if (!selfieCountdownTimer) startSelfieCountdown();
+          if (!selfieCountdownTimer) startSelfieCountdown('fallback');
           setSelfieGuideStatus(`Avto olish ${countdownLeftSec}s`, true);
         }
       } catch (_) {
-        stopSelfieDetectionLoop();
+        switchToManualSelfieMode('fallback-error');
         setSelfieGuideStatus("Ramkaga to'g'rilang, so'ng qo'lda oling.", false);
-        trackSelfieTransition('align_required', { reason: 'fallback-error' });
-        if (selfieHint) selfieHint.textContent = "Avto aniqlash ishlamadi. Ramkaga to'g'rilang va qo'lda selfie oling.";
       } finally {
         selfieIsDetectingFrame = false;
       }
@@ -2421,7 +2424,15 @@ Oq fonli foto</div>
     }
 
     function startSelfieFallbackLoop(reason) {
-      switchToManualSelfieMode(reason || 'fallback-disabled');
+      stopSelfieDetectionLoop();
+      selfieDetectionMode = 'fallback';
+      selfieAlignmentStartedAt = 0;
+      setSelfieGuideStatus("Fallback avto rejim: markazda barqaror turing.", false);
+      selfieFallbackTimer = setInterval(() => {
+        runSelfieFallbackFrame();
+      }, 220);
+      trackSelfieTransition('align_required', { mode: 'fallback', reason: reason || 'native-unavailable' });
+      if (selfieHint) selfieHint.textContent = "Fallback avto rejim faol: yuz markazda barqaror tursa selfie olinadi.";
     }
 
     function setupSelfieFallbackDebugHook() {
@@ -2624,10 +2635,10 @@ Oq fonli foto</div>
             trackSelfieTransition('align_required', { mode: 'native' });
             if (selfieHint) selfieHint.textContent = "Avto rejim faol: yuz markazda barqaror tursa selfie olinadi.";
           } catch (error) {
-            switchToManualSelfieMode('detector-init-failed', String(error?.message || error || 'unknown'));
+            startSelfieFallbackLoop('detector-init-failed');
           }
         } else {
-          switchToManualSelfieMode('native-unsupported');
+          startSelfieFallbackLoop('native-unsupported');
         }
       } catch (_) {
         setFieldError(null, selfieError, 'Kameraga ruxsat berilmadi yoki mavjud emas. Ruxsatni yoqib qayta urinib ko‘ring.');
@@ -2639,7 +2650,8 @@ Oq fonli foto</div>
     function captureSelfieFrame(options) {
       if (!selfieVideo || !selfieCanvas || !selfieImagePreview) return;
       const captureOptions = options && typeof options === 'object' ? options : {};
-      const activeDetectionMode = selfieDetectionMode;
+      const requestedMode = String(captureOptions.mode || '').trim();
+      const activeDetectionMode = requestedMode || selfieDetectionMode;
       if (captureOptions.auto) {
         const allowedMode = SELFIE_AUTO_CAPTURE_MODES.has(activeDetectionMode);
         const eligibleState = selfieAutoCaptureEligible && selfieCurrentState === 'countdown';
