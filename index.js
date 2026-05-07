@@ -16,6 +16,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'data.store.json');
 const ADMIN_TOKEN = process.env.ADMIN_IMPORT_TOKEN || '12345';
+const BIOMETRIC_UPLOADS_DIR = path.join(__dirname, 'uploads', 'biometric');
+const MAX_BIOMETRIC_BYTES = 1.5 * 1024 * 1024;
 
 app.use(express.json({ limit: '3mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -35,6 +37,23 @@ function randomId(prefix = 'id') {
 
 function normalizePhone(phone) {
   return String(phone || '').trim();
+}
+
+function ensureDir(dirPath) {
+  if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function parseImageDataUrl(input) {
+  const raw = String(input || '').trim();
+  const match = raw.match(/^data:(image\/(?:png|jpeg|jpg));base64,([A-Za-z0-9+/=\s]+)$/i);
+  if (!match) return null;
+  const mimeType = String(match[1] || '').toLowerCase().replace('jpg', 'jpeg');
+  const cleanBase64 = String(match[2] || '').replace(/\s/g, '');
+  if (!cleanBase64) return null;
+  const buffer = Buffer.from(cleanBase64, 'base64');
+  if (!buffer.length) return null;
+  const ext = mimeType === 'image/png' ? 'png' : 'jpg';
+  return { mimeType, buffer, ext };
 }
 
 function toMoney(value) {
@@ -247,11 +266,55 @@ app.put('/api/v1/profile', (req, res) => {
   if (!phone || !name) {
     return res.status(400).json({ ok: false, message: 'Name va phone majburiy' });
   }
+  const now = nowIso();
+  const existingProfile = db.profiles[phone] || {};
+  const consentChecked = req.body.biometricConsent === true;
+  const consentAtRaw = req.body.biometricConsentAt;
+  const selfieRaw = req.body.biometricSelfieDataUrl;
+  const capturedAtRaw = req.body.biometricCapturedAt;
+  const wantsBiometricUpdate = selfieRaw !== undefined || req.body.biometricConsent !== undefined;
+
+  let biometric = existingProfile.biometric || null;
+  if (selfieRaw !== undefined || (consentChecked && capturedAtRaw)) {
+    if (!consentChecked) {
+      return res.status(400).json({ ok: false, message: 'Biometrik selfie uchun rozilik majburiy' });
+    }
+    const parsedImage = parseImageDataUrl(selfieRaw);
+    if (!parsedImage) {
+      return res.status(400).json({ ok: false, message: 'Selfie formati noto‘g‘ri (faqat PNG/JPG data URL)' });
+    }
+    if (parsedImage.buffer.length > MAX_BIOMETRIC_BYTES) {
+      return res.status(400).json({ ok: false, message: 'Selfie hajmi juda katta (maksimum 1.5MB)' });
+    }
+    ensureDir(BIOMETRIC_UPLOADS_DIR);
+    const safePhone = phone.replace(/[^\d+]/g, '').replace(/\+/g, '');
+    const fileName = `${safePhone || 'user'}_${Date.now()}.${parsedImage.ext}`;
+    const absolutePath = path.join(BIOMETRIC_UPLOADS_DIR, fileName);
+    fs.writeFileSync(absolutePath, parsedImage.buffer);
+    biometric = {
+      consentGiven: true,
+      consentAt: String(consentAtRaw || now),
+      capturedAt: String(capturedAtRaw || now),
+      imageUrl: `/uploads/biometric/${fileName}`,
+      mimeType: parsedImage.mimeType,
+      fileSize: parsedImage.buffer.length
+    };
+  } else if (wantsBiometricUpdate && !consentChecked) {
+    return res.status(400).json({ ok: false, message: 'Biometrik rozilik belgilanmagan' });
+  } else if (consentChecked && biometric) {
+    biometric = {
+      ...biometric,
+      consentGiven: true,
+      consentAt: String(consentAtRaw || biometric.consentAt || now)
+    };
+  }
+
   db.profiles[phone] = {
     phone,
     name,
     address: String(req.body.address || '').trim(),
-    updatedAt: nowIso()
+    updatedAt: now,
+    biometric
   };
   saveDb();
   return res.json({ ok: true, profile: db.profiles[phone] });
@@ -513,6 +576,34 @@ app.post('/api/v1/admin/products/import', requireAdmin, (req, res) => {
 
 app.get('/api/v1/admin/orders', requireAdmin, (req, res) => {
   res.json({ ok: true, orders: db.orders.map(orderPublic) });
+});
+app.get('/api/v1/admin/customers/biometric', requireAdmin, (req, res) => {
+  const customers = Object.values(db.profiles || {})
+    .map((profile) => {
+      const bio = profile?.biometric || null;
+      return {
+        phone: profile?.phone || '',
+        name: profile?.name || 'Mijoz',
+        updatedAt: profile?.updatedAt || null,
+        biometricStatus: Boolean(bio?.consentGiven && bio?.imageUrl),
+        biometric: bio
+          ? {
+              consentGiven: Boolean(bio.consentGiven),
+              consentAt: bio.consentAt || null,
+              capturedAt: bio.capturedAt || null,
+              imageUrl: bio.imageUrl || '',
+              mimeType: bio.mimeType || '',
+              fileSize: Number(bio.fileSize || 0)
+            }
+          : null
+      };
+    })
+    .sort((a, b) => {
+      const at = new Date(a.biometric?.capturedAt || a.updatedAt || 0).getTime();
+      const bt = new Date(b.biometric?.capturedAt || b.updatedAt || 0).getTime();
+      return bt - at;
+    });
+  res.json({ ok: true, customers });
 });
 app.post('/api/v1/admin/orders/:id/cancel', requireAdmin, (req, res) => {
   const o = db.orders.find((x) => x.id === req.params.id);

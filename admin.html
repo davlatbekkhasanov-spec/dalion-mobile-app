@@ -37,6 +37,7 @@
     .import-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
     .metric{padding:8px;border:1px solid var(--line);border-radius:8px;background:#0c1a33}
     .metric b{font-size:18px;display:block}
+    .thumb{width:72px;height:72px;border-radius:10px;object-fit:cover;border:1px solid var(--line);background:#071121}
   </style>
 </head>
 <body>
@@ -168,12 +169,17 @@
       </div>
       <div id="ordersAdminBoard" class="list"></div>
     </section>
+    <section class="panel card" id="biometric-panel">
+      <h3>Biometric Customers</h3>
+      <p class="muted">Rozilik va selfie saqlangan mijozlar ro‘yxati.</p>
+      <div id="biometricCustomersList" class="list"></div>
+    </section>
   </div>
 
   <div class="toast" id="toast"></div>
   <script>
     const tabs = [
-      ['excel','Excel Import'],['banners','Banners'],['promotions','Promotions'],['home-settings','Home Settings'],['categories','Categories'],['products','Products'],['orders','Orders']
+      ['excel','Excel Import'],['banners','Banners'],['promotions','Promotions'],['home-settings','Home Settings'],['categories','Categories'],['products','Products'],['orders','Orders'],['biometric','Biometric']
     ];
     const i18n = {
       uz: {
@@ -187,6 +193,7 @@
         categories: 'Categories',
         products: 'Products',
         orders: 'Orders',
+        biometric: 'Biometric',
         processImages: 'Rasmlarni qayta ishlash',
         overwriteImages: 'Mavjud rasmlarni overwrite qilish',
         updateOnlyStockPrice: "Faqat qoldiq/narxni yangilash",
@@ -233,6 +240,7 @@
         categories: 'Категории',
         products: 'Товары',
         orders: 'Заказы',
+        biometric: 'Биометрия',
         processImages: 'Обрабатывать изображения',
         overwriteImages: 'Перезаписывать существующие изображения',
         updateOnlyStockPrice: 'Обновить только остаток/цену',
@@ -337,6 +345,7 @@
         if (key === 'categories') btn.textContent = t.categories;
         if (key === 'products') btn.textContent = t.products;
         if (key === 'orders') btn.textContent = t.orders;
+        if (key === 'biometric') btn.textContent = t.biometric;
       });
     }
     document.getElementById('langUz').onclick = () => { lang = 'uz'; localStorage.setItem(langKey, lang); applyLang(); };
@@ -789,17 +798,46 @@
     document.getElementById('ordersStatusFilter').onchange = () => loadOrdersAdmin().catch(()=>{});
     document.getElementById('ordersSearch').oninput = () => loadOrdersAdmin().catch(()=>{});
 
+    async function loadBiometricCustomers(){
+      const { customers } = await api('/admin/customers/biometric');
+      const wrap = document.getElementById('biometricCustomersList');
+      if (!customers || !customers.length) {
+        wrap.innerHTML = '<div class="item"><div class="muted">Hozircha mijozlar ro‘yxati bo‘sh.</div></div>';
+        return;
+      }
+      wrap.innerHTML = customers.map((c) => {
+        const hasBio = Boolean(c.biometricStatus && c.biometric?.imageUrl);
+        return `
+          <div class="item">
+            <div class="row" style="justify-content:space-between;align-items:center;">
+              <div>
+                <b>${c.name || 'Mijoz'}</b>
+                <div class="muted">${c.phone || '-'}</div>
+                <div class="muted">Biometrik status: ${hasBio ? 'Tasdiqlangan' : 'Mavjud emas'}</div>
+                <div class="muted">Rozilik vaqti: ${c.biometric?.consentAt ? new Date(c.biometric.consentAt).toLocaleString('ru-RU') : '-'}</div>
+                <div class="muted">Selfie olingan vaqt: ${c.biometric?.capturedAt ? new Date(c.biometric.capturedAt).toLocaleString('ru-RU') : '-'}</div>
+              </div>
+              <div>
+                ${hasBio ? `<a href="${c.biometric.imageUrl}" target="_blank" rel="noopener noreferrer"><img class="thumb" src="${c.biometric.imageUrl}" alt="selfie" /></a>` : '<div class="muted">Selfie yo‘q</div>'}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
     async function bootstrap(){
       try{
         document.getElementById('addBannerBtn').textContent = t('add');
         document.getElementById('addPromoBtn').textContent = t('add');
-        await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts(),loadStoreSummary(),loadDalionStatus(),loadOrdersAdmin()]);
+        await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts(),loadStoreSummary(),loadDalionStatus(),loadOrdersAdmin(),loadBiometricCustomers()]);
       }
       catch(e){showToast(e.message||t('checkToken'))}
     }
     bootstrap();
     setInterval(() => {
       if (document.getElementById('orders-panel').classList.contains('active')) loadOrdersAdmin().catch(()=>{});
+      if (document.getElementById('biometric-panel').classList.contains('active')) loadBiometricCustomers().catch(()=>{});
     }, 5000);
   </script>
 </body>

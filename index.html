@@ -1073,6 +1073,31 @@
     }
 
     .auth-trust-item strong { color: #ecf6ff; font-weight: 700; }
+    .auth-consent {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(94, 200, 255, 0.22);
+      background: linear-gradient(150deg, rgba(20, 50, 90, 0.45), rgba(10, 24, 44, 0.5));
+      font-size: 12px;
+      line-height: 1.45;
+      color: #d5e4ff;
+    }
+    .auth-consent-check { display: flex; gap: 8px; align-items: flex-start; margin-top: 8px; font-size: 12px; color: #e7f0ff; }
+    .auth-consent-check input { margin-top: 2px; accent-color: #53f5a9; }
+    .auth-selfie-card {
+      margin-top: 10px;
+      border: 1px solid rgba(94, 200, 255, 0.22);
+      border-radius: 12px;
+      background: linear-gradient(140deg, rgba(17, 40, 73, 0.55), rgba(10, 23, 43, 0.55));
+      padding: 10px;
+    }
+    .selfie-preview-wrap { margin-top: 8px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(121, 170, 235, 0.3); background: rgba(8, 19, 36, 0.9); }
+    .selfie-preview-wrap video,
+    .selfie-preview-wrap img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+    .selfie-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .auth-success { display: none; margin-top: 8px; font-size: 12px; color: #a5f3cd; }
+    .auth-success.show { display: block; }
 
     .otp-row { display: flex; gap: 8px; align-items: center; }
     .otp-row .gm-btn { flex: 1; }
@@ -1509,7 +1534,7 @@
     .profile-avatar{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:28px}
     .profile-menu .menu-item{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid #eceff5;border-radius:12px;margin-top:8px;background:#fff;color:#1d2440}
     .profile-menu .menu-item small{color:#667085}
-    .auth-sheet{background:#fff;border:1px solid #eceff5}
+    .auth-sheet{background:linear-gradient(180deg,#fefefe,#f4f7ff);border:1px solid #dde3f2;box-shadow:0 16px 32px rgba(17,24,39,.12)}
     .auth-input{background:#fff;color:#1d2440;border:1px solid #d0d5dd}
 
   .premium-intro{position:relative;min-height:100%;background:linear-gradient(180deg,#ffffff 0%,#f3efff 100%);padding:24px 16px max(24px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;overflow:hidden}
@@ -1587,7 +1612,7 @@
           <div class="cinematic-particles" id="cinematicParticles"></div>
         </div>
         <div class="cinematic-text" id="cinematicBrandText">GlobusMarket</div>
-        <p class="cinematic-sub">Tez yetkazib berish • Кeng ассортимент • Ишончли сервис</p>
+        <p class="cinematic-sub">Samarqand bo‘ylab qulay yetkazib berish • Кeng ассортимент • Ишончли сервис</p>
         <button class="btn gm-btn gm-btn-primary btn-primary intro-cta" id="openRegisterBtn" style="margin-top:auto;">Ro‘yxatdan o‘tish</button>
       </div>
     </section>
@@ -1623,9 +1648,33 @@
         <small class="auth-error" id="authPhoneError">Telefon raqamni to‘liq kiriting (+998 XX XXX XX XX)</small>
 
         <div class="auth-trust" aria-label="Bizning afzalliklar">
-          <div class="auth-trust-item"><span class="auth-trust-icon">🚀</span><span><strong>Tez yetkazib berish</strong> — 30 daqiqada eshigingizgacha</span></div>
+          <div class="auth-trust-item"><span class="auth-trust-icon">🚀</span><span><strong>Yetkazib berish</strong> — Samarqand bo‘ylab odatda 1–4 soat</span></div>
           <div class="auth-trust-item"><span class="auth-trust-icon">🔒</span><span><strong>Xavfsiz to‘lov</strong> — Payme va naqd to‘lov qabul qilamiz</span></div>
           <div class="auth-trust-item"><span class="auth-trust-icon">💬</span><span><strong>24/7 qo‘llab-quvvatlash</strong> — har bir buyurtmaga operator</span></div>
+        </div>
+        <div class="auth-consent">
+          Biometrik tekshiruv (selfie) uchun rozilik: men ushbu akkaunt egasi sifatida yuz suratini olish, tekshirish va xizmat xavfsizligi maqsadida saqlashga roziman.
+          <label class="auth-consent-check" for="biometricConsentCheckbox">
+            <input type="checkbox" id="biometricConsentCheckbox" />
+            <span>Biometrik selfie ma’lumotlarimni qayta ishlash va saqlashga roziman.</span>
+          </label>
+          <small class="auth-error" id="biometricConsentError">Davom etish uchun biometrik rozilikni belgilang.</small>
+        </div>
+        <div class="auth-selfie-card">
+          <div class="muted" style="margin-bottom:6px;">Biometrik tasdiqlash (selfie)</div>
+          <button type="button" class="btn gm-btn gm-btn-secondary btn-secondary" id="startFaceIdBtn">Face ID ni boshlash</button>
+          <small class="auth-hint" id="selfieHint">Kamera ochiladi, selfieni oling va tasdiqlang.</small>
+          <small class="auth-error" id="selfieError">Ro‘yxatdan o‘tishdan oldin selfieni tasdiqlang.</small>
+          <div class="selfie-preview-wrap" id="selfiePreviewWrap" style="display:none;">
+            <video id="selfieVideo" autoplay playsinline muted></video>
+            <img id="selfieImagePreview" alt="Selfie preview" style="display:none;" />
+            <canvas id="selfieCanvas" style="display:none;"></canvas>
+          </div>
+          <div class="selfie-actions" id="selfieActions" style="display:none;">
+            <button type="button" class="btn gm-btn gm-btn-secondary btn-secondary" id="captureSelfieBtn">Selfieni olish</button>
+            <button type="button" class="btn gm-btn gm-btn-primary btn-primary" id="confirmSelfieBtn" disabled>Tasdiqlash</button>
+          </div>
+          <small class="auth-success" id="selfieSuccess">Selfie tasdiqlandi. Davom etishingiz mumkin.</small>
         </div>
 
         <div class="list-card gm-card" style="margin-top:10px;padding:10px;">
@@ -1794,7 +1843,7 @@
           <button class="btn btn-secondary location-premium-btn" id="captureLocationBtn">GPS orqali manzilni olish (ixtiyoriy)</button>
           <p class="muted" id="checkoutLocationHint">Lokatsiya ixtiyoriy. Istasangiz manzilni qo‘lda kiriting.</p>
           <p class="muted" id="checkoutDistance">Masofa: aniqlanmagan</p>
-          <p class="muted" id="checkoutTime">ETA: 30 daqiqa</p>
+          <p class="muted" id="checkoutTime">ETA: odatda 1–4 soat</p>
           <p class="muted" id="checkoutPrice">Narx: 12 000 so'm</p>
           <p class="field-error" id="addressValidationError"></p>
         </div>
@@ -1867,12 +1916,12 @@
         <div class="image-box modal-image">
 Oq fonli foto</div>
         <div class="modal-rating-row">
-          <span class="gm-chip gm-chip--delivery" id="modalEta">🚚 20 daqiqa</span>
+          <span class="gm-chip gm-chip--delivery" id="modalEta">🚚 Odatda 1–4 soat</span>
           <span class="gm-chip gm-chip--success" id="modalAvailability">Mavjud</span>
         </div>
         <p class="price modal-price-main" id="modalPrice">0 so'm</p>
         <p class="old-price" id="modalOldPrice">0 so'm</p>
-        <div class="modal-trust"><p id="modalTrustDelivery">🚚 20 daqiqada yetkazib beramiz</p></div>
+        <div class="modal-trust"><p id="modalTrustDelivery">🚚 Samarqand bo‘ylab odatda 1–4 soatda yetkazamiz</p></div>
         <p class="muted" id="modalDescription">Mahsulot tavsifi tez orada yangilanadi.</p>
         <div class="modal-specs" id="modalSpecs"></div>
         <div class="modal-inline-qty" id="modalQty"></div>
@@ -1947,6 +1996,19 @@ Oq fonli foto</div>
     const requestOtpBtn = document.getElementById('requestOtpBtn');
     const otpCodeInput = document.getElementById('otpCodeInput');
     const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+    const biometricConsentCheckbox = document.getElementById('biometricConsentCheckbox');
+    const biometricConsentError = document.getElementById('biometricConsentError');
+    const startFaceIdBtn = document.getElementById('startFaceIdBtn');
+    const captureSelfieBtn = document.getElementById('captureSelfieBtn');
+    const confirmSelfieBtn = document.getElementById('confirmSelfieBtn');
+    const selfieVideo = document.getElementById('selfieVideo');
+    const selfieCanvas = document.getElementById('selfieCanvas');
+    const selfieImagePreview = document.getElementById('selfieImagePreview');
+    const selfiePreviewWrap = document.getElementById('selfiePreviewWrap');
+    const selfieActions = document.getElementById('selfieActions');
+    const selfieHint = document.getElementById('selfieHint');
+    const selfieError = document.getElementById('selfieError');
+    const selfieSuccess = document.getElementById('selfieSuccess');
     const devOtpHint = document.getElementById('devOtpHint');
     const submitAuthBtn = document.getElementById('submitAuthBtn');
     const authNameError = document.getElementById('authNameError');
@@ -1957,6 +2019,8 @@ Oq fonli foto</div>
     const OTP_RESEND_COOLDOWN_SEC = 30;
     let otpResendTimer = null;
     let otpResendUntil = 0;
+    let selfieStream = null;
+    let biometricSelfie = { dataUrl: '', confirmed: false, capturedAt: '' };
     const requestOtpDefaultLabel = requestOtpBtn?.textContent || 'OTP olish';
 
     const gmAnalytics = (() => {
@@ -2057,7 +2121,108 @@ Oq fonli foto</div>
       setFieldError(authName, authNameError, '');
       setFieldError(authPhone, authPhoneError, '');
       setFieldError(otpCodeInput, authOtpError, '');
+      setFieldError(null, biometricConsentError, '');
+      setFieldError(null, selfieError, '');
       if (authPhoneHint) authPhoneHint.style.display = '';
+    }
+
+    function stopSelfieStream() {
+      if (selfieStream) {
+        selfieStream.getTracks().forEach((track) => track.stop());
+        selfieStream = null;
+      }
+    }
+
+    function resetSelfieState() {
+      stopSelfieStream();
+      biometricSelfie = { dataUrl: '', confirmed: false, capturedAt: '' };
+      if (selfieImagePreview) {
+        selfieImagePreview.style.display = 'none';
+        selfieImagePreview.removeAttribute('src');
+      }
+      if (selfieVideo) selfieVideo.style.display = 'none';
+      if (selfiePreviewWrap) selfiePreviewWrap.style.display = 'none';
+      if (selfieActions) selfieActions.style.display = 'none';
+      if (confirmSelfieBtn) confirmSelfieBtn.disabled = true;
+      if (startFaceIdBtn) {
+        startFaceIdBtn.removeAttribute('disabled');
+        startFaceIdBtn.textContent = 'Face ID ni boshlash';
+      }
+      if (selfieHint) selfieHint.style.display = '';
+      if (selfieSuccess) selfieSuccess.classList.remove('show');
+    }
+
+    async function startSelfieCapture() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setFieldError(null, selfieError, 'Kamera ushbu qurilmada qo‘llab-quvvatlanmaydi. Boshqa brauzer qurilmadan urinib ko‘ring.');
+        return;
+      }
+      setFieldError(null, selfieError, '');
+      setBtnLoading(startFaceIdBtn, true);
+      try {
+        stopSelfieStream();
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 540 } },
+          audio: false
+        });
+        selfieStream = stream;
+        if (selfieVideo) {
+          selfieVideo.srcObject = stream;
+          selfieVideo.style.display = 'block';
+        }
+        if (selfieImagePreview) selfieImagePreview.style.display = 'none';
+        if (selfiePreviewWrap) selfiePreviewWrap.style.display = 'block';
+        if (selfieActions) selfieActions.style.display = 'grid';
+        if (confirmSelfieBtn) confirmSelfieBtn.disabled = true;
+      } catch (_) {
+        setFieldError(null, selfieError, 'Kameraga ruxsat berilmadi yoki mavjud emas. Ruxsatni yoqib qayta urinib ko‘ring.');
+      } finally {
+        setBtnLoading(startFaceIdBtn, false);
+      }
+    }
+
+    function captureSelfieFrame() {
+      if (!selfieVideo || !selfieCanvas || !selfieImagePreview) return;
+      const width = selfieVideo.videoWidth || 720;
+      const height = selfieVideo.videoHeight || 540;
+      if (!width || !height) {
+        setFieldError(null, selfieError, 'Kamera tayyor emas, iltimos qayta urinib ko‘ring.');
+        return;
+      }
+      selfieCanvas.width = width;
+      selfieCanvas.height = height;
+      const ctx = selfieCanvas.getContext('2d');
+      ctx.drawImage(selfieVideo, 0, 0, width, height);
+      const dataUrl = selfieCanvas.toDataURL('image/jpeg', 0.82);
+      biometricSelfie = { dataUrl, confirmed: false, capturedAt: new Date().toISOString() };
+      selfieImagePreview.src = dataUrl;
+      selfieImagePreview.style.display = 'block';
+      selfieVideo.style.display = 'none';
+      if (confirmSelfieBtn) confirmSelfieBtn.disabled = false;
+      setFieldError(null, selfieError, '');
+      if (selfieSuccess) selfieSuccess.classList.remove('show');
+    }
+
+    function confirmSelfieFrame() {
+      if (!biometricSelfie.dataUrl) {
+        setFieldError(null, selfieError, 'Avval selfieni oling.');
+        return;
+      }
+      biometricSelfie.confirmed = true;
+      stopSelfieStream();
+      if (selfieHint) selfieHint.style.display = 'none';
+      if (selfieSuccess) selfieSuccess.classList.add('show');
+      setFieldError(null, selfieError, '');
+    }
+
+    function validateBiometricBlock(silent) {
+      const consentOk = Boolean(biometricConsentCheckbox?.checked);
+      const selfieOk = Boolean(biometricSelfie.dataUrl && biometricSelfie.confirmed);
+      if (!silent) {
+        setFieldError(null, biometricConsentError, consentOk ? '' : 'Davom etish uchun biometrik rozilikni belgilang.');
+        setFieldError(null, selfieError, selfieOk ? '' : 'Ro‘yxatdan o‘tishdan oldin selfieni tasdiqlang.');
+      }
+      return consentOk && selfieOk;
     }
 
     function setBtnLoading(btn, loading) {
@@ -2214,6 +2379,8 @@ Oq fonli foto</div>
         authPhone.value = formatUzPhone(authPhone.value);
       }
       clearAuthErrors();
+      resetSelfieState();
+      if (biometricConsentCheckbox) biometricConsentCheckbox.checked = false;
       gmAnalytics.track('register_open', { hasExistingUser: Boolean(existingUser) });
       setTimeout(() => {
         authSheetOverlay.classList.add('show');
@@ -2376,9 +2543,9 @@ Oq fonli foto</div>
       openSearchBtn.textContent = 'Mahsulot qidirish...';
 
       const fallbackBanner = {
-        title: 'Tez yetkazib berish',
-        subtitle: 'Buyurtmangiz tez va qulay yetkaziladi',
-        badge: '20–30 daqiqa',
+        title: 'Qulay yetkazib berish',
+        subtitle: 'Samarqand bo‘ylab buyurtmalar odatda 1–4 soatda yetkaziladi',
+        badge: 'Odatda 1–4 soat',
         image_url: ''
       };
       const bannerItems = banners.length ? banners : [fallbackBanner];
@@ -2423,7 +2590,7 @@ Oq fonli foto</div>
         });
       }
       checkoutLocation.textContent = `Manzil: ${delivery.location || DEFAULT_LOCATION_ADDRESS}`;
-      checkoutTime.textContent = `Vaqt: ${settings.deliveryTimeText || delivery.time || '30 daqiqa'}`;
+      checkoutTime.textContent = `Vaqt: ${settings.deliveryTimeText || delivery.time || 'odatiy 1–4 soat'}`;
       checkoutPrice.textContent = `Narx: ${money(delivery.price || 12000)}`;
     }
 
@@ -2475,17 +2642,39 @@ Oq fonli foto</div>
     async function submitAuth() {
       const nameOk = validateAuthName();
       const phoneOk = validateAuthPhone();
-      if (!nameOk || !phoneOk) {
+      const biometricOk = validateBiometricBlock();
+      if (!nameOk || !phoneOk || !biometricOk) {
         const firstInvalid = !nameOk ? authName : authPhone;
+        if (!biometricOk && biometricConsentCheckbox && !biometricConsentCheckbox.checked) biometricConsentCheckbox.focus();
         firstInvalid?.focus();
-        showToast(!nameOk ? 'Ismingizni to‘g‘ri kiriting' : 'Telefon raqam noto‘g‘ri');
+        showToast(!nameOk ? 'Ismingizni to‘g‘ri kiriting' : (!phoneOk ? 'Telefon raqam noto‘g‘ri' : 'Biometrik tekshiruvni yakunlang'));
         return false;
       }
       const nameValue = String(authName.value || '').trim();
       const phoneValue = normalizedAuthPhone();
-      currentUser = { name: nameValue, phone: phoneValue, createdAt: new Date().toISOString() };
+      currentUser = {
+        name: nameValue,
+        phone: phoneValue,
+        createdAt: new Date().toISOString(),
+        biometricConsent: true,
+        biometricConsentAt: new Date().toISOString(),
+        biometricSelfieCapturedAt: biometricSelfie.capturedAt || new Date().toISOString(),
+        biometricSelfiePreview: biometricSelfie.dataUrl
+      };
       localStorage.setItem('globusUser', JSON.stringify(currentUser));
-      await api('/profile', { method: 'PUT', body: JSON.stringify({ name: currentUser.name, phone: currentUser.phone, address: '' }) });
+      await api('/profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: currentUser.name,
+          phone: currentUser.phone,
+          address: '',
+          biometricConsent: true,
+          biometricConsentAt: currentUser.biometricConsentAt,
+          biometricCapturedAt: currentUser.biometricSelfieCapturedAt,
+          biometricSelfieDataUrl: biometricSelfie.dataUrl
+        })
+      });
+      resetSelfieState();
       authSheetOverlay.classList.remove('show');
       showToast("Ro'yxatdan o'tildi");
       gmAnalytics.track('register_success', { hasOtp: Boolean(currentUser.phoneVerified) });
@@ -2861,7 +3050,7 @@ Oq fonli foto</div>
       }).join('');
 
       const deliveryPrice = Number(homePayload?.delivery_info?.price || 12000);
-      const deliveryEta = homePayload?.settings?.deliveryTimeText || homePayload?.delivery_info?.time || "30 daqiqa";
+      const deliveryEta = homePayload?.settings?.deliveryTimeText || homePayload?.delivery_info?.time || 'odatiy 1–4 soat';
       const subtotal = totalPrice();
       const orderTotal = subtotal + deliveryPrice;
       checkoutTotal.textContent = `Jami: ${money(orderTotal)}`;
@@ -3129,7 +3318,7 @@ Oq fonli foto</div>
       const price = Number(p.price || 0);
       const hasDiscount = oldPrice > price && price > 0;
       const discountPercent = hasDiscount ? Math.max(1, Math.round(((oldPrice - price) / oldPrice) * 100)) : 0;
-      const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || '20 daqiqa';
+      const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || 'odatiy 1–4 soat';
       modalName.textContent = p.name;
       modalCategory.textContent = normalizedCategoryName(p.categoryDisplayName || p.category);
       modalPrice.textContent = money(p.price);
@@ -3139,7 +3328,7 @@ Oq fonli foto</div>
       modalEta.textContent = `🚚 ${etaText}`;
       modalAvailability.textContent = stock > 0 ? 'Mavjud' : "Omborda yo'q";
       modalAvailability.className = `gm-chip ${stock > 0 ? 'gm-chip--success' : 'gm-chip--warning'}`;
-      modalTrustDelivery.textContent = `🚚 ${etaText}da yetkazib beramiz`;
+      modalTrustDelivery.textContent = `🚚 Yetkazib berish vaqti: ${etaText}`;
       modalDescription.textContent = p.description || p.subtitle || `${p.name} uchun buyurtma berishingiz mumkin.`;
       modalSpecs.innerHTML = `<div class="spec-row"><span>Kategoriya</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
         <div class="spec-row"><span>Qoldiq</span><strong>${stock > 0 ? stock : 0} ta</strong></div>`;
@@ -3292,12 +3481,14 @@ Oq fonli foto</div>
     });
 
     closeAuthSheetBtn?.addEventListener('click', () => {
+      stopSelfieStream();
       authSheetOverlay.classList.remove('show');
       if (!phone.classList.contains('show-app')) runCinematicIntro();
     });
 
     authSheetOverlay?.addEventListener('click', (e) => {
       if (e.target === authSheetOverlay) {
+        stopSelfieStream();
         authSheetOverlay.classList.remove('show');
         if (!phone.classList.contains('show-app')) runCinematicIntro();
       }
@@ -3316,6 +3507,18 @@ Oq fonli foto</div>
       } finally {
         setBtnLoading(submitAuthBtn, false);
       }
+    });
+    startFaceIdBtn?.addEventListener('click', async () => {
+      await startSelfieCapture();
+    });
+    captureSelfieBtn?.addEventListener('click', () => {
+      captureSelfieFrame();
+    });
+    confirmSelfieBtn?.addEventListener('click', () => {
+      confirmSelfieFrame();
+    });
+    biometricConsentCheckbox?.addEventListener('change', () => {
+      if (biometricConsentError?.classList.contains('show')) validateBiometricBlock();
     });
 
     requestOtpBtn?.addEventListener('click', async () => {
@@ -3347,6 +3550,7 @@ Oq fonli foto</div>
 
     logoutBtn?.addEventListener('click', () => {
       localStorage.removeItem('globusUser');
+      resetSelfieState();
       currentUser = null;
       activeOrderNumber = '';
       localStorage.removeItem('activeOrderNumber');
@@ -3637,7 +3841,7 @@ Oq fonli foto</div>
             locationAccuracy: customerLocation.accuracy,
             addressText: customerLocation.addressText,
             landmarkText: customerLocation.landmarkText,
-            deliveryTime: homePayload?.delivery_info?.time || '30 daqiqa',
+            deliveryTime: homePayload?.delivery_info?.time || 'odatiy 1–4 soat',
             deliveryPrice: homePayload?.delivery_info?.price || 12000,
             promoCode: String(promoCodeInput?.value || '').trim()
           })
