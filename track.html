@@ -12,6 +12,7 @@
     #courierMap{height:52vh;min-height:360px;display:none}
     .map-fallback{height:52vh;min-height:360px;display:grid;place-items:center;background:linear-gradient(180deg,#dde8ff,#d4dbf5);color:#475467;font-weight:700;text-align:center;padding:20px}
     .top-chip{position:absolute;top:14px;left:14px;z-index:6;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:12px;font-weight:700}
+    .map-note{position:absolute;left:14px;bottom:14px;z-index:6;background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:12px;color:#475467}
     .float-actions{position:absolute;top:14px;right:14px;z-index:6;display:flex;gap:8px}
     .icon-btn{border:1px solid var(--line);background:#fff;border-radius:12px;min-height:44px;padding:0 12px;font-weight:700;color:#344054;cursor:pointer}
     .sheet{margin-top:-34px;position:relative;z-index:7;background:var(--card);border-radius:24px 24px 0 0;padding:14px 14px 18px;box-shadow:0 -6px 22px rgba(16,24,40,.08)}
@@ -46,6 +47,7 @@
   <section class="map-stage">
     <div class="top-chip" id="statusBadge">Yuklanmoqda</div>
     <div class="float-actions"><button class="icon-btn" id="refreshBtn">Yangilash</button></div>
+    <div id="mapNote" class="map-note" style="display:none;"></div>
     <div id="mapFallback" class="map-fallback">Kurier lokatsiyasi aniqlanmoqda</div>
     <div id="courierMap"></div>
   </section>
@@ -125,6 +127,7 @@ function setMapFallback(message){
   mapFallback.textContent=message||'Xarita mavjud emas';
   mapFallback.style.display='grid';
   courierMapEl.style.display='none';
+  mapNote.style.display='none';
 }
 function ensureYandexReady(){
   if(!window.ymaps||typeof window.ymaps.ready!=='function') return Promise.reject(new Error('Yandex API unavailable'));
@@ -165,6 +168,10 @@ function renderMap(){if(!order)return;
   const courierPoint=resolveOrderCoord([['courierLocationLat','courierLocationLng'],['courierLat','courierLng']]);
   const hasDestination=Boolean(destinationPoint);
   const hasCourier=Boolean(courierPoint);
+  if(!hasDestination){
+    setMapFallback('Mijoz manzili koordinatalari topilmadi');
+    return;
+  }
   const cLat=hasCourier?courierPoint.lat:null, cLng=hasCourier?courierPoint.lng:null;
   const dLat=hasDestination?destinationPoint.lat:null, dLng=hasDestination?destinationPoint.lng:null;
   ensureYandexReady().then((ymaps)=>{
@@ -174,6 +181,8 @@ function renderMap(){if(!order)return;
       courierMap=new ymaps.Map('courierMap',{center:hasDestination?[dLat,dLng]:[WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],zoom:14,controls:['zoomControl']},{suppressMapOpenBlock:true});
     }
     const isCourierActive=COURIER_ACTIVE_STATUSES.includes(String(order.status||''))&&hasCourier;
+    mapNote.textContent=isCourierActive?'Kurier yo‘lda: joriy marshrut ko‘rsatilmoqda':'Kurier hali biriktirilmagan, marshrut tayyor';
+    mapNote.style.display='block';
     if(isCourierActive){
       if(!courierMarker){
         courierMarker=new ymaps.Placemark([cLat,cLng],{balloonContent:'Kurier'},{preset:'islands#redDeliveryIcon'});
@@ -200,11 +209,16 @@ function renderMap(){if(!order)return;
       lastCourierPoint=null;
       if(smoothMoveTimer)clearInterval(smoothMoveTimer);
     }
-    if(!warehouseMarker){
-      warehouseMarker=new ymaps.Placemark([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],{balloonContent:'Ombor',iconContent:'📦'},{preset:'islands#blueStretchyIcon'});
-      courierMap.geoObjects.add(warehouseMarker);
-    }else{
-      warehouseMarker.geometry.setCoordinates([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng]);
+    if(!isCourierActive){
+      if(!warehouseMarker){
+        warehouseMarker=new ymaps.Placemark([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],{balloonContent:'Ombor',iconContent:'📦'},{preset:'islands#blueStretchyIcon'});
+        courierMap.geoObjects.add(warehouseMarker);
+      }else{
+        warehouseMarker.geometry.setCoordinates([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng]);
+      }
+    }else if(warehouseMarker){
+      courierMap.geoObjects.remove(warehouseMarker);
+      warehouseMarker=null;
     }
     if(hasDestination){
       if(!destinationMarker){
@@ -217,29 +231,20 @@ function renderMap(){if(!order)return;
       courierMap.geoObjects.remove(destinationMarker);
       destinationMarker=null;
     }
-    if(hasDestination){
-      const start=isCourierActive?[cLat,cLng]:[WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng];
-      if(routeLine){
-        routeLine.geometry.setCoordinates([start,[dLat,dLng]]);
-        routeLine.options.set({strokeStyle:isCourierActive?'solid':'dash'});
-      }else{
-        routeLine=new ymaps.Polyline([start,[dLat,dLng]],{},{
-          strokeColor:'#6a4dff',
-          strokeWidth:4,
-          strokeOpacity:0.8,
-          strokeStyle:isCourierActive?'solid':'dash'
-        });
-        courierMap.geoObjects.add(routeLine);
-      }
-      fitTwoPointsSafe(start,[dLat,dLng]);
-    }else if(routeLine){
-      courierMap.geoObjects.remove(routeLine);
-      routeLine=null;
-    }else if(isCourierActive){
-      courierMap.setCenter([cLat,cLng],14,{duration:250});
+    const start=isCourierActive?[cLat,cLng]:[WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng];
+    if(routeLine){
+      routeLine.geometry.setCoordinates([start,[dLat,dLng]]);
+      routeLine.options.set({strokeStyle:isCourierActive?'solid':'dash'});
     }else{
-      courierMap.setCenter([WAREHOUSE_COORDS.lat,WAREHOUSE_COORDS.lng],14,{duration:250});
+      routeLine=new ymaps.Polyline([start,[dLat,dLng]],{},{
+        strokeColor:'#6a4dff',
+        strokeWidth:4,
+        strokeOpacity:0.8,
+        strokeStyle:isCourierActive?'solid':'dash'
+      });
+      courierMap.geoObjects.add(routeLine);
     }
+    fitTwoPointsSafe(start,[dLat,dLng]);
   }).catch(()=>setMapFallback('Xarita vaqtincha mavjud emas'));
 }
 function render(){if(!order)return;renderState('content');const ui=statusUx[order.status]||statusUx.new;statusBadge.textContent=ui.badge;bigStatus.textContent=ui.title;bigStatusNote.textContent=ui.note;
