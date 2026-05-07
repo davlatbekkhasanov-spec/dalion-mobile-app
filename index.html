@@ -1005,6 +1005,161 @@
       font-size: 16px;
       margin-top: 10px;
       outline: none;
+      transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+
+    .auth-input:focus {
+      border-color: rgba(94, 250, 179, 0.7);
+      box-shadow: 0 0 0 3px rgba(77, 226, 157, 0.18);
+    }
+
+    .auth-input.is-invalid {
+      border-color: rgba(255, 122, 138, 0.85);
+      box-shadow: 0 0 0 3px rgba(255, 122, 138, 0.15);
+    }
+
+    .auth-input.is-valid {
+      border-color: rgba(94, 250, 179, 0.7);
+    }
+
+    .auth-hint {
+      display: block;
+      margin-top: 6px;
+      font-size: 12px;
+      line-height: 1.4;
+      color: #8aa6d6;
+    }
+
+    .auth-error {
+      display: none;
+      margin-top: 6px;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #ffb3b3;
+    }
+
+    .auth-error.show { display: block; }
+
+    .auth-trust {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      margin: 12px 0 4px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(94, 200, 255, 0.22);
+      background: linear-gradient(150deg, rgba(20, 50, 90, 0.5), rgba(10, 24, 44, 0.55));
+    }
+
+    .auth-trust-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      line-height: 1.35;
+      color: #cfe1ff;
+    }
+
+    .auth-trust-item .auth-trust-icon {
+      flex: 0 0 22px;
+      width: 22px;
+      height: 22px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      background: linear-gradient(140deg, rgba(37, 244, 143, 0.22), rgba(39, 213, 255, 0.18));
+      border: 1px solid rgba(94, 250, 179, 0.35);
+    }
+
+    .auth-trust-item strong { color: #ecf6ff; font-weight: 700; }
+
+    .otp-row { display: flex; gap: 8px; align-items: center; }
+    .otp-row .gm-btn { flex: 1; }
+
+    .gm-btn.is-loading {
+      position: relative;
+      color: transparent !important;
+      pointer-events: none;
+    }
+
+    .gm-btn.is-loading::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 18px;
+      height: 18px;
+      margin: -9px 0 0 -9px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #fff;
+      animation: gmSpin .7s linear infinite;
+    }
+
+    .gm-btn[disabled],
+    .gm-btn.is-disabled {
+      opacity: .55;
+      cursor: not-allowed;
+      filter: grayscale(.15);
+    }
+
+    @keyframes gmSpin { to { transform: rotate(360deg); } }
+
+    .gm-inline-loader {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #9bb2d6;
+      font-size: 13px;
+    }
+
+    .gm-inline-loader::before {
+      content: "";
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid rgba(155, 178, 214, 0.35);
+      border-top-color: #9bb2d6;
+      animation: gmSpin .7s linear infinite;
+    }
+
+    .gm-error-card {
+      border: 1px solid rgba(255, 138, 138, 0.35);
+      background: linear-gradient(160deg, rgba(60, 18, 28, 0.7), rgba(28, 10, 18, 0.7));
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: #ffd3d6;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .gm-error-card .gm-error-icon {
+      flex: 0 0 26px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 99, 121, 0.22);
+      color: #ff8a9b;
+      font-weight: 800;
+    }
+
+    .gm-error-card .gm-error-body { flex: 1; min-width: 0; }
+    .gm-error-card .gm-error-body h4 { font-size: 14px; margin: 0 0 4px; color: #ffe3e7; }
+    .gm-error-card .gm-error-body p { margin: 0; font-size: 12.5px; line-height: 1.45; color: #ffc7cd; }
+    .gm-error-card .gm-error-retry {
+      margin-top: 8px;
+      padding: 7px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 138, 138, 0.45);
+      background: rgba(255, 138, 138, 0.12);
+      color: #ffe3e7;
+      font-weight: 700;
+      font-size: 12.5px;
+      cursor: pointer;
     }
 
     .payment-grid {
@@ -1441,20 +1596,58 @@
       <div class="auth-sheet" id="authSheet">
         <div class="auth-sheet-head">
           <h3 style="margin:0;">Ro‘yxatdan o‘tish</h3>
-          <button class="auth-sheet-close" id="closeAuthSheetBtn">✕</button>
+          <button class="auth-sheet-close" id="closeAuthSheetBtn" aria-label="Yopish">✕</button>
         </div>
-        <input id="authName" class="auth-input" placeholder="Ismingiz" />
-        <input id="authPhone" class="auth-input" placeholder="Telefon raqam" />
+
+        <input
+          id="authName"
+          class="auth-input"
+          placeholder="Ismingiz"
+          autocomplete="name"
+          autocapitalize="words"
+          maxlength="60"
+          aria-label="Ism"
+        />
+        <small class="auth-error" id="authNameError">Iltimos, ismingizni kiriting (kamida 2 harf)</small>
+
+        <input
+          id="authPhone"
+          class="auth-input"
+          placeholder="+998 90 123 45 67"
+          inputmode="tel"
+          autocomplete="tel"
+          maxlength="19"
+          aria-label="Telefon raqam"
+        />
+        <small class="auth-hint" id="authPhoneHint">Format: +998 XX XXX XX XX</small>
+        <small class="auth-error" id="authPhoneError">Telefon raqamni to‘liq kiriting (+998 XX XXX XX XX)</small>
+
+        <div class="auth-trust" aria-label="Bizning afzalliklar">
+          <div class="auth-trust-item"><span class="auth-trust-icon">🚀</span><span><strong>Tez yetkazib berish</strong> — 30 daqiqada eshigingizgacha</span></div>
+          <div class="auth-trust-item"><span class="auth-trust-icon">🔒</span><span><strong>Xavfsiz to‘lov</strong> — Payme va naqd to‘lov qabul qilamiz</span></div>
+          <div class="auth-trust-item"><span class="auth-trust-icon">💬</span><span><strong>24/7 qo‘llab-quvvatlash</strong> — har bir buyurtmaga operator</span></div>
+        </div>
+
         <div class="list-card gm-card" style="margin-top:10px;padding:10px;">
           <div class="muted" style="margin-bottom:8px;">OTP tasdiqlash (ixtiyoriy)</div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn gm-btn gm-btn-secondary btn-secondary" id="requestOtpBtn">OTP olish</button>
+          <div class="otp-row">
+            <button type="button" class="btn gm-btn gm-btn-secondary btn-secondary" id="requestOtpBtn">OTP olish</button>
           </div>
-          <input id="otpCodeInput" class="auth-input" placeholder="OTP kod" style="margin-top:8px;" />
-          <button class="btn gm-btn gm-btn-secondary btn-secondary" id="verifyOtpBtn">OTP ni tekshirish</button>
+          <input
+            id="otpCodeInput"
+            class="auth-input"
+            placeholder="OTP kod (4–6 raqam)"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            maxlength="6"
+            style="margin-top:8px;"
+            aria-label="OTP kod"
+          />
+          <small class="auth-error" id="authOtpError">OTP kodni kiriting (4–6 raqam)</small>
+          <button type="button" class="btn gm-btn gm-btn-secondary btn-secondary" id="verifyOtpBtn" style="margin-top:8px;">OTP ni tekshirish</button>
           <div id="devOtpHint" class="muted" style="margin-top:8px;display:none;"></div>
         </div>
-        <button class="btn gm-btn gm-btn-primary btn-primary" id="submitAuthBtn" style="margin-top:10px;">Davom etish</button>
+        <button type="button" class="btn gm-btn gm-btn-primary btn-primary" id="submitAuthBtn" style="margin-top:10px;">Davom etish</button>
       </div>
     </div>
 
@@ -1756,6 +1949,192 @@ Oq fonli foto</div>
     const verifyOtpBtn = document.getElementById('verifyOtpBtn');
     const devOtpHint = document.getElementById('devOtpHint');
     const submitAuthBtn = document.getElementById('submitAuthBtn');
+    const authNameError = document.getElementById('authNameError');
+    const authPhoneError = document.getElementById('authPhoneError');
+    const authOtpError = document.getElementById('authOtpError');
+    const authPhoneHint = document.getElementById('authPhoneHint');
+
+    const OTP_RESEND_COOLDOWN_SEC = 30;
+    let otpResendTimer = null;
+    let otpResendUntil = 0;
+    const requestOtpDefaultLabel = requestOtpBtn?.textContent || 'OTP olish';
+
+    const gmAnalytics = (() => {
+      const STORAGE_KEY = 'gm_events';
+      const MAX_EVENTS = 50;
+      function safeStore(events) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(events)); } catch (_) {}
+      }
+      function safeLoad() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          const parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (_) { return []; }
+      }
+      function track(name, payload) {
+        try {
+          if (!name || typeof name !== 'string') return;
+          const event = {
+            name,
+            ts: Date.now(),
+            payload: (payload && typeof payload === 'object') ? payload : null
+          };
+          const events = safeLoad();
+          events.push(event);
+          while (events.length > MAX_EVENTS) events.shift();
+          safeStore(events);
+        } catch (_) {
+          // analytics must never break the app
+        }
+      }
+      return { track, _all: safeLoad };
+    })();
+    window.gm = window.gm || {};
+    window.gm.track = gmAnalytics.track;
+
+    function formatUzPhone(raw) {
+      const digits = String(raw || '').replace(/\D/g, '');
+      let local = digits;
+      if (local.startsWith('998')) local = local.slice(3);
+      else if (local.startsWith('8') && local.length > 9) local = local.slice(1);
+      local = local.slice(0, 9);
+      if (!local) return '';
+      let out = '+998';
+      if (local.length > 0) out += ' ' + local.slice(0, 2);
+      if (local.length > 2) out += ' ' + local.slice(2, 5);
+      if (local.length > 5) out += ' ' + local.slice(5, 7);
+      if (local.length > 7) out += ' ' + local.slice(7, 9);
+      return out;
+    }
+
+    function normalizedAuthPhone() {
+      const digits = String(authPhone?.value || '').replace(/\D/g, '');
+      if (digits.startsWith('998') && digits.length === 12) return '+' + digits;
+      return '';
+    }
+
+    function setFieldError(input, errorEl, msg) {
+      if (errorEl) {
+        if (msg) {
+          errorEl.textContent = msg;
+          errorEl.classList.add('show');
+        } else {
+          errorEl.classList.remove('show');
+        }
+      }
+      if (input) {
+        input.classList.toggle('is-invalid', Boolean(msg));
+        if (!msg && input.value) input.classList.add('is-valid');
+        else input.classList.remove('is-valid');
+      }
+    }
+
+    function validateAuthName(silent) {
+      const value = String(authName?.value || '').trim();
+      const ok = value.length >= 2;
+      if (!silent) setFieldError(authName, authNameError, ok ? '' : 'Iltimos, ismingizni kiriting (kamida 2 harf)');
+      return ok;
+    }
+
+    function validateAuthPhone(silent) {
+      const ok = Boolean(normalizedAuthPhone());
+      if (!silent) {
+        setFieldError(authPhone, authPhoneError, ok ? '' : 'Telefon raqamni to‘liq kiriting (+998 XX XXX XX XX)');
+        if (authPhoneHint) authPhoneHint.style.display = ok ? '' : 'none';
+      }
+      return ok;
+    }
+
+    function validateAuthOtp(silent) {
+      const code = String(otpCodeInput?.value || '').replace(/\D/g, '');
+      const ok = code.length >= 4 && code.length <= 6;
+      if (!silent) setFieldError(otpCodeInput, authOtpError, ok ? '' : 'OTP kodni kiriting (4–6 raqam)');
+      return ok;
+    }
+
+    function clearAuthErrors() {
+      setFieldError(authName, authNameError, '');
+      setFieldError(authPhone, authPhoneError, '');
+      setFieldError(otpCodeInput, authOtpError, '');
+      if (authPhoneHint) authPhoneHint.style.display = '';
+    }
+
+    function setBtnLoading(btn, loading) {
+      if (!btn) return;
+      if (loading) {
+        btn.classList.add('is-loading');
+        btn.setAttribute('disabled', 'true');
+      } else {
+        btn.classList.remove('is-loading');
+        btn.removeAttribute('disabled');
+      }
+    }
+
+    function clearOtpCooldown() {
+      if (otpResendTimer) {
+        clearInterval(otpResendTimer);
+        otpResendTimer = null;
+      }
+      otpResendUntil = 0;
+      if (requestOtpBtn) {
+        requestOtpBtn.textContent = requestOtpDefaultLabel;
+        requestOtpBtn.classList.remove('is-disabled');
+        requestOtpBtn.removeAttribute('disabled');
+      }
+    }
+
+    function startOtpCooldown(seconds = OTP_RESEND_COOLDOWN_SEC) {
+      if (!requestOtpBtn) return;
+      clearOtpCooldown();
+      otpResendUntil = Date.now() + seconds * 1000;
+      const tick = () => {
+        const remaining = Math.max(0, Math.ceil((otpResendUntil - Date.now()) / 1000));
+        if (remaining <= 0) {
+          clearOtpCooldown();
+          return;
+        }
+        requestOtpBtn.textContent = `Qayta yuborish (${remaining}s)`;
+        requestOtpBtn.classList.add('is-disabled');
+        requestOtpBtn.setAttribute('disabled', 'true');
+      };
+      tick();
+      otpResendTimer = setInterval(tick, 1000);
+    }
+
+    if (authPhone) {
+      authPhone.addEventListener('input', (e) => {
+        const cursorAtEnd = (e.target.selectionStart ?? 0) === e.target.value.length;
+        const formatted = formatUzPhone(e.target.value);
+        if (formatted !== e.target.value) {
+          e.target.value = formatted;
+          if (cursorAtEnd) {
+            try { e.target.setSelectionRange(formatted.length, formatted.length); } catch (_) {}
+          }
+        }
+        if (authPhoneError?.classList.contains('show')) validateAuthPhone();
+      });
+      authPhone.addEventListener('blur', () => {
+        if (authPhone.value) validateAuthPhone();
+      });
+    }
+
+    if (authName) {
+      authName.addEventListener('input', () => {
+        if (authNameError?.classList.contains('show')) validateAuthName();
+      });
+      authName.addEventListener('blur', () => {
+        if (authName.value) validateAuthName();
+      });
+    }
+
+    if (otpCodeInput) {
+      otpCodeInput.addEventListener('input', (e) => {
+        const digits = String(e.target.value || '').replace(/\D/g, '').slice(0, 6);
+        if (digits !== e.target.value) e.target.value = digits;
+        if (authOtpError?.classList.contains('show')) validateAuthOtp();
+      });
+    }
     const toast = document.getElementById('toast');
     const introScreen = document.getElementById('introScreen');
     const homeProducts = document.getElementById('homeProducts');
@@ -1813,6 +2192,7 @@ Oq fonli foto</div>
       buildIntroParticles();
       cinematicIntro.classList.remove('phase-2', 'explode', 'brand-reveal', 'ready');
       introScreen?.classList.remove('fade-out');
+      gmAnalytics.track('intro_view');
       if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         cinematicIntro.classList.add('brand-reveal');
         cinematicIntro.classList.add('ready');
@@ -1828,7 +2208,13 @@ Oq fonli foto</div>
       introScreen?.classList.add('fade-out');
       const existingUser = JSON.parse(localStorage.getItem('globusUser') || 'null');
       if (existingUser?.name && !authName.value) authName.value = existingUser.name;
-      if (existingUser?.phone && !authPhone.value) authPhone.value = existingUser.phone;
+      if (existingUser?.phone && !authPhone.value) {
+        authPhone.value = formatUzPhone(existingUser.phone);
+      } else if (authPhone?.value) {
+        authPhone.value = formatUzPhone(authPhone.value);
+      }
+      clearAuthErrors();
+      gmAnalytics.track('register_open', { hasExistingUser: Boolean(existingUser) });
       setTimeout(() => {
         authSheetOverlay.classList.add('show');
         authName?.focus();
@@ -2087,21 +2473,32 @@ Oq fonli foto</div>
     }
 
     async function submitAuth() {
-      const phoneValue = String(authPhone.value || '').trim();
+      const nameOk = validateAuthName();
+      const phoneOk = validateAuthPhone();
+      if (!nameOk || !phoneOk) {
+        const firstInvalid = !nameOk ? authName : authPhone;
+        firstInvalid?.focus();
+        showToast(!nameOk ? 'Ismingizni to‘g‘ri kiriting' : 'Telefon raqam noto‘g‘ri');
+        return false;
+      }
       const nameValue = String(authName.value || '').trim();
-      if (!nameValue) { showToast('Ismingizni kiriting'); return false; }
-      if (!phoneValue) { showToast('Telefon raqam kiriting'); return false; }
+      const phoneValue = normalizedAuthPhone();
       currentUser = { name: nameValue, phone: phoneValue, createdAt: new Date().toISOString() };
       localStorage.setItem('globusUser', JSON.stringify(currentUser));
       await api('/profile', { method: 'PUT', body: JSON.stringify({ name: currentUser.name, phone: currentUser.phone, address: '' }) });
       authSheetOverlay.classList.remove('show');
       showToast("Ro'yxatdan o'tildi");
+      gmAnalytics.track('register_success', { hasOtp: Boolean(currentUser.phoneVerified) });
       return true;
     }
 
     async function requestOtpCode() {
-      const phoneValue = String(authPhone.value || '').trim();
-      if (!phoneValue) { showToast('Telefon raqam kiriting'); return; }
+      if (!validateAuthPhone()) {
+        authPhone?.focus();
+        showToast('Telefon raqamni to‘g‘ri kiriting');
+        return;
+      }
+      const phoneValue = normalizedAuthPhone();
       const out = await api('/auth/request-otp', { method: 'POST', body: JSON.stringify({ phone: phoneValue }) });
       if (out.devOtp) {
         devOtpHint.style.display = 'block';
@@ -2110,19 +2507,28 @@ Oq fonli foto</div>
         devOtpHint.style.display = 'none';
         devOtpHint.textContent = '';
       }
+      startOtpCooldown(OTP_RESEND_COOLDOWN_SEC);
+      gmAnalytics.track('otp_request', { phone: phoneValue });
       showToast('OTP yuborildi');
     }
 
     async function verifyOtpCode() {
-      const phoneValue = String(authPhone.value || '').trim();
+      const phoneOk = validateAuthPhone();
+      const otpOk = validateAuthOtp();
+      if (!phoneOk || !otpOk) {
+        (!phoneOk ? authPhone : otpCodeInput)?.focus();
+        showToast(!phoneOk ? 'Telefon raqam noto‘g‘ri' : 'OTP kod 4–6 raqamdan iborat bo‘lishi kerak');
+        return;
+      }
+      const phoneValue = normalizedAuthPhone();
       const codeValue = String(otpCodeInput.value || '').trim();
-      if (!phoneValue || !codeValue) { showToast('Telefon va OTP kodni kiriting'); return; }
       const out = await api('/auth/verify-otp', { method: 'POST', body: JSON.stringify({ phone: phoneValue, code: codeValue }) });
       if (currentUser && String(currentUser.phone || '') === phoneValue) {
         currentUser.phoneVerified = Boolean(out.user?.phoneVerified);
         currentUser.otpVerifiedAt = out.user?.otpVerifiedAt || null;
         localStorage.setItem('globusUser', JSON.stringify(currentUser));
       }
+      gmAnalytics.track('otp_verify', { verified: Boolean(out.user?.phoneVerified) });
       showToast('Telefon OTP orqali tasdiqlandi');
     }
 
@@ -2490,12 +2896,13 @@ Oq fonli foto</div>
       paymentValidationError.style.display = 'none';
     }
 
-    async function loadCustomerOrders() {
+    async function loadCustomerOrders({ throwOnError = false } = {}) {
       if (!currentUser?.phone) return [];
       try {
         const out = await api(`/customer/orders?phone=${encodeURIComponent(currentUser?.phone)}`);
         return out.orders || [];
-      } catch {
+      } catch (err) {
+        if (throwOnError) throw err;
         return [];
       }
     }
@@ -2621,7 +3028,26 @@ Oq fonli foto</div>
       profileName.textContent = currentUser?.name || 'Foydalanuvchi';
       profilePhone.textContent = `Telefon: ${currentUser?.phone || '-'}`;
       profileAddress.textContent = `Manzil: ${currentUser?.address || 'Manzil qo‘shilmagan'}`;
-      const orders = await loadCustomerOrders();
+
+      profileOrders.innerHTML = '<div class="gm-inline-loader" style="margin:8px 2px;">Buyurtmalaringiz yuklanmoqda…</div>';
+
+      let orders;
+      try {
+        orders = await loadCustomerOrders({ throwOnError: true });
+      } catch (err) {
+        profileOrders.innerHTML = `
+          <div class="gm-error-card">
+            <div class="gm-error-icon">!</div>
+            <div class="gm-error-body">
+              <h4>Buyurtmalarni yuklab bo‘lmadi</h4>
+              <p>Internet aloqasi yoki server bilan vaqtinchalik muammo bo‘lishi mumkin.</p>
+              <button type="button" class="gm-error-retry" id="profileOrdersRetry">Qayta urinish</button>
+            </div>
+          </div>
+        `;
+        document.getElementById('profileOrdersRetry')?.addEventListener('click', () => renderProfileOrders());
+        return;
+      }
       mergedCustomerOrders = mergeCustomerOrders(orders);
       if (!mergedCustomerOrders.length) {
         profileOrders.innerHTML = '<div class="empty">Sizda hali buyurtmalar yo‘q</div>';
@@ -2878,6 +3304,7 @@ Oq fonli foto</div>
     });
 
     submitAuthBtn?.addEventListener('click', async () => {
+      setBtnLoading(submitAuthBtn, true);
       try {
         const ok = await submitAuth();
         if (!ok) return;
@@ -2886,22 +3313,35 @@ Oq fonli foto</div>
         await initializeAppData();
       } catch (error) {
         showToast(error.message || 'Auth xatolik');
+      } finally {
+        setBtnLoading(submitAuthBtn, false);
       }
     });
 
     requestOtpBtn?.addEventListener('click', async () => {
+      if (otpResendUntil && Date.now() < otpResendUntil) return;
+      setBtnLoading(requestOtpBtn, true);
       try {
         await requestOtpCode();
       } catch (error) {
         showToast(error.message || 'OTP yuborishda xatolik');
+      } finally {
+        requestOtpBtn.classList.remove('is-loading');
+        if (!(otpResendUntil && Date.now() < otpResendUntil)) {
+          requestOtpBtn.removeAttribute('disabled');
+          requestOtpBtn.classList.remove('is-disabled');
+        }
       }
     });
 
     verifyOtpBtn?.addEventListener('click', async () => {
+      setBtnLoading(verifyOtpBtn, true);
       try {
         await verifyOtpCode();
       } catch (error) {
         showToast(error.message || 'OTP tekshirishda xatolik');
+      } finally {
+        setBtnLoading(verifyOtpBtn, false);
       }
     });
 
