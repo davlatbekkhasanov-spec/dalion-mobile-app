@@ -255,6 +255,9 @@
         productsCount: 'Mahsulotlar soni'
         ,notifications: 'Bildirishnomalar'
         ,shorts: 'Shorts'
+        ,ordersPanel: 'Buyurtmalar'
+        ,biometricPanel: 'Biometrik mijozlar'
+        ,biometricEmpty: "Hozircha mijozlar ro'yxati bo'sh."
         ,dalionSyncStarted: 'DALION sinxronizatsiyasi ishga tushdi'
         ,dalionSyncReply: 'DALION xizmati javobi olindi'
         ,dalionNotReady: 'DALION integratsiyasi hali sozlanmagan'
@@ -307,6 +310,9 @@
         productsCount: 'Количество товаров',
         notifications: 'Уведомления',
         shorts: 'Шортс',
+        ordersPanel: 'Заказы',
+        biometricPanel: 'Биометрические клиенты',
+        biometricEmpty: 'Пока список клиентов пуст.',
         dalionSyncStarted: 'Синхронизация DALION запущена',
         dalionSyncReply: 'Получен ответ сервиса DALION',
         dalionNotReady: 'Интеграция DALION пока не настроена'
@@ -361,6 +367,10 @@
       document.getElementById('homeSettingsTitle').textContent = t.home;
       document.getElementById('categoriesTitle').textContent = t.categories;
       document.getElementById('productsTitle').textContent = t.products;
+      document.querySelector('#notifications-panel h3').textContent = t.notifications;
+      document.querySelector('#shorts-panel h3').textContent = t.shorts;
+      document.querySelector('#orders-panel h3').textContent = t.ordersPanel;
+      document.querySelector('#biometric-panel h3').textContent = t.biometricPanel;
       document.querySelector('#processImagesLabel span').textContent = t.processImages;
       document.querySelector('#overwriteImagesLabel span').textContent = t.overwriteImages;
       document.querySelector('#updateOnlyStockPriceLabel span').textContent = t.updateOnlyStockPrice;
@@ -959,7 +969,7 @@
       const { customers } = await api('/admin/customers/biometric');
       const wrap = document.getElementById('biometricCustomersList');
       if (!customers || !customers.length) {
-        wrap.innerHTML = '<div class="item"><div class="muted">Hozircha mijozlar ro‘yxati bo‘sh.</div></div>';
+        wrap.innerHTML = `<div class="item"><div class="muted">${t('biometricEmpty')}</div></div>`;
         return;
       }
       wrap.innerHTML = customers.map((c) => {

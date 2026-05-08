@@ -3124,7 +3124,19 @@ Oq fonli foto</div>
         toastAddressRequired: "Lokatsiyani kiriting yoki manzilni to'ldiring",
         toastCashConsent: "Naqd to'lov shartlarini tasdiqlang",
         toastOrderSendErr: "Buyurtmani yuborishda xatolik",
-        toastOrderDone: 'Buyurtma yakunlandi'
+        toastOrderDone: 'Buyurtma yakunlandi',
+        validationAuthFirst: "Avval ro'yxatdan o'ting",
+        validationPaymentPick: "To'lov turini tanlang",
+        validationAddressRequired: "Manzilni kiriting yoki lokatsiyani yoqing",
+        checkoutSavedAddress: "Saqlangan manzil",
+        addressMissing: "Manzil qo'shilmagan",
+        checkoutAddress: "Manzil",
+        checkoutLandmark: "Orientir",
+        checkoutGeoMissing: "Geo: olinmagan",
+        checkoutHintManual: "Manzilni qo'lda kiriting yoki lokatsiyani yoqing",
+        checkoutHintOptional: "Lokatsiya ixtiyoriy. Istasangiz manzilni qo'lda kiriting.",
+        activeOrder: "Faol buyurtma",
+        track: "Kuzatish"
       },
       ru: {
         search: 'Поиск товаров...',
@@ -3171,7 +3183,19 @@ Oq fonli foto</div>
         toastAddressRequired: 'Введите адрес или геолокацию',
         toastCashConsent: 'Подтвердите условия наличной оплаты',
         toastOrderSendErr: 'Ошибка отправки заказа',
-        toastOrderDone: 'Заказ завершен'
+        toastOrderDone: 'Заказ завершен',
+        validationAuthFirst: 'Сначала зарегистрируйтесь',
+        validationPaymentPick: 'Выберите способ оплаты',
+        validationAddressRequired: 'Введите адрес или включите геолокацию',
+        checkoutSavedAddress: 'Сохраненный адрес',
+        addressMissing: 'Адрес не добавлен',
+        checkoutAddress: 'Адрес',
+        checkoutLandmark: 'Ориентир',
+        checkoutGeoMissing: 'Гео: нет данных',
+        checkoutHintManual: 'Введите адрес вручную или включите геолокацию',
+        checkoutHintOptional: 'Геолокация необязательна. При желании введите адрес вручную.',
+        activeOrder: 'Активный заказ',
+        track: 'Отследить'
       }
     };
 
@@ -3880,20 +3904,20 @@ Oq fonli foto</div>
       checkoutSubtotal.textContent = money(subtotal);
       checkoutDeliveryPrice.textContent = hasDelivery ? money(safeDeliveryPrice) : deliveryState.cartDeliveryText;
       checkoutGrandTotal.textContent = money(orderTotal);
-      checkoutSavedAddress.textContent = `Saqlangan manzil: ${currentUser?.address || 'Manzil qo‘shilmagan'}`;
-      checkoutLocation.textContent = `Manzil: ${resolvePreferredAddress()}`;
-      checkoutLandmark.textContent = `Orientir: ${customerLocation.landmarkText || landmarkInput.value || '-'}`;
+      checkoutSavedAddress.textContent = `${t('checkoutSavedAddress')}: ${currentUser?.address || t('addressMissing')}`;
+      checkoutLocation.textContent = `${t('checkoutAddress')}: ${resolvePreferredAddress()}`;
+      checkoutLandmark.textContent = `${t('checkoutLandmark')}: ${customerLocation.landmarkText || landmarkInput.value || '-'}`;
       checkoutGeo.textContent = isValidCoordinatePair(customerLocation.lat, customerLocation.lng)
         ? `Geo: ${Number(customerLocation.lat).toFixed(6)}, ${Number(customerLocation.lng).toFixed(6)} (±${Math.round(Number(customerLocation.accuracy || 0))}m)`
-        : 'Geo: olinmagan';
+        : t('checkoutGeoMissing');
       checkoutDistance.textContent = deliveryState.distanceText;
       checkoutTime.textContent = `ETA: ${deliveryEta}`;
       checkoutPrice.textContent = deliveryState.priceText;
       const checkoutLocationHint = document.getElementById('checkoutLocationHint');
       if (checkoutLocationHint) {
         checkoutLocationHint.textContent = customerLocation.permissionDenied
-          ? 'Manzilni qo‘lda kiriting yoki lokatsiyani yoqing'
-          : 'Lokatsiya ixtiyoriy. Istasangiz manzilni qo‘lda kiriting.';
+          ? t('checkoutHintManual')
+          : t('checkoutHintOptional');
       }
       const clickAmountTiyin = Math.round(Number(orderTotal || 0) * 100);
       if (selectedPayment === 'click') paymentLinks.innerHTML = `Click: <a href="https://indoor.click.uz/pay?id=081328&t=${clickAmountTiyin}" target="_blank">To‘lov havolasi</a>`;
@@ -4018,7 +4042,7 @@ Oq fonli foto</div>
           activeOrderCardWrap.innerHTML = '';
           return;
         }
-        activeOrderCardWrap.innerHTML = `<article class="list-card gm-card"><h4 style="margin-bottom:6px;">Faol buyurtma</h4><div class="muted">#${o.orderNumber} · ${orderStatusLabel(o.status)}</div><div class="muted">Jami: ${money(o.total || 0)}</div><div style="display:flex;gap:8px;margin-top:8px;"><a class="btn gm-btn gm-btn-secondary btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="text-align:center;">Kuzatish</a></div></article>`;
+        activeOrderCardWrap.innerHTML = `<article class="list-card gm-card"><h4 style="margin-bottom:6px;">${t('activeOrder')}</h4><div class="muted">#${o.orderNumber} · ${orderStatusLabel(o.status)}</div><div class="muted">Jami: ${money(o.total || 0)}</div><div style="display:flex;gap:8px;margin-top:8px;"><a class="btn gm-btn gm-btn-secondary btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="text-align:center;">${t('track')}</a></div></article>`;
       } catch {
         activeOrderCardWrap.innerHTML = '';
       }
@@ -4648,13 +4672,13 @@ Oq fonli foto</div>
       }
       if (!currentUser?.phone) {
         showToast(t('toastAuthFirst'));
-        paymentValidationError.textContent = "Avval ro‘yxatdan o‘ting";
+        paymentValidationError.textContent = t('validationAuthFirst');
         paymentValidationError.style.display = 'block';
         return;
       }
       if (!requireAuthOrIntro()) return;
       if (!selectedPayment) {
-        paymentValidationError.textContent = "To‘lov turini tanlang";
+        paymentValidationError.textContent = t('validationPaymentPick');
         paymentValidationError.style.display = 'block';
         showToast(t('toastPaymentPick'));
         return;
@@ -4662,7 +4686,7 @@ Oq fonli foto</div>
       customerLocation.addressText = manualAddress.value.trim() || '' || '';
       customerLocation.landmarkText = landmarkInput.value.trim();
       if (!hasResolvedCustomerLocation() && !customerLocation.addressText) {
-        addressValidationError.textContent = "Manzilni kiriting yoki lokatsiyani yoqing";
+        addressValidationError.textContent = t('validationAddressRequired');
         addressValidationError.style.display = 'block';
         showToast(t('toastAddressRequired'));
         return;

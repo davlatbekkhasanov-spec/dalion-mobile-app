@@ -203,6 +203,7 @@
       sendFeedback: "Fikr yuborish",
       call: "Qo'ng'iroq",
       support: "Qo'llab-quvvatlash",
+      mapPreparing: "Xarita: tayyorlanmoqda",
       mapYandex: "Xarita: Yandex",
       mapOsm: "Xarita: OSM",
       mapStatic: "Xarita: Statik",
@@ -246,6 +247,8 @@
       reconnecting: "Aloqa tiklanmoqda... qayta urinish",
       thankYouFeedback: "Rahmat, fikringiz qabul qilindi",
       mapRenderError: "Xarita render qilishda kutilmagan xatolik. Soddalashtirilgan marshrut."
+      ,deliveredText: "Yetkazildi"
+      ,defaultEtaHours: "1-4 soat"
     },
     ru: {
       loading: "Загрузка данных отслеживания...",
@@ -269,6 +272,7 @@
       sendFeedback: "Отправить отзыв",
       call: "Позвонить",
       support: "Поддержка",
+      mapPreparing: "Карта: подготовка",
       mapYandex: "Карта: Яндекс",
       mapOsm: "Карта: OSM",
       mapStatic: "Карта: Статическая",
@@ -312,6 +316,8 @@
       reconnecting: "Связь восстанавливается... повтор через",
       thankYouFeedback: "Спасибо, ваш отзыв принят",
       mapRenderError: "Непредвиденная ошибка отрисовки карты. Показан упрощенный маршрут."
+      ,deliveredText: "Доставлено"
+      ,defaultEtaHours: "1-4 часа"
     }
   };
   var timelineSteps = [
@@ -375,6 +381,7 @@
     if (sendFeedbackEl) sendFeedbackEl.textContent = t('sendFeedback');
     if (callBtnEl) callBtnEl.textContent = t('call');
     if (supportBtnEl) supportBtnEl.textContent = t('support');
+    if (mapProviderBadgeEl && !activeProvider) mapProviderBadgeEl.textContent = t('mapPreparing');
     if ($('langUzBtn')) $('langUzBtn').classList.toggle('active', currentLang === 'uz');
     if ($('langRuBtn')) $('langRuBtn').classList.toggle('active', currentLang === 'ru');
     if (order) render();
@@ -862,7 +869,7 @@
     bigStatusEl.textContent    = ui.title;
     bigStatusNoteEl.textContent= ui.note;
     metaEl.textContent = '#'+ order.orderNumber +' · '+ new Date(order.created_at || Date.now()).toLocaleString(formatLocale());
-    etaTextEl.textContent = order.etaLiveText || order.deliveryEta || order.estimatedTime || t('serviceEta').replace('🕒 ETA: ','');
+    etaTextEl.textContent = order.etaLiveText || order.deliveryEta || order.estimatedTime || t('defaultEtaHours');
     paymentEl.textContent = (order.paymentMethod || '-') + ' / ' + (order.paymentStatus || '-') + ' ('+ t('paymentSecure') +')';
     totalEl.textContent = money(order.total);
 
@@ -874,7 +881,7 @@
 
     addressEl.textContent = order.addressText || order.customerAddress || order.location || t('noAddress');
     var landmarkPart = order.landmarkText ? (t('landmark') + ': ' + order.landmarkText) : t('noLandmark');
-    deliveryInfoEl.textContent = t('order') + ': #'+ order.orderNumber +' · '+ landmarkPart +' · ETA: '+ (order.etaLiveText || order.deliveryEta || order.estimatedTime || '1-4 soat');
+    deliveryInfoEl.textContent = t('order') + ': #'+ order.orderNumber +' · '+ landmarkPart +' · ETA: '+ (order.etaLiveText || order.deliveryEta || order.estimatedTime || t('defaultEtaHours'));
     itemsEl.innerHTML = ((order.items || []).map(function(i){
       return escapeHtml(i.name) + ' × ' + escapeHtml(i.quantity) + ' = ' + money(i.subtotal);
     }).join('<br>')) || t('noItems');
@@ -899,7 +906,7 @@
       callBtnEl.href = 'tel:+998557010070';
     }
     if (order.status === 'delivered'){
-      etaTextEl.textContent = currentLang === 'ru' ? 'Доставлено' : 'Yetkazildi';
+      etaTextEl.textContent = t('deliveredText');
       callBtnEl.textContent = t('support');
     }
 
