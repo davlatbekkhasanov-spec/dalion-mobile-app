@@ -253,6 +253,11 @@
         saving: 'Saqlanmoqda...',
         toggle: 'Holatini almashtirish',
         productsCount: 'Mahsulotlar soni'
+        ,notifications: 'Bildirishnomalar'
+        ,shorts: 'Shorts'
+        ,dalionSyncStarted: 'DALION sinxronizatsiyasi ishga tushdi'
+        ,dalionSyncReply: 'DALION xizmati javobi olindi'
+        ,dalionNotReady: 'DALION integratsiyasi hali sozlanmagan'
       },
       ru: {
         pageTitle: 'Админ панель',
@@ -299,7 +304,12 @@
         loadError: 'Ошибка загрузки',
         saving: 'Сохранение...',
         toggle: 'Переключить статус',
-        productsCount: 'Количество товаров'
+        productsCount: 'Количество товаров',
+        notifications: 'Уведомления',
+        shorts: 'Шортс',
+        dalionSyncStarted: 'Синхронизация DALION запущена',
+        dalionSyncReply: 'Получен ответ сервиса DALION',
+        dalionNotReady: 'Интеграция DALION пока не настроена'
       }
     };
     const langKey = 'admin_lang';
@@ -369,8 +379,8 @@
         if (key === 'home-settings') btn.textContent = t.home;
         if (key === 'categories') btn.textContent = t.categories;
         if (key === 'products') btn.textContent = t.products;
-        if (key === 'notifications') btn.textContent = 'Notifications';
-        if (key === 'shorts') btn.textContent = 'Shorts';
+        if (key === 'notifications') btn.textContent = t.notifications;
+        if (key === 'shorts') btn.textContent = t.shorts;
         if (key === 'orders') btn.textContent = t.orders;
         if (key === 'biometric') btn.textContent = t.biometric;
       });
@@ -506,9 +516,9 @@
     document.getElementById('dalionSyncBtn').onclick = async () => {
       try {
         const out = await api('/admin/dalion/sync', { method: 'POST' });
-        showToast(out?.success ? 'DALION sinxronizatsiya ishga tushdi' : 'DALION xizmati javobi olindi');
+        showToast(out?.success ? t('dalionSyncStarted') : t('dalionSyncReply'));
       } catch (e) {
-        showToast(e.message || 'DALION integratsiyasi hali sozlanmagan');
+        showToast(e.message || t('dalionNotReady'));
       }
     };
 
@@ -839,6 +849,33 @@
       }catch(err){showToast(err.message||t('loadError'))}
     };
 
+    (function setupFrontendErrorLogger() {
+      const STORAGE_KEY = 'gm_frontend_errors';
+      const MAX_ITEMS = 60;
+      function readItems() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          const parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (_) { return []; }
+      }
+      function push(type, message, extra) {
+        try {
+          const items = readItems();
+          items.push({ type, message: String(message || 'unknown'), ts: Date.now(), extra: extra || null });
+          while (items.length > MAX_ITEMS) items.shift();
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        } catch (_) {}
+      }
+      window.addEventListener('error', (event) => {
+        push('error', event?.message, { source: event?.filename, line: event?.lineno, col: event?.colno });
+      });
+      window.addEventListener('unhandledrejection', (event) => {
+        const reason = event?.reason;
+        push('unhandledrejection', reason?.message || String(reason || 'promise rejected'));
+      });
+    })();
+
     const orderNext = {
       created: ['To‘lovni kutish holatiga o‘tkazish', 'payment_pending'],
       payment_pending: ['To‘lov tasdiqlandi', 'payment_confirmed'],
@@ -852,12 +889,12 @@
     function adminStatusLabel(status) {
       return {
         created: 'Qabul qilindi',
-        payment_pending: 'To‘lov kutilmoqda',
+        payment_pending: 'To‘lov tekshirilmoqda',
         payment_confirmed: 'To‘lov tasdiqlandi',
-        preparing: 'Yig‘ilmoqda',
-        ready_for_courier: 'Kurierga tayyor',
+        preparing: 'Yig‘ish jarayonida',
+        ready_for_courier: 'Kurier biriktirilmoqda',
         courier_assigned: 'Kurier biriktirilgan',
-        out_for_delivery: 'Yetkazib berishda',
+        out_for_delivery: 'Yo‘lda',
         delivered: 'Yetkazib berildi',
         cancelled: 'Bekor qilingan'
       }[status] || status;
@@ -884,7 +921,7 @@
               <div class="item">
                 <div><b>#${o.orderNumber || o.id}</b> · ${new Date(o.created_at).toLocaleTimeString('ru-RU')}</div>
                 <div class="muted">${o.customerName || 'Mehmon'} | ${o.customerPhone || '-'} | ${o.customerAddress || o.location || '-'}</div>
-                <div class="muted">To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatus || '-'} · Yetkazish: ${adminStatusLabel(o.status)}</div>
+                <div class="muted">To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatusLabel || o.paymentStatus || '-'} · Yetkazish: ${o.statusLabel || adminStatusLabel(o.status)}</div>
                 <div class="muted">${(o.items || []).length} item · ${Number(o.total || 0).toLocaleString('ru-RU')} so'm</div>
                 <div class="muted">Kurier: ${o.courierName || 'Kurier biriktirilmoqda'} ${o.courierPhone ? `(${o.courierPhone})` : ''}</div>
                 <div class="muted" style="margin-top:6px;">Tezkor amallar:</div>

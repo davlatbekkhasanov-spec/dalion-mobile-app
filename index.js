@@ -21,6 +21,20 @@ const MAX_BIOMETRIC_BYTES = 1.5 * 1024 * 1024;
 const MAX_REASONABLE_DISTANCE_KM = 120;
 const MAX_DELIVERY_FEE = 300000;
 
+function logStructured(level, event, details = {}) {
+  const payload = {
+    level,
+    event,
+    at: nowIso(),
+    ...details
+  };
+  if (level === 'error') {
+    console.error('[BACKEND]', JSON.stringify(payload));
+    return;
+  }
+  console.info('[BACKEND]', JSON.stringify(payload));
+}
+
 app.use(express.json({ limit: '3mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -176,7 +190,11 @@ function readDb() {
   }
   try {
     return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-  } catch {
+  } catch (error) {
+    logStructured('error', 'db_read_failed', {
+      message: error?.message || 'unknown db read error',
+      file: DB_FILE
+    });
     return defaultDb();
   }
 }
@@ -297,6 +315,22 @@ const ALLOWED_ORDER_TRANSITIONS = {
   delivered: new Set([]),
   cancelled: new Set([])
 };
+const ORDER_STATUS_LABELS = {
+  created: 'Buyurtma qabul qilindi',
+  payment_pending: 'To‘lov tekshirilmoqda',
+  payment_confirmed: 'To‘lov tasdiqlandi',
+  preparing: 'Yig‘ish jarayonida',
+  ready_for_courier: 'Kurier biriktirilmoqda',
+  courier_assigned: 'Kurier biriktirildi',
+  out_for_delivery: 'Yo‘lda',
+  delivered: 'Yetkazib berildi',
+  cancelled: 'Bekor qilingan'
+};
+const PAYMENT_STATUS_LABELS = {
+  pending: 'To‘lov tekshirilmoqda',
+  unpaid: 'To‘lanmagan',
+  paid: 'To‘langan'
+};
 
 function normalizeOrderStatus(status) {
   const raw = String(status || '').trim();
@@ -317,6 +351,31 @@ function canTransitionOrderStatus(currentStatus, requestedStatus) {
   const allowed = ALLOWED_ORDER_TRANSITIONS[from];
   return Boolean(allowed && allowed.has(to));
 }
+
+function orderStatusLabel(status) {
+  const normalized = normalizeOrderStatus(status);
+  return ORDER_STATUS_LABELS[normalized] || normalized || '-';
+}
+
+function paymentStatusLabel(status) {
+  const normalized = String(status || '').trim().toLowerCase();
+  return PAYMENT_STATUS_LABELS[normalized] || normalized || '-';
+}
+
+app.use((req, res, next) => {
+  const startedAt = Date.now();
+  res.on('finish', () => {
+    if (res.statusCode >= 500) {
+      logStructured('error', 'http_5xx_response', {
+        method: req.method,
+        path: req.originalUrl || req.url,
+        statusCode: res.statusCode,
+        durationMs: Date.now() - startedAt
+      });
+    }
+  });
+  next();
+});
 
 // Frontend pages
 app.get('/', (req, res) => {
@@ -580,7 +639,9 @@ app.get('/api/v1/orders/:orderNumber/status', (req, res) => {
     ok: true,
     orderNumber: order.orderNumber,
     status: normalizedStatus,
+    statusLabel: orderStatusLabel(normalizedStatus),
     paymentStatus: order.paymentStatus || 'pending',
+    paymentStatusLabel: paymentStatusLabel(order.paymentStatus || 'pending'),
     updatedAt: order.updated_at || order.created_at || nowIso()
   });
 });
@@ -612,7 +673,10 @@ app.get('/api/v1/orders/:orderNumber/track', (req, res) => {
   const payload = orderPublic({
     ...order,
     status: normalizedStatus,
+    statusLabel: orderStatusLabel(normalizedStatus),
+    paymentStatusLabel: paymentStatusLabel(order.paymentStatus || 'pending'),
     delivery_status: normalizeOrderStatus(order.delivery_status || normalizedStatus),
+    deliveryStatusLabel: orderStatusLabel(order.delivery_status || normalizedStatus),
     etaLiveText: etaLabel,
     trackingUpdatedAt: latestUpdateAt
   });
@@ -678,7 +742,10 @@ app.get('/api/v1/orders-display/feed', (req, res) => {
     .map((order) => ({
       ...order,
       status: normalizeOrderStatus(order.status),
-      delivery_status: normalizeOrderStatus(order.delivery_status || order.status)
+      statusLabel: orderStatusLabel(order.status),
+      paymentStatusLabel: paymentStatusLabel(order.paymentStatus || 'pending'),
+      delivery_status: normalizeOrderStatus(order.delivery_status || order.status),
+      deliveryStatusLabel: orderStatusLabel(order.delivery_status || order.status)
     }))
     .filter((order) => activeStatuses.has(String(order.status || '').trim()))
     .sort((a, b) => {
@@ -888,7 +955,10 @@ app.get('/api/v1/admin/orders', requireAdmin, (req, res) => {
     .map((order) => ({
       ...order,
       status: normalizeOrderStatus(order.status),
-      delivery_status: normalizeOrderStatus(order.delivery_status || order.status)
+      statusLabel: orderStatusLabel(order.status),
+      paymentStatusLabel: paymentStatusLabel(order.paymentStatus || 'pending'),
+      delivery_status: normalizeOrderStatus(order.delivery_status || order.status),
+      deliveryStatusLabel: orderStatusLabel(order.delivery_status || order.status)
     }))
     .sort((a, b) => {
       const bt = new Date(b.updated_at || b.created_at || 0).getTime();
@@ -1010,7 +1080,7 @@ app.post('/api/v1/courier/:token/accept', (req, res) => {
   const order = db.orders.find((o) => String(o.courierToken || '') === token);
   if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
   const currentStatus = normalizeOrderStatus(order.status);
-  if (!['ready_for_courier', 'courier_assigned', 'out_for_delivery'].includes(currentStatus)) {
+  if (!canTransitionOrderStatus(currentStatus, 'out_for_delivery')) {
     return res.status(409).json({ ok: false, message: `Bu statusda qabul qilib bo'lmaydi: ${currentStatus}` });
   }
   order.courierName = String(req.body.courierName || order.courierName || '').trim();
@@ -1046,8 +1116,9 @@ app.post('/api/v1/courier/:token/deliver', (req, res) => {
   const token = String(req.params.token || '').trim();
   const order = db.orders.find((o) => String(o.courierToken || '') === token);
   if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
-  if (normalizeOrderStatus(order.status) !== 'out_for_delivery') {
-    return res.status(409).json({ ok: false, message: 'Buyurtma hali yo‘lda emas' });
+  const currentStatus = normalizeOrderStatus(order.status);
+  if (!canTransitionOrderStatus(currentStatus, 'delivered')) {
+    return res.status(409).json({ ok: false, message: `Buyurtma bu holatda yopilmaydi: ${currentStatus}` });
   }
   order.status = 'delivered';
   order.delivery_status = 'delivered';

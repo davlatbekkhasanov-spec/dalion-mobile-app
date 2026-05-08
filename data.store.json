@@ -1,0 +1,168 @@
+{
+  "homeSettings": {
+    "brandName": "GlobusMarket",
+    "locationText": "Toshkent shahri",
+    "searchPlaceholder": "Mahsulot qidirish...",
+    "heroTitle": "Tez va ishonchli yetkazib berish",
+    "heroSubtitle": "Sifatli mahsulotlar eng yaxshi narxlarda",
+    "heroBadgeText": "20-30 daqiqa",
+    "bonusTitle": "Har kuni aksiya",
+    "bonusSubtitle": "Yangi chegirmalar siz uchun",
+    "deliveryTimeText": "30 daqiqa",
+    "deliveryText": "Buyurtma uyingizgacha",
+    "backgroundImageUrl": "",
+    "accentColor": "#6a4dff",
+    "defaultMarginPercent": 15,
+    "clickPaymentUrl": "",
+    "paymePaymentUrl": "",
+    "cashTermsText": "Naqd to‘lovni qabul qilaman."
+  },
+  "banners": [
+    {
+      "id": "b1",
+      "title": "Tez yetkazib berish",
+      "subtitle": "20-30 daqiqada",
+      "image_url": "",
+      "active": true
+    }
+  ],
+  "promotions": [
+    {
+      "id": "pr1",
+      "title": "Hafta aksiyasi",
+      "discount_text": "-15%",
+      "description": "Eng mashhur mahsulotlarda chegirma",
+      "image_url": "",
+      "active": true
+    }
+  ],
+  "categories": [
+    {
+      "id": "c1",
+      "name": "Sut mahsulotlari",
+      "displayName": "Sut mahsulotlari",
+      "icon": "🥛",
+      "image_url": "",
+      "active": true
+    },
+    {
+      "id": "c2",
+      "name": "Ichimliklar",
+      "displayName": "Ichimliklar",
+      "icon": "🥤",
+      "image_url": "",
+      "active": true
+    },
+    {
+      "id": "c3",
+      "name": "Shirinliklar",
+      "displayName": "Shirinliklar",
+      "icon": "🍫",
+      "image_url": "",
+      "active": true
+    },
+    {
+      "id": "c4",
+      "name": "Mevalar",
+      "displayName": "Mevalar",
+      "icon": "🍎",
+      "image_url": "",
+      "active": true
+    }
+  ],
+  "products": [
+    {
+      "id": "p1",
+      "code": "MILK-1L",
+      "name": "Sut 1L",
+      "price": 14000,
+      "oldPrice": 16000,
+      "stock": 90,
+      "image_url": "",
+      "active": true,
+      "categoryId": "c1",
+      "category": "Sut mahsulotlari",
+      "categoryDisplayName": "Sut mahsulotlari",
+      "discount_percent": 12
+    },
+    {
+      "id": "p2",
+      "code": "KEFIR",
+      "name": "Kefir 1L",
+      "price": 18000,
+      "oldPrice": 0,
+      "stock": 70,
+      "image_url": "",
+      "active": true,
+      "categoryId": "c1",
+      "category": "Sut mahsulotlari",
+      "categoryDisplayName": "Sut mahsulotlari",
+      "discount_percent": 0
+    },
+    {
+      "id": "p3",
+      "code": "WATER",
+      "name": "Suv 1.5L",
+      "price": 7000,
+      "oldPrice": 0,
+      "stock": 180,
+      "image_url": "",
+      "active": true,
+      "categoryId": "c2",
+      "category": "Ichimliklar",
+      "categoryDisplayName": "Ichimliklar",
+      "discount_percent": 0
+    },
+    {
+      "id": "p4",
+      "code": "JUICE",
+      "name": "Sharbat 1L",
+      "price": 21000,
+      "oldPrice": 24000,
+      "stock": 65,
+      "image_url": "",
+      "active": true,
+      "categoryId": "c2",
+      "category": "Ichimliklar",
+      "categoryDisplayName": "Ichimliklar",
+      "discount_percent": 10
+    },
+    {
+      "id": "p5",
+      "code": "APPLE",
+      "name": "Olma 1kg",
+      "price": 24000,
+      "oldPrice": 0,
+      "stock": 110,
+      "image_url": "",
+      "active": true,
+      "categoryId": "c4",
+      "category": "Mevalar",
+      "categoryDisplayName": "Mevalar",
+      "discount_percent": 0
+    }
+  ],
+  "profiles": {},
+  "carts": {},
+  "otp": {},
+  "orders": [],
+  "notifications": [],
+  "shorts": [
+    {
+      "id": "s1",
+      "title": "Yangi aksiya",
+      "subtitle": "Top mahsulotlar bo‘yicha chegirmalar",
+      "media_url": "",
+      "active": true,
+      "sortOrder": 1
+    },
+    {
+      "id": "s2",
+      "title": "Tezkor yetkazish",
+      "subtitle": "Buyurtma odatda 1-4 soatda yetib boradi",
+      "media_url": "",
+      "active": true,
+      "sortOrder": 2
+    }
+  ]
+}

@@ -3079,8 +3079,100 @@ Oq fonli foto</div>
     }
 
     const i18n = {
-      uz: { search: 'Mahsulot qidirish...', catalog: 'Katalog', cart: 'Savat', checkout: "Buyurtmani rasmiylashtirish", notifications: 'Bildirishnomalar', shorts: 'Shorts', notFound: 'Mahsulot topilmadi', bellEmpty: "Hozircha bildirishnomalar yo'q" },
-      ru: { search: 'Поиск товаров...', catalog: 'Каталог', cart: 'Корзина', checkout: 'Оформление заказа', notifications: 'Уведомления', shorts: 'Шортс', notFound: 'Товар не найден', bellEmpty: 'Пока нет уведомлений' }
+      uz: {
+        search: 'Mahsulot qidirish...',
+        catalog: 'Katalog',
+        cart: 'Savat',
+        checkout: 'Buyurtmani rasmiylashtirish',
+        notifications: 'Bildirishnomalar',
+        shorts: 'Shorts',
+        notFound: 'Mahsulot topilmadi',
+        bellEmpty: "Hozircha bildirishnomalar yo'q",
+        searchClear: 'Qidiruvni tozalash',
+        homeAll: 'Barchasi',
+        homeMore: "Ko'proq",
+        categories: 'Kategoriyalar',
+        discounts: 'Chegirmalar',
+        fastPick: 'Tezkor tanlovlar',
+        popular: 'Ommabop',
+        reorder: 'Qayta buyurtma',
+        promotions: 'Aksiyalar',
+        profile: 'Profil',
+        toastError: 'Xatolik yuz berdi',
+        toastAuthFirst: "Avval ro'yxatdan o'ting",
+        toastNameInvalid: "Ismingizni to'g'ri kiriting",
+        toastPhoneInvalid: "Telefon raqam noto'g'ri",
+        toastBiometric: 'Biometrik tekshiruvni yakunlang',
+        toastRegistered: "Ro'yxatdan o'tildi",
+        toastOutOfStock: "Omborda yo'q",
+        toastAdded: "Savatga qo'shildi",
+        toastOrderMissing: 'Buyurtma topilmadi',
+        toastNoReorderItems: "Qayta buyurtma uchun mahsulot yo'q",
+        toastProductsEmpty: 'Mahsulotlar hozircha mavjud emas',
+        toastReorderPartial: "Qisman qayta buyurtma savatga qo'shildi",
+        toastReorderDone: "Buyurtma savatga qayta qo'shildi",
+        toastGeoInvalid: "Lokatsiya noto'g'ri formatda keldi, qayta urinib ko'ring",
+        toastAddressDetected: 'Manzil aniqlandi',
+        toastLocationCaptured: 'Lokatsiya olindi',
+        toastDataLoadErr: "Ma'lumotni yuklashda xatolik",
+        toastAuthErr: 'Auth xatolik',
+        toastSignedOut: 'Siz tizimdan chiqdingiz',
+        toastReorderErr: 'Qayta buyurtmada xatolik',
+        toastMaxStock: 'Maksimal qoldiqqa yetdi',
+        toastCartEmpty: "Savat bo'sh",
+        toastPaymentPick: "To'lov turini tanlang",
+        toastAddressRequired: "Lokatsiyani kiriting yoki manzilni to'ldiring",
+        toastCashConsent: "Naqd to'lov shartlarini tasdiqlang",
+        toastOrderSendErr: "Buyurtmani yuborishda xatolik",
+        toastOrderDone: 'Buyurtma yakunlandi'
+      },
+      ru: {
+        search: 'Поиск товаров...',
+        catalog: 'Каталог',
+        cart: 'Корзина',
+        checkout: 'Оформление заказа',
+        notifications: 'Уведомления',
+        shorts: 'Шортс',
+        notFound: 'Товар не найден',
+        bellEmpty: 'Пока нет уведомлений',
+        searchClear: 'Очистить поиск',
+        homeAll: 'Все',
+        homeMore: 'Еще',
+        categories: 'Категории',
+        discounts: 'Скидки',
+        fastPick: 'Быстрый выбор',
+        popular: 'Популярное',
+        reorder: 'Повтор заказа',
+        promotions: 'Акции',
+        profile: 'Профиль',
+        toastError: 'Произошла ошибка',
+        toastAuthFirst: 'Сначала зарегистрируйтесь',
+        toastNameInvalid: 'Введите корректное имя',
+        toastPhoneInvalid: 'Неверный номер телефона',
+        toastBiometric: 'Завершите биометрическую проверку',
+        toastRegistered: 'Регистрация завершена',
+        toastOutOfStock: 'Нет в наличии',
+        toastAdded: 'Добавлено в корзину',
+        toastOrderMissing: 'Заказ не найден',
+        toastNoReorderItems: 'Нет товаров для повтора заказа',
+        toastProductsEmpty: 'Товары пока недоступны',
+        toastReorderPartial: 'Часть товаров добавлена в корзину',
+        toastReorderDone: 'Заказ повторно добавлен в корзину',
+        toastGeoInvalid: 'Некорректный формат геолокации, повторите попытку',
+        toastAddressDetected: 'Адрес определен',
+        toastLocationCaptured: 'Геолокация получена',
+        toastDataLoadErr: 'Ошибка загрузки данных',
+        toastAuthErr: 'Ошибка авторизации',
+        toastSignedOut: 'Вы вышли из системы',
+        toastReorderErr: 'Ошибка повторного заказа',
+        toastMaxStock: 'Достигнут максимальный остаток',
+        toastCartEmpty: 'Корзина пуста',
+        toastPaymentPick: 'Выберите способ оплаты',
+        toastAddressRequired: 'Введите адрес или геолокацию',
+        toastCashConsent: 'Подтвердите условия наличной оплаты',
+        toastOrderSendErr: 'Ошибка отправки заказа',
+        toastOrderDone: 'Заказ завершен'
+      }
     };
 
     function t(key) {
@@ -3092,9 +3184,22 @@ Oq fonli foto</div>
       document.getElementById('openSearchBtn').textContent = t('search');
       document.querySelector('#searchView .title').textContent = t('catalog');
       document.querySelector('#cartView .title').textContent = t('cart');
+      document.querySelector('#profileView .title').textContent = t('profile');
       document.querySelector('#checkoutView .title').textContent = t('checkout');
       document.getElementById('notificationsTitle').textContent = t('notifications');
       document.getElementById('shortsSectionTitle').textContent = t('shorts');
+      document.getElementById('searchInput').placeholder = t('search');
+      document.getElementById('searchClearBtn').setAttribute('aria-label', t('searchClear'));
+      document.getElementById('homeAllCategoriesLink').textContent = t('homeAll');
+      document.getElementById('homeMoreProductsLink').textContent = t('homeMore');
+      const sectionTitles = document.querySelectorAll('.section-head h4');
+      if (sectionTitles[1]) sectionTitles[1].textContent = t('categories');
+      if (sectionTitles[3]) sectionTitles[3].textContent = t('discounts');
+      if (sectionTitles[4]) sectionTitles[4].textContent = t('fastPick');
+      if (sectionTitles[5]) sectionTitles[5].textContent = t('popular');
+      if (sectionTitles[6]) sectionTitles[6].textContent = t('reorder');
+      const promoTitle = document.getElementById('promoSectionTitle');
+      if (promoTitle) promoTitle.textContent = t('promotions');
       if (!notificationsList.children.length) notificationsList.innerHTML = `<div class="empty">${t('bellEmpty')}</div>`;
       langUzBtn?.classList.toggle('active', currentLang === 'uz');
       langRuBtn?.classList.toggle('active', currentLang === 'ru');
@@ -3286,7 +3391,7 @@ Oq fonli foto</div>
         const firstInvalid = !nameOk ? authName : authPhone;
         if (!biometricOk && biometricConsentCheckbox && !biometricConsentCheckbox.checked) biometricConsentCheckbox.focus();
         firstInvalid?.focus();
-        showToast(!nameOk ? 'Ismingizni to‘g‘ri kiriting' : (!phoneOk ? 'Telefon raqam noto‘g‘ri' : 'Biometrik tekshiruvni yakunlang'));
+        showToast(!nameOk ? t('toastNameInvalid') : (!phoneOk ? t('toastPhoneInvalid') : t('toastBiometric')));
         return false;
       }
       const nameValue = String(authName.value || '').trim();
@@ -3315,14 +3420,14 @@ Oq fonli foto</div>
       });
       resetSelfieState();
       authSheetOverlay.classList.remove('show');
-      showToast("Ro'yxatdan o'tildi");
+      showToast(t('toastRegistered'));
       gmAnalytics.track('register_success', { hasBiometric: true });
       return true;
     }
 
     function requireAuthOrIntro() {
       if (isAuthed()) return true;
-      showToast("Avval ro‘yxatdan o‘ting");
+      showToast(t('toastAuthFirst'));
       phone.classList.remove('show-app');
       authSheetOverlay.classList.add('show');
       return false;
@@ -3506,7 +3611,7 @@ Oq fonli foto</div>
       const p = products.find((x) => x.id === id);
       const stockLimit = Number(p?.stock ?? 0);
       if (stockLimit <= 0 && Number(value) > 0) {
-        showToast("Omborda yo'q");
+        showToast(t('toastOutOfStock'));
         return;
       }
       const quantity = Math.max(0, Math.min(Number(value) || 0, stockLimit));
@@ -3515,7 +3620,7 @@ Oq fonli foto</div>
         body: JSON.stringify({ productId: id, quantity })
       });
       await loadCart();
-      if (showAddToast) showToast("Savatga qo'shildi");
+      if (showAddToast) showToast(t('toastAdded'));
       renderAll();
     }
 
@@ -3860,12 +3965,12 @@ Oq fonli foto</div>
       if (!requireAuthOrIntro()) return;
       const order = mergedCustomerOrders.find((item) => String(item.orderNumber) === String(orderNumber));
       if (!order) {
-        showToast("Buyurtma topilmadi");
+        showToast(t('toastOrderMissing'));
         return;
       }
       const orderItems = Array.isArray(order.items) ? order.items : [];
       if (!orderItems.length) {
-        showToast("Qayta buyurtma uchun mahsulot yo‘q");
+        showToast(t('toastNoReorderItems'));
         return;
       }
 
@@ -3891,10 +3996,10 @@ Oq fonli foto</div>
       renderAll();
       setView('cartView', { push: true });
       if (!addedAny) {
-        showToast("Mahsulotlar hozircha mavjud emas");
+        showToast(t('toastProductsEmpty'));
         return;
       }
-      showToast(adjustedCount > 0 ? "Qisman qayta buyurtma savatga qo‘shildi" : "Buyurtma savatga qayta qo‘shildi");
+      showToast(adjustedCount > 0 ? t('toastReorderPartial') : t('toastReorderDone'));
     }
 
     async function renderActiveOrderCard() {
@@ -4135,7 +4240,7 @@ Oq fonli foto</div>
           customerLocation.accuracy = null;
           customerLocation.permissionDenied = false;
           renderCheckout();
-          showToast('Lokatsiya noto‘g‘ri formatda keldi, qayta urinib ko‘ring');
+          showToast(t('toastGeoInvalid'));
           return;
         }
         customerLocation.lat = nextLat;
@@ -4147,7 +4252,7 @@ Oq fonli foto</div>
         applyResolvedAddress(geoAddress || customerLocation.addressText || fallbackGeoAddress);
         closeLocationDeniedModal();
         renderCheckout();
-        showToast(geoAddress ? 'Manzil aniqlandi' : 'Lokatsiya olindi');
+        showToast(geoAddress ? t('toastAddressDetected') : t('toastLocationCaptured'));
       }, () => {
         customerLocation.permissionDenied = true;
         renderCheckout();
@@ -4222,7 +4327,7 @@ Oq fonli foto</div>
         await loadNotifications();
         renderAll();
       } catch (error) {
-        showToast(error.message || 'Maʼlumotni yuklashda xatolik');
+        showToast(error.message || t('toastDataLoadErr'));
       }
     }
 
@@ -4260,7 +4365,7 @@ Oq fonli foto</div>
         setView('homeView');
         await initializeAppData();
       } catch (error) {
-        showToast(error.message || 'Auth xatolik');
+        showToast(error.message || t('toastAuthErr'));
       } finally {
         setBtnLoading(submitAuthBtn, false);
       }
@@ -4289,7 +4394,7 @@ Oq fonli foto</div>
       introScreen?.classList.remove('fade-out');
       syncIntroCta();
       runCinematicIntro();
-      showToast("Siz tizimdan chiqdingiz");
+      showToast(t('toastSignedOut'));
       renderProfileOrders();
     });
 
@@ -4303,7 +4408,7 @@ Oq fonli foto</div>
       try {
         await reorderFromOrder(reorderBtn.dataset.reorder);
       } catch (error) {
-        showToast(error.message || 'Qayta buyurtmada xatolik');
+        showToast(error.message || t('toastReorderErr'));
       }
     });
 
@@ -4443,11 +4548,11 @@ Oq fonli foto</div>
           const p = products.find((x) => x.id === id);
           const stock = Number(p?.stock ?? 0);
           if (stock <= 0) {
-            showToast("Omborda yo'q");
+            showToast(t('toastOutOfStock'));
             return;
           }
           if (qtyOf(id) >= stock) {
-            showToast('Maksimal qoldiqga yetdi');
+            showToast(t('toastMaxStock'));
             return;
           }
           await setQty(id, qtyOf(id) + 1, true);
@@ -4462,7 +4567,7 @@ Oq fonli foto</div>
           return;
         }
       } catch (error) {
-        showToast(error.message || 'Xatolik yuz berdi');
+        showToast(error.message || t('toastError'));
         return;
       }
 
@@ -4511,14 +4616,14 @@ Oq fonli foto</div>
       try {
         await setQty(activeModalProductId, qtyOf(activeModalProductId) + 1, true);
       } catch (error) {
-        showToast(error.message || 'Xatolik yuz berdi');
+        showToast(error.message || t('toastError'));
       }
     });
 
     document.getElementById('orderBtn').addEventListener('click', () => {
       if (!requireAuthOrIntro()) return;
       if (totalQty() === 0) {
-        showToast("Savat bo'sh");
+        showToast(t('toastCartEmpty'));
         return;
       }
       setView('checkoutView');
@@ -4538,11 +4643,11 @@ Oq fonli foto</div>
       addressValidationError.style.display = 'none';
       paymentValidationError.style.display = 'none';
       if (totalQty() === 0) {
-        showToast("Savat bo'sh");
+        showToast(t('toastCartEmpty'));
         return;
       }
       if (!currentUser?.phone) {
-        showToast("Avval ro‘yxatdan o‘ting");
+        showToast(t('toastAuthFirst'));
         paymentValidationError.textContent = "Avval ro‘yxatdan o‘ting";
         paymentValidationError.style.display = 'block';
         return;
@@ -4551,7 +4656,7 @@ Oq fonli foto</div>
       if (!selectedPayment) {
         paymentValidationError.textContent = "To‘lov turini tanlang";
         paymentValidationError.style.display = 'block';
-        showToast("To'lov turini tanlang");
+        showToast(t('toastPaymentPick'));
         return;
       }
       customerLocation.addressText = manualAddress.value.trim() || '' || '';
@@ -4559,7 +4664,7 @@ Oq fonli foto</div>
       if (!hasResolvedCustomerLocation() && !customerLocation.addressText) {
         addressValidationError.textContent = "Manzilni kiriting yoki lokatsiyani yoqing";
         addressValidationError.style.display = 'block';
-        showToast("Lokatsiyani kiriting yoki manzilni to‘ldiring");
+        showToast(t('toastAddressRequired'));
         return;
       }
 
@@ -4569,7 +4674,7 @@ Oq fonli foto</div>
           if (!cashAgreementCheckbox.checked) {
             paymentValidationError.textContent = "Naqd to‘lov uchun rozilikni tasdiqlang";
             paymentValidationError.style.display = 'block';
-            showToast("Naqd to‘lov shartlarini tasdiqlang");
+            showToast(t('toastCashConsent'));
             return;
           }
         }
@@ -4637,7 +4742,7 @@ Oq fonli foto</div>
         refreshOrderStatus();
         setView('successView');
       } catch (error) {
-        showToast(error.message || 'Buyurtmani yuborishda xatolik');
+        showToast(error.message || t('toastOrderSendErr'));
       }
     });
 
@@ -4649,7 +4754,7 @@ Oq fonli foto</div>
       await initializeAppData();
       setView('homeView');
       trackOrderBtn.style.display = 'none';
-      showToast('Buyurtma yakunlandi');
+      showToast(t('toastOrderDone'));
     });
 
 

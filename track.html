@@ -56,7 +56,12 @@
 <div class="wrap">
   <section class="map-stage">
     <div class="top-chip" id="statusBadge">Yuklanmoqda</div>
-    <div class="float-actions"><button class="icon-btn" id="refreshBtn">Yangilash</button></div>
+    <div class="top-chip" id="mapProviderBadge" style="left:auto;right:14px;">Xarita: tayyorlanmoqda</div>
+    <div class="float-actions">
+      <button class="icon-btn" id="langUzBtn">UZ</button>
+      <button class="icon-btn" id="langRuBtn">RU</button>
+      <button class="icon-btn" id="refreshBtn">Yangilash</button>
+    </div>
     <div id="mapNote" class="map-note" style="display:none;"></div>
     <div id="mapFallback" class="map-fallback">Kurier lokatsiyasi aniqlanmoqda</div>
     <div id="courierMap"></div>
@@ -73,37 +78,37 @@
     <p class="muted" id="liveInfo">Oxirgi yangilanish: -</p>
 
     <div class="grid">
-      <div class="mini"><b>Buyurtma</b><span id="meta">-</span></div>
-      <div class="mini"><b>ETA</b><span id="etaText">-</span></div>
-      <div class="mini"><b>To‘lov holati</b><span id="payment">-</span></div>
-      <div class="mini"><b>Jami</b><span id="total">-</span></div>
+      <div class="mini"><b id="labelOrder">Buyurtma</b><span id="meta">-</span></div>
+      <div class="mini"><b id="labelEta">ETA</b><span id="etaText">-</span></div>
+      <div class="mini"><b id="labelPayment">To‘lov holati</b><span id="payment">-</span></div>
+      <div class="mini"><b id="labelTotal">Jami</b><span id="total">-</span></div>
     </div>
 
     <div class="timeline" id="timeline"></div>
 
     <div class="card">
-      <div class="row"><h3 style="margin:0;">Kuryer ma'lumotlari</h3><span class="muted" id="courierStatus"></span></div>
+      <div class="row"><h3 style="margin:0;" id="labelCourierDetails">Kuryer ma'lumotlari</h3><span class="muted" id="courierStatus"></span></div>
       <div id="courierCard" class="muted" style="margin-top:8px;">Kurier biriktirilmoqda</div>
     </div>
 
     <div class="card">
-      <h3 style="margin:0 0 6px;">Yetkazib berish</h3>
+      <h3 style="margin:0 0 6px;" id="labelDelivery">Yetkazib berish</h3>
       <div id="address" class="muted"></div>
       <div id="deliveryInfo" class="muted" style="margin-top:8px;"></div>
       <div id="items" class="muted" style="margin-top:8px;"></div>
     </div>
 
     <div class="card">
-      <h3 style="margin:0 0 6px;">Ishonchli xizmat</h3>
-      <div class="muted">📞 Qo‘llab-quvvatlash: +998 55 701 00 70 (buyurtma raqamini ayting)</div>
-      <div class="muted" style="margin-top:6px;">💳 To‘lov: to‘lov holati tizimda yangilanadi, ortiqcha yechimlar qo‘llanmaydi</div>
-      <div class="muted" style="margin-top:6px;">🚚 Jarayon: yig‘ish → kurier biriktirish → manzilga topshirish</div>
-      <div class="muted" style="margin-top:6px;">🕒 ETA: Samarqand bo‘ylab odatda 1–4 soat, tirbandlikda kechikishi mumkin</div>
+      <h3 style="margin:0 0 6px;" id="labelService">Ishonchli xizmat</h3>
+      <div class="muted" id="serviceSupport">📞 Qo‘llab-quvvatlash: +998 55 701 00 70 (buyurtma raqamini ayting)</div>
+      <div class="muted" id="servicePayment" style="margin-top:6px;">💳 To‘lov: to‘lov holati tizimda yangilanadi, ortiqcha yechimlar qo‘llanmaydi</div>
+      <div class="muted" id="serviceFlow" style="margin-top:6px;">🚚 Jarayon: yig‘ish → kurier biriktirish → manzilga topshirish</div>
+      <div class="muted" id="serviceEta" style="margin-top:6px;">🕒 ETA: Samarqand bo‘ylab odatda 1–4 soat, tirbandlikda kechikishi mumkin</div>
     </div>
 
     <div class="card" id="feedbackCard" style="display:none;">
-      <h3 style="margin:0 0 6px;">Fikr qoldirish</h3>
-      <input id="rating" type="number" min="1" max="5" placeholder="Rating 1-5" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid #d0d5dd;" />
+      <h3 style="margin:0 0 6px;" id="labelFeedback">Fikr qoldirish</h3>
+      <input id="rating" type="number" min="1" max="5" placeholder="Reyting 1-5" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid #d0d5dd;" />
       <textarea id="comment" rows="3" placeholder="Izoh" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid #d0d5dd;"></textarea>
       <button id="sendFeedback" class="icon-btn" style="width:100%;margin-top:8px;">Fikr yuborish</button>
       <div id="feedbackMsg" class="muted" style="margin-top:6px;"></div>
@@ -117,6 +122,27 @@
 <script>
 (function(){
   'use strict';
+  (function setupFrontendErrorLogger() {
+    var STORAGE_KEY = 'gm_frontend_errors';
+    var MAX = 40;
+    function push(type, message, extras) {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        var list = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(list)) list = [];
+        list.push({ type:type, message:String(message || 'unknown'), ts:Date.now(), extras:extras || null });
+        while (list.length > MAX) list.shift();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      } catch (_e) {}
+    }
+    window.addEventListener('error', function(event){
+      push('error', event && event.message, { source: event && event.filename, line: event && event.lineno, col: event && event.colno });
+    });
+    window.addEventListener('unhandledrejection', function(event){
+      var reason = event && event.reason;
+      push('unhandledrejection', reason && reason.message ? reason.message : String(reason || 'promise rejection'));
+    });
+  })();
 
   var orderNumber = decodeURIComponent(location.pathname.split('/').pop());
   var $ = function(id){ return document.getElementById(id); };
@@ -124,6 +150,7 @@
   // Explicit DOM references (do NOT rely on implicit window-id globals).
   var courierMapEl   = $('courierMap');
   var mapFallbackEl  = $('mapFallback');
+  var mapProviderBadgeEl = $('mapProviderBadge');
   var mapNoteEl      = $('mapNote');
   var statusBadgeEl  = $('statusBadge');
   var refreshBtnEl   = $('refreshBtn');
@@ -152,23 +179,206 @@
   var sendFeedbackEl = $('sendFeedback');
   var feedbackMsgEl  = $('feedbackMsg');
 
+  var currentLang = localStorage.getItem('gm_lang') || 'uz';
+  var i18n = {
+    uz: {
+      loading: "Kuzatuv ma'lumotlari yuklanmoqda...",
+      loadError: "Kuzatuvni yuklashda xatolik yuz berdi.",
+      empty: "Bu buyurtma uchun kuzatuv topilmadi.",
+      refresh: "Yangilash",
+      labelOrder: "Buyurtma",
+      labelEta: "ETA",
+      labelPayment: "To'lov holati",
+      labelTotal: "Jami",
+      labelCourierDetails: "Kuryer ma'lumotlari",
+      labelDelivery: "Yetkazib berish",
+      labelService: "Ishonchli xizmat",
+      serviceSupport: "📞 Qo'llab-quvvatlash: +998 55 701 00 70 (buyurtma raqamini ayting)",
+      servicePayment: "💳 To'lov: to'lov holati tizimda yangilanadi, ortiqcha yechimlar qo'llanmaydi",
+      serviceFlow: "🚚 Jarayon: yig'ish → kuryer biriktirish → manzilga topshirish",
+      serviceEta: "🕒 ETA: Samarqand bo'ylab odatda 1-4 soat, tirbandlikda kechikishi mumkin",
+      labelFeedback: "Fikr qoldirish",
+      ratingPlaceholder: "Reyting 1-5",
+      commentPlaceholder: "Izoh",
+      sendFeedback: "Fikr yuborish",
+      call: "Qo'ng'iroq",
+      support: "Qo'llab-quvvatlash",
+      mapYandex: "Xarita: Yandex",
+      mapOsm: "Xarita: OSM",
+      mapStatic: "Xarita: Statik",
+      mapUnknown: "Xarita: noma'lum",
+      mapNotAvailable: "Xarita mavjud emas",
+      customerCoordsMissing: "Mijoz manzili koordinatalari topilmadi",
+      staticReason: "Interaktiv xarita vaqtincha ishlamayapti. Marshrut soddalashtirilgan ko'rinishda ko'rsatildi.",
+      originCourier: "Kuryer nuqtasi",
+      originWarehouse: "Ombor nuqtasi",
+      customerAddress: "Mijoz manzili",
+      openRoute: "Marshrutni ochish",
+      mapNoteCourier: "Kuryer yo'lda: soddalashtirilgan marshrut ko'rsatildi",
+      mapNoteWarehouse: "Kuryer hali biriktirilmagan: ombor → mijoz marshruti ko'rsatildi",
+      mapNoteYandexCourier: "Kuryer yo'lda: joriy marshrut ko'rsatilmoqda",
+      mapNoteYandexWarehouse: "Kuryer hali biriktirilmagan, marshrut tayyor",
+      mapNoteOsmCourier: "Kuryer yo'lda: OSM xaritada marshrut ko'rsatilmoqda",
+      mapNoteOsmFallback: "Yandex mavjud emas: OSM xarita yoqildi (ombor → mijoz)",
+      providerPrimary: "Asosiy provayder ishlatilmoqda",
+      providerFallback: "Yandex fallback sifatida OSM ishlatildi",
+      genericError: "Xatolik",
+      statusOrderAccepted: "Buyurtma qabul qilindi",
+      statusCollecting: "Yig'ish va tayyorlash",
+      statusDeliveryFlow: "Yetkazib berish jarayoni",
+      statusDelivered: "Buyurtma topshirildi",
+      lastUpdate: "Oxirgi yangilanish",
+      interval: "interval",
+      paymentSecure: "xavfsiz tasdiqlash",
+      noAddress: "Manzil kiritilmagan",
+      landmark: "Orientir",
+      noLandmark: "Orientir ko'rsatilmagan",
+      order: "Buyurtma",
+      noItems: "Mahsulotlar ro'yxati mavjud emas",
+      courierActive: "Faol",
+      courierPending: "Kutilmoqda",
+      rating: "Reyting",
+      courierAssigning: "Kuryer biriktirilmoqda",
+      noNumber: "Raqam yo'q",
+      callNow: "Qo'ng'iroq qilish",
+      cancelled: "Bekor qilingan",
+      supportAlert: "Qo'llab-quvvatlash: +998 55 701 00 70 (buyurtma raqamini tayyorlab qo'ying).",
+      reconnecting: "Aloqa tiklanmoqda... qayta urinish",
+      thankYouFeedback: "Rahmat, fikringiz qabul qilindi",
+      mapRenderError: "Xarita render qilishda kutilmagan xatolik. Soddalashtirilgan marshrut."
+    },
+    ru: {
+      loading: "Загрузка данных отслеживания...",
+      loadError: "Ошибка при загрузке отслеживания.",
+      empty: "Для этого заказа отслеживание не найдено.",
+      refresh: "Обновить",
+      labelOrder: "Заказ",
+      labelEta: "ETA",
+      labelPayment: "Статус оплаты",
+      labelTotal: "Итого",
+      labelCourierDetails: "Данные курьера",
+      labelDelivery: "Доставка",
+      labelService: "Надежный сервис",
+      serviceSupport: "📞 Поддержка: +998 55 701 00 70 (назовите номер заказа)",
+      servicePayment: "💳 Оплата: статус оплаты обновляется в системе автоматически",
+      serviceFlow: "🚚 Процесс: сборка → назначение курьера → доставка по адресу",
+      serviceEta: "🕒 ETA: по Самарканду обычно 1-4 часа, возможны задержки в пробках",
+      labelFeedback: "Оставить отзыв",
+      ratingPlaceholder: "Оценка 1-5",
+      commentPlaceholder: "Комментарий",
+      sendFeedback: "Отправить отзыв",
+      call: "Позвонить",
+      support: "Поддержка",
+      mapYandex: "Карта: Яндекс",
+      mapOsm: "Карта: OSM",
+      mapStatic: "Карта: Статическая",
+      mapUnknown: "Карта: неизвестно",
+      mapNotAvailable: "Карта недоступна",
+      customerCoordsMissing: "Координаты адреса клиента не найдены",
+      staticReason: "Интерактивная карта временно недоступна. Маршрут показан в упрощенном виде.",
+      originCourier: "Точка курьера",
+      originWarehouse: "Точка склада",
+      customerAddress: "Адрес клиента",
+      openRoute: "Открыть маршрут",
+      mapNoteCourier: "Курьер в пути: показан упрощенный маршрут",
+      mapNoteWarehouse: "Курьер еще не назначен: маршрут склад → клиент",
+      mapNoteYandexCourier: "Курьер в пути: отображается текущий маршрут",
+      mapNoteYandexWarehouse: "Курьер еще не назначен, маршрут подготовлен",
+      mapNoteOsmCourier: "Курьер в пути: маршрут показан на OSM карте",
+      mapNoteOsmFallback: "Яндекс недоступен: включена OSM карта (склад → клиент)",
+      providerPrimary: "Используется основной провайдер",
+      providerFallback: "OSM используется как резерв вместо Яндекса",
+      genericError: "Ошибка",
+      statusOrderAccepted: "Заказ принят",
+      statusCollecting: "Сборка и подготовка",
+      statusDeliveryFlow: "Процесс доставки",
+      statusDelivered: "Заказ доставлен",
+      lastUpdate: "Последнее обновление",
+      interval: "интервал",
+      paymentSecure: "безопасное подтверждение",
+      noAddress: "Адрес не указан",
+      landmark: "Ориентир",
+      noLandmark: "Ориентир не указан",
+      order: "Заказ",
+      noItems: "Список товаров недоступен",
+      courierActive: "Активен",
+      courierPending: "Ожидание",
+      rating: "Рейтинг",
+      courierAssigning: "Назначается курьер",
+      noNumber: "Номера нет",
+      callNow: "Позвонить",
+      cancelled: "Отменен",
+      supportAlert: "Поддержка: +998 55 701 00 70 (подготовьте номер заказа).",
+      reconnecting: "Связь восстанавливается... повтор через",
+      thankYouFeedback: "Спасибо, ваш отзыв принят",
+      mapRenderError: "Непредвиденная ошибка отрисовки карты. Показан упрощенный маршрут."
+    }
+  };
   var timelineSteps = [
-    {label:'Buyurtma qabul qilindi',statuses:['created','payment_pending','payment_confirmed']},
-    {label:'Yig‘ish va tayyorlash',statuses:['preparing','ready_for_courier','courier_assigned']},
-    {label:'Yetkazib berish jarayoni',statuses:['out_for_delivery']},
-    {label:'Buyurtma topshirildi',statuses:['delivered']}
+    {key:'statusOrderAccepted',statuses:['created','payment_pending','payment_confirmed']},
+    {key:'statusCollecting',statuses:['preparing','ready_for_courier','courier_assigned']},
+    {key:'statusDeliveryFlow',statuses:['out_for_delivery']},
+    {key:'statusDelivered',statuses:['delivered']}
   ];
   var statusUx = {
-    created:           {title:'Buyurtma qabul qilindi',     note:'Buyurtma muvaffaqiyatli ro‘yxatdan o‘tdi.',                 badge:'Qabul qilindi'},
-    payment_pending:   {title:'To‘lov tekshirilmoqda',      note:'To‘lov bo‘yicha holat tasdiqlanmoqda.',                     badge:'To‘lov tekshirilmoqda'},
-    payment_confirmed: {title:'To‘lov tasdiqlandi',         note:'To‘lov qabul qilindi, buyurtma yig‘ishga o‘tkazildi.',     badge:'To‘lov tasdiqlandi'},
-    preparing:         {title:'Buyurtma tayyorlanmoqda',    note:'Buyurtma jo‘natishga tayyorlanmoqda.',                      badge:'Tayyorlanmoqda'},
-    ready_for_courier: {title:'Kurier kutilmoqda',          note:'Buyurtma topshirish uchun kurier navbatida.',               badge:'Kurier kutilmoqda'},
-    courier_assigned:  {title:'Kurier biriktirildi',        note:'Kurier buyurtmangizni qabul qilishga yo‘lda.',              badge:'Kurier biriktirildi'},
-    out_for_delivery:  {title:'Buyurtma yo‘lda',            note:'Kurier buyurtmangizni manzilga olib ketmoqda.',             badge:'Yo‘lda'},
-    delivered:         {title:'Buyurtma topshirildi',       note:'Buyurtma manzilga muvaffaqiyatli yetkazildi.',             badge:'Yakunlandi'},
-    cancelled:         {title:'Buyurtma bekor qilindi',     note:'Sababni aniqlash uchun qo‘llab-quvvatlash bilan bog‘laning.',badge:'Bekor qilindi'}
+    uz: {
+      created:           {title:'Buyurtma qabul qilindi', note:"Buyurtma muvaffaqiyatli ro'yxatdan o'tdi.", badge:'Qabul qilindi'},
+      payment_pending:   {title:"To'lov tekshirilmoqda", note:"To'lov bo'yicha holat tasdiqlanmoqda.", badge:"To'lov tekshirilmoqda"},
+      payment_confirmed: {title:"To'lov tasdiqlandi", note:"To'lov qabul qilindi, buyurtma yig'ishga o'tkazildi.", badge:"To'lov tasdiqlandi"},
+      preparing:         {title:"Yig'ish jarayonida", note:"Buyurtma jo'natishga tayyorlanmoqda.", badge:"Yig'ish jarayonida"},
+      ready_for_courier: {title:"Kuryer biriktirilmoqda", note:"Buyurtma topshirish uchun kuryer navbatida.", badge:"Kuryer biriktirilmoqda"},
+      courier_assigned:  {title:"Kuryer biriktirildi", note:"Kuryer buyurtmangizni qabul qilishga yo'lda.", badge:"Kuryer biriktirildi"},
+      out_for_delivery:  {title:"Yo'lda", note:"Kuryer buyurtmangizni manzilga olib ketmoqda.", badge:"Yo'lda"},
+      delivered:         {title:'Yetkazib berildi', note:'Buyurtma manzilga muvaffaqiyatli yetkazildi.', badge:'Yetkazib berildi'},
+      cancelled:         {title:'Buyurtma bekor qilindi', note:"Sababni aniqlash uchun qo'llab-quvvatlash bilan bog'laning.", badge:'Bekor qilindi'}
+    },
+    ru: {
+      created:           {title:'Заказ принят', note:'Заказ успешно зарегистрирован.', badge:'Принят'},
+      payment_pending:   {title:'Платеж проверяется', note:'Идет подтверждение статуса платежа.', badge:'Платеж проверяется'},
+      payment_confirmed: {title:'Платеж подтвержден', note:'Оплата принята, заказ передан в сборку.', badge:'Платеж подтвержден'},
+      preparing:         {title:'Заказ собирается', note:'Заказ готовится к отправке.', badge:'Сборка'},
+      ready_for_courier: {title:'Назначается курьер', note:'Заказ ожидает назначения курьера.', badge:'Назначается курьер'},
+      courier_assigned:  {title:'Курьер назначен', note:'Курьер уже направляется за вашим заказом.', badge:'Курьер назначен'},
+      out_for_delivery:  {title:'В пути', note:'Курьер везет ваш заказ по адресу.', badge:'В пути'},
+      delivered:         {title:'Доставлено', note:'Заказ успешно доставлен по адресу.', badge:'Доставлено'},
+      cancelled:         {title:'Заказ отменен', note:'Для уточнения причины свяжитесь с поддержкой.', badge:'Отменен'}
+    }
   };
+  function t(key){
+    var dict = i18n[currentLang] || i18n.uz;
+    return dict[key] || key;
+  }
+  function statusDict(){
+    return statusUx[currentLang] || statusUx.uz;
+  }
+  function formatLocale(){ return currentLang === 'ru' ? 'ru-RU' : 'uz-UZ'; }
+  function applyLang(){
+    document.documentElement.lang = currentLang;
+    if (stateLoadingEl) stateLoadingEl.textContent = t('loading');
+    if (stateErrorEl) stateErrorEl.textContent = t('loadError');
+    if (stateEmptyEl) stateEmptyEl.textContent = t('empty');
+    if (refreshBtnEl) refreshBtnEl.textContent = t('refresh');
+    if ($('labelOrder')) $('labelOrder').textContent = t('labelOrder');
+    if ($('labelEta')) $('labelEta').textContent = t('labelEta');
+    if ($('labelPayment')) $('labelPayment').textContent = t('labelPayment');
+    if ($('labelTotal')) $('labelTotal').textContent = t('labelTotal');
+    if ($('labelCourierDetails')) $('labelCourierDetails').textContent = t('labelCourierDetails');
+    if ($('labelDelivery')) $('labelDelivery').textContent = t('labelDelivery');
+    if ($('labelService')) $('labelService').textContent = t('labelService');
+    if ($('serviceSupport')) $('serviceSupport').textContent = t('serviceSupport');
+    if ($('servicePayment')) $('servicePayment').textContent = t('servicePayment');
+    if ($('serviceFlow')) $('serviceFlow').textContent = t('serviceFlow');
+    if ($('serviceEta')) $('serviceEta').textContent = t('serviceEta');
+    if ($('labelFeedback')) $('labelFeedback').textContent = t('labelFeedback');
+    if (ratingEl) ratingEl.placeholder = t('ratingPlaceholder');
+    if (commentEl) commentEl.placeholder = t('commentPlaceholder');
+    if (sendFeedbackEl) sendFeedbackEl.textContent = t('sendFeedback');
+    if (callBtnEl) callBtnEl.textContent = t('call');
+    if (supportBtnEl) supportBtnEl.textContent = t('support');
+    if ($('langUzBtn')) $('langUzBtn').classList.toggle('active', currentLang === 'uz');
+    if ($('langRuBtn')) $('langRuBtn').classList.toggle('active', currentLang === 'ru');
+    if (order) render();
+  }
 
   var WAREHOUSE_COORDS = {lat:39.654722, lng:66.958972};
   var COURIER_ACTIVE_STATUSES = ['out_for_delivery','delivered'];
@@ -199,7 +409,7 @@
     var merged = Object.assign({}, opt, {headers: Object.assign(headers, opt.headers || {})});
     return fetch('/api/v1' + path, merged).then(function(res){
       return res.json().catch(function(){ return {}; }).then(function(data){
-        if (!res.ok) throw new Error((data && data.message) || 'Xatolik');
+        if (!res.ok) throw new Error((data && data.message) || t('genericError'));
         return data;
       });
     });
@@ -234,7 +444,7 @@
   }
 
   function setMapFallback(message){
-    showFallback('<div>'+ escapeHtml(message || 'Xarita mavjud emas') +'</div>');
+    showFallback('<div>'+ escapeHtml(message || t('mapNotAvailable')) +'</div>');
     if (mapNoteEl) mapNoteEl.style.display = 'none';
   }
 
@@ -248,6 +458,17 @@
     if (!text){ mapNoteEl.style.display = 'none'; mapNoteEl.textContent = ''; return; }
     mapNoteEl.textContent = text;
     mapNoteEl.style.display = 'block';
+  }
+
+  function setMapProviderBadge(provider, detail){
+    if (!mapProviderBadgeEl) return;
+    var labels = {
+      yandex: t('mapYandex'),
+      leaflet: t('mapOsm'),
+      static: t('mapStatic')
+    };
+    mapProviderBadgeEl.textContent = labels[provider] || t('mapUnknown');
+    mapProviderBadgeEl.title = detail || '';
   }
 
   function waitForMapContainerReady(timeoutMs){
@@ -267,32 +488,33 @@
 
   function renderStaticRouteFallback(destinationPoint, courierPoint, isCourierActive, reasonText){
     if (!destinationPoint){
-      setMapFallback('Mijoz manzili koordinatalari topilmadi');
+      setMapFallback(t('customerCoordsMissing'));
       return;
     }
     var startPoint = (isCourierActive && courierPoint) ? courierPoint : WAREHOUSE_COORDS;
-    var originLabel = isCourierActive ? 'Kurier nuqtasi' : 'Ombor nuqtasi';
+    var originLabel = isCourierActive ? t('originCourier') : t('originWarehouse');
     var startLink = 'https://www.openstreetmap.org/?mlat='+startPoint.lat+'&mlon='+startPoint.lng+'#map=15/'+startPoint.lat+'/'+startPoint.lng;
     var destinationLink = 'https://www.openstreetmap.org/?mlat='+destinationPoint.lat+'&mlon='+destinationPoint.lng+'#map=15/'+destinationPoint.lat+'/'+destinationPoint.lng;
     var routeLink = 'https://www.openstreetmap.org/directions?from='+startPoint.lat+'%2C'+startPoint.lng+'&to='+destinationPoint.lat+'%2C'+destinationPoint.lng;
     var html = ''+
       '<div style="display:grid;gap:10px;width:100%;padding:14px;">'+
-        '<div style="font-size:13px;color:#475467;">'+ escapeHtml(reasonText || 'Interaktiv xarita vaqtincha ishlamayapti. Marshrut soddalashtirilgan ko‘rinishda ko‘rsatildi.') +'</div>'+
+        '<div style="font-size:13px;color:#475467;">'+ escapeHtml(reasonText || t('staticReason')) +'</div>'+
         '<div style="font-size:13px;color:#475467;border:1px solid #d0d5dd;border-radius:12px;padding:10px;background:#f8fafc;text-align:left;line-height:1.5;">'+
           '<div><strong>'+ escapeHtml(originLabel) +':</strong> '+ startPoint.lat.toFixed(6) +', '+ startPoint.lng.toFixed(6) +'</div>'+
-          '<div><strong>Mijoz manzili:</strong> '+ destinationPoint.lat.toFixed(6) +', '+ destinationPoint.lng.toFixed(6) +'</div>'+
+          '<div><strong>'+ escapeHtml(t('customerAddress')) +':</strong> '+ destinationPoint.lat.toFixed(6) +', '+ destinationPoint.lng.toFixed(6) +'</div>'+
         '</div>'+
         '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">'+
           '<a href="'+ startLink +'" target="_blank" rel="noopener" class="icon-btn" style="text-decoration:none;">'+ escapeHtml(originLabel) +'</a>'+
-          '<a href="'+ destinationLink +'" target="_blank" rel="noopener" class="icon-btn" style="text-decoration:none;">Mijoz manzili</a>'+
-          '<a href="'+ routeLink +'" target="_blank" rel="noopener" class="icon-btn" style="text-decoration:none;background:#6a4dff;color:#fff;border-color:#6a4dff;">Marshrutni ochish</a>'+
+          '<a href="'+ destinationLink +'" target="_blank" rel="noopener" class="icon-btn" style="text-decoration:none;">'+ escapeHtml(t('customerAddress')) +'</a>'+
+          '<a href="'+ routeLink +'" target="_blank" rel="noopener" class="icon-btn" style="text-decoration:none;background:#6a4dff;color:#fff;border-color:#6a4dff;">'+ escapeHtml(t('openRoute')) +'</a>'+
         '</div>'+
       '</div>';
     showFallback(html);
     setMapNote(isCourierActive
-      ? 'Kurier yo‘lda: soddalashtirilgan marshrut ko‘rsatildi'
-      : 'Kurier hali biriktirilmagan: ombor → mijoz marshruti ko‘rsatildi');
+      ? t('mapNoteCourier')
+      : t('mapNoteWarehouse'));
     activeProvider = 'static';
+    setMapProviderBadge('static', reasonText || t('staticReason'));
   }
 
   // ---------- Yandex ----------
@@ -370,7 +592,7 @@
         // Courier marker
         if (isCourierActive){
           if (!yCourierMarker){
-            yCourierMarker = new ymaps.Placemark([cLat, cLng], {balloonContent:'Kurier'}, {preset:'islands#redDeliveryIcon'});
+            yCourierMarker = new ymaps.Placemark([cLat, cLng], {balloonContent:t('originCourier')}, {preset:'islands#redDeliveryIcon'});
             yMap.geoObjects.add(yCourierMarker);
           } else {
             yCourierMarker.geometry.setCoordinates([cLat, cLng]);
@@ -401,7 +623,7 @@
           if (!yWarehouseMarker){
             yWarehouseMarker = new ymaps.Placemark(
               [WAREHOUSE_COORDS.lat, WAREHOUSE_COORDS.lng],
-              {balloonContent:'Ombor', iconContent:'📦'},
+              {balloonContent:t('originWarehouse'), iconContent:'📦'},
               {preset:'islands#blueStretchyIcon'}
             );
             yMap.geoObjects.add(yWarehouseMarker);
@@ -415,7 +637,7 @@
 
         // Destination marker (always)
         if (!yDestMarker){
-          yDestMarker = new ymaps.Placemark([dLat, dLng], {balloonContent:'Mijoz manzili'}, {preset:'islands#greenDotIcon'});
+          yDestMarker = new ymaps.Placemark([dLat, dLng], {balloonContent:t('customerAddress')}, {preset:'islands#greenDotIcon'});
           yMap.geoObjects.add(yDestMarker);
         } else {
           yDestMarker.geometry.setCoordinates([dLat, dLng]);
@@ -441,9 +663,10 @@
         setTimeout(function(){ try { if (yMap) yMap.container.fitToViewport(); } catch (e) {} }, 60);
 
         setMapNote(isCourierActive
-          ? 'Kurier yo‘lda: joriy marshrut ko‘rsatilmoqda'
-          : 'Kurier hali biriktirilmagan, marshrut tayyor');
+          ? t('mapNoteYandexCourier')
+          : t('mapNoteYandexWarehouse'));
         activeProvider = 'yandex';
+        setMapProviderBadge('yandex', t('providerPrimary'));
       });
     });
   }
@@ -532,7 +755,7 @@
         if (isCourierActive){
           var cLatLng = [cLat, cLng];
           if (!lCourierMarker){
-            lCourierMarker = L.marker(cLatLng, {icon: makeLeafletPin(L, 'courier', '🚴')}).addTo(lMap).bindPopup('Kurier');
+            lCourierMarker = L.marker(cLatLng, {icon: makeLeafletPin(L, 'courier', '🚴')}).addTo(lMap).bindPopup(t('originCourier'));
           } else {
             lCourierMarker.setLatLng(cLatLng);
           }
@@ -544,7 +767,7 @@
         if (!isCourierActive){
           var wLatLng = [WAREHOUSE_COORDS.lat, WAREHOUSE_COORDS.lng];
           if (!lWarehouseMarker){
-            lWarehouseMarker = L.marker(wLatLng, {icon: makeLeafletPin(L, 'warehouse', '📦')}).addTo(lMap).bindPopup('Ombor');
+            lWarehouseMarker = L.marker(wLatLng, {icon: makeLeafletPin(L, 'warehouse', '📦')}).addTo(lMap).bindPopup(t('originWarehouse'));
           } else {
             lWarehouseMarker.setLatLng(wLatLng);
           }
@@ -555,7 +778,7 @@
 
         var dLatLng = [dLat, dLng];
         if (!lDestMarker){
-          lDestMarker = L.marker(dLatLng, {icon: makeLeafletPin(L, 'dest', '📍')}).addTo(lMap).bindPopup('Mijoz manzili');
+          lDestMarker = L.marker(dLatLng, {icon: makeLeafletPin(L, 'dest', '📍')}).addTo(lMap).bindPopup(t('customerAddress'));
         } else {
           lDestMarker.setLatLng(dLatLng);
         }
@@ -578,9 +801,10 @@
         } catch (e) {}
 
         setMapNote(isCourierActive
-          ? 'Kurier yo‘lda: OSM xaritada marshrut ko‘rsatilmoqda'
-          : 'Yandex mavjud emas: OSM xarita yoqildi (ombor → mijoz)');
+          ? t('mapNoteOsmCourier')
+          : t('mapNoteOsmFallback'));
         activeProvider = 'leaflet';
+        setMapProviderBadge('leaflet', t('providerFallback'));
       });
     });
   }
@@ -598,7 +822,7 @@
     return Math.max(0, idx);
   }
 
-  function money(v){ return Number(v || 0).toLocaleString('ru-RU') + ' so\'m'; }
+  function money(v){ return Number(v || 0).toLocaleString(formatLocale()) + ' so\'m'; }
 
   function renderMap(){
     if (!order) return;
@@ -608,7 +832,7 @@
     var hasCourier = Boolean(courierPoint);
 
     if (!hasDestination){
-      setMapFallback('Mijoz manzili koordinatalari topilmadi');
+      setMapFallback(t('customerCoordsMissing'));
       return;
     }
 
@@ -623,7 +847,7 @@
             // 3) Static text+links fallback.
             renderStaticRouteFallback(
               destinationPoint, courierPoint, isCourierActive,
-              'Interaktiv xarita vaqtincha mavjud emas. Marshrut soddalashtirilgan ko‘rinishda ko‘rsatildi.'
+              t('staticReason')
             );
           });
       });
@@ -632,50 +856,51 @@
   function render(){
     if (!order) return;
     renderState('content');
-    var ui = statusUx[order.status] || statusUx.created;
+    var uiMap = statusDict();
+    var ui = uiMap[order.status] || uiMap.created;
     statusBadgeEl.textContent  = ui.badge;
     bigStatusEl.textContent    = ui.title;
     bigStatusNoteEl.textContent= ui.note;
-    metaEl.textContent = '#'+ order.orderNumber +' · '+ new Date(order.created_at || Date.now()).toLocaleString('ru-RU');
-    etaTextEl.textContent = order.etaLiveText || order.deliveryEta || order.estimatedTime || 'Samarqand bo‘ylab odatda 1–4 soat';
-    paymentEl.textContent = (order.paymentMethod || '-') + ' / ' + (order.paymentStatus || '-') + ' (xavfsiz tasdiqlash)';
+    metaEl.textContent = '#'+ order.orderNumber +' · '+ new Date(order.created_at || Date.now()).toLocaleString(formatLocale());
+    etaTextEl.textContent = order.etaLiveText || order.deliveryEta || order.estimatedTime || t('serviceEta').replace('🕒 ETA: ','');
+    paymentEl.textContent = (order.paymentMethod || '-') + ' / ' + (order.paymentStatus || '-') + ' ('+ t('paymentSecure') +')';
     totalEl.textContent = money(order.total);
 
     var idx = stepIndex(order.status);
     timelineEl.innerHTML = timelineSteps.map(function(s, i){
       var cls = (i < idx ? 'done' : '') + ' ' + (i === idx ? 'active' : '');
-      return '<div class="step '+ cls +'"><div class="dot"></div><span>'+ escapeHtml(s.label) +'</span></div>';
+      return '<div class="step '+ cls +'"><div class="dot"></div><span>'+ escapeHtml(t(s.key)) +'</span></div>';
     }).join('');
 
-    addressEl.textContent = order.addressText || order.customerAddress || order.location || 'Manzil kiritilmagan';
-    var landmarkPart = order.landmarkText ? ('Orientir: ' + order.landmarkText) : 'Orientir ko‘rsatilmagan';
-    deliveryInfoEl.textContent = 'Buyurtma: #'+ order.orderNumber +' · '+ landmarkPart +' · ETA: '+ (order.etaLiveText || order.deliveryEta || order.estimatedTime || '1–4 soat');
+    addressEl.textContent = order.addressText || order.customerAddress || order.location || t('noAddress');
+    var landmarkPart = order.landmarkText ? (t('landmark') + ': ' + order.landmarkText) : t('noLandmark');
+    deliveryInfoEl.textContent = t('order') + ': #'+ order.orderNumber +' · '+ landmarkPart +' · ETA: '+ (order.etaLiveText || order.deliveryEta || order.estimatedTime || '1-4 soat');
     itemsEl.innerHTML = ((order.items || []).map(function(i){
       return escapeHtml(i.name) + ' × ' + escapeHtml(i.quantity) + ' = ' + money(i.subtotal);
-    }).join('<br>')) || 'Mahsulotlar ro‘yxati mavjud emas';
+    }).join('<br>')) || t('noItems');
 
     var hasCourier = Boolean(order.courierName);
-    courierStatusEl.textContent = hasCourier ? 'Faol' : 'Kutilmoqda';
-    var ratingText = Number(order.courierRating) > 0 ? ('<div class="muted">Reyting: '+ Number(order.courierRating).toFixed(1) +'</div>') : '';
+    courierStatusEl.textContent = hasCourier ? t('courierActive') : t('courierPending');
+    var ratingText = Number(order.courierRating) > 0 ? ('<div class="muted">'+ t('rating') +': '+ Number(order.courierRating).toFixed(1) +'</div>') : '';
     var vehicleText = (order.courierVehicle || order.courierVehicleNumber)
       ? ('<div class="muted">'+ escapeHtml(order.courierVehicle || '') +' '+ escapeHtml(order.courierVehicleNumber || '') +'</div>')
       : '';
     courierCardEl.innerHTML = hasCourier
       ? ('<div><strong>'+ escapeHtml(order.courierName) +'</strong>'+ vehicleText + ratingText +'</div>')
-      : 'Kurier biriktirilmoqda';
+      : t('courierAssigning');
     callBtnEl.href = order.courierPhone ? ('tel:' + order.courierPhone) : '#';
-    callBtnEl.textContent = order.courierPhone ? 'Qo‘ng‘iroq qilish' : 'Raqam yo‘q';
+    callBtnEl.textContent = order.courierPhone ? t('callNow') : t('noNumber');
 
-    liveInfoEl.textContent = 'Oxirgi yangilanish: '+ new Date(order.trackingUpdatedAt || order.updated_at || Date.now()).toLocaleTimeString('ru-RU') +' · interval '+ Math.round(pollDelay/1000) +'s';
+    liveInfoEl.textContent = t('lastUpdate') + ': '+ new Date(order.trackingUpdatedAt || order.updated_at || Date.now()).toLocaleTimeString(formatLocale()) +' · '+ t('interval') +' '+ Math.round(pollDelay/1000) +'s';
 
     if (order.status === 'cancelled'){
-      etaTextEl.textContent = 'Bekor qilingan';
-      callBtnEl.textContent = 'Qo‘llab-quvvatlash';
+      etaTextEl.textContent = t('cancelled');
+      callBtnEl.textContent = t('support');
       callBtnEl.href = 'tel:+998557010070';
     }
     if (order.status === 'delivered'){
-      etaTextEl.textContent = 'Yetkazildi';
-      callBtnEl.textContent = 'Qo‘llab-quvvatlash';
+      etaTextEl.textContent = currentLang === 'ru' ? 'Доставлено' : 'Yetkazildi';
+      callBtnEl.textContent = t('support');
     }
 
     try { renderMap(); } catch (mapErr){
@@ -684,15 +909,15 @@
         var dest = resolveOrderCoord([['locationLat','locationLng'],['customerLat','customerLng'],['latitude','longitude']]);
         var courier = resolveOrderCoord([['courierLocationLat','courierLocationLng'],['courierLat','courierLng']]);
         var active = COURIER_ACTIVE_STATUSES.indexOf(String(order.status || '')) !== -1 && Boolean(courier);
-        renderStaticRouteFallback(dest, courier, active, 'Xarita render qilishda kutilmagan xatolik. Soddalashtirilgan marshrut.');
+        renderStaticRouteFallback(dest, courier, active, t('mapRenderError'));
       } catch (e2){
-        setMapFallback('Xarita vaqtincha mavjud emas');
+        setMapFallback(t('mapNotAvailable'));
       }
     }
 
     feedbackCardEl.style.display = order.status === 'delivered' ? 'block' : 'none';
     sendFeedbackEl.disabled = !!order.feedbackAt;
-    if (order.feedbackAt) feedbackMsgEl.textContent = 'Rahmat, fikringiz qabul qilindi';
+    if (order.feedbackAt) feedbackMsgEl.textContent = t('thankYouFeedback');
   }
 
   function refresh(){
@@ -708,7 +933,7 @@
     }).catch(function(){
       if (!firstLoadDone) renderState('error');
       pollDelay = Math.min(12000, Math.round(pollDelay * 1.5));
-      if (bigStatusNoteEl) bigStatusNoteEl.textContent = 'Aloqa tiklanmoqda... qayta urinish '+ Math.round(pollDelay/1000) +'s';
+      if (bigStatusNoteEl) bigStatusNoteEl.textContent = t('reconnecting') +' '+ Math.round(pollDelay/1000) +'s';
     }).then(function(){
       isRefreshing = false;
       clearTimeout(pollTimer);
@@ -718,7 +943,7 @@
 
   if (refreshBtnEl) refreshBtnEl.onclick = refresh;
   if (supportBtnEl) supportBtnEl.onclick = function(){
-    alert('Qo‘llab-quvvatlash: +998 55 701 00 70 (buyurtma raqamini tayyorlab qo‘ying).');
+    alert(t('supportAlert'));
   };
   if (sendFeedbackEl) sendFeedbackEl.onclick = function(){
     api('/orders/'+ encodeURIComponent(orderNumber) +'/feedback', {
@@ -728,10 +953,13 @@
         feedbackComment: commentEl ? commentEl.value : ''
       })
     }).then(function(out){ order = out.order; render(); })
-      .catch(function(e){ alert(e && e.message ? e.message : 'Xatolik'); });
+      .catch(function(e){ alert(e && e.message ? e.message : t('genericError')); });
   };
+  if ($('langUzBtn')) $('langUzBtn').onclick = function(){ currentLang = 'uz'; localStorage.setItem('gm_lang', 'uz'); applyLang(); };
+  if ($('langRuBtn')) $('langRuBtn').onclick = function(){ currentLang = 'ru'; localStorage.setItem('gm_lang', 'ru'); applyLang(); };
 
   // Kick off
+  applyLang();
   refresh();
 })();
 </script>

@@ -67,6 +67,34 @@
   <div id="toast" class="toast"></div>
 
   <script>
+    (function setupFrontendErrorLogger() {
+      const STORAGE_KEY = 'gm_frontend_errors';
+      const MAX_ITEMS = 60;
+      function readSafe() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          const parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (_) { return []; }
+      }
+      function writeSafe(items) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch (_) {}
+      }
+      function push(type, message, extra) {
+        const items = readSafe();
+        items.push({ type, message: String(message || 'unknown'), ts: Date.now(), extra: extra || null });
+        while (items.length > MAX_ITEMS) items.shift();
+        writeSafe(items);
+      }
+      window.addEventListener('error', (event) => {
+        push('error', event?.message, { source: event?.filename, line: event?.lineno, col: event?.colno });
+      });
+      window.addEventListener('unhandledrejection', (event) => {
+        const reason = event?.reason;
+        push('unhandledrejection', reason?.message || String(reason || 'promise rejected'));
+      });
+    })();
+
     const tokenKey = 'admin_import_token';
     const STORE_LOCATION = {
       lat: 39.654572,
@@ -110,6 +138,19 @@
       el.classList.add('show');
       clearTimeout(showToast._t);
       showToast._t = setTimeout(() => el.classList.remove('show'), 2800);
+    }
+    function orderStatusLabel(status) {
+      return {
+        created: 'Buyurtma qabul qilindi',
+        payment_pending: 'To‘lov tekshirilmoqda',
+        payment_confirmed: 'To‘lov tasdiqlandi',
+        preparing: 'Yig‘ish jarayonida',
+        ready_for_courier: 'Kurier biriktirilmoqda',
+        courier_assigned: 'Kurier biriktirildi',
+        out_for_delivery: 'Yo‘lda',
+        delivered: 'Yetkazib berildi',
+        cancelled: 'Bekor qilingan'
+      }[normalizeStatus(status)] || status || '-';
     }
     function getNextTransition(order) {
       if (!order) return null;
@@ -156,7 +197,7 @@
                 <div class="muted">${o.customerAddress || o.addressText || o.location || '-'}</div>
                 <div class="muted">Orientir: ${o.landmarkText || '-'}</div>
                 <div class="row"><span>${(o.items||[]).length} item</span><strong>${Number(o.total||0).toLocaleString('ru-RU')} so'm</strong></div>
-                <div class="muted">Status: ${o.status} | To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatus || '-'}</div>
+                <div class="muted">Status: ${o.statusLabel || orderStatusLabel(o.status)} | To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatusLabel || o.paymentStatus || '-'}</div>
                 <div class="muted">${o.paymentProofUrl ? `<a href="${o.paymentProofUrl}" target="_blank">Payment proof</a>` : 'Payment proof: -'}</div>
                 <div class="muted">${o.courierLocationUpdatedAt ? `Kurier joylashuvi: yangilangan ${fmt(o.courierLocationUpdatedAt)}` : ''}</div>
                 <div class="muted">${fmt(o.created_at)} · Yangilandi: ${fmt(o.updated_at)}</div>
@@ -181,7 +222,7 @@
         ? `https://maps.google.com/?q=${order.locationLat},${order.locationLng}` : '';
       const courierMapLink = (Number.isFinite(Number(order.courierLocationLat)) && Number.isFinite(Number(order.courierLocationLng)))
         ? `https://maps.google.com/?q=${order.courierLocationLat},${order.courierLocationLng}` : '';
-      document.getElementById('mMeta').innerHTML = `${order.customerName || 'Mehmon'} | ${order.customerPhone || '-'} | ${order.customerAddress || order.addressText || order.location || '-'}<br>Orientir: ${order.landmarkText || '-'}${mapLink ? ` | <a href="${mapLink}" target="_blank">Map</a>` : ''}<br>Do‘kon manzili: <a href="${STORE_LOCATION.mapsUrl}" target="_blank">${STORE_LOCATION.name}</a><br>To‘lov: ${order.paymentMethod || '-'} / ${order.paymentStatus || '-'}<br>Cash agreement: ${order.cashAgreementAccepted ? 'ha' : 'yo‘q'}<br>${order.paymentProofUrl ? `<a href=\"${order.paymentProofUrl}\" target=\"_blank\">Payment proof</a>` : 'Payment proof: -'}<br>${order.courierLocationUpdatedAt ? `Kurier joylashuvi: yangilangan ${fmt(order.courierLocationUpdatedAt)}` : 'Kurier joylashuvi: -'}${courierMapLink ? ` | <a href="${courierMapLink}" target="_blank">Xaritada ko‘rish</a>` : ''}`;
+      document.getElementById('mMeta').innerHTML = `${order.customerName || 'Mehmon'} | ${order.customerPhone || '-'} | ${order.customerAddress || order.addressText || order.location || '-'}<br>Orientir: ${order.landmarkText || '-'}${mapLink ? ` | <a href="${mapLink}" target="_blank">Map</a>` : ''}<br>Do‘kon manzili: <a href="${STORE_LOCATION.mapsUrl}" target="_blank">${STORE_LOCATION.name}</a><br>Status: ${order.statusLabel || orderStatusLabel(order.status)}<br>To‘lov: ${order.paymentMethod || '-'} / ${order.paymentStatusLabel || order.paymentStatus || '-'}<br>Cash agreement: ${order.cashAgreementAccepted ? 'ha' : 'yo‘q'}<br>${order.paymentProofUrl ? `<a href=\"${order.paymentProofUrl}\" target=\"_blank\">Payment proof</a>` : 'Payment proof: -'}<br>${order.courierLocationUpdatedAt ? `Kurier joylashuvi: yangilangan ${fmt(order.courierLocationUpdatedAt)}` : 'Kurier joylashuvi: -'}${courierMapLink ? ` | <a href="${courierMapLink}" target="_blank">Xaritada ko‘rish</a>` : ''}`;
       document.getElementById('mItems').innerHTML = (order.items || []).map((it) => `
         <div class="item">
           ${it.image_url ? `<img src="${it.image_url}" alt="${it.name}" />` : `<img alt="" />`}
