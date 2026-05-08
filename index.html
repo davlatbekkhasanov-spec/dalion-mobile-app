@@ -2945,7 +2945,7 @@ Oq fonli foto</div>
     function syncIntroCta() {
       if (!openRegisterBtn) return;
       const authed = isAuthed();
-      openRegisterBtn.textContent = authed ? 'Xaridni boshlash' : "Ro‘yxatdan o‘tish";
+      openRegisterBtn.textContent = authed ? t('introCtaAuthed') : t('introCtaGuest');
       openRegisterBtn.dataset.mode = authed ? 'start' : 'register';
     }
 
@@ -3144,6 +3144,8 @@ Oq fonli foto</div>
         activeOrder: "Faol buyurtma",
         track: "Kuzatish",
         introSubtitle: "Samarqand bo'ylab qulay yetkazib berish • Keng assortiment • Ishonchli servis",
+        introCtaAuthed: "Xaridni boshlash",
+        introCtaGuest: "Ro‘yxatdan o‘tish",
         homeTab: 'Bosh sahifa',
         bannerSection: 'Siz uchun',
         cartEmptyTitle: "Savatingiz bo'sh",
@@ -3304,6 +3306,8 @@ Oq fonli foto</div>
         activeOrder: 'Активный заказ',
         track: 'Отследить',
         introSubtitle: 'Удобная доставка по Самарканду • Широкий ассортимент • Надежный сервис',
+        introCtaAuthed: 'Начать покупки',
+        introCtaGuest: 'Зарегистрироваться',
         homeTab: 'Главная',
         bannerSection: 'Для вас',
         cartEmptyTitle: 'Корзина пуста',
@@ -3422,6 +3426,7 @@ Oq fonli foto</div>
       document.getElementById('homeMoreProductsLink').textContent = t('homeMore');
       const introSubtitleEl = document.getElementById('introSubtitle');
       if (introSubtitleEl) introSubtitleEl.textContent = t('introSubtitle');
+      syncIntroCta();
       const homeCategoriesTitle = document.getElementById('homeCategoriesTitle');
       const homeForYouTitle = document.getElementById('homeForYouTitle');
       const homeDiscountsTitle = document.getElementById('homeDiscountsTitle');
