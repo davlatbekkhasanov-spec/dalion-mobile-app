@@ -82,7 +82,7 @@
       transition: opacity 600ms ease, transform 600ms ease, visibility 600ms ease;
     }
 
-    .intro { z-index: 20; overflow: hidden; background: radial-gradient(circle at 30% 20%, #1c2f5f, #090f1f 55%, #050913 100%); display: flex; align-items: center; justify-content: center; }
+    .intro { z-index: 20; overflow: hidden; background: radial-gradient(circle at 30% 20%, #1c2f5f, #090f1f 55%, #050913 100%); display: flex; align-items: center; justify-content: center; position:relative; }
     .intro::before{
       content:"";
       position:absolute;
@@ -106,6 +106,9 @@
     }
     .brand { font-size: 34px; font-weight: 800; letter-spacing: 0.2px; color:#eaf2ff; }
     .cinematic-intro{gap:16px; align-items:center; text-align:center; padding-top:30px;}
+    .intro-lang-switcher{position:absolute;top:max(14px,env(safe-area-inset-top));right:14px;display:flex;gap:8px;z-index:30}
+    .lang-switch-btn{border:1px solid rgba(255,255,255,.38);background:rgba(11,20,38,.45);color:#fff;min-width:44px;min-height:34px;border-radius:999px;padding:0 12px;font-weight:700;font-size:12px;cursor:pointer;backdrop-filter:blur(6px)}
+    .lang-switch-btn.active{background:#fff;color:#1d2440;border-color:#fff}
     .cinematic-chip{color:#a8bee3;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
     .cinematic-stage{position:relative;width:240px;height:240px;display:grid;place-items:center;perspective:700px}
     .cinematic-starfield{position:absolute;inset:-12px;pointer-events:none}
@@ -1679,8 +1682,12 @@
   <main class="phone" id="phone">
     
     <section class="screen intro" id="introScreen">
+      <div class="intro-lang-switcher" aria-label="Language selector">
+        <button class="lang-switch-btn" id="introLangUzBtn" type="button">UZ</button>
+        <button class="lang-switch-btn" id="introLangRuBtn" type="button">RU</button>
+      </div>
       <div class="intro-inner cinematic-intro" id="cinematicIntro">
-        <p class="cinematic-chip">GlobusMarket premium delivery</p>
+        <p class="cinematic-chip" id="introChip">Qulay xarid, tezkor yetkazish</p>
         <div class="cinematic-stage">
           <div class="cinematic-starfield" id="cinematicStarfield"></div>
           <div class="cinematic-globe-wrap" id="cinematicGlobeWrap">
@@ -1703,7 +1710,7 @@
     <div class="auth-sheet-overlay" id="authSheetOverlay">
       <div class="auth-sheet" id="authSheet">
         <div class="auth-sheet-head">
-          <h3 style="margin:0;">Ro‘yxatdan o‘tish</h3>
+          <h3 style="margin:0;" id="authSheetTitle">Ro‘yxatdan o‘tish</h3>
           <button class="auth-sheet-close" id="closeAuthSheetBtn" aria-label="Yopish">✕</button>
         </div>
 
@@ -1777,7 +1784,7 @@
               <span class="logo-mark" aria-hidden="true"></span>
               <h1 class="name" id="homeBrandName">GlobusMarket</h1>
             </div>
-            <p class="location" id="homeLocation">📍 Samarqand</p>
+            <p class="location" id="homeLocation" style="display:none;">📍 Samarqand</p>
           </div>
           <div style="display:flex; gap:8px; align-items:center;">
             <button class="tab" id="langUzBtn" style="padding:6px 8px; min-height:auto;">UZ</button>
@@ -1912,7 +1919,7 @@
           <h4 style="margin-bottom:10px;">Yetkazib berish</h4>
           <p class="muted" id="checkoutSavedAddress">Saqlangan manzil: -</p>
           <p class="muted" id="checkoutLocation">Manzil: Samarqand</p>
-          <p class="muted" id="checkoutGeo">Geo: olinmagan</p>
+          <p class="muted" id="checkoutGeo" style="display:none;">Geo: olinmagan</p>
           <p class="muted" id="checkoutLandmark">Orientir: -</p>
           <input id="manualAddress" class="checkout-input" placeholder="Manzil (qo'lda)" />
           <input id="landmarkInput" class="checkout-input" placeholder="Orientir" />
@@ -3070,6 +3077,8 @@ Oq fonli foto</div>
     const homeBellBadge = document.getElementById('homeBellBadge');
     const langUzBtn = document.getElementById('langUzBtn');
     const langRuBtn = document.getElementById('langRuBtn');
+    const introLangUzBtn = document.getElementById('introLangUzBtn');
+    const introLangRuBtn = document.getElementById('introLangRuBtn');
     const profileAddress = document.getElementById('profileAddress');
     const retryLocationBtn = document.getElementById('retryLocationBtn');
     const manualLocationBtn = document.getElementById('manualLocationBtn');
@@ -3143,9 +3152,17 @@ Oq fonli foto</div>
         checkoutHintOptional: "Lokatsiya ixtiyoriy. Istasangiz manzilni qo'lda kiriting.",
         activeOrder: "Faol buyurtma",
         track: "Kuzatish",
-        introSubtitle: "Samarqand bo'ylab qulay yetkazib berish • Keng assortiment • Ishonchli servis",
+        introChip: "Qulay xarid, tezkor yetkazish",
+        introSubtitle: "Har buyurtmada sifat, tezlik va ishonch bir joyda",
         introCtaAuthed: "Xaridni boshlash",
         introCtaGuest: "Ro‘yxatdan o‘tish",
+        authSheetTitle: "Ro'yxatdan o'tish",
+        authNamePlaceholder: "Ismingiz",
+        authNameAriaLabel: "Ism",
+        authNameError: "Iltimos, ismingizni kiriting (kamida 2 harf)",
+        authPhoneAriaLabel: "Telefon raqam",
+        authPhoneError: "Telefon raqamni to'liq kiriting (+998 XX XXX XX XX)",
+        authCloseAriaLabel: "Yopish",
         homeTab: 'Bosh sahifa',
         bannerSection: 'Siz uchun',
         cartEmptyTitle: "Savatingiz bo'sh",
@@ -3305,9 +3322,17 @@ Oq fonli foto</div>
         checkoutHintOptional: 'Геолокация необязательна. При желании введите адрес вручную.',
         activeOrder: 'Активный заказ',
         track: 'Отследить',
-        introSubtitle: 'Удобная доставка по Самарканду • Широкий ассортимент • Надежный сервис',
+        introChip: 'Удобные покупки, быстрая доставка',
+        introSubtitle: 'В каждом заказе качество, скорость и надежность',
         introCtaAuthed: 'Начать покупки',
         introCtaGuest: 'Зарегистрироваться',
+        authSheetTitle: 'Регистрация',
+        authNamePlaceholder: 'Ваше имя',
+        authNameAriaLabel: 'Имя',
+        authNameError: 'Введите имя (минимум 2 буквы)',
+        authPhoneAriaLabel: 'Номер телефона',
+        authPhoneError: 'Введите полный номер телефона (+998 XX XXX XX XX)',
+        authCloseAriaLabel: 'Закрыть',
         homeTab: 'Главная',
         bannerSection: 'Для вас',
         cartEmptyTitle: 'Корзина пуста',
@@ -3424,9 +3449,21 @@ Oq fonli foto</div>
       document.getElementById('searchClearBtn').setAttribute('aria-label', t('searchClear'));
       document.getElementById('homeAllCategoriesLink').textContent = t('homeAll');
       document.getElementById('homeMoreProductsLink').textContent = t('homeMore');
+      const introChipEl = document.getElementById('introChip');
       const introSubtitleEl = document.getElementById('introSubtitle');
+      if (introChipEl) introChipEl.textContent = t('introChip');
       if (introSubtitleEl) introSubtitleEl.textContent = t('introSubtitle');
       syncIntroCta();
+      const authSheetTitle = document.getElementById('authSheetTitle');
+      if (authSheetTitle) authSheetTitle.textContent = t('authSheetTitle');
+      if (authName) {
+        authName.placeholder = t('authNamePlaceholder');
+        authName.setAttribute('aria-label', t('authNameAriaLabel'));
+      }
+      if (authNameError) authNameError.textContent = t('authNameError');
+      if (authPhone) authPhone.setAttribute('aria-label', t('authPhoneAriaLabel'));
+      if (authPhoneError) authPhoneError.textContent = t('authPhoneError');
+      if (closeAuthSheetBtn) closeAuthSheetBtn.setAttribute('aria-label', t('authCloseAriaLabel'));
       const homeCategoriesTitle = document.getElementById('homeCategoriesTitle');
       const homeForYouTitle = document.getElementById('homeForYouTitle');
       const homeDiscountsTitle = document.getElementById('homeDiscountsTitle');
@@ -3497,6 +3534,8 @@ Oq fonli foto</div>
       updateInlineBackTitle();
       langUzBtn?.classList.toggle('active', currentLang === 'uz');
       langRuBtn?.classList.toggle('active', currentLang === 'ru');
+      introLangUzBtn?.classList.toggle('active', currentLang === 'uz');
+      introLangRuBtn?.classList.toggle('active', currentLang === 'ru');
     }
 
     async function api(path, options = {}) {
@@ -4749,6 +4788,8 @@ Oq fonli foto</div>
     });
     langUzBtn?.addEventListener('click', () => { currentLang = 'uz'; localStorage.setItem('gm_lang', 'uz'); applyLang(); renderAll(); });
     langRuBtn?.addEventListener('click', () => { currentLang = 'ru'; localStorage.setItem('gm_lang', 'ru'); applyLang(); renderAll(); });
+    introLangUzBtn?.addEventListener('click', () => { currentLang = 'uz'; localStorage.setItem('gm_lang', 'uz'); applyLang(); renderAll(); });
+    introLangRuBtn?.addEventListener('click', () => { currentLang = 'ru'; localStorage.setItem('gm_lang', 'ru'); applyLang(); renderAll(); });
 
     searchInput.addEventListener('input', renderSearch);
     [searchInput, manualAddress, landmarkInput, promoCodeInput].forEach((field) => {
