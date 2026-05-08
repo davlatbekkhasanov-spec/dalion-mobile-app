@@ -1802,6 +1802,7 @@
     <div class="auth-sheet-overlay" id="authSheetOverlay">
       <div class="auth-sheet" id="authSheet">
         <div class="auth-sheet-head">
+          <span aria-hidden="true"></span>
           <h3 style="margin:0;" id="authSheetTitle">Ro‘yxatdan o‘tish</h3>
           <button class="auth-sheet-close" id="closeAuthSheetBtn" aria-label="Yopish">✕</button>
         </div>
@@ -3241,6 +3242,8 @@ Oq fonli foto</div>
         toastCashConsent: "Naqd to'lov shartlarini tasdiqlang",
         toastOrderSendErr: "Buyurtmani yuborishda xatolik",
         toastOrderDone: 'Buyurtma yakunlandi',
+        toastAmbientTrackSwitched: 'Musiqa manbasi almashtirildi',
+        toastAmbientFallback: 'Musiqa oqimi xatosi, zaxira tovush yoqildi',
         validationAuthFirst: "Avval ro'yxatdan o'ting",
         validationPaymentPick: "To'lov turini tanlang",
         validationAddressRequired: "Manzilni kiriting yoki lokatsiyani yoqing",
@@ -3462,6 +3465,8 @@ Oq fonli foto</div>
         toastCashConsent: 'Подтвердите условия наличной оплаты',
         toastOrderSendErr: 'Ошибка отправки заказа',
         toastOrderDone: 'Заказ завершен',
+        toastAmbientTrackSwitched: 'Источник музыки переключен',
+        toastAmbientFallback: 'Ошибка потока музыки, включен резервный звук',
         validationAuthFirst: 'Сначала зарегистрируйтесь',
         validationPaymentPick: 'Выберите способ оплаты',
         validationAddressRequired: 'Введите адрес или включите геолокацию',
@@ -3781,9 +3786,11 @@ Oq fonli foto</div>
       const INTRO_AMBIENT_LS_PLAYING = 'gm_intro_ambient_playing';
       const INTRO_AMBIENT_LS_TRACK = 'gm_intro_ambient_track_ix';
       const INTRO_AMBIENT_TRACKS = [
-        '/audio/globus-ambient-jazz-1.mp3',
-        '/audio/globus-ambient-jazz-2.mp3',
-        '/audio/globus-ambient-jazz-3.mp3'
+        { src: '/audio/globus-ambient-jazz-1.mp3', label: 'local-1' },
+        { src: '/audio/globus-ambient-jazz-2.mp3', label: 'local-2' },
+        { src: '/audio/globus-ambient-jazz-3.mp3', label: 'local-3' },
+        { src: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=relaxing-mountains-rivers-11664.mp3', label: 'pixabay-1' },
+        { src: 'https://cdn.pixabay.com/download/audio/2023/06/20/audio_867bf1fcb6.mp3?filename=ambient-piano-amp-strings-15987.mp3', label: 'pixabay-2' }
       ];
 
       const audio = document.getElementById('introAmbientAudio');
@@ -3792,6 +3799,8 @@ Oq fonli foto</div>
       const nextBtn = document.getElementById('introAmbientNext');
       const toggleHome = document.getElementById('homeAmbientToggle');
       if (!audio || !toggleHome) return;
+      audio.crossOrigin = 'anonymous';
+      audio.preload = 'auto';
 
       let trackIndex = Math.min(
         INTRO_AMBIENT_TRACKS.length - 1,
@@ -3904,11 +3913,16 @@ Oq fonli foto</div>
         syncAmbientChrome();
       }
 
+      function currentTrack() {
+        return INTRO_AMBIENT_TRACKS[trackIndex] || null;
+      }
+
       function loadTrack(delta) {
         if (!INTRO_AMBIENT_TRACKS.length) return;
         trackIndex = (trackIndex + delta + INTRO_AMBIENT_TRACKS.length) % INTRO_AMBIENT_TRACKS.length;
         persistTrackIx();
-        audio.src = INTRO_AMBIENT_TRACKS[trackIndex];
+        const track = currentTrack();
+        audio.src = track ? track.src : '';
         audio.load();
       }
 
@@ -3919,11 +3933,13 @@ Oq fonli foto</div>
           if (wasTryingToPlay) {
             const p = startFallbackTone();
             if (p && typeof p.catch === 'function') p.catch(() => {});
+            showToast(t('toastAmbientFallback'));
           }
           return false;
         }
         errorSkipDepth += 1;
         loadTrack(1);
+        if (wasTryingToPlay) showToast(t('toastAmbientTrackSwitched'));
         stopFallbackTone();
         if (wasTryingToPlay) {
           const p = audio.play();
@@ -3951,7 +3967,7 @@ Oq fonli foto</div>
 
       if (INTRO_AMBIENT_TRACKS.length) loadTrack(0);
       audio.pause();
-      audio.volume = 1;
+      audio.volume = 0.85;
 
       async function togglePlayback() {
         if (audio.paused && !fallbackEnabled) {
@@ -3971,6 +3987,7 @@ Oq fonli foto</div>
               syncAmbientChrome();
               return;
             }
+            showToast(t('toastAmbientFallback'));
           }
           persistPlaying(true);
         } else {
