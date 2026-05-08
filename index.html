@@ -1794,34 +1794,34 @@
         <section class="home-scroll" id="bannerCarousel"></section>
 
         <div class="section-head gm-section-header">
-          <h4>Kategoriyalar</h4>
+          <h4 id="homeCategoriesTitle">Kategoriyalar</h4>
           <a href="#" id="homeAllCategoriesLink">Barchasi</a>
         </div>
         <section class="cats" id="homeCategories"></section>
 
         <div class="section-head gm-section-header">
-          <h4>Siz uchun</h4>
+          <h4 id="homeForYouTitle">Siz uchun</h4>
           <a href="#" id="homeMoreProductsLink">Ko‘proq</a>
         </div>
         <section class="products-grid" id="homeProducts"></section>
 
         <div class="section-head gm-section-header" id="discountSectionHead">
-          <h4>Chegirmalar</h4>
+          <h4 id="homeDiscountsTitle">Chegirmalar</h4>
         </div>
         <section class="products-grid" id="homeDiscountProducts"></section>
 
         <div class="section-head gm-section-header" id="fastSectionHead">
-          <h4>Tezkor tanlovlar</h4>
+          <h4 id="homeFastTitle">Tezkor tanlovlar</h4>
         </div>
         <section class="products-grid" id="homeFastProducts"></section>
 
         <div class="section-head gm-section-header" id="bestSectionHead">
-          <h4>Ommabop</h4>
+          <h4 id="homePopularTitle">Ommabop</h4>
         </div>
         <section class="products-grid" id="homeBestSellerProducts"></section>
 
         <div class="section-head gm-section-header" id="reorderSectionHead">
-          <h4>Qayta buyurtma</h4>
+          <h4 id="homeReorderTitle">Qayta buyurtma</h4>
         </div>
         <section class="products-grid" id="homeReorderProducts"></section>
 
@@ -1894,12 +1894,12 @@
           <button class="btn gm-btn gm-btn-secondary btn-secondary" id="logoutBtn" style="margin-top:12px;">Chiqish</button>
         </div>
         <div class="list-card gm-card" id="profileOrdersCard">
-          <h3 style="margin-bottom:6px;">Buyurtmalarim</h3>
+          <h3 style="margin-bottom:6px;" id="profileOrdersTitle">Buyurtmalarim</h3>
           <div id="profileOrders"></div>
         </div>
         <div class="list-card gm-card" id="profileGuestCard" style="display:none;">
-          <h3 style="margin-bottom:6px;">Mehmon foydalanuvchi</h3>
-          <p class="muted" style="margin:0 0 10px;">Avval ro‘yxatdan o‘ting</p>
+          <h3 style="margin-bottom:6px;" id="profileGuestTitle">Mehmon foydalanuvchi</h3>
+          <p class="muted" style="margin:0 0 10px;" id="profileGuestBody">Avval ro‘yxatdan o‘ting</p>
           <button class="btn gm-btn gm-btn-primary btn-primary" id="profileRegisterBtn">Ro‘yxatdan o‘tish</button>
         </div>
       </section>
@@ -1961,8 +1961,8 @@
 
       <section class="view" id="successView">
         <div class="list-card gm-card success-card">
-          <h2 style="margin-bottom:8px;">Buyurtma qabul qilindi</h2>
-          <p class="muted">Buyurtmangiz qabul qilindi, tez orada operator bog‘lanadi</p>
+          <h2 style="margin-bottom:8px;" id="successTitle">Buyurtma qabul qilindi</h2>
+          <p class="muted" id="successBody">Buyurtmangiz qabul qilindi, tez orada operator bog‘lanadi</p>
           <p class="muted" id="successOrderNumber">Buyurtma: -</p>
           <p class="muted" id="successOrderTime">Vaqt: -</p>
           <p class="muted" id="successPaymentMethod">To‘lov turi: -</p>
@@ -1970,7 +1970,7 @@
           <p class="muted" id="successTotal">Jami: -</p>
           <div class="success-timeline">
             <p class="muted" id="successOrderStatus">Holat: Buyurtma qabul qilindi</p>
-            <p class="muted">To‘lov: Tasdiqlanish jarayonida</p>
+            <p class="muted" id="successPaymentPending">To‘lov: Tasdiqlanish jarayonida</p>
           </div>
           <a id="trackOrderBtn" class="btn gm-btn gm-btn-secondary btn-secondary" style="display:none;">Kuzatish</a>
           <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="backHomeBtn">Bosh sahifaga qaytish</button>
@@ -1979,10 +1979,10 @@
     </section>
 
     <nav class="bottom" id="bottomNav" aria-label="Pastki menyu">
-      <button class="tab active" data-view="homeView"><b>⌂</b>Bosh sahifa</button>
-      <button class="tab" data-view="searchView"><b>◫</b>Katalog</button>
-      <button class="tab" data-view="cartView"><b>🛒</b>Savat <span class="cart-badge hidden" id="cartBadge">0</span></button>
-      <button class="tab" data-view="profileView"><b>☻</b>Profil</button>
+      <button class="tab active" data-view="homeView"><b>⌂</b><span id="homeTabLabel">Bosh sahifa</span></button>
+      <button class="tab" data-view="searchView"><b>◫</b><span id="searchTabLabel">Katalog</span></button>
+      <button class="tab" data-view="cartView"><b>🛒</b><span id="cartTabLabel">Savat</span> <span class="cart-badge hidden" id="cartBadge">0</span></button>
+      <button class="tab" data-view="profileView"><b>☻</b><span id="profileTabLabel">Profil</span></button>
     </nav>
 
     <div class="overlay" id="productModalOverlay">
@@ -3092,6 +3092,12 @@ Oq fonli foto</div>
         homeAll: 'Barchasi',
         homeMore: "Ko'proq",
         categories: 'Kategoriyalar',
+        homeCategoriesTitle: 'Kategoriyalar',
+        homeForYouTitle: 'Siz uchun',
+        homeDiscountsTitle: 'Chegirmalar',
+        homeFastTitle: 'Tezkor tanlovlar',
+        homePopularTitle: 'Ommabop',
+        homeReorderTitle: 'Qayta buyurtma',
         discounts: 'Chegirmalar',
         fastPick: 'Tezkor tanlovlar',
         popular: 'Ommabop',
@@ -3137,7 +3143,101 @@ Oq fonli foto</div>
         checkoutHintOptional: "Lokatsiya ixtiyoriy. Istasangiz manzilni qo'lda kiriting.",
         activeOrder: "Faol buyurtma",
         track: "Kuzatish",
-        introSubtitle: "Samarqand bo'ylab qulay yetkazib berish • Keng assortiment • Ishonchli servis"
+        introSubtitle: "Samarqand bo'ylab qulay yetkazib berish • Keng assortiment • Ishonchli servis",
+        homeTab: 'Bosh sahifa',
+        bannerSection: 'Siz uchun',
+        cartEmptyTitle: "Savatingiz bo'sh",
+        cartEmptyBody: "Yoqtirgan mahsulotlaringizni qo'shing va buyurtmani tez yakunlang.",
+        cartEmptyCta: "Katalogga o'tish",
+        cartDeliveryLabel: 'Yetkazib berish:',
+        cartItemsLabel: 'Mahsulotlar:',
+        cartPromoLabel: 'Promo kod:',
+        cartTotalLabel: 'Jami:',
+        cartUpsellTitle: "Yana qo'shib oling",
+        orderNow: 'Buyurtma berish',
+        profileOrders: 'Buyurtmalarim',
+        profilePayments: "To'lov usullari",
+        profileAddresses: 'Manzillarim',
+        profilePromos: 'Promokodlarim',
+        profileAlerts: 'Xabarnomalar',
+        profileSettings: 'Sozlamalar',
+        profileHelp: "Yordam / Biz bilan bog'lanish",
+        profileSoon: 'Tez orada',
+        profileLogout: 'Chiqish',
+        profileGuestTitle: 'Mehmon foydalanuvchi',
+        profileGuestBody: "Avval ro'yxatdan o'ting",
+        profileGuestCta: "Ro'yxatdan o'tish",
+        profileAddressPrefix: 'Manzil',
+        profilePhonePrefix: 'Telefon',
+        profileOrdersLoading: 'Buyurtmalaringiz yuklanmoqda...',
+        profileOrdersLoadFail: "Buyurtmalarni yuklab bo'lmadi",
+        profileOrdersLoadFailBody: "Internet aloqasi yoki server bilan vaqtinchalik muammo bo'lishi mumkin.",
+        retry: 'Qayta urinish',
+        profileNoOrders: "Sizda hali buyurtmalar yo'q",
+        statusLabel: 'Holat',
+        totalLabel: 'Jami',
+        itemsLabel: 'Mahsulotlar',
+        orderDetails: 'Buyurtma tafsiloti',
+        itemsNotFound: 'Mahsulotlar topilmadi',
+        reorderButton: 'Yana buyurtma berish',
+        track: "Kuzatish",
+        pricePending: 'Narx aniqlanmoqda',
+        addToCart: "Savatga qo'shish",
+        imageMissing: "Rasm yo'q",
+        productsNotLoaded: 'Mahsulotlar hali yuklanmagan',
+        productsNotLoadedHint: 'Admin panel orqali Excel import qiling yoki DALION sinxronizatsiyasini ulang',
+        categoryOther: 'Boshqa',
+        allCategories: 'Hammasi',
+        productsCountSuffix: 'ta mahsulot',
+        productResultsTitle: "Mahsulotlar bo'yicha natijalar",
+        remove: 'Olib tashlash',
+        unavailableNow: 'Ushbu mahsulot hozircha mavjud emas.',
+        userFallback: 'Foydalanuvchi',
+        phoneMissing: 'Telefon mavjud emas',
+        qtySuffix: 'dona',
+        etaLong: "Samarqand bo'ylab odatda 1-4 soat (tirbandlik va yuklamaga qarab)",
+        etaShort: "Samarqand bo'ylab odatda 1-4 soat",
+        payLink: "To'lov havolasi",
+        paymeHint: "Payme: To'lovni Payme ilovasi orqali yakunlang",
+        activeOrderAmount: 'Jami',
+        paymentLabel: "To'lov",
+        paymentType: "To'lov turi",
+        paymentMethodCash: 'Naqd',
+        checkoutAddressPrefix: 'Manzil',
+        checkoutTimePrefix: 'Vaqt',
+        checkoutPricePending: 'Narx: manzil aniqlangach hisoblanadi',
+        checkoutDistancePending: 'Masofa: manzil aniqlangach ko-rinadi',
+        checkoutDistanceInvalid: 'Masofa: aniqlanmadi, iltimos manzilni tekshiring',
+        checkoutPriceInvalid: 'Narx: vaqtincha hisoblanmadi',
+        checkoutLocationError: 'Lokatsiya xatosi, qayta urinib ko-ring',
+        checkoutDistancePrefix: 'Masofa',
+        checkoutPricePrefix: 'Narx',
+        checkoutConfirmCash: "Naqd to'lov uchun rozilikni tasdiqlang",
+        orderPrefix: 'Buyurtma',
+        timePrefix: 'Vaqt',
+        totalCheckFailed: "Jami: Summani tekshirib bo'lmadi",
+        paymentCheckingSuffix: "To'lov tekshirilmoqda",
+        inStock: 'Mavjud',
+        modalOutOfStock: "Omborda yo'q",
+        modalTrustEta: 'Yetkazib berish vaqti',
+        modalTrustEtaHint: "yo'l holatiga qarab farq qilishi mumkin",
+        modalDescriptionFallback: "uchun buyurtma berishingiz mumkin.",
+        modalSpecCategory: 'Kategoriya',
+        modalSpecStock: 'Qoldiq',
+        qtyCountSuffix: 'ta',
+        upsellWithProduct: 'Shu mahsulot bilan birga olishadi',
+        upsellAdd: "Qo'shish",
+        successTitle: 'Buyurtma qabul qilindi',
+        successBody: "Buyurtmangiz qabul qilindi, tez orada operator bog'lanadi",
+        successPaymentPending: "To'lov: Tasdiqlanish jarayonida",
+        backHome: 'Bosh sahifaga qaytish',
+        searchEmptyHint: "Boshqa nom yoki kategoriya bilan qidirib ko'ring"
+        ,checkoutValidationHint: "Manzil ma'lumotlarini tekshiring va to'lov turini tanlang."
+        ,catStationery: 'Kanselyariya'
+        ,catOffice: 'Ofis jihozlari'
+        ,catComputer: 'Kompyuter aksessuarlari'
+        ,catUsb: 'USB va kabellar'
+        ,catDrinks: 'Ichimliklar'
       },
       ru: {
         search: 'Поиск товаров...',
@@ -3152,6 +3252,12 @@ Oq fonli foto</div>
         homeAll: 'Все',
         homeMore: 'Еще',
         categories: 'Категории',
+        homeCategoriesTitle: 'Категории',
+        homeForYouTitle: 'Для вас',
+        homeDiscountsTitle: 'Скидки',
+        homeFastTitle: 'Быстрый выбор',
+        homePopularTitle: 'Популярное',
+        homeReorderTitle: 'Повтор заказа',
         discounts: 'Скидки',
         fastPick: 'Быстрый выбор',
         popular: 'Популярное',
@@ -3197,7 +3303,100 @@ Oq fonli foto</div>
         checkoutHintOptional: 'Геолокация необязательна. При желании введите адрес вручную.',
         activeOrder: 'Активный заказ',
         track: 'Отследить',
-        introSubtitle: 'Удобная доставка по Самарканду • Широкий ассортимент • Надежный сервис'
+        introSubtitle: 'Удобная доставка по Самарканду • Широкий ассортимент • Надежный сервис',
+        homeTab: 'Главная',
+        bannerSection: 'Для вас',
+        cartEmptyTitle: 'Корзина пуста',
+        cartEmptyBody: 'Добавьте товары в корзину и быстро завершите заказ.',
+        cartEmptyCta: 'Перейти в каталог',
+        cartDeliveryLabel: 'Доставка:',
+        cartItemsLabel: 'Товары:',
+        cartPromoLabel: 'Промокод:',
+        cartTotalLabel: 'Итого:',
+        cartUpsellTitle: 'Добавьте еще',
+        orderNow: 'Оформить заказ',
+        profileOrders: 'Мои заказы',
+        profilePayments: 'Способы оплаты',
+        profileAddresses: 'Мои адреса',
+        profilePromos: 'Мои промокоды',
+        profileAlerts: 'Уведомления',
+        profileSettings: 'Настройки',
+        profileHelp: 'Помощь / Связаться с нами',
+        profileSoon: 'Скоро',
+        profileLogout: 'Выйти',
+        profileGuestTitle: 'Гостевой пользователь',
+        profileGuestBody: 'Сначала зарегистрируйтесь',
+        profileGuestCta: 'Зарегистрироваться',
+        profileAddressPrefix: 'Адрес',
+        profilePhonePrefix: 'Телефон',
+        profileOrdersLoading: 'Загружаем ваши заказы...',
+        profileOrdersLoadFail: 'Не удалось загрузить заказы',
+        profileOrdersLoadFailBody: 'Возможно, временная проблема с интернетом или сервером.',
+        retry: 'Повторить',
+        profileNoOrders: 'У вас пока нет заказов',
+        statusLabel: 'Статус',
+        totalLabel: 'Итого',
+        itemsLabel: 'Товары',
+        orderDetails: 'Детали заказа',
+        itemsNotFound: 'Товары не найдены',
+        reorderButton: 'Повторить заказ',
+        pricePending: 'Цена уточняется',
+        addToCart: 'Добавить в корзину',
+        imageMissing: 'Нет изображения',
+        productsNotLoaded: 'Товары еще не загружены',
+        productsNotLoadedHint: 'Импортируйте Excel через админ-панель или подключите синхронизацию DALION',
+        categoryOther: 'Другое',
+        allCategories: 'Все',
+        productsCountSuffix: 'товаров',
+        productResultsTitle: 'Результаты по товарам',
+        remove: 'Удалить',
+        unavailableNow: 'Этот товар сейчас недоступен.',
+        userFallback: 'Пользователь',
+        phoneMissing: 'Телефон недоступен',
+        qtySuffix: 'шт',
+        etaLong: 'По Самарканду обычно 1-4 часа (в зависимости от пробок и загрузки)',
+        etaShort: 'По Самарканду обычно 1-4 часа',
+        payLink: 'Ссылка на оплату',
+        paymeHint: 'Payme: Завершите оплату в приложении Payme',
+        activeOrderAmount: 'Итого',
+        paymentLabel: 'Оплата',
+        paymentType: 'Способ оплаты',
+        paymentMethodCash: 'Наличные',
+        checkoutAddressPrefix: 'Адрес',
+        checkoutTimePrefix: 'Время',
+        checkoutPricePending: 'Цена: рассчитывается после уточнения адреса',
+        checkoutDistancePending: 'Расстояние: появится после уточнения адреса',
+        checkoutDistanceInvalid: 'Расстояние: не определено, проверьте адрес',
+        checkoutPriceInvalid: 'Цена: временно не рассчитана',
+        checkoutLocationError: 'Ошибка геолокации, попробуйте снова',
+        checkoutDistancePrefix: 'Расстояние',
+        checkoutPricePrefix: 'Цена',
+        checkoutConfirmCash: 'Подтвердите согласие на наличную оплату',
+        orderPrefix: 'Заказ',
+        timePrefix: 'Время',
+        totalCheckFailed: 'Итого: не удалось проверить сумму',
+        paymentCheckingSuffix: 'Платеж проверяется',
+        inStock: 'В наличии',
+        modalOutOfStock: 'Нет в наличии',
+        modalTrustEta: 'Срок доставки',
+        modalTrustEtaHint: 'может отличаться из-за дорожной ситуации',
+        modalDescriptionFallback: 'доступен к заказу.',
+        modalSpecCategory: 'Категория',
+        modalSpecStock: 'Остаток',
+        qtyCountSuffix: 'шт',
+        upsellWithProduct: 'С этим товаром покупают',
+        upsellAdd: 'Добавить',
+        successTitle: 'Заказ принят',
+        successBody: 'Ваш заказ принят, оператор скоро свяжется с вами',
+        successPaymentPending: 'Оплата: в процессе подтверждения',
+        backHome: 'Вернуться на главную',
+        searchEmptyHint: 'Попробуйте другой запрос или категорию',
+        checkoutValidationHint: 'Проверьте адрес и выберите способ оплаты',
+        catStationery: 'Канцтовары',
+        catOffice: 'Офисные товары',
+        catComputer: 'Компьютерные аксессуары',
+        catUsb: 'USB и кабели',
+        catDrinks: 'Напитки'
       }
     };
 
@@ -3207,6 +3406,9 @@ Oq fonli foto</div>
 
     function applyLang() {
       document.documentElement.lang = currentLang;
+      viewTitles.searchView = t('catalog');
+      viewTitles.cartView = t('cart');
+      viewTitles.checkoutView = t('checkout');
       document.getElementById('openSearchBtn').textContent = t('search');
       document.querySelector('#searchView .title').textContent = t('catalog');
       document.querySelector('#cartView .title').textContent = t('cart');
@@ -3220,15 +3422,74 @@ Oq fonli foto</div>
       document.getElementById('homeMoreProductsLink').textContent = t('homeMore');
       const introSubtitleEl = document.getElementById('introSubtitle');
       if (introSubtitleEl) introSubtitleEl.textContent = t('introSubtitle');
-      const sectionTitles = document.querySelectorAll('.section-head h4');
-      if (sectionTitles[1]) sectionTitles[1].textContent = t('categories');
-      if (sectionTitles[3]) sectionTitles[3].textContent = t('discounts');
-      if (sectionTitles[4]) sectionTitles[4].textContent = t('fastPick');
-      if (sectionTitles[5]) sectionTitles[5].textContent = t('popular');
-      if (sectionTitles[6]) sectionTitles[6].textContent = t('reorder');
+      const homeCategoriesTitle = document.getElementById('homeCategoriesTitle');
+      const homeForYouTitle = document.getElementById('homeForYouTitle');
+      const homeDiscountsTitle = document.getElementById('homeDiscountsTitle');
+      const homeFastTitle = document.getElementById('homeFastTitle');
+      const homePopularTitle = document.getElementById('homePopularTitle');
+      const homeReorderTitle = document.getElementById('homeReorderTitle');
+      if (homeCategoriesTitle) homeCategoriesTitle.textContent = t('homeCategoriesTitle');
+      if (homeForYouTitle) homeForYouTitle.textContent = t('homeForYouTitle');
+      if (homeDiscountsTitle) homeDiscountsTitle.textContent = t('homeDiscountsTitle');
+      if (homeFastTitle) homeFastTitle.textContent = t('homeFastTitle');
+      if (homePopularTitle) homePopularTitle.textContent = t('homePopularTitle');
+      if (homeReorderTitle) homeReorderTitle.textContent = t('homeReorderTitle');
       const promoTitle = document.getElementById('promoSectionTitle');
       if (promoTitle) promoTitle.textContent = t('promotions');
       if (!notificationsList.children.length) notificationsList.innerHTML = `<div class="empty">${t('bellEmpty')}</div>`;
+      const bannerSectionTitle = document.getElementById('bannerSectionTitle');
+      if (bannerSectionTitle) bannerSectionTitle.textContent = t('bannerSection');
+      const searchEmptyTitle = document.querySelector('#searchEmpty h3');
+      const searchEmptyHint = document.querySelector('#searchEmpty p');
+      if (searchEmptyTitle) searchEmptyTitle.textContent = t('notFound');
+      if (searchEmptyHint) searchEmptyHint.textContent = t('searchEmptyHint');
+      const categoryBackLabel = document.getElementById('categoryBackBtn');
+      if (categoryBackLabel) categoryBackLabel.textContent = `← ${t('catalog')}`;
+      const cartEmptyTitle = document.querySelector('#cartEmpty h3');
+      const cartEmptyBody = document.querySelector('#cartEmpty p');
+      const cartUpsellTitle = document.querySelector('#cartUpsellWrap h4');
+      if (cartEmptyTitle) cartEmptyTitle.textContent = t('cartEmptyTitle');
+      if (cartEmptyBody) cartEmptyBody.textContent = t('cartEmptyBody');
+      if (cartUpsellTitle) cartUpsellTitle.textContent = t('cartUpsellTitle');
+      document.getElementById('cartEmptyCta').textContent = t('cartEmptyCta');
+      document.getElementById('orderBtn').textContent = t('orderNow');
+      document.getElementById('confirmOrderBtn').textContent = t('orderNow');
+      document.getElementById('checkoutValidationHint').textContent = t('checkoutValidationHint');
+      const cartSummaryLabels = document.querySelectorAll('#cartSummary .list-row .muted');
+      if (cartSummaryLabels[0]) cartSummaryLabels[0].textContent = t('cartItemsLabel');
+      if (cartSummaryLabels[1]) cartSummaryLabels[1].textContent = t('cartDeliveryLabel');
+      if (cartSummaryLabels[2]) cartSummaryLabels[2].textContent = t('cartPromoLabel');
+      if (cartSummaryLabels[3]) cartSummaryLabels[3].textContent = t('cartTotalLabel');
+      document.getElementById('profileOrdersTitle').textContent = t('profileOrders');
+      document.getElementById('profileGuestTitle').textContent = t('profileGuestTitle');
+      document.getElementById('profileGuestBody').textContent = t('profileGuestBody');
+      document.getElementById('profileRegisterBtn').textContent = t('profileGuestCta');
+      document.getElementById('logoutBtn').textContent = t('profileLogout');
+      document.getElementById('successTitle').textContent = t('successTitle');
+      document.getElementById('successBody').textContent = t('successBody');
+      document.getElementById('successPaymentPending').textContent = t('successPaymentPending');
+      document.getElementById('backHomeBtn').textContent = t('backHome');
+      document.getElementById('trackOrderBtn').textContent = t('track');
+      document.getElementById('modalUpsellTitle').textContent = t('upsellWithProduct');
+      const homeTabLabel = document.getElementById('homeTabLabel');
+      const searchTabLabel = document.getElementById('searchTabLabel');
+      const cartTabLabel = document.getElementById('cartTabLabel');
+      const profileTabLabel = document.getElementById('profileTabLabel');
+      if (homeTabLabel) homeTabLabel.textContent = t('homeTab');
+      if (searchTabLabel) searchTabLabel.textContent = t('catalog');
+      if (cartTabLabel) cartTabLabel.textContent = t('cart');
+      if (profileTabLabel) profileTabLabel.textContent = t('profile');
+      const profileMenuLabels = document.querySelectorAll('#profileMenuCard .menu-item span');
+      if (profileMenuLabels[0]) profileMenuLabels[0].textContent = t('profileOrders');
+      if (profileMenuLabels[1]) profileMenuLabels[1].textContent = t('profilePayments');
+      if (profileMenuLabels[2]) profileMenuLabels[2].textContent = t('profileAddresses');
+      if (profileMenuLabels[3]) profileMenuLabels[3].textContent = t('profilePromos');
+      if (profileMenuLabels[4]) profileMenuLabels[4].textContent = t('profileAlerts');
+      if (profileMenuLabels[5]) profileMenuLabels[5].textContent = t('profileSettings');
+      if (profileMenuLabels[6]) profileMenuLabels[6].textContent = t('profileHelp');
+      const profileMenuHints = document.querySelectorAll('#profileMenuCard .menu-item small');
+      for (let i = 1; i < profileMenuHints.length - 1; i += 1) profileMenuHints[i].textContent = t('profileSoon');
+      updateInlineBackTitle();
       langUzBtn?.classList.toggle('active', currentLang === 'uz');
       langRuBtn?.classList.toggle('active', currentLang === 'ru');
     }
@@ -3284,9 +3545,9 @@ Oq fonli foto</div>
       openSearchBtn.textContent = t('search');
 
       const fallbackBanner = {
-        title: 'Qulay yetkazib berish',
-        subtitle: 'Samarqand bo‘ylab buyurtmalar odatda 1–4 soatda yetkaziladi',
-        badge: 'Odatda 1–4 soat',
+        title: t('modalTrustEta'),
+        subtitle: t('etaLong'),
+        badge: t('etaShort'),
         image_url: ''
       };
       const bannerItems = banners.length ? banners : [fallbackBanner];
@@ -3297,13 +3558,13 @@ Oq fonli foto</div>
             <p>${b.subtitle || fallbackBanner.subtitle}</p>
             <span class="gm-chip gm-chip--delivery">${b.badge || fallbackBanner.badge}</span>
           </div>
-          <div class="truck">${b.image_url ? `<img src="${b.image_url}" alt="Yetkazib berish" style="width:100%;height:100%;object-fit:cover;border-radius:16px;" />` : '📦'}</div>
+          <div class="truck">${b.image_url ? `<img src="${b.image_url}" alt="${t('modalTrustEta')}" style="width:100%;height:100%;object-fit:cover;border-radius:16px;" />` : '📦'}</div>
         </article>
       `).join('');
 
       const fallbackPromo = {
-        title: settings.bonusTitle || 'Siz uchun qulay tanlov',
-        description: settings.bonusSubtitle || 'Har kuni yangi va sifatli mahsulotlar',
+        title: settings.bonusTitle || t('bannerSection'),
+        description: settings.bonusSubtitle || t('promotions'),
         image_url: ''
       };
       const promoItems = promotions.length ? promotions : [fallbackPromo];
@@ -3330,9 +3591,9 @@ Oq fonli foto</div>
           el.style.borderColor = accent;
         });
       }
-      checkoutLocation.textContent = `Manzil: ${delivery.location || DEFAULT_LOCATION_ADDRESS}`;
-      checkoutTime.textContent = `Vaqt: ${settings.deliveryTimeText || delivery.time || 'odatiy 1–4 soat'}`;
-      checkoutPrice.textContent = 'Narx: manzil aniqlangach hisoblanadi';
+      checkoutLocation.textContent = `${t('checkoutAddressPrefix')}: ${delivery.location || DEFAULT_LOCATION_ADDRESS}`;
+      checkoutTime.textContent = `${t('checkoutTimePrefix')}: ${settings.deliveryTimeText || delivery.time || t('etaShort')}`;
+      checkoutPrice.textContent = t('checkoutPricePending');
 
       const shorts = homePayload?.shorts || [];
       shortsFeed.innerHTML = shorts.map((s) => `
@@ -3522,6 +3783,14 @@ Oq fonli foto</div>
       return labels[normalized] || (status || '-');
     }
 
+    function paymentMethodLabel(method) {
+      const normalized = String(method || '').toLowerCase();
+      if (normalized === 'payme') return 'Payme';
+      if (normalized === 'click') return 'Click';
+      if (normalized === 'cash') return t('paymentMethodCash');
+      return method || '-';
+    }
+
     function isActiveOrderStatus(status) {
       return ['created', 'payment_pending', 'payment_confirmed', 'preparing', 'ready_for_courier', 'courier_assigned', 'out_for_delivery'].includes(String(status || ''));
     }
@@ -3584,9 +3853,9 @@ Oq fonli foto</div>
           state: 'pending',
           distanceKm: null,
           deliveryPrice: null,
-          distanceText: 'Masofa: manzil aniqlangach ko‘rinadi',
-          priceText: 'Narx: manzil aniqlangach hisoblanadi',
-          cartDeliveryText: 'Manzil aniqlangach hisoblanadi'
+          distanceText: t('checkoutDistancePending'),
+          priceText: t('checkoutPricePending'),
+          cartDeliveryText: t('checkoutPricePending').replace(`${t('checkoutPricePrefix')}: `, '')
         };
       }
       const distanceKm = computeDistanceKmFromStore();
@@ -3598,17 +3867,17 @@ Oq fonli foto</div>
           state: 'invalid',
           distanceKm: null,
           deliveryPrice: null,
-          distanceText: 'Masofa: aniqlanmadi, iltimos manzilni tekshiring',
-          priceText: 'Narx: vaqtincha hisoblanmadi',
-          cartDeliveryText: 'Lokatsiya xatosi, qayta urinib ko‘ring'
+          distanceText: t('checkoutDistanceInvalid'),
+          priceText: t('checkoutPriceInvalid'),
+          cartDeliveryText: t('checkoutLocationError')
         };
       }
       return {
         state: 'ready',
         distanceKm: safeDistanceKm,
         deliveryPrice: safeDeliveryPrice,
-        distanceText: `Masofa: ${safeDistanceKm.toFixed(2)} km`,
-        priceText: `Narx: ${money(safeDeliveryPrice)}`,
+        distanceText: `${t('checkoutDistancePrefix')}: ${safeDistanceKm.toFixed(2)} km`,
+        priceText: `${t('checkoutPricePrefix')}: ${money(safeDeliveryPrice)}`,
         cartDeliveryText: money(safeDeliveryPrice)
       };
     }
@@ -3672,7 +3941,7 @@ Oq fonli foto</div>
       const discountPercent = hasDiscount ? Math.max(1, Math.round(((oldPrice - price) / oldPrice) * 100)) : 0;
       const ratingValue = Number(p.rating || 4.8);
       const reviews = Number(p.reviewCount || 120);
-      const priceText = price > 0 ? money(price) : 'Narx aniqlanmoqda';
+      const priceText = price > 0 ? money(price) : t('pricePending');
       const imageHtml = p.image_url
         ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.remove();this.parentElement.insertAdjacentHTML('beforeend', imageFallbackTemplate('${(p.name || '').replace(/'/g, '&#39;')}'));" />`
         : imageFallbackTemplate(p.name);
@@ -3681,7 +3950,7 @@ Oq fonli foto</div>
           <div class="image-box">
             <div class="product-top-row">
               ${hasDiscount ? `<span class="gm-chip discount-chip product-discount">-${discountPercent}%</span>` : '<span></span>'}
-              <button class="fav-btn" type="button" aria-label="Saralanganlarga qo‘shish">❤</button>
+              <button class="fav-btn" type="button" aria-label="${t('addToCart')}">❤</button>
             </div>
             ${imageHtml}
           </div>
@@ -3692,14 +3961,14 @@ Oq fonli foto</div>
             <p class="product-rating">⭐ ${ratingValue.toFixed(1)} (${reviews})</p>
             ${qtyOf(p.id) > 0
               ? `<div class="qty" data-qty-wrap="${p.id}">${makeQtyControls(p.id)}</div>`
-              : `<button class="btn gm-btn gm-btn-primary quick-add-btn" data-add-one="${p.id}" ${stock <= 0 ? 'disabled' : ''}>Savatga qo‘shish</button>`}
+              : `<button class="btn gm-btn gm-btn-primary quick-add-btn" data-add-one="${p.id}" ${stock <= 0 ? 'disabled' : ''}>${t('addToCart')}</button>`}
           </div>
         </article>
       `;
     }
 
     function imageFallbackTemplate(categoryName = '') {
-      return `<div class="image-fallback"><i>🖼️</i><span>Rasm yo‘q</span></div>`;
+      return `<div class="image-fallback"><i>🖼️</i><span>${t('imageMissing')}</span></div>`;
     }
 
     function setSectionVisibility(sectionEl, headEl, hasItems) {
@@ -3727,7 +3996,7 @@ Oq fonli foto</div>
         ? products.filter((p) => cartItemsSnapshot.some((c) => c.id === p.id)).slice(0, 6)
         : [];
 
-      homeProducts.innerHTML = popular.map(productCardTemplate).join('') || '<div class="empty gm-empty-state"><strong>Mahsulotlar hali yuklanmagan</strong><br/>Admin panel orqali Excel import qiling yoki DALION sinxronizatsiyasini ulang</div>';
+      homeProducts.innerHTML = popular.map(productCardTemplate).join('') || `<div class="empty gm-empty-state"><strong>${t('productsNotLoaded')}</strong><br/>${t('productsNotLoadedHint')}</div>`;
       homeDiscountProducts.innerHTML = discounts.map(productCardTemplate).join('');
       homeFastProducts.innerHTML = fast.map(productCardTemplate).join('');
       homeBestSellerProducts.innerHTML = bestSeller.map(productCardTemplate).join('');
@@ -3739,7 +4008,18 @@ Oq fonli foto</div>
     }
 
     function normalizedCategoryName(categoryName) {
-      return String(categoryName || '').trim() || 'Boshqa';
+      return String(categoryName || '').trim() || t('categoryOther');
+    }
+    function localizeCuratedCategory(name) {
+      const map = {
+        'Kanselyariya': t('catStationery'),
+        'Ofis jihozlari': t('catOffice'),
+        'Kompyuter aksessuarlari': t('catComputer'),
+        'USB va kabellar': t('catUsb'),
+        'Ichimliklar': t('catDrinks'),
+        'Boshqa': t('categoryOther')
+      };
+      return map[name] || name || t('categoryOther');
     }
     function normalizeCategoryKey(rawCategory, productName = '') {
       const text = `${normalizedCategoryName(rawCategory)} ${productName}`.toLowerCase();
@@ -3768,10 +4048,11 @@ Oq fonli foto</div>
     function getCategoryEntries() {
       const curated = CURATED_CATEGORIES.map((c) => ({
         ...c,
+        displayName: localizeCuratedCategory(c.displayName),
         count: products.filter((p) => productMatchesCategory(p, c.key)).length
       }));
       const total = curated.reduce((sum, c) => sum + c.count, 0);
-      return [{ key: 'all', displayName: 'Hammasi', icon: '🛍️', count: total }, ...curated];
+      return [{ key: 'all', displayName: t('allCategories'), icon: '🛍️', count: total }, ...curated];
     }
 
     function productMatchesCategory(product, categoryKey) {
@@ -3799,7 +4080,7 @@ Oq fonli foto</div>
         categoryResults.innerHTML = categories.map((c) => `
           <article class="category-card gm-card ${selectedCategory===c.key?'active':''}" data-category="${c.key}" data-category-label="${c.displayName}">
             <span class="icon">${c.image_url ? `<img src="${c.image_url}" alt="${c.displayName}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />` : c.icon}</span>
-            <div><b>${c.displayName}</b><small>${c.count} ta mahsulot</small></div>
+            <div><b>${c.displayName}</b><small>${c.count} ${t('productsCountSuffix')}</small></div>
             <span>›</span>
           </article>
         `).join('');
@@ -3807,7 +4088,7 @@ Oq fonli foto</div>
         categoryBackBtn.style.display = 'none';
         const byProduct = products.filter((p) => p.name.toLowerCase().includes(query));
         catalogProductResultsTitle.style.display = query ? 'block' : 'none';
-        catalogProductResultsTitle.textContent = query ? "Mahsulotlar bo'yicha natijalar" : '';
+        catalogProductResultsTitle.textContent = query ? t('productResultsTitle') : '';
         searchResults.innerHTML = query ? byProduct.slice(0, 12).map(productCardTemplate).join('') : '';
         searchEmpty.style.display = (!categories.length && !byProduct.length) ? 'block' : 'none';
         return;
@@ -3819,7 +4100,7 @@ Oq fonli foto</div>
       categoryResults.innerHTML = '';
       categoryBackBtn.style.display = 'inline-flex';
       catalogProductResultsTitle.style.display = 'block';
-      catalogProductResultsTitle.textContent = selectedCategoryLabel || selectedCategory || 'Katalog';
+      catalogProductResultsTitle.textContent = selectedCategoryLabel || selectedCategory || t('catalog');
       searchResults.innerHTML = filteredProducts.map(productCardTemplate).join('');
       searchEmpty.style.display = filteredProducts.length ? 'none' : 'block';
     }
@@ -3848,7 +4129,7 @@ Oq fonli foto</div>
                 <div class="cart-item-title">${item.name}</div>
                 <div class="cart-item-meta">
                   <strong>${money(item.price)}</strong>
-                  <button class="icon-btn cart-remove-btn" data-remove-cart="${item.id}">Olib tashlash</button>
+                  <button class="icon-btn cart-remove-btn" data-remove-cart="${item.id}">${t('remove')}</button>
                 </div>
               </div>
             </div>
@@ -3856,7 +4137,7 @@ Oq fonli foto</div>
               <div class="qty" data-qty-wrap="${item.id}" style="width:116px; margin:0;">${makeQtyControls(item.id)}</div>
               <strong>${money(item.subtotal)}</strong>
             </div>
-            ${hasWarn ? '<p class="cart-item-warn">Ushbu mahsulot hozircha mavjud emas.</p>' : ''}
+            ${hasWarn ? `<p class="cart-item-warn">${t('unavailableNow')}</p>` : ''}
           </article>
         `;
       }).join('');
@@ -3880,8 +4161,8 @@ Oq fonli foto</div>
 
     function renderCheckout() {
       const selected = products.filter((p) => qtyOf(p.id) > 0);
-      document.getElementById('checkoutUserName').textContent = currentUser?.name || "Foydalanuvchi";
-      document.getElementById('checkoutUserPhone').textContent = currentUser?.phone ? `Telefon: ${currentUser.phone}` : "Telefon mavjud emas";
+      document.getElementById('checkoutUserName').textContent = currentUser?.name || t('userFallback');
+      document.getElementById('checkoutUserPhone').textContent = currentUser?.phone ? `${t('profilePhonePrefix')}: ${currentUser.phone}` : t('phoneMissing');
       checkoutItems.innerHTML = selected.map((p) => {
         const qty = qtyOf(p.id);
         const imageHtml = p.image_url ? `<img class="cart-item-thumb" src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '';
@@ -3891,7 +4172,7 @@ Oq fonli foto</div>
               ${imageHtml}
               <div style="flex:1;">
                 <div class="cart-item-title">${p.name}</div>
-                <div class="cart-item-meta"><span>${qty} dona</span><strong>${money(p.price * qty)}</strong></div>
+                <div class="cart-item-meta"><span>${qty} ${t('qtySuffix')}</span><strong>${money(p.price * qty)}</strong></div>
               </div>
             </div>
           </article>
@@ -3900,11 +4181,11 @@ Oq fonli foto</div>
 
       const deliveryState = getDeliveryComputationState();
       const hasDelivery = deliveryState.state === 'ready';
-      const deliveryEta = homePayload?.settings?.deliveryTimeText || homePayload?.delivery_info?.time || 'Samarqand bo‘ylab odatda 1–4 soat (tirbandlik va yuklamaga qarab)';
+      const deliveryEta = homePayload?.settings?.deliveryTimeText || homePayload?.delivery_info?.time || t('etaLong');
       const subtotal = totalPrice();
       const safeDeliveryPrice = hasDelivery ? Number(deliveryState.deliveryPrice) : 0;
       const orderTotal = subtotal + safeDeliveryPrice;
-      checkoutTotal.textContent = `Jami: ${money(orderTotal)}`;
+      checkoutTotal.textContent = `${t('totalLabel')}: ${money(orderTotal)}`;
       checkoutSubtotal.textContent = money(subtotal);
       checkoutDeliveryPrice.textContent = hasDelivery ? money(safeDeliveryPrice) : deliveryState.cartDeliveryText;
       checkoutGrandTotal.textContent = money(orderTotal);
@@ -3924,8 +4205,8 @@ Oq fonli foto</div>
           : t('checkoutHintOptional');
       }
       const clickAmountTiyin = Math.round(Number(orderTotal || 0) * 100);
-      if (selectedPayment === 'click') paymentLinks.innerHTML = `Click: <a href="https://indoor.click.uz/pay?id=081328&t=${clickAmountTiyin}" target="_blank">To‘lov havolasi</a>`;
-      else if (selectedPayment === 'payme') paymentLinks.innerHTML = 'Payme: To‘lovni Payme ilovasi orqali yakunlang';
+      if (selectedPayment === 'click') paymentLinks.innerHTML = `Click: <a href="https://indoor.click.uz/pay?id=081328&t=${clickAmountTiyin}" target="_blank">${t('payLink')}</a>`;
+      else if (selectedPayment === 'payme') paymentLinks.innerHTML = t('paymeHint');
       else paymentLinks.innerHTML = '';
       const isOnline = selectedPayment === 'click' || selectedPayment === 'payme';
       paymentProofInput.style.display = 'none';
@@ -3969,8 +4250,8 @@ Oq fonli foto</div>
       const names = (items || []).slice(0, 2).map((item) => item?.name).filter(Boolean);
       const extraCount = Math.max(0, Number(items?.length || 0) - names.length);
       const preview = names.join(', ');
-      if (!preview && !extraCount) return 'Mahsulotlar ko‘rsatilmagan';
-      return extraCount > 0 ? `${preview} +${extraCount} ta` : preview;
+      if (!preview && !extraCount) return `${t('itemsLabel')} ${t('itemsNotFound').toLowerCase()}`;
+      return extraCount > 0 ? `${preview} +${extraCount} ${t('qtyCountSuffix')}` : preview;
     }
 
     function mergeCustomerOrders(apiOrders = []) {
@@ -4046,7 +4327,7 @@ Oq fonli foto</div>
           activeOrderCardWrap.innerHTML = '';
           return;
         }
-        activeOrderCardWrap.innerHTML = `<article class="list-card gm-card"><h4 style="margin-bottom:6px;">${t('activeOrder')}</h4><div class="muted">#${o.orderNumber} · ${orderStatusLabel(o.status)}</div><div class="muted">Jami: ${money(o.total || 0)}</div><div style="display:flex;gap:8px;margin-top:8px;"><a class="btn gm-btn gm-btn-secondary btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="text-align:center;">${t('track')}</a></div></article>`;
+        activeOrderCardWrap.innerHTML = `<article class="list-card gm-card"><h4 style="margin-bottom:6px;">${t('activeOrder')}</h4><div class="muted">#${o.orderNumber} · ${orderStatusLabel(o.status)}</div><div class="muted">${t('activeOrderAmount')}: ${money(o.total || 0)}</div><div style="display:flex;gap:8px;margin-top:8px;"><a class="btn gm-btn gm-btn-secondary btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="text-align:center;">${t('track')}</a></div></article>`;
       } catch {
         activeOrderCardWrap.innerHTML = '';
       }
@@ -4067,7 +4348,7 @@ Oq fonli foto</div>
             <article class="list-card gm-card" style="margin-bottom:8px;">
               <b>${n.title || '-'}</b>
               <p class="muted" style="margin-top:6px;">${n.body || ''}</p>
-              <p class="muted" style="margin-top:6px;">${new Date(n.createdAt || Date.now()).toLocaleString('ru-RU')}</p>
+              <p class="muted" style="margin-top:6px;">${new Date(n.createdAt || Date.now()).toLocaleString(currentLang === 'ru' ? 'ru-RU' : 'uz-UZ')}</p>
             </article>
           `).join('')
           : `<div class="empty">${t('bellEmpty')}</div>`;
@@ -4086,11 +4367,11 @@ Oq fonli foto</div>
       profileMenuCard.style.display = 'block';
       profileUserCard.style.display = 'block';
       profileOrdersCard.style.display = 'block';
-      profileName.textContent = currentUser?.name || 'Foydalanuvchi';
-      profilePhone.textContent = `Telefon: ${currentUser?.phone || '-'}`;
-      profileAddress.textContent = `Manzil: ${currentUser?.address || 'Manzil qo‘shilmagan'}`;
+      profileName.textContent = currentUser?.name || t('userFallback');
+      profilePhone.textContent = `${t('profilePhonePrefix')}: ${currentUser?.phone || '-'}`;
+      profileAddress.textContent = `${t('profileAddressPrefix')}: ${currentUser?.address || t('addressMissing')}`;
 
-      profileOrders.innerHTML = '<div class="gm-inline-loader" style="margin:8px 2px;">Buyurtmalaringiz yuklanmoqda…</div>';
+      profileOrders.innerHTML = `<div class="gm-inline-loader" style="margin:8px 2px;">${t('profileOrdersLoading')}</div>`;
 
       let orders;
       try {
@@ -4100,9 +4381,9 @@ Oq fonli foto</div>
           <div class="gm-error-card">
             <div class="gm-error-icon">!</div>
             <div class="gm-error-body">
-              <h4>Buyurtmalarni yuklab bo‘lmadi</h4>
-              <p>Internet aloqasi yoki server bilan vaqtinchalik muammo bo‘lishi mumkin.</p>
-              <button type="button" class="gm-error-retry" id="profileOrdersRetry">Qayta urinish</button>
+              <h4>${t('profileOrdersLoadFail')}</h4>
+              <p>${t('profileOrdersLoadFailBody')}</p>
+              <button type="button" class="gm-error-retry" id="profileOrdersRetry">${t('retry')}</button>
             </div>
           </div>
         `;
@@ -4111,27 +4392,27 @@ Oq fonli foto</div>
       }
       mergedCustomerOrders = mergeCustomerOrders(orders);
       if (!mergedCustomerOrders.length) {
-        profileOrders.innerHTML = '<div class="empty">Sizda hali buyurtmalar yo‘q</div>';
+        profileOrders.innerHTML = `<div class="empty">${t('profileNoOrders')}</div>`;
         return;
       }
       profileOrders.innerHTML = mergedCustomerOrders.map((o) => `
         <article class="list-card gm-card" style="margin-bottom:10px;">
           <div><b>#${o.orderNumber || '-'}</b></div>
-          <div class="muted">${new Date(o.created_at || Date.now()).toLocaleString('ru-RU')}</div>
-          <div class="muted">Status: ${orderStatusLabel(o.status)}</div>
-          <div class="muted">Jami: ${money(o.total || 0)}</div>
-          <div class="muted">Mahsulotlar: ${compactOrderItemsPreview(o.items || [])}</div>
+          <div class="muted">${new Date(o.created_at || Date.now()).toLocaleString(currentLang === 'ru' ? 'ru-RU' : 'uz-UZ')}</div>
+          <div class="muted">${t('statusLabel')}: ${orderStatusLabel(o.status)}</div>
+          <div class="muted">${t('totalLabel')}: ${money(o.total || 0)}</div>
+          <div class="muted">${t('itemsLabel')}: ${compactOrderItemsPreview(o.items || [])}</div>
           <details style="margin-top:8px;">
-            <summary style="cursor:pointer;color:#bfe3ff;">Buyurtma tafsiloti</summary>
+            <summary style="cursor:pointer;color:#bfe3ff;">${t('orderDetails')}</summary>
             <div style="margin-top:8px;display:grid;gap:6px;">
-              ${(o.items || []).length ? (o.items || []).map((item) => `<div class="muted">${item.name || '-'} · ${item.quantity || 0} ta · ${money(item.price || 0)}</div>`).join('') : '<div class="muted">Mahsulotlar topilmadi</div>'}
-              <div class="muted">Manzil: ${o.customerAddress || o.addressText || o.location || '-'}</div>
-          <div class="muted">To‘lov: ${o.paymentMethod === 'payme' ? 'Payme' : (o.paymentMethod || '-')} / ${paymentStatusLabel(o.paymentStatus)}</div>
+              ${(o.items || []).length ? (o.items || []).map((item) => `<div class="muted">${item.name || '-'} · ${item.quantity || 0} ${t('qtyCountSuffix')} · ${money(item.price || 0)}</div>`).join('') : `<div class="muted">${t('itemsNotFound')}</div>`}
+              <div class="muted">${t('checkoutAddressPrefix')}: ${o.customerAddress || o.addressText || o.location || '-'}</div>
+          <div class="muted">${t('paymentLabel')}: ${paymentMethodLabel(o.paymentMethod)} / ${paymentStatusLabel(o.paymentStatus)}</div>
             </div>
           </details>
           <div style="display:flex;gap:8px;margin-top:10px;">
-            <button class="btn gm-btn gm-btn-primary btn-primary" data-reorder="${o.orderNumber}" style="flex:1;">Yana buyurtma berish</button>
-            <a class="btn gm-btn gm-btn-secondary btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="text-align:center;flex:1;">Kuzatish</a>
+            <button class="btn gm-btn gm-btn-primary btn-primary" data-reorder="${o.orderNumber}" style="flex:1;">${t('reorderButton')}</button>
+            <a class="btn gm-btn gm-btn-secondary btn-secondary" href="/track/${encodeURIComponent(o.orderNumber)}" target="_blank" style="text-align:center;flex:1;">${t('track')}</a>
           </div>
         </article>
       `).join('');
@@ -4157,7 +4438,7 @@ Oq fonli foto</div>
         <article class="upsell-card" data-open-product="${p.id}">
           <img class="cart-item-thumb" src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />
           <h6>${p.name}</h6>
-          <div class="list-row"><span class="price">${money(p.price)}</span><button class="upsell-quick-btn" data-quick-add="${p.id}">+ Qo‘shish</button></div>
+          <div class="list-row"><span class="price">${money(p.price)}</span><button class="upsell-quick-btn" data-quick-add="${p.id}">+ ${t('upsellAdd')}</button></div>
         </article>
       `;
     }
@@ -4187,7 +4468,7 @@ Oq fonli foto</div>
       const price = Number(p.price || 0);
       const hasDiscount = oldPrice > price && price > 0;
       const discountPercent = hasDiscount ? Math.max(1, Math.round(((oldPrice - price) / oldPrice) * 100)) : 0;
-      const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || 'Samarqand bo‘ylab odatda 1–4 soat';
+      const etaText = p.etaText || homePayload?.home_settings?.deliveryTimeText || t('etaShort');
       modalName.textContent = p.name;
       modalCategory.textContent = normalizedCategoryName(p.categoryDisplayName || p.category);
       modalPrice.textContent = money(p.price);
@@ -4195,12 +4476,12 @@ Oq fonli foto</div>
       modalOldPrice.textContent = oldPrice > 0 ? money(oldPrice) : '';
       modalOldPrice.style.display = oldPrice > 0 ? 'block' : 'none';
       modalEta.textContent = `🚚 ${etaText}`;
-      modalAvailability.textContent = stock > 0 ? 'Mavjud' : "Omborda yo'q";
+      modalAvailability.textContent = stock > 0 ? t('inStock') : t('modalOutOfStock');
       modalAvailability.className = `gm-chip ${stock > 0 ? 'gm-chip--success' : 'gm-chip--warning'}`;
-      modalTrustDelivery.textContent = `🚚 Yetkazib berish vaqti: ${etaText} (yo‘l holatiga qarab farq qilishi mumkin)`;
-      modalDescription.textContent = p.description || p.subtitle || `${p.name} uchun buyurtma berishingiz mumkin.`;
-      modalSpecs.innerHTML = `<div class="spec-row"><span>Kategoriya</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
-        <div class="spec-row"><span>Qoldiq</span><strong>${stock > 0 ? stock : 0} ta</strong></div>`;
+      modalTrustDelivery.textContent = `🚚 ${t('modalTrustEta')}: ${etaText} (${t('modalTrustEtaHint')})`;
+      modalDescription.textContent = p.description || p.subtitle || `${p.name} ${t('modalDescriptionFallback')}`;
+      modalSpecs.innerHTML = `<div class="spec-row"><span>${t('modalSpecCategory')}</span><strong>${normalizedCategoryName(p.categoryDisplayName || p.category)}</strong></div>
+        <div class="spec-row"><span>${t('modalSpecStock')}</span><strong>${stock > 0 ? stock : 0} ${t('qtyCountSuffix')}</strong></div>`;
       
       modalImageBox.innerHTML = p.image_url ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" />` : '';
       if (hasDiscount) {
@@ -4326,7 +4607,7 @@ Oq fonli foto</div>
       if (!latestOrderNumber) return;
       try {
         const data = await api(`/orders/${encodeURIComponent(latestOrderNumber)}/track`);
-        successOrderStatus.textContent = `Holat: ${orderStatusLabel(data.order?.status)}`;
+        successOrderStatus.textContent = `${t('statusLabel')}: ${orderStatusLabel(data.order?.status)}`;
         if (!isActiveOrderStatus(data.order?.status)) {
           pushOrderHistory(data.order);
           activeOrderNumber = '';
@@ -4700,7 +4981,7 @@ Oq fonli foto</div>
         let paymentProofUrl = '';
         if (selectedPayment === 'cash') {
           if (!cashAgreementCheckbox.checked) {
-            paymentValidationError.textContent = "Naqd to‘lov uchun rozilikni tasdiqlang";
+            paymentValidationError.textContent = t('checkoutConfirmCash');
             paymentValidationError.style.display = 'block';
             showToast(t('toastCashConsent'));
             return;
@@ -4724,7 +5005,7 @@ Oq fonli foto</div>
             locationAccuracy: customerLocation.accuracy,
             addressText: customerLocation.addressText,
             landmarkText: customerLocation.landmarkText,
-            deliveryTime: homePayload?.delivery_info?.time || 'odatiy 1–4 soat',
+            deliveryTime: homePayload?.delivery_info?.time || t('etaShort'),
             deliveryPrice: safeDeliveryPayload,
             promoCode: String(promoCodeInput?.value || '').trim()
           })
@@ -4749,18 +5030,16 @@ Oq fonli foto</div>
         latestOrderNumber = order.orderNumber || '';
         activeOrderNumber = latestOrderNumber;
         localStorage.setItem('activeOrderNumber', activeOrderNumber);
-        successOrderNumber.textContent = `Buyurtma: ${lastOrderData?.orderNumber || latestOrderNumber || '-'}`;
-        successOrderTime.textContent = `Vaqt: ${new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}`;
-        const paymentLabel = lastOrderData?.paymentMethod === 'payme'
-          ? 'Payme'
-          : (lastOrderData?.paymentMethod === 'click' ? 'Click' : (lastOrderData?.paymentMethod === 'cash' ? 'Naqd' : (lastOrderData?.paymentMethod || '-')));
-        successPaymentMethod.textContent = `To‘lov turi: ${paymentLabel}`;
-        successAddress.textContent = `Manzil: ${lastOrderData?.address || '-'}`;
+        successOrderNumber.textContent = `${t('orderPrefix')}: ${lastOrderData?.orderNumber || latestOrderNumber || '-'}`;
+        successOrderTime.textContent = `${t('timePrefix')}: ${new Date().toLocaleTimeString(currentLang === 'ru' ? 'ru-RU' : 'uz-UZ', { hour: '2-digit', minute: '2-digit' })}`;
+        const paymentLabel = paymentMethodLabel(lastOrderData?.paymentMethod);
+        successPaymentMethod.textContent = `${t('paymentType')}: ${paymentLabel}`;
+        successAddress.textContent = `${t('checkoutAddressPrefix')}: ${lastOrderData?.address || '-'}`;
         successTotal.textContent = Number.isFinite(Number(lastOrderData?.finalTotal))
-          ? `Jami: ${money(Number(lastOrderData.finalTotal))}`
-          : "Jami: Summani tekshirib bo‘lmadi";
-      const pendingText = order?.paymentStatus === 'pending' ? " · To‘lov tekshirilmoqda" : '';
-      successOrderStatus.textContent = `Holat: ${orderStatusLabel(order.status)}${pendingText}`;
+          ? `${t('totalLabel')}: ${money(Number(lastOrderData.finalTotal))}`
+          : t('totalCheckFailed');
+      const pendingText = order?.paymentStatus === 'pending' ? ` · ${t('paymentCheckingSuffix')}` : '';
+      successOrderStatus.textContent = `${t('statusLabel')}: ${orderStatusLabel(order.status)}${pendingText}`;
         if (latestOrderNumber) {
           trackOrderBtn.style.display = 'inline-flex';
           trackOrderBtn.setAttribute('href', `/track/${encodeURIComponent(latestOrderNumber)}`);
