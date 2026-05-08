@@ -1770,9 +1770,6 @@
     <section class="screen intro" id="introScreen">
       <div class="intro-inner cinematic-intro" id="cinematicIntro">
         <div class="intro-head">
-          <button type="button" class="intro-music-toggle" id="introAmbientToggle" aria-label="Ambient music" aria-pressed="false">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
-          </button>
           <div class="intro-lang-switcher" aria-label="Language selector">
             <button class="lang-switch-btn" id="introLangUzBtn" type="button">UZ</button>
             <button class="lang-switch-btn" id="introLangRuBtn" type="button">RU</button>
@@ -1805,9 +1802,6 @@
     <div class="auth-sheet-overlay" id="authSheetOverlay">
       <div class="auth-sheet" id="authSheet">
         <div class="auth-sheet-head">
-          <button type="button" class="intro-music-toggle intro-music-toggle--sheet" id="authAmbientToggle" aria-label="Ambient music" aria-pressed="false">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
-          </button>
           <h3 style="margin:0;" id="authSheetTitle">Ro‘yxatdan o‘tish</h3>
           <button class="auth-sheet-close" id="closeAuthSheetBtn" aria-label="Yopish">✕</button>
         </div>
@@ -1894,6 +1888,9 @@
             <button class="tab" id="langUzBtn" style="padding:6px 8px; min-height:auto;">UZ</button>
             <button class="tab" id="langRuBtn" style="padding:6px 8px; min-height:auto;">RU</button>
             <button class="bell gm-icon-btn" aria-label="Bildirishnomalar" id="homeBellBtn">🔔<span class="badge gm-chip gm-chip--warning" id="homeBellBadge">0</span></button>
+            <button type="button" class="gm-icon-btn" id="homeAmbientToggle" aria-label="Ambient music" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+            </button>
           </div>
         </header>
 
@@ -3793,9 +3790,8 @@ Oq fonli foto</div>
       const mini = document.getElementById('introAmbientMini');
       const prevBtn = document.getElementById('introAmbientPrev');
       const nextBtn = document.getElementById('introAmbientNext');
-      const toggleIntro = document.getElementById('introAmbientToggle');
-      const toggleAuth = document.getElementById('authAmbientToggle');
-      if (!audio || !toggleIntro || !INTRO_AMBIENT_TRACKS.length) return;
+      const toggleHome = document.getElementById('homeAmbientToggle');
+      if (!audio || !toggleHome) return;
 
       let trackIndex = Math.min(
         INTRO_AMBIENT_TRACKS.length - 1,
@@ -3806,10 +3802,10 @@ Oq fonli foto</div>
       let longPressHold = false;
       let skipToggleClick = false;
       let errorSkipDepth = 0;
-
-      function isAppShellActive() {
-        return phone.classList.contains('show-app');
-      }
+      let fallbackCtx = null;
+      let fallbackOsc = null;
+      let fallbackGain = null;
+      let fallbackEnabled = false;
 
       function persistPlaying(on) {
         localStorage.setItem(INTRO_AMBIENT_LS_PLAYING, on ? '1' : '0');
@@ -3819,19 +3815,59 @@ Oq fonli foto</div>
         localStorage.setItem(INTRO_AMBIENT_LS_TRACK, String(trackIndex));
       }
 
+      function ensureFallbackCtx() {
+        if (fallbackCtx) return fallbackCtx;
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return null;
+        fallbackCtx = new Ctx();
+        return fallbackCtx;
+      }
+
+      async function startFallbackTone() {
+        const ctx = ensureFallbackCtx();
+        if (!ctx) return false;
+        if (ctx.state === 'suspended') {
+          try {
+            await ctx.resume();
+          } catch {
+            return false;
+          }
+        }
+        if (!fallbackOsc || !fallbackGain) {
+          fallbackOsc = ctx.createOscillator();
+          fallbackGain = ctx.createGain();
+          fallbackOsc.type = 'sine';
+          fallbackOsc.frequency.value = 196;
+          fallbackGain.gain.value = 0.018;
+          fallbackOsc.connect(fallbackGain);
+          fallbackGain.connect(ctx.destination);
+          fallbackOsc.start();
+        }
+        fallbackEnabled = true;
+        return true;
+      }
+
+      function stopFallbackTone() {
+        fallbackEnabled = false;
+        if (fallbackOsc) {
+          fallbackOsc.stop();
+          fallbackOsc.disconnect();
+        }
+        if (fallbackGain) fallbackGain.disconnect();
+        fallbackOsc = null;
+        fallbackGain = null;
+      }
+
       syncAmbientChrome = () => {
-        const playing = !audio.paused;
+        const playing = fallbackEnabled || !audio.paused;
         const labelPlay = t('introAmbientPlayAria');
         const labelPause = t('introAmbientPauseAria');
         const icon = playing
           ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
           : '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
-        [toggleIntro, toggleAuth].forEach((btn) => {
-          if (!btn) return;
-          btn.innerHTML = icon;
-          btn.setAttribute('aria-label', playing ? labelPause : labelPlay);
-          btn.setAttribute('aria-pressed', playing ? 'true' : 'false');
-        });
+        toggleHome.innerHTML = icon;
+        toggleHome.setAttribute('aria-label', playing ? labelPause : labelPlay);
+        toggleHome.setAttribute('aria-pressed', playing ? 'true' : 'false');
         if (prevBtn) prevBtn.setAttribute('aria-label', t('introAmbientPrevAria'));
         if (nextBtn) nextBtn.setAttribute('aria-label', t('introAmbientNextAria'));
         if (mini) mini.setAttribute('aria-label', t('introAmbientToolbarAria'));
@@ -3850,7 +3886,6 @@ Oq fonli foto</div>
       }
 
       function showMiniBar() {
-        if (isAppShellActive()) return;
         mini?.classList.add('visible');
         mini?.setAttribute('aria-hidden', 'false');
         scheduleMiniHide();
@@ -3860,15 +3895,17 @@ Oq fonli foto</div>
         if (mini?.classList.contains('visible')) scheduleMiniHide();
       }
 
-      function suspendAmbient() {
+      function stopAmbient() {
         hideMiniBar();
         if (!audio.paused) {
           audio.pause();
-          syncAmbientChrome();
         }
+        stopFallbackTone();
+        syncAmbientChrome();
       }
 
       function loadTrack(delta) {
+        if (!INTRO_AMBIENT_TRACKS.length) return;
         trackIndex = (trackIndex + delta + INTRO_AMBIENT_TRACKS.length) % INTRO_AMBIENT_TRACKS.length;
         persistTrackIx();
         audio.src = INTRO_AMBIENT_TRACKS[trackIndex];
@@ -3876,13 +3913,18 @@ Oq fonli foto</div>
       }
 
       function tryAdvanceOnError(wasTryingToPlay) {
-        if (errorSkipDepth >= INTRO_AMBIENT_TRACKS.length) {
+        if (!INTRO_AMBIENT_TRACKS.length || errorSkipDepth >= INTRO_AMBIENT_TRACKS.length) {
           errorSkipDepth = 0;
           audio.removeAttribute('src');
+          if (wasTryingToPlay) {
+            const p = startFallbackTone();
+            if (p && typeof p.catch === 'function') p.catch(() => {});
+          }
           return false;
         }
         errorSkipDepth += 1;
         loadTrack(1);
+        stopFallbackTone();
         if (wasTryingToPlay) {
           const p = audio.play();
           if (p && typeof p.catch === 'function') p.catch(() => {});
@@ -3892,6 +3934,7 @@ Oq fonli foto</div>
 
       audio.addEventListener('playing', () => {
         errorSkipDepth = 0;
+        fallbackEnabled = false;
       });
 
       audio.addEventListener('error', () => {
@@ -3900,26 +3943,38 @@ Oq fonli foto</div>
       });
 
       audio.addEventListener('ended', () => {
+        if (!INTRO_AMBIENT_TRACKS.length) return;
         loadTrack(1);
         const p = audio.play();
         if (p && typeof p.catch === 'function') p.catch(() => {});
       });
 
-      loadTrack(0);
+      if (INTRO_AMBIENT_TRACKS.length) loadTrack(0);
       audio.pause();
       audio.volume = 1;
 
       async function togglePlayback() {
-        if (isAppShellActive()) return;
-        if (audio.paused) {
-          try {
-            await audio.play();
-            persistPlaying(true);
-          } catch {
-            /* autoplay / decode blocked */
+        if (audio.paused && !fallbackEnabled) {
+          let played = false;
+          if (INTRO_AMBIENT_TRACKS.length) {
+            try {
+              await audio.play();
+              played = true;
+            } catch {
+              played = false;
+            }
           }
+          if (!played) {
+            const fallbackStarted = await startFallbackTone();
+            if (!fallbackStarted) {
+              persistPlaying(false);
+              syncAmbientChrome();
+              return;
+            }
+          }
+          persistPlaying(true);
         } else {
-          audio.pause();
+          stopAmbient();
           persistPlaying(false);
         }
         syncAmbientChrome();
@@ -3954,35 +4009,33 @@ Oq fonli foto</div>
         });
       }
 
-      bindAmbientToggle(toggleIntro);
-      bindAmbientToggle(toggleAuth);
+      bindAmbientToggle(toggleHome);
 
       prevBtn?.addEventListener('click', () => {
         bumpMiniActivity();
-        const wasPlaying = !audio.paused;
+        const wasPlaying = !audio.paused || fallbackEnabled;
+        if (INTRO_AMBIENT_TRACKS.length) stopFallbackTone();
         loadTrack(-1);
-        if (wasPlaying) {
+        if (wasPlaying && INTRO_AMBIENT_TRACKS.length) {
           const p = audio.play();
           if (p && typeof p.catch === 'function') p.catch(() => {});
         }
+        syncAmbientChrome();
       });
 
       nextBtn?.addEventListener('click', () => {
         bumpMiniActivity();
-        const wasPlaying = !audio.paused;
+        const wasPlaying = !audio.paused || fallbackEnabled;
+        if (INTRO_AMBIENT_TRACKS.length) stopFallbackTone();
         loadTrack(1);
-        if (wasPlaying) {
+        if (wasPlaying && INTRO_AMBIENT_TRACKS.length) {
           const p = audio.play();
           if (p && typeof p.catch === 'function') p.catch(() => {});
         }
+        syncAmbientChrome();
       });
 
       mini?.addEventListener('pointerdown', bumpMiniActivity);
-
-      const ambientMo = new MutationObserver(() => {
-        if (phone.classList.contains('show-app')) suspendAmbient();
-      });
-      ambientMo.observe(phone, { attributes: true, attributeFilter: ['class'] });
 
       syncAmbientChrome();
     }
