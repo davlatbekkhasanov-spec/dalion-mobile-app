@@ -122,7 +122,48 @@
     }
     .brand { font-size: 34px; font-weight: 800; letter-spacing: 0.2px; color:#eaf2ff; }
     .cinematic-intro{display:flex;flex-direction:column;align-items:center;text-align:center;gap:0;position:relative}
-    .intro-head{position:absolute;top:calc(env(safe-area-inset-top) + 8px);right:16px;z-index:30}
+    .intro-head{
+      position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:16px;right:16px;z-index:30;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;pointer-events:none;
+    }
+    .intro-head > * { pointer-events:auto; }
+    .intro-music-toggle{
+      width:36px;height:36px;border-radius:999px;flex-shrink:0;
+      border:1px solid rgba(255,255,255,.22);
+      background:rgba(8,14,28,.42);color:#dfe9ff;
+      display:grid;place-items:center;cursor:pointer;
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+      box-shadow:0 4px 14px rgba(0,0,0,.25);
+      transition:transform .15s ease,border-color .15s ease,background .15s ease;
+      touch-action:manipulation;-webkit-user-select:none;user-select:none;padding:0;
+    }
+    .intro-music-toggle:active{transform:scale(.94)}
+    .intro-music-toggle:focus-visible{outline:2px solid rgba(127,213,255,.55);outline-offset:2px}
+    .intro-music-toggle svg{width:15px;height:15px;display:block;opacity:.92}
+    .intro-music-toggle--sheet{
+      border-color:rgba(29,36,64,.14);background:rgba(255,255,255,.94);color:#344054;
+      box-shadow:0 2px 10px rgba(17,24,39,.08);width:34px;height:34px;
+    }
+    .intro-music-mini{
+      position:absolute;left:50%;bottom:max(14px, env(safe-area-inset-bottom));
+      transform:translateX(-50%) translateY(calc(100% + 28px));
+      z-index:36;display:flex;align-items:center;gap:16px;padding:10px 20px;border-radius:999px;
+      background:rgba(10,18,34,.86);border:1px solid rgba(132,162,220,.22);
+      backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+      box-shadow:0 14px 36px rgba(0,0,0,.48);
+      opacity:0;visibility:hidden;pointer-events:none;
+      transition:transform .34s cubic-bezier(.4,.1,.2,1),opacity .24s ease,visibility .24s;
+    }
+    .intro-music-mini.visible{
+      transform:translateX(-50%) translateY(0);opacity:1;visibility:visible;pointer-events:auto;
+    }
+    .intro-music-mini button{
+      width:40px;height:40px;border-radius:999px;padding:0;margin:0;
+      border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);color:#eaf2ff;
+      font-size:20px;line-height:1;cursor:pointer;display:grid;place-items:center;
+      touch-action:manipulation;-webkit-user-select:none;user-select:none;
+    }
+    .intro-music-mini button:active{transform:scale(.92)}
     .cinematic-main{flex:1;display:flex;flex-direction:column;align-items:center;width:100%;padding-top:clamp(22px,5vh,40px);padding-bottom:clamp(18px,7vh,64px)}
     .intro-lang-switcher{display:flex;gap:6px;flex-shrink:0}
     .lang-switch-btn{border:1px solid rgba(255,255,255,.28);background:rgba(8,14,28,.36);color:#fff;min-width:36px;min-height:30px;border-radius:999px;padding:0 10px;font-weight:700;font-size:11px;cursor:pointer;backdrop-filter:blur(6px)}
@@ -299,7 +340,7 @@
     }
     @media (max-width: 360px) {
       .intro-inner { padding-inline: 14px; padding-top: calc(env(safe-area-inset-top) + 14px); }
-      .intro-head { right: 14px; top: calc(env(safe-area-inset-top) + 6px); }
+      .intro-head { left: 14px; right: 14px; top: calc(env(safe-area-inset-top) + 6px); }
       .cinematic-chip { font-size: 10px; letter-spacing: .06em; margin-top: clamp(46px, 13vh, 92px); width: min(100%, 228px); }
       .lang-switch-btn { min-width: 34px; min-height: 28px; padding: 0 8px; }
       .cinematic-stage { width: 216px; height: 216px; margin-top: clamp(22px, 7vh, 54px); }
@@ -1032,11 +1073,13 @@
     }
 
     .auth-sheet-head {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: 38px 1fr 38px;
       align-items: center;
+      gap: 8px;
       margin-bottom: 8px;
     }
+    .auth-sheet-head h3 { min-width: 0; text-align: center; }
 
     .auth-sheet-close {
       width: 32px;
@@ -1727,6 +1770,9 @@
     <section class="screen intro" id="introScreen">
       <div class="intro-inner cinematic-intro" id="cinematicIntro">
         <div class="intro-head">
+          <button type="button" class="intro-music-toggle" id="introAmbientToggle" aria-label="Ambient music" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+          </button>
           <div class="intro-lang-switcher" aria-label="Language selector">
             <button class="lang-switch-btn" id="introLangUzBtn" type="button">UZ</button>
             <button class="lang-switch-btn" id="introLangRuBtn" type="button">RU</button>
@@ -1759,6 +1805,9 @@
     <div class="auth-sheet-overlay" id="authSheetOverlay">
       <div class="auth-sheet" id="authSheet">
         <div class="auth-sheet-head">
+          <button type="button" class="intro-music-toggle intro-music-toggle--sheet" id="authAmbientToggle" aria-label="Ambient music" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+          </button>
           <h3 style="margin:0;" id="authSheetTitle">Ro‘yxatdan o‘tish</h3>
           <button class="auth-sheet-close" id="closeAuthSheetBtn" aria-label="Yopish">✕</button>
         </div>
@@ -1824,6 +1873,12 @@
         <button type="button" class="btn gm-btn gm-btn-primary btn-primary" id="submitAuthBtn" style="margin-top:10px;">Davom etish</button>
       </div>
     </div>
+
+    <div class="intro-music-mini" id="introAmbientMini" aria-hidden="true">
+      <button type="button" id="introAmbientPrev" aria-label="Previous track">⟨</button>
+      <button type="button" id="introAmbientNext" aria-label="Next track">⟩</button>
+    </div>
+    <audio id="introAmbientAudio" preload="metadata"></audio>
 
     <section class="screen app" id="appScreen">
       <section class="view active" id="homeView">
@@ -3234,6 +3289,11 @@ Oq fonli foto</div>
         selfieSuccess: 'Selfie tasdiqlandi. Davom etishingiz mumkin.',
         authSubmit: 'Davom etish',
         selfiePreviewAlt: 'Selfie preview',
+        introAmbientPlayAria: 'Fon musiqasini yoqish',
+        introAmbientPauseAria: 'Fon musiqasini to‘xtatish',
+        introAmbientPrevAria: 'Oldingi trek',
+        introAmbientNextAria: 'Keyingi trek',
+        introAmbientToolbarAria: 'Fon musiqasi boshqaruvi',
         selfieGuideManual: "Qo'lda rejim: avto olish yo'q.",
         selfieHintManualFallback: "Avto aniqlash ishlamadi. Qo'lda rejimga o'tildi, selfieni qo'lda oling.",
         selfieHintManualNoAuto: "Qo'lda rejim faol: bu brauzerda avto selfie yo'q.",
@@ -3450,6 +3510,11 @@ Oq fonli foto</div>
         selfieSuccess: 'Селфи подтверждено. Можно продолжить.',
         authSubmit: 'Продолжить',
         selfiePreviewAlt: 'Превью селфи',
+        introAmbientPlayAria: 'Включить фоновую музыку',
+        introAmbientPauseAria: 'Остановить фоновую музыку',
+        introAmbientPrevAria: 'Предыдущий трек',
+        introAmbientNextAria: 'Следующий трек',
+        introAmbientToolbarAria: 'Управление фоновой музыкой',
         selfieGuideManual: 'Ручной режим: авто-съемка отключена.',
         selfieHintManualFallback: 'Автоопределение не сработало. Включен ручной режим, сделайте селфи вручную.',
         selfieHintManualNoAuto: 'Активен ручной режим: в этом браузере нет авто-селфи.',
@@ -3573,6 +3638,8 @@ Oq fonli foto</div>
     function t(key) {
       return (i18n[currentLang] || i18n.uz)[key] || key;
     }
+
+    let syncAmbientChrome = () => {};
 
     function applyLang() {
       document.documentElement.lang = currentLang;
@@ -3710,6 +3777,214 @@ Oq fonli foto</div>
       langRuBtn?.classList.toggle('active', currentLang === 'ru');
       introLangUzBtn?.classList.toggle('active', currentLang === 'uz');
       introLangRuBtn?.classList.toggle('active', currentLang === 'ru');
+      syncAmbientChrome();
+    }
+
+    function initIntroAmbientPlayer() {
+      const INTRO_AMBIENT_LS_PLAYING = 'gm_intro_ambient_playing';
+      const INTRO_AMBIENT_LS_TRACK = 'gm_intro_ambient_track_ix';
+      const INTRO_AMBIENT_TRACKS = [
+        '/audio/globus-ambient-jazz-1.mp3',
+        '/audio/globus-ambient-jazz-2.mp3',
+        '/audio/globus-ambient-jazz-3.mp3'
+      ];
+
+      const audio = document.getElementById('introAmbientAudio');
+      const mini = document.getElementById('introAmbientMini');
+      const prevBtn = document.getElementById('introAmbientPrev');
+      const nextBtn = document.getElementById('introAmbientNext');
+      const toggleIntro = document.getElementById('introAmbientToggle');
+      const toggleAuth = document.getElementById('authAmbientToggle');
+      if (!audio || !toggleIntro || !INTRO_AMBIENT_TRACKS.length) return;
+
+      let trackIndex = Math.min(
+        INTRO_AMBIENT_TRACKS.length - 1,
+        Math.max(0, parseInt(localStorage.getItem(INTRO_AMBIENT_LS_TRACK) || '0', 10) || 0)
+      );
+      let miniHideTimer = null;
+      let longPressTimer = null;
+      let longPressHold = false;
+      let skipToggleClick = false;
+      let errorSkipDepth = 0;
+
+      function isAppShellActive() {
+        return phone.classList.contains('show-app');
+      }
+
+      function persistPlaying(on) {
+        localStorage.setItem(INTRO_AMBIENT_LS_PLAYING, on ? '1' : '0');
+      }
+
+      function persistTrackIx() {
+        localStorage.setItem(INTRO_AMBIENT_LS_TRACK, String(trackIndex));
+      }
+
+      syncAmbientChrome = () => {
+        const playing = !audio.paused;
+        const labelPlay = t('introAmbientPlayAria');
+        const labelPause = t('introAmbientPauseAria');
+        const icon = playing
+          ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
+          : '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
+        [toggleIntro, toggleAuth].forEach((btn) => {
+          if (!btn) return;
+          btn.innerHTML = icon;
+          btn.setAttribute('aria-label', playing ? labelPause : labelPlay);
+          btn.setAttribute('aria-pressed', playing ? 'true' : 'false');
+        });
+        if (prevBtn) prevBtn.setAttribute('aria-label', t('introAmbientPrevAria'));
+        if (nextBtn) nextBtn.setAttribute('aria-label', t('introAmbientNextAria'));
+        if (mini) mini.setAttribute('aria-label', t('introAmbientToolbarAria'));
+      };
+
+      function hideMiniBar() {
+        mini?.classList.remove('visible');
+        if (mini) mini.setAttribute('aria-hidden', 'true');
+        if (miniHideTimer) clearTimeout(miniHideTimer);
+        miniHideTimer = null;
+      }
+
+      function scheduleMiniHide() {
+        if (miniHideTimer) clearTimeout(miniHideTimer);
+        miniHideTimer = setTimeout(() => hideMiniBar(), 5000);
+      }
+
+      function showMiniBar() {
+        if (isAppShellActive()) return;
+        mini?.classList.add('visible');
+        mini?.setAttribute('aria-hidden', 'false');
+        scheduleMiniHide();
+      }
+
+      function bumpMiniActivity() {
+        if (mini?.classList.contains('visible')) scheduleMiniHide();
+      }
+
+      function suspendAmbient() {
+        hideMiniBar();
+        if (!audio.paused) {
+          audio.pause();
+          syncAmbientChrome();
+        }
+      }
+
+      function loadTrack(delta) {
+        trackIndex = (trackIndex + delta + INTRO_AMBIENT_TRACKS.length) % INTRO_AMBIENT_TRACKS.length;
+        persistTrackIx();
+        audio.src = INTRO_AMBIENT_TRACKS[trackIndex];
+        audio.load();
+      }
+
+      function tryAdvanceOnError(wasTryingToPlay) {
+        if (errorSkipDepth >= INTRO_AMBIENT_TRACKS.length) {
+          errorSkipDepth = 0;
+          audio.removeAttribute('src');
+          return false;
+        }
+        errorSkipDepth += 1;
+        loadTrack(1);
+        if (wasTryingToPlay) {
+          const p = audio.play();
+          if (p && typeof p.catch === 'function') p.catch(() => {});
+        }
+        return true;
+      }
+
+      audio.addEventListener('playing', () => {
+        errorSkipDepth = 0;
+      });
+
+      audio.addEventListener('error', () => {
+        const wantResume = !audio.paused;
+        tryAdvanceOnError(wantResume);
+      });
+
+      audio.addEventListener('ended', () => {
+        loadTrack(1);
+        const p = audio.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      });
+
+      loadTrack(0);
+      audio.pause();
+      audio.volume = 1;
+
+      async function togglePlayback() {
+        if (isAppShellActive()) return;
+        if (audio.paused) {
+          try {
+            await audio.play();
+            persistPlaying(true);
+          } catch {
+            /* autoplay / decode blocked */
+          }
+        } else {
+          audio.pause();
+          persistPlaying(false);
+        }
+        syncAmbientChrome();
+      }
+
+      function bindAmbientToggle(btn) {
+        if (!btn) return;
+        btn.addEventListener('pointerdown', () => {
+          longPressHold = false;
+          longPressTimer = window.setTimeout(() => {
+            longPressHold = true;
+            showMiniBar();
+          }, 480);
+        });
+        btn.addEventListener('pointerup', () => {
+          window.clearTimeout(longPressTimer);
+          if (longPressHold) {
+            skipToggleClick = true;
+            longPressHold = false;
+          }
+        });
+        btn.addEventListener('pointercancel', () => window.clearTimeout(longPressTimer));
+        btn.addEventListener('pointerleave', () => window.clearTimeout(longPressTimer));
+        btn.addEventListener('click', (e) => {
+          if (skipToggleClick) {
+            skipToggleClick = false;
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+          togglePlayback();
+        });
+      }
+
+      bindAmbientToggle(toggleIntro);
+      bindAmbientToggle(toggleAuth);
+
+      prevBtn?.addEventListener('click', () => {
+        bumpMiniActivity();
+        const wasPlaying = !audio.paused;
+        loadTrack(-1);
+        if (wasPlaying) {
+          const p = audio.play();
+          if (p && typeof p.catch === 'function') p.catch(() => {});
+        }
+      });
+
+      nextBtn?.addEventListener('click', () => {
+        bumpMiniActivity();
+        const wasPlaying = !audio.paused;
+        loadTrack(1);
+        if (wasPlaying) {
+          const p = audio.play();
+          if (p && typeof p.catch === 'function') p.catch(() => {});
+        }
+      });
+
+      mini?.addEventListener('pointerdown', bumpMiniActivity);
+
+      const ambientMo = new MutationObserver(() => {
+        if (phone.classList.contains('show-app')) suspendAmbient();
+      });
+      ambientMo.observe(phone, { attributes: true, attributeFilter: ['class'] });
+
+      syncAmbientChrome();
     }
 
     async function api(path, options = {}) {
@@ -5305,6 +5580,7 @@ Oq fonli foto</div>
     });
     landmarkInput.addEventListener('input', renderCheckout);
     (async () => {
+      initIntroAmbientPlayer();
       await loadProfile();
       phone.classList.remove('show-app');
       authSheetOverlay.classList.remove('show');
