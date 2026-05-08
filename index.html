@@ -82,7 +82,7 @@
       transition: opacity 600ms ease, transform 600ms ease, visibility 600ms ease;
     }
 
-    .intro { z-index: 20; overflow: hidden; background: radial-gradient(circle at 30% 20%, #1c2f5f, #090f1f 55%, #050913 100%); display: flex; align-items: center; justify-content: center; position:relative; }
+    .intro { z-index: 20; overflow: hidden; background: radial-gradient(circle at 30% 20%, #1c2f5f, #090f1f 55%, #050913 100%); display: flex; align-items: stretch; justify-content: stretch; position:relative; }
     .intro::before{
       content:"";
       position:absolute;
@@ -98,15 +98,19 @@
       z-index: 2;
       width: 100%;
       max-width: 356px;
-      padding: 16px 16px max(18px, env(safe-area-inset-bottom));
-      text-align: left;
+      height: 100%;
+      min-height: 100%;
+      margin: 0 auto;
+      padding: max(14px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
     .brand { font-size: 34px; font-weight: 800; letter-spacing: 0.2px; color:#eaf2ff; }
-    .cinematic-intro{gap:16px; align-items:center; text-align:center; padding-top:30px;}
-    .intro-lang-switcher{position:absolute;top:max(14px,env(safe-area-inset-top));right:14px;display:flex;gap:8px;z-index:30}
+    .cinematic-intro{display:flex;gap:16px;align-items:center;text-align:center}
+    .intro-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;width:100%}
+    .cinematic-main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px;width:100%;padding-top:4px}
+    .intro-lang-switcher{display:flex;gap:8px;flex-shrink:0;z-index:30}
     .lang-switch-btn{border:1px solid rgba(255,255,255,.38);background:rgba(11,20,38,.45);color:#fff;min-width:44px;min-height:34px;border-radius:999px;padding:0 12px;font-weight:700;font-size:12px;cursor:pointer;backdrop-filter:blur(6px)}
     .lang-switch-btn.active{background:#fff;color:#1d2440;border-color:#fff}
     .cinematic-chip{color:#a8bee3;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
@@ -190,8 +194,8 @@
       -webkit-background-clip:text;background-clip:text;color:transparent;
       opacity:0;transform:translateY(14px) scale(.96);text-shadow:0 10px 26px rgba(34,114,255,.25)
     }
-    .cinematic-sub{color:#b5caea;font-size:14px;max-width:280px}
-    .intro-cta{opacity:0;transform:translateY(10px);pointer-events:none;transition:all .45s ease}
+    .cinematic-sub{color:#b5caea;font-size:14px;max-width:280px;margin:0}
+    .intro-cta{opacity:0;transform:translateY(10px);pointer-events:none;transition:all .45s ease;width:100%;margin-top:auto}
     .cinematic-intro.phase-2 .cinematic-starfield{animation:starfieldDrift 1.1s ease both}
     .cinematic-intro.explode .cinematic-stage{animation:burstShake .35s linear 2}
     .cinematic-intro.explode .cinematic-flare{animation:lensFlarePulse .9s ease-out}
@@ -1682,28 +1686,32 @@
   <main class="phone" id="phone">
     
     <section class="screen intro" id="introScreen">
-      <div class="intro-lang-switcher" aria-label="Language selector">
-        <button class="lang-switch-btn" id="introLangUzBtn" type="button">UZ</button>
-        <button class="lang-switch-btn" id="introLangRuBtn" type="button">RU</button>
-      </div>
       <div class="intro-inner cinematic-intro" id="cinematicIntro">
-        <p class="cinematic-chip" id="introChip">Qulay xarid, tezkor yetkazish</p>
-        <div class="cinematic-stage">
-          <div class="cinematic-starfield" id="cinematicStarfield"></div>
-          <div class="cinematic-globe-wrap" id="cinematicGlobeWrap">
-            <div class="cinematic-globe-shadow"></div>
-            <div class="cinematic-globe" id="cinematicGlobe"></div>
-            <div class="cinematic-atmosphere"></div>
-            <div class="cinematic-ring"></div>
-            <div class="cinematic-ring r2"></div>
-            <div class="cinematic-ring r3"></div>
+        <div class="intro-head">
+          <p class="cinematic-chip" id="introChip">Qulay xarid, tezkor yetkazish</p>
+          <div class="intro-lang-switcher" aria-label="Language selector">
+            <button class="lang-switch-btn" id="introLangUzBtn" type="button">UZ</button>
+            <button class="lang-switch-btn" id="introLangRuBtn" type="button">RU</button>
           </div>
-          <div class="cinematic-flare"></div>
-          <div class="cinematic-particles" id="cinematicParticles"></div>
         </div>
-        <div class="cinematic-text" id="cinematicBrandText">GlobusMarket</div>
-        <p class="cinematic-sub" id="introSubtitle">Samarqand bo‘ylab qulay yetkazib berish • Keng assortiment • Ishonchli servis</p>
-        <button class="btn gm-btn gm-btn-primary btn-primary intro-cta" id="openRegisterBtn" style="margin-top:auto;">Ro‘yxatdan o‘tish</button>
+        <div class="cinematic-main">
+          <div class="cinematic-stage">
+            <div class="cinematic-starfield" id="cinematicStarfield"></div>
+            <div class="cinematic-globe-wrap" id="cinematicGlobeWrap">
+              <div class="cinematic-globe-shadow"></div>
+              <div class="cinematic-globe" id="cinematicGlobe"></div>
+              <div class="cinematic-atmosphere"></div>
+              <div class="cinematic-ring"></div>
+              <div class="cinematic-ring r2"></div>
+              <div class="cinematic-ring r3"></div>
+            </div>
+            <div class="cinematic-flare"></div>
+            <div class="cinematic-particles" id="cinematicParticles"></div>
+          </div>
+          <div class="cinematic-text" id="cinematicBrandText">GlobusMarket</div>
+          <p class="cinematic-sub" id="introSubtitle">Samarqand bo‘ylab qulay yetkazib berish • Keng assortiment • Ishonchli servis</p>
+        </div>
+        <button class="btn gm-btn gm-btn-primary btn-primary intro-cta" id="openRegisterBtn">Ro‘yxatdan o‘tish</button>
       </div>
     </section>
 
