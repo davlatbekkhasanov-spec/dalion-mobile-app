@@ -1786,22 +1786,22 @@
         <small class="auth-hint" id="authPhoneHint">Format: +998 XX XXX XX XX</small>
         <small class="auth-error" id="authPhoneError">Telefon raqamni to‘liq kiriting (+998 XX XXX XX XX)</small>
 
-        <div class="auth-trust" aria-label="Bizning afzalliklar">
-          <div class="auth-trust-item"><span class="auth-trust-icon">🚀</span><span><strong>Yetkazib berish</strong> — Samarqand bo‘ylab odatda 1–4 soat, vaqt tirbandlik va buyurtma yuklamasiga bog‘liq</span></div>
-          <div class="auth-trust-item"><span class="auth-trust-icon">🔒</span><span><strong>Xavfsiz to‘lov</strong> — Payme orqali rasmiy to‘lov havolasi yoki yetkazilganda naqd to‘lov</span></div>
-          <div class="auth-trust-item"><span class="auth-trust-icon">💬</span><span><strong>Qo‘llab-quvvatlash</strong> — buyurtma bo‘yicha operator siz bilan bog‘lanadi</span></div>
+        <div class="auth-trust" id="authTrust" aria-label="Bizning afzalliklar">
+          <div class="auth-trust-item"><span class="auth-trust-icon">🚀</span><span><strong id="authTrustDeliveryTitle">Yetkazib berish</strong> — <span id="authTrustDeliveryBody">Samarqand bo‘ylab odatda 1–4 soat, vaqt tirbandlik va buyurtma yuklamasiga bog‘liq</span></span></div>
+          <div class="auth-trust-item"><span class="auth-trust-icon">🔒</span><span><strong id="authTrustPaymentTitle">Xavfsiz to‘lov</strong> — <span id="authTrustPaymentBody">Payme orqali rasmiy to‘lov havolasi yoki yetkazilganda naqd to‘lov</span></span></div>
+          <div class="auth-trust-item"><span class="auth-trust-icon">💬</span><span><strong id="authTrustSupportTitle">Qo‘llab-quvvatlash</strong> — <span id="authTrustSupportBody">buyurtma bo‘yicha operator siz bilan bog‘lanadi</span></span></div>
         </div>
         <div class="auth-consent">
-          Hisobingizni himoya qilish va buyurtmalarni xavfsiz tasdiqlash uchun bir martalik selfie olinadi.
+          <span id="authConsentLead">Hisobingizni himoya qilish va buyurtmalarni xavfsiz tasdiqlash uchun bir martalik selfie olinadi.</span>
           <label class="auth-consent-check" for="biometricConsentCheckbox">
             <input type="checkbox" id="biometricConsentCheckbox" />
-            <span>Akkauntimni himoya qilish uchun selfie tasdig‘imdan foydalanilishiga roziman.</span>
+            <span id="authConsentCheckText">Akkauntimni himoya qilish uchun selfie tasdig‘imdan foydalanilishiga roziman.</span>
           </label>
-          <small class="auth-hint">Ma’lumotlar faqat xizmat sifati va xavfsizlik uchun ishlatiladi, uchinchi tomonlarga berilmaydi.</small>
+          <small class="auth-hint" id="authConsentHint">Ma’lumotlar faqat xizmat sifati va xavfsizlik uchun ishlatiladi, uchinchi tomonlarga berilmaydi.</small>
           <small class="auth-error" id="biometricConsentError">Davom etish uchun biometrik rozilikni belgilang.</small>
         </div>
         <div class="auth-selfie-card">
-          <div class="muted" style="margin-bottom:6px;">Biometrik tasdiqlash (selfie)</div>
+          <div class="muted" style="margin-bottom:6px;" id="authSelfieSectionTitle">Biometrik tasdiqlash (selfie)</div>
           <button type="button" class="btn gm-btn gm-btn-secondary btn-secondary" id="startFaceIdBtn">Face ID ni boshlash</button>
           <small class="auth-hint" id="selfieHint">Kamera ochiladi, selfieni oling va tasdiqlang.</small>
           <small class="auth-error" id="selfieError">Ro‘yxatdan o‘tishdan oldin selfieni tasdiqlang.</small>
@@ -2363,13 +2363,13 @@ Oq fonli foto</div>
       showSelfieGuideOverlay();
       selfieDetectionMode = 'manual';
       selfieAlignmentStartedAt = 0;
-      setSelfieGuideStatus("Qo'lda rejim: avto olish yo'q.", false);
+      setSelfieGuideStatus(t('selfieGuideManual'), false);
       trackSelfieTransition('manual_required', { reason: reason || 'detector-unavailable', details: details || null });
       if (selfieHint) {
         const isFallbackFailure = String(reason || '').startsWith('fallback-');
         selfieHint.textContent = isFallbackFailure
-          ? "Avto aniqlash ishlamadi. Qo'lda rejimga o'tildi, selfieni qo'lda oling."
-          : "Qo'lda rejim faol: bu brauzerda avto selfie yo'q.";
+          ? t('selfieHintManualFallback')
+          : t('selfieHintManualNoAuto');
       }
     }
 
@@ -2385,20 +2385,20 @@ Oq fonli foto</div>
         if (!firstFace) {
           selfieAlignmentStartedAt = 0;
           clearSelfieCountdown('no-face');
-          setSelfieGuideStatus("Ramkaga to'g'rilang: yuz topilmadi.", false);
+          setSelfieGuideStatus(t('selfieGuideNoFace'), false);
           return;
         }
         if (!isReliableFaceCandidate(firstFace)) {
           selfieAlignmentStartedAt = 0;
           clearSelfieCountdown('low-confidence-face');
-          setSelfieGuideStatus("Yuz noaniq. Yorug'likni yaxshilang va to'g'ri turing.", false);
+          setSelfieGuideStatus(t('selfieGuideLowConfidence'), false);
           return;
         }
         const aligned = isFaceInsideGuide(firstFace.boundingBox, width, height);
         if (!aligned) {
           selfieAlignmentStartedAt = 0;
           clearSelfieCountdown('misaligned');
-          setSelfieGuideStatus("Ramkaga to'g'rilang: yuz markazda emas.", false);
+          setSelfieGuideStatus(t('selfieGuideMisaligned'), false);
           return;
         }
         if (!selfieAlignmentStartedAt) selfieAlignmentStartedAt = Date.now();
@@ -2411,7 +2411,7 @@ Oq fonli foto</div>
         const heldForMs = Date.now() - selfieAlignmentStartedAt;
         if (!selfieCountdownTimer) {
           const secondsLeft = Math.max(1, Math.ceil((SELFIE_STABLE_MS - heldForMs) / 1000));
-          setSelfieGuideStatus(`Barqaror turing (${secondsLeft}s)`, true);
+          setSelfieGuideStatus(`${t('selfieGuideHoldStill')} (${secondsLeft}s)`, true);
         }
         if (heldForMs >= SELFIE_STABLE_MS) {
           if (selfieCountdownTargetAt) finalizeSelfieCountdown('native', 'frame-loop');
@@ -2420,7 +2420,7 @@ Oq fonli foto</div>
           if (!selfieCountdownTargetAt) {
             startSelfieCountdown('native');
           }
-          setSelfieGuideStatus(`Avto olish ${countdownLeftSec}s`, true);
+          setSelfieGuideStatus(`${t('selfieGuideAutoCapture')} ${countdownLeftSec}s`, true);
         }
       } catch (error) {
         switchToManualSelfieMode('detector-error', String(error?.message || error || 'unknown'));
@@ -2504,7 +2504,7 @@ Oq fonli foto</div>
         if (!sampled.aligned) {
           selfieAlignmentStartedAt = 0;
           clearSelfieCountdown(`fallback-${sampled.reason || 'misaligned'}`);
-          setSelfieGuideStatus("Ramkaga to'g'rilang: markazda barqaror turing.", false);
+          setSelfieGuideStatus(t('selfieGuideFallbackHoldCenter'), false);
           return;
         }
         if (!selfieAlignmentStartedAt) selfieAlignmentStartedAt = Date.now();
@@ -2517,18 +2517,18 @@ Oq fonli foto</div>
         const heldForMs = Date.now() - selfieAlignmentStartedAt;
         if (!selfieCountdownTimer) {
           const secondsLeft = Math.max(1, Math.ceil((SELFIE_STABLE_MS - heldForMs) / 1000));
-          setSelfieGuideStatus(`Yuz markazda (${secondsLeft}s)`, true);
+          setSelfieGuideStatus(`${t('selfieGuideFaceCentered')} (${secondsLeft}s)`, true);
         }
         if (heldForMs >= SELFIE_STABLE_MS) {
           if (selfieCountdownTargetAt) finalizeSelfieCountdown('fallback', 'frame-loop');
           const countdownLeftMs = Math.max(0, selfieCountdownTargetAt - Date.now());
           const countdownLeftSec = Math.max(1, Math.ceil(countdownLeftMs / 1000));
           if (!selfieCountdownTargetAt) startSelfieCountdown('fallback');
-          setSelfieGuideStatus(`Avto olish ${countdownLeftSec}s`, true);
+          setSelfieGuideStatus(`${t('selfieGuideAutoCapture')} ${countdownLeftSec}s`, true);
         }
       } catch (_) {
         switchToManualSelfieMode('fallback-error');
-        setSelfieGuideStatus("Ramkaga to'g'rilang, so'ng qo'lda oling.", false);
+        setSelfieGuideStatus(t('selfieGuideManualAfterFallback'), false);
       } finally {
         selfieIsDetectingFrame = false;
       }
@@ -2558,12 +2558,12 @@ Oq fonli foto</div>
       stopSelfieDetectionLoop();
       selfieDetectionMode = 'fallback';
       selfieAlignmentStartedAt = 0;
-      setSelfieGuideStatus("Fallback avto rejim: markazda barqaror turing.", false);
+      setSelfieGuideStatus(t('selfieGuideFallbackAutoMode'), false);
       selfieFallbackTimer = setInterval(() => {
         runSelfieFallbackFrame();
       }, 220);
       trackSelfieTransition('align_required', { mode: 'fallback', reason: reason || 'native-unavailable' });
-      if (selfieHint) selfieHint.textContent = "Fallback avto rejim faol: yuz markazda barqaror tursa selfie olinadi.";
+      if (selfieHint) selfieHint.textContent = t('selfieHintFallbackAutoMode');
     }
 
     function setupSelfieFallbackDebugHook() {
@@ -2722,17 +2722,17 @@ Oq fonli foto</div>
       if (confirmSelfieBtn) confirmSelfieBtn.disabled = true;
       if (startFaceIdBtn) {
         startFaceIdBtn.removeAttribute('disabled');
-        startFaceIdBtn.textContent = 'Face ID ni boshlash';
+        startFaceIdBtn.textContent = t('authStartFaceId');
       }
       if (selfieHint) selfieHint.style.display = '';
       if (selfieSuccess) selfieSuccess.classList.remove('show');
-      setSelfieGuideStatus("Ramkaga to'g'rilang.", false);
+      setSelfieGuideStatus(t('selfieGuideAlignFrame'), false);
       trackSelfieTransition('idle');
     }
 
     async function startSelfieCapture() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setFieldError(null, selfieError, 'Kamera ushbu qurilmada qo‘llab-quvvatlanmaydi. Boshqa brauzer qurilmadan urinib ko‘ring.');
+        setFieldError(null, selfieError, t('selfieErrorCameraUnsupported'));
         return;
       }
       setFieldError(null, selfieError, '');
@@ -2760,12 +2760,12 @@ Oq fonli foto</div>
           try {
             selfieFaceDetector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
             selfieDetectionMode = 'native';
-            setSelfieGuideStatus("Ramkaga to'g'rilang.", false);
+            setSelfieGuideStatus(t('selfieGuideAlignFrame'), false);
             selfieDetectorTimer = setInterval(() => {
               runSelfieDetectionFrame();
             }, 220);
             trackSelfieTransition('align_required', { mode: 'native' });
-            if (selfieHint) selfieHint.textContent = "Avto rejim faol: yuz markazda barqaror tursa selfie olinadi.";
+            if (selfieHint) selfieHint.textContent = t('selfieHintAutoActive');
           } catch (error) {
             startSelfieFallbackLoop('detector-init-failed');
           }
@@ -2773,7 +2773,7 @@ Oq fonli foto</div>
           startSelfieFallbackLoop('native-unsupported');
         }
       } catch (_) {
-        setFieldError(null, selfieError, 'Kameraga ruxsat berilmadi yoki mavjud emas. Ruxsatni yoqib qayta urinib ko‘ring.');
+        setFieldError(null, selfieError, t('selfieErrorCameraPermission'));
       } finally {
         setBtnLoading(startFaceIdBtn, false);
       }
@@ -2801,15 +2801,15 @@ Oq fonli foto</div>
             allowedMode,
             eligibleState
           });
-          setSelfieGuideStatus("Avto olish bloklandi. Yuzni qayta to'g'rilang yoki qo'lda oling.", false);
+          setSelfieGuideStatus(t('selfieGuideAutoCaptureBlocked'), false);
           return;
         }
       }
       if (!captureOptions.auto && selfieDetectionMode === 'manual') {
         const sampled = sampleSelfieFallbackAlignment();
         if (!sampled.aligned) {
-          setSelfieGuideStatus("Yuz topilmadi. Ramkaga to'g'rilang.", false);
-          setFieldError(null, selfieError, "Yuz ko'rinmasdan selfie olinmaydi.");
+          setSelfieGuideStatus(t('selfieGuideFaceNotDetected'), false);
+          setFieldError(null, selfieError, t('selfieErrorNoFaceForCapture'));
           trackSelfieTransition('capture_blocked', {
             auto: false,
             mode: 'manual',
@@ -2822,7 +2822,7 @@ Oq fonli foto</div>
       const width = selfieVideo.videoWidth || 720;
       const height = selfieVideo.videoHeight || 540;
       if (!width || !height) {
-        setFieldError(null, selfieError, 'Kamera tayyor emas, iltimos qayta urinib ko‘ring.');
+        setFieldError(null, selfieError, t('selfieErrorCameraNotReady'));
         return;
       }
       selfieCanvas.width = width;
@@ -2840,8 +2840,8 @@ Oq fonli foto</div>
       if (selfieSuccess) selfieSuccess.classList.remove('show');
       if (selfieHint) {
         selfieHint.textContent = captureOptions.auto
-          ? 'Avto rejim: selfie olindi. Endi "Tasdiqlash" tugmasini bosing.'
-          : "Qo'lda rejim: selfie olindi. Endi \"Tasdiqlash\" tugmasini bosing.";
+          ? t('selfieHintAutoCaptured')
+          : t('selfieHintManualCaptured');
       }
       trackSelfieRuntimeEvent('captured', { auto: Boolean(captureOptions.auto), mode: activeDetectionMode || 'manual' });
       trackSelfieTransition('captured', { auto: Boolean(captureOptions.auto), mode: activeDetectionMode || 'manual' });
@@ -2849,7 +2849,7 @@ Oq fonli foto</div>
 
     function confirmSelfieFrame() {
       if (!biometricSelfie.dataUrl) {
-        setFieldError(null, selfieError, 'Avval selfieni oling.');
+        setFieldError(null, selfieError, t('selfieErrorCaptureFirst'));
         return;
       }
       biometricSelfie.confirmed = true;
@@ -2886,8 +2886,8 @@ Oq fonli foto</div>
       const consentOk = Boolean(biometricConsentCheckbox?.checked);
       const selfieOk = Boolean(biometricSelfie.dataUrl && biometricSelfie.confirmed);
       if (!silent) {
-        setFieldError(null, biometricConsentError, consentOk ? '' : 'Davom etish uchun biometrik rozilikni belgilang.');
-        setFieldError(null, selfieError, selfieOk ? '' : 'Ro‘yxatdan o‘tishdan oldin selfieni tasdiqlang.');
+        setFieldError(null, biometricConsentError, consentOk ? '' : t('biometricConsentError'));
+        setFieldError(null, selfieError, selfieOk ? '' : t('selfieError'));
       }
       return consentOk && selfieOk;
     }
@@ -3210,8 +3210,54 @@ Oq fonli foto</div>
         authNameAriaLabel: "Ism",
         authNameError: "Iltimos, ismingizni kiriting (kamida 2 harf)",
         authPhoneAriaLabel: "Telefon raqam",
+        authPhoneHint: "Format: +998 XX XXX XX XX",
         authPhoneError: "Telefon raqamni to'liq kiriting (+998 XX XXX XX XX)",
         authCloseAriaLabel: "Yopish",
+        authTrustAriaLabel: 'Bizning afzalliklar',
+        authTrustDeliveryTitle: 'Yetkazib berish',
+        authTrustDeliveryBody: "Samarqand bo'ylab odatda 1-4 soat, vaqt tirbandlik va buyurtma yuklamasiga bog'liq",
+        authTrustPaymentTitle: "Xavfsiz to'lov",
+        authTrustPaymentBody: "Payme orqali rasmiy to'lov havolasi yoki yetkazilganda naqd to'lov",
+        authTrustSupportTitle: "Qo'llab-quvvatlash",
+        authTrustSupportBody: "buyurtma bo'yicha operator siz bilan bog'lanadi",
+        authConsentLead: "Hisobingizni himoya qilish va buyurtmalarni xavfsiz tasdiqlash uchun bir martalik selfie olinadi.",
+        authConsentCheckText: "Akkauntimni himoya qilish uchun selfie tasdig'imdan foydalanilishiga roziman.",
+        authConsentHint: "Ma'lumotlar faqat xizmat sifati va xavfsizlik uchun ishlatiladi, uchinchi tomonlarga berilmaydi.",
+        biometricConsentError: "Davom etish uchun biometrik rozilikni belgilang.",
+        authSelfieSectionTitle: 'Biometrik tasdiqlash (selfie)',
+        authStartFaceId: 'Face ID ni boshlash',
+        selfieHint: 'Kamera ochiladi, selfieni oling va tasdiqlang.',
+        selfieError: "Ro'yxatdan o'tishdan oldin selfieni tasdiqlang.",
+        selfieGuideInitial: 'Yuzingizni oval ichiga joylashtiring.',
+        selfieCaptureBtn: 'Selfieni olish',
+        selfieConfirmBtn: 'Tasdiqlash',
+        selfieSuccess: 'Selfie tasdiqlandi. Davom etishingiz mumkin.',
+        authSubmit: 'Davom etish',
+        selfiePreviewAlt: 'Selfie preview',
+        selfieGuideManual: "Qo'lda rejim: avto olish yo'q.",
+        selfieHintManualFallback: "Avto aniqlash ishlamadi. Qo'lda rejimga o'tildi, selfieni qo'lda oling.",
+        selfieHintManualNoAuto: "Qo'lda rejim faol: bu brauzerda avto selfie yo'q.",
+        selfieGuideNoFace: "Ramkaga to'g'rilang: yuz topilmadi.",
+        selfieGuideLowConfidence: "Yuz noaniq. Yorug'likni yaxshilang va to'g'ri turing.",
+        selfieGuideMisaligned: "Ramkaga to'g'rilang: yuz markazda emas.",
+        selfieGuideHoldStill: 'Barqaror turing',
+        selfieGuideAutoCapture: 'Avto olish',
+        selfieGuideFallbackHoldCenter: "Ramkaga to'g'rilang: markazda barqaror turing.",
+        selfieGuideFaceCentered: 'Yuz markazda',
+        selfieGuideManualAfterFallback: "Ramkaga to'g'rilang, so'ng qo'lda oling.",
+        selfieGuideFallbackAutoMode: 'Fallback avto rejim: markazda barqaror turing.',
+        selfieHintFallbackAutoMode: 'Fallback avto rejim faol: yuz markazda barqaror tursa selfie olinadi.',
+        selfieGuideAlignFrame: "Ramkaga to'g'rilang.",
+        selfieHintAutoActive: 'Avto rejim faol: yuz markazda barqaror tursa selfie olinadi.',
+        selfieGuideAutoCaptureBlocked: "Avto olish bloklandi. Yuzni qayta to'g'rilang yoki qo'lda oling.",
+        selfieGuideFaceNotDetected: "Yuz topilmadi. Ramkaga to'g'rilang.",
+        selfieErrorNoFaceForCapture: "Yuz ko'rinmasdan selfie olinmaydi.",
+        selfieErrorCameraUnsupported: "Kamera ushbu qurilmada qo'llab-quvvatlanmaydi. Boshqa brauzer qurilmadan urinib ko'ring.",
+        selfieErrorCameraPermission: "Kameraga ruxsat berilmadi yoki mavjud emas. Ruxsatni yoqib qayta urinib ko'ring.",
+        selfieErrorCameraNotReady: "Kamera tayyor emas, iltimos qayta urinib ko'ring.",
+        selfieHintAutoCaptured: 'Avto rejim: selfie olindi. Endi "Tasdiqlash" tugmasini bosing.',
+        selfieHintManualCaptured: "Qo'lda rejim: selfie olindi. Endi \"Tasdiqlash\" tugmasini bosing.",
+        selfieErrorCaptureFirst: 'Avval selfieni oling.',
         homeTab: 'Bosh sahifa',
         bannerSection: 'Siz uchun',
         cartEmptyTitle: "Savatingiz bo'sh",
@@ -3380,8 +3426,54 @@ Oq fonli foto</div>
         authNameAriaLabel: 'Имя',
         authNameError: 'Введите имя (минимум 2 буквы)',
         authPhoneAriaLabel: 'Номер телефона',
+        authPhoneHint: 'Формат: +998 XX XXX XX XX',
         authPhoneError: 'Введите полный номер телефона (+998 XX XXX XX XX)',
         authCloseAriaLabel: 'Закрыть',
+        authTrustAriaLabel: 'Наши преимущества',
+        authTrustDeliveryTitle: 'Доставка',
+        authTrustDeliveryBody: 'По Самарканду обычно 1-4 часа, время зависит от пробок и загрузки заказов',
+        authTrustPaymentTitle: 'Безопасная оплата',
+        authTrustPaymentBody: 'Официальная ссылка на оплату через Payme или наличными при получении',
+        authTrustSupportTitle: 'Поддержка',
+        authTrustSupportBody: 'оператор свяжется с вами по заказу',
+        authConsentLead: 'Для защиты аккаунта и безопасного подтверждения заказов делается одноразовое селфи.',
+        authConsentCheckText: 'Согласен(на) на использование селфи-подтверждения для защиты аккаунта.',
+        authConsentHint: 'Данные используются только для качества сервиса и безопасности, третьим лицам не передаются.',
+        biometricConsentError: 'Отметьте биометрическое согласие, чтобы продолжить.',
+        authSelfieSectionTitle: 'Биометрическое подтверждение (селфи)',
+        authStartFaceId: 'Начать Face ID',
+        selfieHint: 'Откроется камера, сделайте селфи и подтвердите.',
+        selfieError: 'Подтвердите селфи перед регистрацией.',
+        selfieGuideInitial: 'Поместите лицо внутрь овала.',
+        selfieCaptureBtn: 'Сделать селфи',
+        selfieConfirmBtn: 'Подтвердить',
+        selfieSuccess: 'Селфи подтверждено. Можно продолжить.',
+        authSubmit: 'Продолжить',
+        selfiePreviewAlt: 'Превью селфи',
+        selfieGuideManual: 'Ручной режим: авто-съемка отключена.',
+        selfieHintManualFallback: 'Автоопределение не сработало. Включен ручной режим, сделайте селфи вручную.',
+        selfieHintManualNoAuto: 'Активен ручной режим: в этом браузере нет авто-селфи.',
+        selfieGuideNoFace: 'Выровняйтесь в рамке: лицо не найдено.',
+        selfieGuideLowConfidence: 'Лицо нечеткое. Улучшите освещение и смотрите прямо.',
+        selfieGuideMisaligned: 'Выровняйтесь в рамке: лицо не по центру.',
+        selfieGuideHoldStill: 'Не двигайтесь',
+        selfieGuideAutoCapture: 'Автосъемка через',
+        selfieGuideFallbackHoldCenter: 'Выровняйтесь в рамке: держите лицо стабильно по центру.',
+        selfieGuideFaceCentered: 'Лицо по центру',
+        selfieGuideManualAfterFallback: 'Выровняйтесь в рамке, затем сделайте снимок вручную.',
+        selfieGuideFallbackAutoMode: 'Авто-режим fallback: держите лицо стабильно по центру.',
+        selfieHintFallbackAutoMode: 'Активен авто-режим fallback: если лицо стабильно по центру, селфи снимется автоматически.',
+        selfieGuideAlignFrame: 'Выровняйтесь в рамке.',
+        selfieHintAutoActive: 'Активен авто-режим: если лицо стабильно по центру, селфи снимется автоматически.',
+        selfieGuideAutoCaptureBlocked: 'Автосъемка заблокирована. Выровняйте лицо заново или снимите вручную.',
+        selfieGuideFaceNotDetected: 'Лицо не найдено. Выровняйтесь в рамке.',
+        selfieErrorNoFaceForCapture: 'Без видимого лица селфи снять нельзя.',
+        selfieErrorCameraUnsupported: 'Камера не поддерживается на этом устройстве. Попробуйте другой браузер или устройство.',
+        selfieErrorCameraPermission: 'Доступ к камере не предоставлен или камера недоступна. Включите доступ и попробуйте снова.',
+        selfieErrorCameraNotReady: 'Камера не готова, попробуйте снова.',
+        selfieHintAutoCaptured: 'Авто-режим: селфи снято. Теперь нажмите кнопку "Подтвердить".',
+        selfieHintManualCaptured: 'Ручной режим: селфи снято. Теперь нажмите кнопку "Подтвердить".',
+        selfieErrorCaptureFirst: 'Сначала сделайте селфи.',
         homeTab: 'Главная',
         bannerSection: 'Для вас',
         cartEmptyTitle: 'Корзина пуста',
@@ -3511,8 +3603,41 @@ Oq fonli foto</div>
       }
       if (authNameError) authNameError.textContent = t('authNameError');
       if (authPhone) authPhone.setAttribute('aria-label', t('authPhoneAriaLabel'));
+      if (authPhoneHint) authPhoneHint.textContent = t('authPhoneHint');
       if (authPhoneError) authPhoneError.textContent = t('authPhoneError');
       if (closeAuthSheetBtn) closeAuthSheetBtn.setAttribute('aria-label', t('authCloseAriaLabel'));
+      const authTrust = document.getElementById('authTrust');
+      if (authTrust) authTrust.setAttribute('aria-label', t('authTrustAriaLabel'));
+      const authTrustDeliveryTitle = document.getElementById('authTrustDeliveryTitle');
+      const authTrustDeliveryBody = document.getElementById('authTrustDeliveryBody');
+      const authTrustPaymentTitle = document.getElementById('authTrustPaymentTitle');
+      const authTrustPaymentBody = document.getElementById('authTrustPaymentBody');
+      const authTrustSupportTitle = document.getElementById('authTrustSupportTitle');
+      const authTrustSupportBody = document.getElementById('authTrustSupportBody');
+      if (authTrustDeliveryTitle) authTrustDeliveryTitle.textContent = t('authTrustDeliveryTitle');
+      if (authTrustDeliveryBody) authTrustDeliveryBody.textContent = t('authTrustDeliveryBody');
+      if (authTrustPaymentTitle) authTrustPaymentTitle.textContent = t('authTrustPaymentTitle');
+      if (authTrustPaymentBody) authTrustPaymentBody.textContent = t('authTrustPaymentBody');
+      if (authTrustSupportTitle) authTrustSupportTitle.textContent = t('authTrustSupportTitle');
+      if (authTrustSupportBody) authTrustSupportBody.textContent = t('authTrustSupportBody');
+      const authConsentLead = document.getElementById('authConsentLead');
+      const authConsentCheckText = document.getElementById('authConsentCheckText');
+      const authConsentHint = document.getElementById('authConsentHint');
+      const authSelfieSectionTitle = document.getElementById('authSelfieSectionTitle');
+      if (authConsentLead) authConsentLead.textContent = t('authConsentLead');
+      if (authConsentCheckText) authConsentCheckText.textContent = t('authConsentCheckText');
+      if (authConsentHint) authConsentHint.textContent = t('authConsentHint');
+      if (biometricConsentError && !biometricConsentError.classList.contains('show')) biometricConsentError.textContent = t('biometricConsentError');
+      if (authSelfieSectionTitle) authSelfieSectionTitle.textContent = t('authSelfieSectionTitle');
+      if (startFaceIdBtn) startFaceIdBtn.textContent = t('authStartFaceId');
+      if (selfieHint && !selfieHint.classList.contains('show')) selfieHint.textContent = t('selfieHint');
+      if (selfieError && !selfieError.classList.contains('show')) selfieError.textContent = t('selfieError');
+      if (selfieGuideStatus && selfieCurrentState === 'idle') selfieGuideStatus.textContent = t('selfieGuideInitial');
+      if (captureSelfieBtn) captureSelfieBtn.textContent = t('selfieCaptureBtn');
+      if (confirmSelfieBtn) confirmSelfieBtn.textContent = t('selfieConfirmBtn');
+      if (selfieSuccess) selfieSuccess.textContent = t('selfieSuccess');
+      if (submitAuthBtn) submitAuthBtn.textContent = t('authSubmit');
+      if (selfieImagePreview) selfieImagePreview.alt = t('selfiePreviewAlt');
       const homeCategoriesTitle = document.getElementById('homeCategoriesTitle');
       const homeForYouTitle = document.getElementById('homeForYouTitle');
       const homeDiscountsTitle = document.getElementById('homeDiscountsTitle');
