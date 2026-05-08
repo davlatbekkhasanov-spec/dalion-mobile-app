@@ -2942,6 +2942,13 @@ Oq fonli foto</div>
       introTimers.push(setTimeout(() => cinematicIntro.classList.add('ready'), 2540));
     }
 
+    function syncIntroCta() {
+      if (!openRegisterBtn) return;
+      const authed = isAuthed();
+      openRegisterBtn.textContent = authed ? 'Xaridni boshlash' : "Ro‘yxatdan o‘tish";
+      openRegisterBtn.dataset.mode = authed ? 'start' : 'register';
+    }
+
     function openRegistrationFlow() {
       introScreen?.classList.add('fade-out');
       const existingUser = JSON.parse(localStorage.getItem('globusUser') || 'null');
@@ -4220,6 +4227,12 @@ Oq fonli foto</div>
     }
 
     openRegisterBtn?.addEventListener('click', async () => {
+      if (isAuthed()) {
+        phone.classList.add('show-app');
+        setView('homeView');
+        await initializeAppData();
+        return;
+      }
       openRegistrationFlow();
     });
 
@@ -4243,6 +4256,7 @@ Oq fonli foto</div>
         const ok = await submitAuth();
         if (!ok) return;
         phone.classList.add('show-app');
+        syncIntroCta();
         setView('homeView');
         await initializeAppData();
       } catch (error) {
@@ -4273,6 +4287,7 @@ Oq fonli foto</div>
       localStorage.removeItem('activeOrderNumber');
       phone.classList.remove('show-app');
       introScreen?.classList.remove('fade-out');
+      syncIntroCta();
       runCinematicIntro();
       showToast("Siz tizimdan chiqdingiz");
       renderProfileOrders();
@@ -4661,6 +4676,7 @@ Oq fonli foto</div>
       await loadProfile();
       phone.classList.remove('show-app');
       authSheetOverlay.classList.remove('show');
+      syncIntroCta();
       applyLang();
       runCinematicIntro();
     })();
