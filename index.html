@@ -1695,7 +1695,7 @@
           <div class="cinematic-particles" id="cinematicParticles"></div>
         </div>
         <div class="cinematic-text" id="cinematicBrandText">GlobusMarket</div>
-        <p class="cinematic-sub">Samarqand bo‘ylab qulay yetkazib berish • Кeng ассортимент • Ишончли сервис</p>
+        <p class="cinematic-sub" id="introSubtitle">Samarqand bo‘ylab qulay yetkazib berish • Keng assortiment • Ishonchli servis</p>
         <button class="btn gm-btn gm-btn-primary btn-primary intro-cta" id="openRegisterBtn" style="margin-top:auto;">Ro‘yxatdan o‘tish</button>
       </div>
     </section>
@@ -3136,7 +3136,8 @@ Oq fonli foto</div>
         checkoutHintManual: "Manzilni qo'lda kiriting yoki lokatsiyani yoqing",
         checkoutHintOptional: "Lokatsiya ixtiyoriy. Istasangiz manzilni qo'lda kiriting.",
         activeOrder: "Faol buyurtma",
-        track: "Kuzatish"
+        track: "Kuzatish",
+        introSubtitle: "Samarqand bo'ylab qulay yetkazib berish • Keng assortiment • Ishonchli servis"
       },
       ru: {
         search: 'Поиск товаров...',
@@ -3195,7 +3196,8 @@ Oq fonli foto</div>
         checkoutHintManual: 'Введите адрес вручную или включите геолокацию',
         checkoutHintOptional: 'Геолокация необязательна. При желании введите адрес вручную.',
         activeOrder: 'Активный заказ',
-        track: 'Отследить'
+        track: 'Отследить',
+        introSubtitle: 'Удобная доставка по Самарканду • Широкий ассортимент • Надежный сервис'
       }
     };
 
@@ -3216,6 +3218,8 @@ Oq fonli foto</div>
       document.getElementById('searchClearBtn').setAttribute('aria-label', t('searchClear'));
       document.getElementById('homeAllCategoriesLink').textContent = t('homeAll');
       document.getElementById('homeMoreProductsLink').textContent = t('homeMore');
+      const introSubtitleEl = document.getElementById('introSubtitle');
+      if (introSubtitleEl) introSubtitleEl.textContent = t('introSubtitle');
       const sectionTitles = document.querySelectorAll('.section-head h4');
       if (sectionTitles[1]) sectionTitles[1].textContent = t('categories');
       if (sectionTitles[3]) sectionTitles[3].textContent = t('discounts');
