@@ -1,5 +1,8 @@
 const DEVSMS_DEFAULT_URL = 'https://devsms.uz/api/send_sms.php';
 
+const DEFAULT_SMS_OTP_MESSAGE_TEMPLATE =
+  'GlobusMarket mobil ilovasida ro\'yxatdan o\'tish uchun tasdiqlash kodingiz: {{code}} Ushbu kod 5 daqiqa amal qiladi.';
+
 function parseDevsmsHostname(urlString) {
   try {
     return new URL(urlString).hostname.toLowerCase();
@@ -105,7 +108,10 @@ async function sendViaGeneric(phone, code) {
   if (!url) {
     return { ok: false, message: 'SMS_API_URL majburiy (generic rejim)' };
   }
-  const message = String(process.env.SMS_MESSAGE_TEMPLATE || 'Tasdiqlash kodi: {{code}}').replace(/\{\{code\}\}/g, code);
+  const message = String(process.env.SMS_MESSAGE_TEMPLATE || DEFAULT_SMS_OTP_MESSAGE_TEMPLATE).replace(
+    /\{\{code\}\}/g,
+    code
+  );
   const payloadRaw = String(process.env.SMS_REQUEST_BODY_TEMPLATE || '').trim();
   let bodyObj;
   if (payloadRaw) {
@@ -169,9 +175,7 @@ async function sendViaDevsms(phone, code) {
     return { ok: false, message: 'Telefon raqami noto‘g‘ri (DevSMS)', provider: 'devsms' };
   }
   const message = String(
-    process.env.DEVSMS_OTP_MESSAGE_TEMPLATE ||
-      process.env.SMS_MESSAGE_TEMPLATE ||
-      'GlobusMarket: tasdiqlash kodi {{code}}. Uni boshqalarga bermang.'
+    process.env.DEVSMS_OTP_MESSAGE_TEMPLATE || process.env.SMS_MESSAGE_TEMPLATE || DEFAULT_SMS_OTP_MESSAGE_TEMPLATE
   ).replace(/\{\{code\}\}/g, code);
   const smsType = String(process.env.DEVSMS_SMS_TYPE || '').trim();
 

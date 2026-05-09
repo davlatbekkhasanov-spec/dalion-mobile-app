@@ -29,7 +29,7 @@ Add these variables in Railway **Variables** section:
 - `DEVSMS_AUTH_MODE` (default `bearer`): `bearer` — `Authorization: Bearer …` only; `body` — include `api_key` in the JSON body only; `both` — header and body (for providers that expect both).
 - `DEVSMS_SENDER_FROM`: sender ID (optional; default `4546` per provider docs).
 - `DEVSMS_CALLBACK_URL`: optional delivery-status webhook URL (only if you consume callbacks).
-- Optional: `DEVSMS_API_URL` (default `https://devsms.uz/api/send_sms.php`), `DEVSMS_OTP_MESSAGE_TEMPLATE` / `SMS_MESSAGE_TEMPLATE` with `{{code}}`, `DEVSMS_SMS_TYPE` (e.g. `universal_otp`), `DEVSMS_SERVICE_NAME`, `DEVSMS_OTP_TEMPLATE_TYPE` (1–4, for universal OTP), `SMS_LOG_OTP_CODE=true` to log plaintext OTP (avoid in production).
+- Optional: `DEVSMS_API_URL` (default `https://devsms.uz/api/send_sms.php`), `DEVSMS_OTP_MESSAGE_TEMPLATE` / `SMS_MESSAGE_TEMPLATE` with `{{code}}` (if unset, defaults to GlobusMarket Uzbek registration OTP body), `DEVSMS_SMS_TYPE` (e.g. `universal_otp`), `DEVSMS_SERVICE_NAME`, `DEVSMS_OTP_TEMPLATE_TYPE` (1–4, for universal OTP), `SMS_LOG_OTP_CODE=true` to log plaintext OTP (avoid in production).
 
 `POST /api/payme` now requires Basic authorization in test mode using `PAYME_MERCHANT_ID:PAYME_TEST_KEY`.
 If credentials are missing, the endpoint returns configuration error until variables are set.
