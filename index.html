@@ -3380,6 +3380,10 @@ Oq fonli foto</div>
         toastOrderDone: 'Buyurtma yakunlandi',
         toastAmbientTrackSwitched: 'Musiqa manbasi almashtirildi',
         toastAmbientFallback: 'Musiqa oqimi xatosi, zaxira tovush yoqildi',
+        toastAmbientGestureRequired: 'Musiqani yoqish uchun tugmani yana bosing',
+        toastAmbientSourceMissing: "Musiqa fayli topilmadi, boshqa manbaga o'tildi",
+        toastAmbientPlayFail: "Musiqani yoqib bo'lmadi. Internetni tekshirib qayta urinib ko'ring",
+        toastAmbientNoSources: "Musiqa manbasi topilmadi, faqat zaxira tovush ishlaydi",
         validationAuthFirst: "Avval ro'yxatdan o'ting",
         validationPaymentPick: "To'lov turini tanlang",
         validationAddressRequired: "Manzilni kiriting yoki lokatsiyani yoqing",
@@ -3603,6 +3607,10 @@ Oq fonli foto</div>
         toastOrderDone: 'Заказ завершен',
         toastAmbientTrackSwitched: 'Источник музыки переключен',
         toastAmbientFallback: 'Ошибка потока музыки, включен резервный звук',
+        toastAmbientGestureRequired: 'Нажмите кнопку музыки еще раз',
+        toastAmbientSourceMissing: 'Музыкальный файл недоступен, переключили источник',
+        toastAmbientPlayFail: 'Не удалось включить музыку. Проверьте интернет и повторите',
+        toastAmbientNoSources: 'Источники музыки недоступны, работает только резервный звук',
         validationAuthFirst: 'Сначала зарегистрируйтесь',
         validationPaymentPick: 'Выберите способ оплаты',
         validationAddressRequired: 'Введите адрес или включите геолокацию',
@@ -3921,25 +3929,30 @@ Oq fonli foto</div>
     function initIntroAmbientPlayer() {
       const INTRO_AMBIENT_LS_PLAYING = 'gm_intro_ambient_playing';
       const INTRO_AMBIENT_LS_TRACK = 'gm_intro_ambient_track_ix';
-      const INTRO_AMBIENT_TRACKS = [
-        { src: '/audio/globus-ambient-jazz-1.mp3', label: 'local-1' },
-        { src: '/audio/globus-ambient-jazz-2.mp3', label: 'local-2' },
-        { src: '/audio/globus-ambient-jazz-3.mp3', label: 'local-3' },
-        { src: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=relaxing-mountains-rivers-11664.mp3', label: 'pixabay-1' },
-        { src: 'https://cdn.pixabay.com/download/audio/2023/06/20/audio_867bf1fcb6.mp3?filename=ambient-piano-amp-strings-15987.mp3', label: 'pixabay-2' }
+      const INTRO_AMBIENT_TRACK_CANDIDATES = [
+        { src: '/audio/globus-ambient-jazz-1.mp3', label: 'local-1', local: true },
+        { src: '/audio/globus-ambient-jazz-2.mp3', label: 'local-2', local: true },
+        { src: '/audio/globus-ambient-jazz-3.mp3', label: 'local-3', local: true },
+        { src: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=relaxing-mountains-rivers-11664.mp3', label: 'pixabay-1', local: false },
+        { src: 'https://cdn.pixabay.com/download/audio/2023/06/20/audio_867bf1fcb6.mp3?filename=ambient-piano-amp-strings-15987.mp3', label: 'pixabay-2', local: false }
       ];
 
       const audio = document.getElementById('introAmbientAudio');
       const mini = document.getElementById('introAmbientMini');
       const prevBtn = document.getElementById('introAmbientPrev');
       const nextBtn = document.getElementById('introAmbientNext');
-      const toggleHome = document.getElementById('homeAmbientToggle');
-      if (!audio || !toggleHome) return;
-      audio.crossOrigin = 'anonymous';
-      audio.preload = 'auto';
+      const toggleButtons = Array.from(document.querySelectorAll('#homeAmbientToggle, #introAmbientToggle, [data-ambient-toggle]'));
+      if (!audio || !toggleButtons.length) return;
 
+      const embeddedFallbackTrack = {
+        src: buildEmbeddedAmbientWav(7.5),
+        label: 'embedded-fallback',
+        local: true,
+        embedded: true
+      };
+      let tracks = INTRO_AMBIENT_TRACK_CANDIDATES.slice();
       let trackIndex = Math.min(
-        INTRO_AMBIENT_TRACKS.length - 1,
+        tracks.length - 1,
         Math.max(0, parseInt(localStorage.getItem(INTRO_AMBIENT_LS_TRACK) || '0', 10) || 0)
       );
       let miniHideTimer = null;
@@ -3947,10 +3960,59 @@ Oq fonli foto</div>
       let longPressHold = false;
       let skipToggleClick = false;
       let errorSkipDepth = 0;
+      let userActivatedAudio = false;
       let fallbackCtx = null;
       let fallbackOsc = null;
       let fallbackGain = null;
       let fallbackEnabled = false;
+
+      audio.crossOrigin = 'anonymous';
+      audio.preload = 'auto';
+      audio.playsInline = true;
+      audio.setAttribute('playsinline', '');
+      audio.muted = false;
+      audio.defaultMuted = false;
+      audio.volume = 0.85;
+      audio.pause();
+
+      function buildEmbeddedAmbientWav(seconds) {
+        const sampleRate = 22050;
+        const duration = Math.max(2, seconds || 6);
+        const frameCount = Math.floor(sampleRate * duration);
+        const buffer = new ArrayBuffer(44 + frameCount * 2);
+        const view = new DataView(buffer);
+        const writeText = (offset, text) => {
+          for (let i = 0; i < text.length; i += 1) view.setUint8(offset + i, text.charCodeAt(i));
+        };
+        writeText(0, 'RIFF');
+        view.setUint32(4, 36 + frameCount * 2, true);
+        writeText(8, 'WAVE');
+        writeText(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeText(36, 'data');
+        view.setUint32(40, frameCount * 2, true);
+        for (let i = 0; i < frameCount; i += 1) {
+          const tSec = i / sampleRate;
+          const signal = (
+            Math.sin(2 * Math.PI * 196 * tSec) * 0.42 +
+            Math.sin(2 * Math.PI * 247 * tSec) * 0.32 +
+            Math.sin(2 * Math.PI * 294 * tSec) * 0.26
+          ) / 3;
+          const env = Math.min(1, i / (sampleRate * 0.15), (frameCount - i) / (sampleRate * 0.22));
+          const sample = Math.max(-1, Math.min(1, signal * env * 0.32));
+          view.setInt16(44 + i * 2, sample * 32767, true);
+        }
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+        return `data:audio/wav;base64,${btoa(binary)}`;
+      }
 
       function persistPlaying(on) {
         localStorage.setItem(INTRO_AMBIENT_LS_PLAYING, on ? '1' : '0');
@@ -3966,6 +4028,14 @@ Oq fonli foto</div>
         if (!Ctx) return null;
         fallbackCtx = new Ctx();
         return fallbackCtx;
+      }
+
+      async function unlockAudioPipelines() {
+        userActivatedAudio = true;
+        const ctx = ensureFallbackCtx();
+        if (ctx && ctx.state === 'suspended') {
+          try { await ctx.resume(); } catch {}
+        }
       }
 
       async function startFallbackTone() {
@@ -4003,6 +4073,27 @@ Oq fonli foto</div>
         fallbackGain = null;
       }
 
+      function classifyPlaybackError(error) {
+        const name = String(error?.name || '');
+        if (name === 'NotAllowedError') return t('toastAmbientGestureRequired');
+        if (name === 'NotSupportedError') return t('toastAmbientSourceMissing');
+        return t('toastAmbientPlayFail');
+      }
+
+      function currentTrack() {
+        return tracks[trackIndex] || null;
+      }
+
+      function loadTrack(delta) {
+        if (!tracks.length) return;
+        trackIndex = (trackIndex + delta + tracks.length) % tracks.length;
+        persistTrackIx();
+        const track = currentTrack();
+        if (!track) return;
+        audio.src = track.src;
+        audio.load();
+      }
+
       syncAmbientChrome = () => {
         const playing = fallbackEnabled || !audio.paused;
         const labelPlay = t('introAmbientPlayAria');
@@ -4010,9 +4101,11 @@ Oq fonli foto</div>
         const icon = playing
           ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
           : '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
-        toggleHome.innerHTML = icon;
-        toggleHome.setAttribute('aria-label', playing ? labelPause : labelPlay);
-        toggleHome.setAttribute('aria-pressed', playing ? 'true' : 'false');
+        toggleButtons.forEach((btn) => {
+          btn.innerHTML = icon;
+          btn.setAttribute('aria-label', playing ? labelPause : labelPlay);
+          btn.setAttribute('aria-pressed', playing ? 'true' : 'false');
+        });
         if (prevBtn) prevBtn.setAttribute('aria-label', t('introAmbientPrevAria'));
         if (nextBtn) nextBtn.setAttribute('aria-label', t('introAmbientNextAria'));
         if (mini) mini.setAttribute('aria-label', t('introAmbientToolbarAria'));
@@ -4042,34 +4135,31 @@ Oq fonli foto</div>
 
       function stopAmbient() {
         hideMiniBar();
-        if (!audio.paused) {
-          audio.pause();
-        }
+        if (!audio.paused) audio.pause();
         stopFallbackTone();
         syncAmbientChrome();
       }
 
-      function currentTrack() {
-        return INTRO_AMBIENT_TRACKS[trackIndex] || null;
+      async function tryPlayCurrentTrack() {
+        if (!tracks.length) return false;
+        audio.muted = false;
+        audio.defaultMuted = false;
+        try {
+          await audio.play();
+          return true;
+        } catch (error) {
+          showToast(classifyPlaybackError(error));
+          return false;
+        }
       }
 
-      function loadTrack(delta) {
-        if (!INTRO_AMBIENT_TRACKS.length) return;
-        trackIndex = (trackIndex + delta + INTRO_AMBIENT_TRACKS.length) % INTRO_AMBIENT_TRACKS.length;
-        persistTrackIx();
-        const track = currentTrack();
-        audio.src = track ? track.src : '';
-        audio.load();
-      }
-
-      function tryAdvanceOnError(wasTryingToPlay) {
-        if (!INTRO_AMBIENT_TRACKS.length || errorSkipDepth >= INTRO_AMBIENT_TRACKS.length) {
+      async function tryAdvanceOnError(wasTryingToPlay) {
+        if (!tracks.length || errorSkipDepth >= tracks.length) {
           errorSkipDepth = 0;
           audio.removeAttribute('src');
           if (wasTryingToPlay) {
-            const p = startFallbackTone();
-            if (p && typeof p.catch === 'function') p.catch(() => {});
-            showToast(t('toastAmbientFallback'));
+            const fallbackStarted = await startFallbackTone();
+            if (fallbackStarted) showToast(t('toastAmbientFallback'));
           }
           return false;
         }
@@ -4078,43 +4168,21 @@ Oq fonli foto</div>
         if (wasTryingToPlay) showToast(t('toastAmbientTrackSwitched'));
         stopFallbackTone();
         if (wasTryingToPlay) {
-          const p = audio.play();
-          if (p && typeof p.catch === 'function') p.catch(() => {});
+          const played = await tryPlayCurrentTrack();
+          if (!played) {
+            const fallbackStarted = await startFallbackTone();
+            if (fallbackStarted) showToast(t('toastAmbientFallback'));
+          }
         }
         return true;
       }
 
-      audio.addEventListener('playing', () => {
-        errorSkipDepth = 0;
-        fallbackEnabled = false;
-      });
-
-      audio.addEventListener('error', () => {
-        const wantResume = !audio.paused;
-        tryAdvanceOnError(wantResume);
-      });
-
-      audio.addEventListener('ended', () => {
-        if (!INTRO_AMBIENT_TRACKS.length) return;
-        loadTrack(1);
-        const p = audio.play();
-        if (p && typeof p.catch === 'function') p.catch(() => {});
-      });
-
-      if (INTRO_AMBIENT_TRACKS.length) loadTrack(0);
-      audio.pause();
-      audio.volume = 0.85;
-
       async function togglePlayback() {
+        await unlockAudioPipelines();
         if (audio.paused && !fallbackEnabled) {
-          let played = false;
-          if (INTRO_AMBIENT_TRACKS.length) {
-            try {
-              await audio.play();
-              played = true;
-            } catch {
-              played = false;
-            }
+          let played = await tryPlayCurrentTrack();
+          if (!played) {
+            played = await tryAdvanceOnError(true);
           }
           if (!played) {
             const fallbackStarted = await startFallbackTone();
@@ -4134,7 +4202,8 @@ Oq fonli foto</div>
       }
 
       function bindAmbientToggle(btn) {
-        if (!btn) return;
+        if (!btn || btn.dataset.ambientBound === '1') return;
+        btn.dataset.ambientBound = '1';
         btn.addEventListener('pointerdown', () => {
           longPressHold = false;
           longPressTimer = window.setTimeout(() => {
@@ -4151,45 +4220,80 @@ Oq fonli foto</div>
         });
         btn.addEventListener('pointercancel', () => window.clearTimeout(longPressTimer));
         btn.addEventListener('pointerleave', () => window.clearTimeout(longPressTimer));
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
           if (skipToggleClick) {
             skipToggleClick = false;
             e.preventDefault();
             e.stopPropagation();
             return;
           }
-          togglePlayback();
+          await togglePlayback();
         });
       }
 
-      bindAmbientToggle(toggleHome);
+      function bindAudioUnlockListeners() {
+        const unlock = async () => {
+          await unlockAudioPipelines();
+          document.removeEventListener('pointerup', unlock, true);
+          document.removeEventListener('touchend', unlock, true);
+          document.removeEventListener('keydown', unlock, true);
+        };
+        document.addEventListener('pointerup', unlock, true);
+        document.addEventListener('touchend', unlock, true);
+        document.addEventListener('keydown', unlock, true);
+      }
 
-      prevBtn?.addEventListener('click', () => {
-        bumpMiniActivity();
-        const wasPlaying = !audio.paused || fallbackEnabled;
-        if (INTRO_AMBIENT_TRACKS.length) stopFallbackTone();
-        loadTrack(-1);
-        if (wasPlaying && INTRO_AMBIENT_TRACKS.length) {
-          const p = audio.play();
-          if (p && typeof p.catch === 'function') p.catch(() => {});
-        }
+      audio.addEventListener('playing', () => {
+        errorSkipDepth = 0;
+        stopFallbackTone();
+        persistPlaying(true);
         syncAmbientChrome();
       });
 
-      nextBtn?.addEventListener('click', () => {
-        bumpMiniActivity();
-        const wasPlaying = !audio.paused || fallbackEnabled;
-        if (INTRO_AMBIENT_TRACKS.length) stopFallbackTone();
+      audio.addEventListener('pause', () => {
+        if (!fallbackEnabled) syncAmbientChrome();
+      });
+
+      audio.addEventListener('ended', async () => {
+        if (!tracks.length) return;
         loadTrack(1);
-        if (wasPlaying && INTRO_AMBIENT_TRACKS.length) {
-          const p = audio.play();
-          if (p && typeof p.catch === 'function') p.catch(() => {});
-        }
+        await tryPlayCurrentTrack();
+      });
+
+      audio.addEventListener('error', async () => {
+        const wantResume = !audio.paused || localStorage.getItem(INTRO_AMBIENT_LS_PLAYING) === '1';
+        await tryAdvanceOnError(wantResume);
+      });
+
+      toggleButtons.forEach(bindAmbientToggle);
+      prevBtn?.addEventListener('click', async () => {
+        bumpMiniActivity();
+        const wasPlaying = !audio.paused || fallbackEnabled;
+        stopFallbackTone();
+        loadTrack(-1);
+        if (wasPlaying && tracks.length) await tryPlayCurrentTrack();
         syncAmbientChrome();
       });
 
+      nextBtn?.addEventListener('click', async () => {
+        bumpMiniActivity();
+        const wasPlaying = !audio.paused || fallbackEnabled;
+        stopFallbackTone();
+        loadTrack(1);
+        if (wasPlaying && tracks.length) await tryPlayCurrentTrack();
+        syncAmbientChrome();
+      });
       mini?.addEventListener('pointerdown', bumpMiniActivity);
 
+      tracks = tracks.filter((track) => !(track.local && !track.embedded && track.src.startsWith('/audio/')));
+      if (!tracks.some((track) => track.embedded)) tracks.push(embeddedFallbackTrack);
+      if (!tracks.length) {
+        tracks = [embeddedFallbackTrack];
+        showToast(t('toastAmbientNoSources'));
+      }
+      trackIndex = Math.min(tracks.length - 1, Math.max(0, trackIndex));
+      loadTrack(0);
+      bindAudioUnlockListeners();
       syncAmbientChrome();
     }
 
