@@ -1,13 +1,32 @@
 const DEVSMS_DEFAULT_URL = 'https://devsms.uz/api/send_sms.php';
 
-const gatewayMode = () => {
-  const raw = String(process.env.SMS_GATEWAY_MODE || process.env.SMS_PROVIDER || 'log').trim().toLowerCase();
-  if (raw === 'mock') return 'log';
-  const normalized = ['log', 'twilio', 'eskiz', 'generic', 'devsms'].includes(raw) ? raw : 'log';
-  if (normalized === 'devsms') {
-    const key = String(process.env.DEVSMS_API_KEY || process.env.SMS_API_KEY || '').trim();
-    if (!key) return 'log';
+function parseDevsmsHostname(urlString) {
+  try {
+    return new URL(urlString).hostname.toLowerCase();
+  } catch (_) {
+    return '';
   }
+}
+
+const gatewayMode = () => {
+  const envModeRaw = process.env.SMS_GATEWAY_MODE || process.env.SMS_PROVIDER;
+  const envMode = String(envModeRaw || '').trim().toLowerCase();
+  if (envMode === 'mock') return 'log';
+
+  const key = String(process.env.DEVSMS_API_KEY || process.env.SMS_API_KEY || '').trim();
+  const genericUrl = String(process.env.SMS_API_URL || '').trim();
+  const devsmsUrl = String(process.env.DEVSMS_API_URL || DEVSMS_DEFAULT_URL).trim();
+  const host = parseDevsmsHostname(devsmsUrl);
+  const targetsDevsmsHost = host === 'devsms.uz' || host.endsWith('.devsms.uz');
+
+  let resolved = envMode;
+  if (!resolved && key && !genericUrl && targetsDevsmsHost) {
+    resolved = 'devsms';
+  }
+  if (!resolved) resolved = 'log';
+
+  const normalized = ['log', 'twilio', 'eskiz', 'generic', 'devsms'].includes(resolved) ? resolved : 'log';
+  if (normalized === 'devsms' && !key) return 'log';
   return normalized;
 };
 
@@ -21,6 +40,34 @@ function logSms(phone, code, extra = {}) {
     ...extra,
     otp: shouldLogOtpPlaintext() ? code : '[REDACTED]'
   });
+}
+
+function sanitizeSmsClientDetail(text, maxLen = 96) {
+  const s = String(text || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!s) return '';
+  return s
+    .replace(/[A-Za-z0-9._-]{36,}/g, '[…]')
+    .slice(0, maxLen)
+    .trim();
+}
+
+function isDevsmsSuccess(data, httpOk) {
+  if (!httpOk) return false;
+  const s = data?.success;
+  if (s === true || s === 'true' || s === 1 || s === '1') return true;
+  if (s === false || s === 'false' || s === 0 || s === '0') return false;
+  if (data?.error != null && String(data.error).trim() !== '') return false;
+  if (data?.data?.status === 'sent') return true;
+  return false;
+}
+
+function devsmsFailureMessage(data, httpStatus, nonJson) {
+  if (nonJson) return `DevSMS javobi JSON emas (HTTP ${httpStatus})`;
+  const msg = data?.message ?? data?.error ?? data?.msg;
+  if (typeof msg === 'string' && msg.trim()) return msg.trim().slice(0, 280);
+  return `DevSMS xato: HTTP ${httpStatus}`;
 }
 
 async function sendViaTwilio(phone, code) {
@@ -113,46 +160,87 @@ async function sendViaDevsms(phone, code) {
   const url = String(process.env.DEVSMS_API_URL || DEVSMS_DEFAULT_URL).trim();
   const from = String(process.env.DEVSMS_SENDER_FROM || process.env.SMS_SENDER || '4546').trim();
   const callbackUrl = String(process.env.DEVSMS_CALLBACK_URL || '').trim();
+  const authMode = String(process.env.DEVSMS_AUTH_MODE || 'bearer').trim().toLowerCase();
   if (!apiKey) {
-    return { ok: false, message: 'DEVSMS_API_KEY yoki SMS_API_KEY kerak' };
+    return { ok: false, message: 'DEVSMS_API_KEY yoki SMS_API_KEY kerak', provider: 'devsms' };
   }
   const phoneDigits = devsmsPhoneDigits(phone);
   if (!phoneDigits) {
-    return { ok: false, message: 'Telefon raqami noto‘g‘ri (DevSMS)' };
+    return { ok: false, message: 'Telefon raqami noto‘g‘ri (DevSMS)', provider: 'devsms' };
   }
   const message = String(
     process.env.DEVSMS_OTP_MESSAGE_TEMPLATE ||
       process.env.SMS_MESSAGE_TEMPLATE ||
       'GlobusMarket: tasdiqlash kodi {{code}}. Uni boshqalarga bermang.'
   ).replace(/\{\{code\}\}/g, code);
-  const body = {
-    phone: phoneDigits,
-    message,
-    from: from || '4546'
-  };
-  if (callbackUrl) body.callback_url = callbackUrl;
   const smsType = String(process.env.DEVSMS_SMS_TYPE || '').trim();
-  if (smsType) body.type = smsType;
 
-  // DevSMS (devsms.uz/api/docs.php): Bearer token in Authorization on every request.
+  let payload;
+  if (smsType === 'universal_otp') {
+    const templateType = Math.min(4, Math.max(1, Number(process.env.DEVSMS_OTP_TEMPLATE_TYPE || 4) || 4));
+    const serviceName = String(process.env.DEVSMS_SERVICE_NAME || 'GlobusMarket').trim().slice(0, 50);
+    payload = {
+      phone: phoneDigits,
+      type: 'universal_otp',
+      template_type: templateType,
+      service_name: serviceName || 'GlobusMarket',
+      otp_code: String(code || '').trim()
+    };
+  } else {
+    payload = {
+      phone: phoneDigits,
+      message,
+      from: from || '4546'
+    };
+    if (smsType) payload.type = smsType;
+  }
+
+  if (callbackUrl) payload.callback_url = callbackUrl;
+
+  if (authMode === 'body' || authMode === 'both') {
+    payload.api_key = apiKey;
+  }
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (authMode === 'bearer' || authMode === 'both') {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+
   const res = await fetch(url, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
+    headers,
+    body: JSON.stringify(payload)
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.success !== true) {
-    const msg = data.message || data.error || `DevSMS xato: ${res.status}`;
+
+  const rawText = await res.text().catch(() => '');
+  let data = {};
+  let nonJson = false;
+  try {
+    data = rawText ? JSON.parse(rawText) : {};
+  } catch (_) {
+    nonJson = true;
+    data = {};
+  }
+
+  const httpOk = res.ok;
+  const success = isDevsmsSuccess(data, httpOk);
+
+  if (!success) {
+    const msg = devsmsFailureMessage(data, res.status, nonJson);
     return {
       ok: false,
       message: typeof msg === 'string' ? msg.slice(0, 220) : 'SMS yuborilmadi',
-      detail: JSON.stringify(data).slice(0, 240)
+      provider: 'devsms',
+      clientDetail: sanitizeSmsClientDetail(msg),
+      logContext: {
+        httpStatus: res.status,
+        responseKeys: Object.keys(data || {}),
+        nonJson,
+        rawSnippet: nonJson ? sanitizeSmsClientDetail(rawText, 160) : undefined
+      }
     };
   }
-  return { ok: true };
+  return { ok: true, provider: 'devsms' };
 }
 
 async function sendSmsOtp(phone, code) {
@@ -174,7 +262,13 @@ async function sendSmsOtp(phone, code) {
     logSms(normalizedPhone, normalizedCode);
     return { ok: true, provider: 'log' };
   } catch (error) {
-    return { ok: false, message: error?.message || String(error), provider: mode };
+    return {
+      ok: false,
+      message: error?.message || String(error),
+      provider: mode,
+      clientDetail: sanitizeSmsClientDetail(error?.message || String(error)),
+      logContext: { thrown: true }
+    };
   }
 }
 

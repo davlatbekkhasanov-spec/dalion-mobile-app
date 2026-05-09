@@ -172,10 +172,19 @@ async function handleSmsOtpSend(req, res) {
   if (!sendResult.ok) {
     delete db.smsOtpChallenges[phone];
     saveDb();
-    return res.status(502).json({
+    logStructured('error', 'sms_otp_send_provider_failed', {
+      provider: sendResult.provider || smsService.gatewayMode(),
+      ...(sendResult.logContext || {})
+    });
+    const prod = process.env.NODE_ENV === 'production';
+    const payload = {
       ok: false,
       message: sendResult.message || 'SMS yuborilmadi'
-    });
+    };
+    if (prod && sendResult.clientDetail) {
+      payload.detail = sendResult.clientDetail;
+    }
+    return res.status(502).json(payload);
   }
 
   return res.json({ ok: true, ...smsOtpDevHint(code) });
@@ -778,7 +787,10 @@ app.put('/api/v1/profile', (req, res) => {
 
 app.post('/api/v1/auth/sms/send', (req, res) => {
   handleSmsOtpSend(req, res).catch((error) => {
-    logStructured('error', 'sms_send_failed', { message: error?.message });
+    logStructured('error', 'sms_send_unhandled', {
+      message: error?.message,
+      name: error?.name
+    });
     res.status(500).json({ ok: false, message: 'Server xatolik' });
   });
 });
@@ -787,7 +799,10 @@ app.post('/api/v1/auth/sms/verify', handleSmsOtpVerify);
 
 app.post('/api/v1/auth/request-otp', (req, res) => {
   handleSmsOtpSend(req, res).catch((error) => {
-    logStructured('error', 'sms_send_failed', { message: error?.message });
+    logStructured('error', 'sms_send_unhandled', {
+      message: error?.message,
+      name: error?.name
+    });
     res.status(500).json({ ok: false, message: 'Server xatolik' });
   });
 });

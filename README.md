@@ -24,10 +24,12 @@ Add these variables in Railway **Variables** section:
 ### Railway variables for SMS (DevSMS)
 
 - `SMS_GATEWAY_MODE` or `SMS_PROVIDER`: set to `devsms` for [DevSMS](https://devsms.uz/api/docs.php). Without `DEVSMS_API_KEY` / `SMS_API_KEY`, the server falls back to **log** mode (no outbound SMS).
-- `DEVSMS_API_KEY` (or generic `SMS_API_KEY`): Bearer token for `Authorization: Bearer …`.
+- **Auto DevSMS (Railway-friendly):** if `SMS_GATEWAY_MODE` / `SMS_PROVIDER` are **unset**, `SMS_API_URL` is unset, and `DEVSMS_API_KEY` or `SMS_API_KEY` is set while `DEVSMS_API_URL` is the default (or another `*.devsms.uz` host), the gateway mode resolves to **devsms** automatically — no separate mode variable required.
+- `DEVSMS_API_KEY` (or generic `SMS_API_KEY`): API token; sent per `DEVSMS_AUTH_MODE` (below).
+- `DEVSMS_AUTH_MODE` (default `bearer`): `bearer` — `Authorization: Bearer …` only; `body` — include `api_key` in the JSON body only; `both` — header and body (for providers that expect both).
 - `DEVSMS_SENDER_FROM`: sender ID (optional; default `4546` per provider docs).
 - `DEVSMS_CALLBACK_URL`: optional delivery-status webhook URL (only if you consume callbacks).
-- Optional: `DEVSMS_API_URL` (default `https://devsms.uz/api/send_sms.php`), `DEVSMS_OTP_MESSAGE_TEMPLATE` / `SMS_MESSAGE_TEMPLATE` with `{{code}}`, `DEVSMS_SMS_TYPE` (e.g. `universal_otp`), `SMS_LOG_OTP_CODE=true` to log plaintext OTP (avoid in production).
+- Optional: `DEVSMS_API_URL` (default `https://devsms.uz/api/send_sms.php`), `DEVSMS_OTP_MESSAGE_TEMPLATE` / `SMS_MESSAGE_TEMPLATE` with `{{code}}`, `DEVSMS_SMS_TYPE` (e.g. `universal_otp`), `DEVSMS_SERVICE_NAME`, `DEVSMS_OTP_TEMPLATE_TYPE` (1–4, for universal OTP), `SMS_LOG_OTP_CODE=true` to log plaintext OTP (avoid in production).
 
 `POST /api/payme` now requires Basic authorization in test mode using `PAYME_MERCHANT_ID:PAYME_TEST_KEY`.
 If credentials are missing, the endpoint returns configuration error until variables are set.
@@ -172,7 +174,7 @@ Current `store.json` fallback is meant as a temporary persistence layer.
 
 ## SMS/OTP
 
-Adapter: `src/services/sms.service.js` (`sendSmsOtp`). Default gateway mode is **log** (no provider call). Use `SMS_GATEWAY_MODE=devsms` with `DEVSMS_API_KEY` for [DevSMS](https://devsms.uz/api/send_sms.php); missing API key keeps **log** fallback.
+Adapter: `src/services/sms.service.js` (`sendSmsOtp`). Default gateway mode is **log** (no provider call). With `DEVSMS_API_KEY` / `SMS_API_KEY` and the default DevSMS URL host, mode can resolve to **devsms** even when `SMS_GATEWAY_MODE` is unset; otherwise set `SMS_GATEWAY_MODE=devsms`. Missing API key keeps **log** fallback.
 
 ### Endpoints
 

@@ -3697,7 +3697,11 @@ Oq fonli foto</div>
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.message || 'Server xatosi');
+        let msg = data.message || 'Server xatosi';
+        if (data.detail && typeof data.detail === 'string') {
+          msg = `${msg} (${data.detail})`;
+        }
+        throw new Error(msg);
       }
       return data;
     }
