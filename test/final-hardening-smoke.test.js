@@ -1,11 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 
 const ROOT = path.join(__dirname, '..');
-const DB_FILE = path.join(ROOT, 'data.store.json');
+const DATABASE_URL = process.env.DATABASE_URL || process.env.TEST_DATABASE_URL;
 const ADMIN_TOKEN = '12345';
 const PHONE = '+998901234567';
 const SELFIE_1PX_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7N7S8AAAAASUVORK5CYII=';
@@ -39,8 +38,7 @@ async function api(baseUrl, method, endpoint, body, headers = {}) {
   return { res, payload };
 }
 
-test('final hardening critical flow smoke', async () => {
-  const originalDb = fs.existsSync(DB_FILE) ? fs.readFileSync(DB_FILE, 'utf8') : null;
+test('final hardening critical flow smoke', { skip: !DATABASE_URL }, async () => {
   const port = 3300 + Math.floor(Math.random() * 500);
   const baseUrl = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ['index.js'], {
@@ -49,6 +47,7 @@ test('final hardening critical flow smoke', async () => {
       ...process.env,
       PORT: String(port),
       NODE_ENV: 'test',
+      DATABASE_URL,
       SMS_GATEWAY_MODE: 'log',
       ALLOW_OTP_DEV_UI: 'true'
     },
@@ -145,10 +144,5 @@ test('final hardening critical flow smoke', async () => {
     assert.equal(typeof feed.payload.orders[0].deliveryStatusLabel, 'string');
   } finally {
     if (child && !child.killed) child.kill('SIGTERM');
-    if (originalDb === null) {
-      if (fs.existsSync(DB_FILE)) fs.unlinkSync(DB_FILE);
-    } else {
-      fs.writeFileSync(DB_FILE, originalDb, 'utf8');
-    }
   }
 });

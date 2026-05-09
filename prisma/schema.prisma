@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String    @id @default(cuid())
+  name                String
+  phone               String    @unique
+  role                String    @default("customer")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime?
+  firstName           String?
+  lastName            String?
+  address             String?
+  biometric           Json?
+  notificationsRead   Json?
+}
+
+model CartLine {
+  id        String @id @default(cuid())
+  userPhone String
+  productId String
+  quantity  Int
+
+  @@unique([userPhone, productId])
+  @@index([userPhone])
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  displayName String?
+  icon        String?
+  imageUrl    String    @default("")
+  active      Boolean   @default(true)
+  products    Product[]
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  barcode         String?
+  name            String
+  price           Int
+  stock           Int
+  categoryId      String
+  category        Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  imageUrl        String   @default("")
+  active          Boolean  @default(true)
+  oldPrice        Int      @default(0)
+  discountPercent Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Order {
+  id                       String      @id @default(cuid())
+  orderNumber              String      @unique
+  status                   String
+  customerName             String
+  customerPhone            String
+  deliveryAddress          String      @default("")
+  subtotal                 Int
+  deliveryPrice            Int
+  total                    Int
+  paymentMethod            String
+  paymentStatus            String
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
+  deliveryStatus           String?
+  courierToken             String?     @unique
+  courierTokenUsed         Boolean     @default(false)
+  courierName              String      @default("")
+  courierPhone             String      @default("")
+  courierLocationLat       Float?
+  courierLocationLng       Float?
+  courierLocationAccuracy  Float?
+  courierLocationUpdatedAt DateTime?
+  location                 String      @default("")
+  addressText              String      @default("")
+  landmarkText             String      @default("")
+  locationLat              Float?
+  locationLng              Float?
+  locationAccuracy         Float?
+  distanceKm               Float?
+  distanceValid            Boolean?
+  deliveryFallbackApplied  Boolean?
+  deliveryPriceCapped      Boolean?
+  deliveryEta              String?
+  feedbackRating           Int?
+  feedbackComment          String?
+  feedbackAt               DateTime?
+  trackingUpdatedAt        DateTime?
+  items                    OrderItem[]
+}
+
+model OrderItem {
+  id          String @id @default(cuid())
+  orderId     String
+  order       Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  productName String
+  quantity    Int
+  price       Int
+  imageUrl    String @default("")
+}
+
+model Banner {
+  id        String   @id @default(cuid())
+  title     String
+  subtitle  String   @default("")
+  badge     String   @default("")
+  imageUrl  String   @default("")
+  link      String   @default("")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  sortOrder Int      @default(0)
+}
+
+model Promotion {
+  id           String   @id @default(cuid())
+  title        String
+  discountText String   @default("")
+  description  String   @default("")
+  imageUrl     String   @default("")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+}
+
+model Short {
+  id           String   @id @default(cuid())
+  title        String
+  subtitle     String   @default("")
+  videoUrl     String   @default("")
+  thumbnailUrl String   @default("")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  sortOrder    Int      @default(0)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String?
+  title     String
+  body      String?
+  createdAt DateTime @default(now())
+  active    Boolean  @default(true)
+  meta      Json?
+}
+
+model AmbientTrack {
+  id        String   @id @default(cuid())
+  slot      Int      @unique
+  fileName  String
+  fileUrl   String
+  mimeType  String
+  fileSize  Int
+  updatedAt DateTime
+}
+
+model AppState {
+  id             String @id
+  homeSettings   Json
+  adminV2Theme   Json
+  shortsRevision Int    @default(0)
+}
+
+model SmsOtpChallenge {
+  phone     String   @id
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+}

@@ -4,6 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const smsService = require('./src/services/sms.service');
+const prisma = require('./src/prisma-client');
+const marketplaceRepo = require('./src/marketplace-repository');
 
 process.on('uncaughtException', (error) => {
   console.error('[PROCESS] uncaughtException', { message: error?.message });
@@ -17,7 +19,6 @@ process.on('unhandledRejection', (reason) => {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DB_FILE = path.join(__dirname, 'data.store.json');
 const ADMIN_TOKEN = process.env.ADMIN_IMPORT_TOKEN || '12345';
 const ADMIN_V2_PASSWORD = process.env.ADMIN_V2_PASSWORD ?? '8080';
 const ADMIN_V2_SECRET =
@@ -153,7 +154,6 @@ function smsOtpDevHint(code) {
 }
 
 async function handleSmsOtpSend(req, res) {
-  if (!db.smsOtpChallenges || typeof db.smsOtpChallenges !== 'object') db.smsOtpChallenges = {};
   const phone = normalizeSmsPhone(req.body.phone);
   if (!phone) {
     return res.status(400).json({ ok: false, message: 'Telefon +998 formatida kiriting' });
@@ -179,18 +179,16 @@ async function handleSmsOtpSend(req, res) {
   const code = generateSmsOtpCode();
   const codeHash = hashSmsOtp(phone, code);
   const expiresAt = Date.now() + SMS_OTP_TTL_MS;
-  db.smsOtpChallenges[phone] = {
+  await marketplaceRepo.writeSmsChallenge(phone, {
     codeHash,
     expiresAt,
     attempts: 0,
     createdAt: nowIso()
-  };
-  saveDb();
+  });
 
   const sendResult = await smsService.sendSmsOtp(phone, code);
   if (!sendResult.ok) {
-    delete db.smsOtpChallenges[phone];
-    saveDb();
+    await marketplaceRepo.deleteSmsChallenge(phone);
     logStructured('error', 'sms_otp_send_provider_failed', {
       provider: sendResult.provider || smsService.gatewayMode(),
       ...(sendResult.logContext || {})
@@ -209,8 +207,7 @@ async function handleSmsOtpSend(req, res) {
   return res.json({ ok: true, ...smsOtpDevHint(code) });
 }
 
-function handleSmsOtpVerify(req, res) {
-  if (!db.smsOtpChallenges || typeof db.smsOtpChallenges !== 'object') db.smsOtpChallenges = {};
+async function handleSmsOtpVerify(req, res) {
   const phone = normalizeSmsPhone(req.body.phone);
   const code = String(req.body.code || '').replace(/\D/g, '').trim();
   if (!phone || !code) {
@@ -227,27 +224,36 @@ function handleSmsOtpVerify(req, res) {
     });
   }
 
-  const ch = db.smsOtpChallenges[phone];
-  if (!ch || Date.now() > Number(ch.expiresAt || 0)) {
+  const ch = await marketplaceRepo.readSmsChallenge(phone);
+  if (!ch || Date.now() > ch.expiresAt.getTime()) {
     return res.status(400).json({ ok: false, message: 'Kod eskirgan yoki yuborilmagan' });
   }
-  ch.attempts = Math.min(99, Number(ch.attempts || 0) + 1);
-  if (ch.attempts > 10) {
-    delete db.smsOtpChallenges[phone];
-    saveDb();
+  const nextAttempts = Math.min(99, Number(ch.attempts || 0) + 1);
+  await marketplaceRepo.touchSmsAttempt(phone, nextAttempts);
+  if (nextAttempts > 10) {
+    await marketplaceRepo.deleteSmsChallenge(phone);
     return res.status(429).json({ ok: false, message: 'Urinishlar limiti' });
   }
   if (hashSmsOtp(phone, code) !== ch.codeHash) {
-    saveDb();
     return res.status(400).json({ ok: false, message: 'Kod noto‘g‘ri' });
   }
-  delete db.smsOtpChallenges[phone];
-  const profile = db.profiles[phone] || { phone, name: phone };
-  profile.phone = phone;
-  profile.phoneVerified = true;
-  profile.smsVerifiedAt = nowIso();
-  db.profiles[phone] = profile;
-  saveDb();
+  await marketplaceRepo.deleteSmsChallenge(phone);
+
+  const existing = await marketplaceRepo.getUserProfile(phone);
+  const profileBody = {
+    name: existing?.name || phone,
+    firstName: existing?.firstName || '',
+    lastName: existing?.lastName || '',
+    address: existing?.address || '',
+    biometric: existing?.biometric ?? undefined,
+    notificationsRead: existing?.notificationsRead ?? undefined
+  };
+  const saved = await marketplaceRepo.upsertUserProfile(phone, profileBody);
+  const profile = {
+    ...(await marketplaceRepo.profileToApi(saved)),
+    phoneVerified: true,
+    smsVerifiedAt: nowIso()
+  };
 
   const verificationToken = randomId('smsv');
   return res.json({
@@ -386,184 +392,40 @@ function computeDeliveryPriceByDistance(distanceKm) {
   return Math.min(MAX_DELIVERY_FEE, toMoney(18000 + (normalizedKm - 3) * 4000));
 }
 
-function defaultDb() {
-  const categories = [
-    { id: 'c1', name: 'Sut mahsulotlari', displayName: 'Sut mahsulotlari', icon: '🥛', image_url: '', active: true },
-    { id: 'c2', name: 'Ichimliklar', displayName: 'Ichimliklar', icon: '🥤', image_url: '', active: true },
-    { id: 'c3', name: 'Shirinliklar', displayName: 'Shirinliklar', icon: '🍫', image_url: '', active: true },
-    { id: 'c4', name: 'Mevalar', displayName: 'Mevalar', icon: '🍎', image_url: '', active: true }
-  ];
-  const products = [
-    { id: 'p1', code: 'MILK-1L', name: 'Sut 1L', price: 14000, oldPrice: 16000, stock: 90, image_url: '', active: true, categoryId: 'c1', category: 'Sut mahsulotlari', categoryDisplayName: 'Sut mahsulotlari', discount_percent: 12 },
-    { id: 'p2', code: 'KEFIR', name: 'Kefir 1L', price: 18000, oldPrice: 0, stock: 70, image_url: '', active: true, categoryId: 'c1', category: 'Sut mahsulotlari', categoryDisplayName: 'Sut mahsulotlari', discount_percent: 0 },
-    { id: 'p3', code: 'WATER', name: 'Suv 1.5L', price: 7000, oldPrice: 0, stock: 180, image_url: '', active: true, categoryId: 'c2', category: 'Ichimliklar', categoryDisplayName: 'Ichimliklar', discount_percent: 0 },
-    { id: 'p4', code: 'JUICE', name: 'Sharbat 1L', price: 21000, oldPrice: 24000, stock: 65, image_url: '', active: true, categoryId: 'c2', category: 'Ichimliklar', categoryDisplayName: 'Ichimliklar', discount_percent: 10 },
-    { id: 'p5', code: 'APPLE', name: 'Olma 1kg', price: 24000, oldPrice: 0, stock: 110, image_url: '', active: true, categoryId: 'c4', category: 'Mevalar', categoryDisplayName: 'Mevalar', discount_percent: 0 }
-  ];
+function normalizeStoredOrder(order) {
+  if (!order) return order;
+  const normalizedStatus = normalizeOrderStatus(order.status);
+  const hasCourierTerminalStatus = ['delivered', 'cancelled'].includes(normalizedStatus);
   return {
-    homeSettings: {
-      brandName: 'GlobusMarket',
-      locationText: 'Toshkent shahri',
-      searchPlaceholder: 'Mahsulot qidirish...',
-      heroTitle: 'Tez va ishonchli yetkazib berish',
-      heroSubtitle: 'Sifatli mahsulotlar eng yaxshi narxlarda',
-      heroBadgeText: '20-30 daqiqa',
-      bonusTitle: 'Har kuni aksiya',
-      bonusSubtitle: 'Yangi chegirmalar siz uchun',
-      deliveryTimeText: '30 daqiqa',
-      deliveryText: 'Buyurtma uyingizgacha',
-      backgroundImageUrl: '',
-      accentColor: '#6a4dff',
-      defaultMarginPercent: 15,
-      clickPaymentUrl: '',
-      paymePaymentUrl: '',
-      cashTermsText: 'Naqd to‘lovni qabul qilaman.'
-    },
-    banners: [
-      { id: 'b1', title: 'Tez yetkazib berish', subtitle: '20-30 daqiqada', image_url: '', active: true }
-    ],
-    promotions: [
-      { id: 'pr1', title: 'Hafta aksiyasi', discount_text: '-15%', description: 'Eng mashhur mahsulotlarda chegirma', image_url: '', active: true }
-    ],
-    categories,
-    products,
-    profiles: {},
-    carts: {},
-    otp: {},
-    smsOtpChallenges: {},
-    orders: [],
-    notifications: [],
-    shorts: [
-      { id: 's1', title: 'Yangi aksiya', subtitle: 'Top mahsulotlar bo‘yicha chegirmalar', media_url: '', active: true, sortOrder: 1 },
-      { id: 's2', title: 'Tezkor yetkazish', subtitle: 'Buyurtma odatda 1-4 soatda yetib boradi', media_url: '', active: true, sortOrder: 2 }
-    ],
-    ambientPlaylist: {
-      slots: []
-    },
-    shortsRevision: 0
+    ...order,
+    status: normalizedStatus,
+    delivery_status: normalizeOrderStatus(order.delivery_status || normalizedStatus),
+    updated_at: order.updated_at || order.created_at || nowIso(),
+    courierToken: order.courierToken || randomId('crt'),
+    courierTokenUsed: order.courierTokenUsed === undefined ? hasCourierTerminalStatus : Boolean(order.courierTokenUsed),
+    courierLocationLat: toFiniteNumber(order.courierLocationLat),
+    courierLocationLng: toFiniteNumber(order.courierLocationLng),
+    courierLocationAccuracy: toFiniteNumber(order.courierLocationAccuracy),
+    courierLocationUpdatedAt: order.courierLocationUpdatedAt || null
   };
 }
 
-function readDb() {
-  if (!fs.existsSync(DB_FILE)) {
-    const seed = defaultDb();
-    fs.writeFileSync(DB_FILE, JSON.stringify(seed, null, 2), 'utf8');
-    return seed;
-  }
-  try {
-    return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-  } catch (error) {
-    logStructured('error', 'db_read_failed', {
-      message: error?.message || 'unknown db read error',
-      file: DB_FILE
-    });
-    return defaultDb();
-  }
-}
-
-let db = readDb();
-
-function ensureDbShape() {
-  if (!Array.isArray(db.orders)) db.orders = [];
-  if (!db.profiles || typeof db.profiles !== 'object') db.profiles = {};
-  if (!db.carts || typeof db.carts !== 'object') db.carts = {};
-  if (!db.otp || typeof db.otp !== 'object') db.otp = {};
-  if (!db.smsOtpChallenges || typeof db.smsOtpChallenges !== 'object') db.smsOtpChallenges = {};
-  if (!Array.isArray(db.notifications)) db.notifications = [];
-  if (!Array.isArray(db.shorts)) db.shorts = [];
-  if (typeof db.shortsRevision !== 'number' || !Number.isFinite(db.shortsRevision) || db.shortsRevision < 0) {
-    db.shortsRevision = 0;
-  }
-  if (!db.adminV2Theme || typeof db.adminV2Theme !== 'object') {
-    const accent = String(db.homeSettings?.accentColor || '#6a4dff').trim() || '#6a4dff';
-    db.adminV2Theme = {
-      primaryColor: accent,
-      accentColor: accent,
-      radiusPx: 16
-    };
-  } else {
-    db.adminV2Theme.primaryColor = String(db.adminV2Theme.primaryColor || db.homeSettings?.accentColor || '#6a4dff');
-    db.adminV2Theme.accentColor = String(db.adminV2Theme.accentColor || db.homeSettings?.accentColor || '#6a4dff');
-    db.adminV2Theme.radiusPx = Math.max(0, Math.min(48, Number(db.adminV2Theme.radiusPx ?? 16) || 16));
-  }
-  if (!db.ambientPlaylist || typeof db.ambientPlaylist !== 'object') db.ambientPlaylist = { slots: [] };
-  if (!Array.isArray(db.ambientPlaylist.slots)) db.ambientPlaylist.slots = [];
-  db.ambientPlaylist.slots = db.ambientPlaylist.slots
-    .map((slot) => {
-      const slotNumber = Math.round(Number(slot?.slot || 0));
-      if (slotNumber < 1 || slotNumber > ADMIN_AMBIENT_MAX_SLOTS) return null;
-      const fileUrl = String(slot?.fileUrl || '').trim();
-      if (!fileUrl) return null;
-      return {
-        slot: slotNumber,
-        fileName: String(slot?.fileName || '').trim() || `track-${slotNumber}`,
-        fileUrl,
-        mimeType: String(slot?.mimeType || '').trim(),
-        fileSize: Math.max(0, Math.round(Number(slot?.fileSize || 0))),
-        updatedAt: String(slot?.updatedAt || nowIso())
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.slot - b.slot);
-  db.orders = db.orders.map((order) => {
-    const normalizedStatus = normalizeOrderStatus(order.status);
-    const hasCourierTerminalStatus = ['delivered', 'cancelled'].includes(normalizedStatus);
-    return {
-      ...order,
-      status: normalizedStatus,
-      delivery_status: normalizeOrderStatus(order.delivery_status || normalizedStatus),
-      updated_at: order.updated_at || order.created_at || nowIso(),
-      courierToken: order.courierToken || randomId('crt'),
-      courierTokenUsed: order.courierTokenUsed === undefined ? hasCourierTerminalStatus : Boolean(order.courierTokenUsed),
-      courierLocationLat: toFiniteNumber(order.courierLocationLat),
-      courierLocationLng: toFiniteNumber(order.courierLocationLng),
-      courierLocationAccuracy: toFiniteNumber(order.courierLocationAccuracy),
-      courierLocationUpdatedAt: order.courierLocationUpdatedAt || null
-    };
-  });
-}
-ensureDbShape();
-
-function saveDb() {
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
-}
-
-function getShortsRevision() {
-  const n = Number(db.shortsRevision);
-  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
-}
-
-/** Bump revision + optional global notification when an active short is published or activated. */
-function bumpShortsBroadcast(shortItem) {
+async function bumpShortsBroadcast(shortItem) {
   if (!shortItem || shortItem.active === false) return;
-  db.shortsRevision = getShortsRevision() + 1;
-  const headline = 'Yangi shorts';
-  const notification = {
-    id: randomId('ntf'),
-    type: 'new_shorts',
-    title: headline,
-    body: String(shortItem.title || '').trim() || headline,
-    createdAt: nowIso(),
-    active: true,
-    meta: { shortId: shortItem.id, shortsRevision: db.shortsRevision }
+  const apiShape = {
+    id: shortItem.id,
+    title: shortItem.title,
+    subtitle: shortItem.subtitle || '',
+    media_url: shortItem.media_url || '',
+    thumbnail_url: shortItem.thumbnail_url || '',
+    active: shortItem.active !== false,
+    sortOrder: Number(shortItem.sortOrder || 0)
   };
-  if (!Array.isArray(db.notifications)) db.notifications = [];
-  db.notifications.unshift(notification);
+  await marketplaceRepo.bumpShortsBroadcastRepo(apiShape);
 }
 
-function getAdminAmbientTracksOrdered() {
-  const slots = Array.isArray(db.ambientPlaylist?.slots) ? db.ambientPlaylist.slots : [];
-  return slots
-    .filter((slot) => slot && slot.fileUrl && Number(slot.slot) >= 1 && Number(slot.slot) <= ADMIN_AMBIENT_MAX_SLOTS)
-    .sort((a, b) => Number(a.slot) - Number(b.slot))
-    .map((slot) => ({
-      slot: Number(slot.slot),
-      fileName: String(slot.fileName || ''),
-      fileUrl: String(slot.fileUrl || ''),
-      mimeType: String(slot.mimeType || ''),
-      fileSize: Number(slot.fileSize || 0),
-      updatedAt: String(slot.updatedAt || '')
-    }));
+async function getAdminAmbientTracksOrdered() {
+  return marketplaceRepo.listAmbientTracks();
 }
 
 function getUserPhone(req) {
@@ -671,50 +533,48 @@ function requireAdminV2(req, res, next) {
   return next();
 }
 
-function findProductById(id) {
-  return db.products.find((p) => String(p.id) === String(id));
+async function findProductById(id) {
+  return marketplaceRepo.findProductById(id);
 }
 
-function getCartItems(phone) {
-  const cart = db.carts[phone] || {};
-  return Object.entries(cart)
-    .map(([productId, quantity]) => {
-      const product = findProductById(productId);
-      if (!product) return null;
-      const qty = Math.max(0, Number(quantity || 0));
-      if (qty <= 0) return null;
-      return {
-        id: product.id,
-        name: product.name,
-        price: toMoney(product.price),
-        quantity: qty,
-        subtotal: toMoney(product.price) * qty,
-        image_url: product.image_url || ''
-      };
-    })
-    .filter(Boolean);
+async function getCartItems(phone) {
+  const lines = await marketplaceRepo.getCartLines(phone);
+  const items = [];
+  for (const line of lines) {
+    const product = await marketplaceRepo.findProductById(line.productId);
+    if (!product) continue;
+    const qty = Math.max(0, Number(line.quantity || 0));
+    if (qty <= 0) continue;
+    const pp = marketplaceRepo.productToPublic(product);
+    const unit = toMoney(pp.price);
+    items.push({
+      id: pp.id,
+      name: pp.name,
+      price: unit,
+      quantity: qty,
+      subtotal: unit * qty,
+      image_url: pp.image_url || ''
+    });
+  }
+  return items;
 }
 
-function buildCartSummary(phone) {
-  const items = getCartItems(phone);
+async function buildCartSummary(phone) {
+  const items = await getCartItems(phone);
   const totalQty = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
   const subtotal = items.reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
   return { items, totalQty, subtotal };
 }
 
 function publicProduct(product) {
-  const category = db.categories.find((c) => c.id === product.categoryId);
-  return {
-    ...product,
-    category: category?.name || product.category || '',
-    categoryDisplayName: category?.displayName || category?.name || product.categoryDisplayName || product.category || ''
-  };
+  return marketplaceRepo.productToPublic(product);
 }
 
 function orderPublic(order) {
+  const base = normalizeStoredOrder(order);
   return {
-    ...order,
-    items: Array.isArray(order.items) ? order.items : []
+    ...base,
+    items: Array.isArray(base.items) ? base.items : []
   };
 }
 
@@ -855,31 +715,40 @@ app.post('/api/payme', (req, res) => {
 });
 
 // Public API
-app.get('/api/v1/home', (req, res) => {
-  const activeShorts = (db.shorts || [])
-    .filter((item) => item && item.active !== false)
-    .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
-  return res.json({
-    ok: true,
-    home_settings: db.homeSettings,
-    banners: db.banners.filter((b) => b.active !== false),
-    promotions: db.promotions.filter((p) => p.active !== false),
-    shorts: activeShorts,
-    shortsRevision: getShortsRevision(),
-    delivery_info: {
-      location: db.homeSettings.locationText || 'Toshkent shahri',
-      time: db.homeSettings.deliveryTimeText || '30 daqiqa',
-      price: 18000
-    }
-  });
+app.get('/api/v1/home', async (req, res) => {
+  try {
+    const homeSettings = await marketplaceRepo.getHomeSettingsJson();
+    const shortsAll = await marketplaceRepo.listShortsApi();
+    const activeShorts = shortsAll
+      .filter((item) => item && item.active !== false)
+      .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+    const bannersRaw = await marketplaceRepo.listBannersOrdered();
+    const promos = await marketplaceRepo.listPromotionsApi();
+    return res.json({
+      ok: true,
+      home_settings: homeSettings,
+      banners: bannersRaw.filter((b) => b.active !== false).map(marketplaceRepo.bannerToApi),
+      promotions: promos.filter((p) => p.active !== false),
+      shorts: activeShorts,
+      shortsRevision: await marketplaceRepo.getShortsRevision(),
+      delivery_info: {
+        location: homeSettings.locationText || 'Toshkent shahri',
+        time: homeSettings.deliveryTimeText || '30 daqiqa',
+        price: 18000
+      }
+    });
+  } catch (e) {
+    logStructured('error', 'home_api_failed', { message: e?.message });
+    return res.status(500).json({ ok: false, message: 'Server xatolik' });
+  }
 });
 
-app.get('/api/v1/shorts/meta', (req, res) => {
-  return res.json({ ok: true, shortsRevision: getShortsRevision() });
+app.get('/api/v1/shorts/meta', async (req, res) => {
+  return res.json({ ok: true, shortsRevision: await marketplaceRepo.getShortsRevision() });
 });
 
-app.get('/api/v1/ambient-playlist', (req, res) => {
-  const tracks = getAdminAmbientTracksOrdered();
+app.get('/api/v1/ambient-playlist', async (req, res) => {
+  const tracks = await getAdminAmbientTracksOrdered();
   return res.json({
     ok: true,
     tracks,
@@ -887,10 +756,10 @@ app.get('/api/v1/ambient-playlist', (req, res) => {
   });
 });
 
-app.get('/api/v1/products', (req, res) => {
+app.get('/api/v1/products', async (req, res) => {
   const page = Math.max(1, Number(req.query.page || 1));
   const limit = Math.max(1, Math.min(100, Number(req.query.limit || 40)));
-  const all = db.products.map(publicProduct).filter((p) => p.active !== false);
+  const all = (await marketplaceRepo.listProductsPublic()).filter((p) => p.active !== false);
   const start = (page - 1) * limit;
   const items = all.slice(start, start + limit);
   return res.json({
@@ -903,7 +772,7 @@ app.get('/api/v1/products', (req, res) => {
   });
 });
 
-app.put('/api/v1/profile', (req, res) => {
+app.put('/api/v1/profile', async (req, res) => {
   const phone = normalizePhone(req.body.phone);
   const firstNameRaw = req.body.firstName !== undefined ? String(req.body.firstName || '').trim() : '';
   const lastNameRaw = req.body.lastName !== undefined ? String(req.body.lastName || '').trim() : '';
@@ -913,7 +782,8 @@ app.put('/api/v1/profile', (req, res) => {
     return res.status(400).json({ ok: false, message: 'Name va phone majburiy' });
   }
   const now = nowIso();
-  const existingProfile = db.profiles[phone] || {};
+  const existingRow = await marketplaceRepo.getUserProfile(phone);
+  const existingProfile = existingRow ? await marketplaceRepo.profileToApi(existingRow) : {};
   const firstName = firstNameRaw || existingProfile.firstName || '';
   const lastName = lastNameRaw || existingProfile.lastName || '';
   const consentChecked = req.body.biometricConsent === true;
@@ -962,18 +832,14 @@ app.put('/api/v1/profile', (req, res) => {
       ? String(req.body.address || '').trim()
       : String(existingProfile.address || '').trim();
 
-  db.profiles[phone] = {
-    ...existingProfile,
-    phone,
+  const saved = await marketplaceRepo.upsertUserProfile(phone, {
     name,
     firstName,
     lastName,
     address: nextAddress,
-    updatedAt: now,
     biometric
-  };
-  saveDb();
-  return res.json({ ok: true, profile: db.profiles[phone] });
+  });
+  return res.json({ ok: true, profile: await marketplaceRepo.profileToApi(saved) });
 });
 
 app.post('/api/v1/auth/sms/send', (req, res) => {
@@ -1000,35 +866,34 @@ app.post('/api/v1/auth/request-otp', (req, res) => {
 
 app.post('/api/v1/auth/verify-otp', handleSmsOtpVerify);
 
-app.get('/api/v1/cart', (req, res) => {
+app.get('/api/v1/cart', async (req, res) => {
   const phone = getUserPhone(req);
   if (!phone) return res.json({ ok: true, items: [], totalQty: 0, subtotal: 0 });
-  return res.json({ ok: true, ...buildCartSummary(phone) });
+  return res.json({ ok: true, ...(await buildCartSummary(phone)) });
 });
 
-app.put('/api/v1/cart/items', (req, res) => {
+app.put('/api/v1/cart/items', async (req, res) => {
   const phone = getUserPhone(req);
   if (!phone) return res.status(401).json({ ok: false, message: 'x-user-phone yuboring' });
   const productId = String(req.body.productId || '');
   const quantity = Math.max(0, Math.round(Number(req.body.quantity || 0)));
-  const product = findProductById(productId);
+  const product = await findProductById(productId);
   if (!product) return res.status(404).json({ ok: false, message: 'Mahsulot topilmadi' });
-  if (!db.carts[phone]) db.carts[phone] = {};
-  if (quantity === 0) {
-    delete db.carts[phone][productId];
-  } else {
-    db.carts[phone][productId] = Math.min(quantity, Math.max(0, Number(product.stock || 0)));
-  }
-  saveDb();
-  return res.json({ ok: true, ...buildCartSummary(phone) });
+  const qty = quantity === 0
+    ? 0
+    : Math.min(quantity, Math.max(0, Number(product.stock || 0)));
+  await marketplaceRepo.setCartQuantity(phone, productId, qty);
+  return res.json({ ok: true, ...(await buildCartSummary(phone)) });
 });
 
-app.post('/api/v1/orders', (req, res) => {
+app.post('/api/v1/orders', async (req, res) => {
   const phone = getUserPhone(req);
   if (!phone) return res.status(401).json({ ok: false, message: 'Foydalanuvchi tasdiqlanmagan' });
-  const cartSummary = buildCartSummary(phone);
+  const cartSummary = await buildCartSummary(phone);
   if (!cartSummary.items.length) return res.status(400).json({ ok: false, message: 'Savat bo‘sh' });
-  const profile = db.profiles[phone] || {};
+  const profileRow = await marketplaceRepo.getUserProfile(phone);
+  const profileApi = profileRow ? await marketplaceRepo.profileToApi(profileRow) : {};
+  const profile = { name: profileApi.name || 'Mehmon', address: profileApi.address || '' };
   const storeLat = 39.654722;
   const storeLng = 66.958972;
   const rawLocationLat = toFiniteNumber(req.body.locationLat);
@@ -1053,52 +918,64 @@ app.post('/api/v1/orders', (req, res) => {
     : Math.min(MAX_DELIVERY_FEE, safeClientDeliveryPrice);
   const subtotal = toMoney(cartSummary.subtotal);
   const total = subtotal + deliveryPrice;
-  const orderNumber = String(100000 + db.orders.length + 1);
-  const createdAt = nowIso();
-  const order = {
-    id: randomId('ord'),
+  const orderNumber = await marketplaceRepo.nextOrderNumber();
+  const homeSettings = await marketplaceRepo.getHomeSettingsJson();
+  const courierToken = randomId('crt');
+  const deliveryAddr = String(req.body.addressText || req.body.location || profile.address || '').trim();
+  const itemCreates = cartSummary.items.map((it) => ({
+    productId: String(it.id),
+    productName: String(it.name || ''),
+    quantity: Math.max(0, Number(it.quantity || 0)),
+    price: Math.round(Number(it.price || 0)),
+    imageUrl: String(it.image_url || '')
+  }));
+  const created = await marketplaceRepo.createOrderWithItems(
+    {
+      orderNumber,
+      status: 'created',
+      customerName: profile.name || 'Mehmon',
+      customerPhone: phone,
+      deliveryAddress: deliveryAddr,
+      subtotal,
+      deliveryPrice,
+      total,
+      paymentMethod: String(req.body.paymentMethod || 'cash'),
+      paymentStatus: String(req.body.paymentStatus || 'pending'),
+      deliveryStatus: 'created',
+      location: String(req.body.location || '').trim(),
+      addressText: String(req.body.addressText || '').trim(),
+      landmarkText: String(req.body.landmarkText || '').trim(),
+      locationLat: hasValidCustomerCoords ? rawLocationLat : null,
+      locationLng: hasValidCustomerCoords ? rawLocationLng : null,
+      locationAccuracy: Number(req.body.locationAccuracy || 0),
+      distanceKm,
+      distanceValid: distanceKm !== null,
+      deliveryFallbackApplied: safeDistanceKm === null,
+      deliveryPriceCapped: deliveryPrice >= MAX_DELIVERY_FEE,
+      deliveryEta: String(req.body.deliveryTime || homeSettings.deliveryTimeText || '30 daqiqa'),
+      courierName: '',
+      courierPhone: '',
+      courierToken,
+      courierTokenUsed: false,
+      courierLocationLat: null,
+      courierLocationLng: null,
+      courierLocationAccuracy: null,
+      courierLocationUpdatedAt: null,
+      trackingUpdatedAt: new Date()
+    },
+    itemCreates
+  );
+  await marketplaceRepo.clearCart(phone);
+  return res.json({
+    ok: true,
     orderNumber,
-    customerPhone: phone,
-    customerName: profile.name || 'Mehmon',
-    customerAddress: String(req.body.addressText || req.body.location || profile.address || '').trim(),
-    location: String(req.body.location || '').trim(),
-    addressText: String(req.body.addressText || '').trim(),
-    landmarkText: String(req.body.landmarkText || '').trim(),
-    locationLat: hasValidCustomerCoords ? rawLocationLat : null,
-    locationLng: hasValidCustomerCoords ? rawLocationLng : null,
-    locationAccuracy: Number(req.body.locationAccuracy || 0),
-    distanceKm,
-    distanceValid: distanceKm !== null,
-    deliveryFallbackApplied: safeDistanceKm === null,
-    deliveryPriceCapped: deliveryPrice >= MAX_DELIVERY_FEE,
-    paymentMethod: String(req.body.paymentMethod || 'cash'),
-    paymentStatus: String(req.body.paymentStatus || 'pending'),
-    status: 'created',
-    delivery_status: 'created',
-    deliveryEta: String(req.body.deliveryTime || db.homeSettings.deliveryTimeText || '30 daqiqa'),
-    items: cartSummary.items,
-    subtotal,
-    deliveryPrice,
-    total,
-    created_at: createdAt,
-    updated_at: createdAt,
-    courierName: '',
-    courierPhone: '',
-    courierToken: randomId('crt'),
-    courierTokenUsed: false,
-    courierLocationLat: null,
-    courierLocationLng: null,
-    courierLocationAccuracy: null,
-    courierLocationUpdatedAt: null
-  };
-  db.orders.unshift(order);
-  db.carts[phone] = {};
-  saveDb();
-  return res.json({ ok: true, orderNumber, status: order.status, paymentStatus: order.paymentStatus });
+    status: created.status,
+    paymentStatus: created.paymentStatus
+  });
 });
 
-app.get('/api/v1/orders/:orderNumber/status', (req, res) => {
-  const order = db.orders.find((o) => String(o.orderNumber) === String(req.params.orderNumber));
+app.get('/api/v1/orders/:orderNumber/status', async (req, res) => {
+  const order = await marketplaceRepo.loadOrderLegacy({ orderNumber: String(req.params.orderNumber) });
   if (!order) return res.status(404).json({ ok: false, message: 'Buyurtma topilmadi' });
   const normalizedStatus = normalizeOrderStatus(order.status);
   return res.json({
@@ -1112,8 +989,8 @@ app.get('/api/v1/orders/:orderNumber/status', (req, res) => {
   });
 });
 
-app.get('/api/v1/orders/:orderNumber/track', (req, res) => {
-  const order = db.orders.find((o) => String(o.orderNumber) === String(req.params.orderNumber));
+app.get('/api/v1/orders/:orderNumber/track', async (req, res) => {
+  const order = await marketplaceRepo.loadOrderLegacy({ orderNumber: String(req.params.orderNumber) });
   if (!order) return res.status(404).json({ ok: false, message: 'Buyurtma topilmadi' });
   const normalizedStatus = normalizeOrderStatus(order.status);
   const now = Date.now();
@@ -1149,10 +1026,15 @@ app.get('/api/v1/orders/:orderNumber/track', (req, res) => {
   return res.json({ ok: true, order: payload });
 });
 
-app.get('/api/v1/notifications', (req, res) => {
+app.get('/api/v1/notifications', async (req, res) => {
   const phone = getUserPhone(req);
-  const readMap = (db.profiles[phone]?.notificationsRead || {}) || {};
-  const notifications = (db.notifications || [])
+  const userRow = phone ? await marketplaceRepo.getUserProfile(phone) : null;
+  const readRaw =
+    userRow?.notificationsRead && typeof userRow.notificationsRead === 'object'
+      ? userRow.notificationsRead
+      : {};
+  const readMap = readRaw;
+  const notifications = (await marketplaceRepo.listNotificationsApi())
     .slice()
     .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
     .map((item) => ({
@@ -1163,36 +1045,48 @@ app.get('/api/v1/notifications', (req, res) => {
   return res.json({ ok: true, notifications, unreadCount });
 });
 
-app.post('/api/v1/notifications/read-all', (req, res) => {
+app.post('/api/v1/notifications/read-all', async (req, res) => {
   const phone = getUserPhone(req);
   if (!phone) return res.status(401).json({ ok: false, message: 'x-user-phone yuboring' });
-  const profile = db.profiles[phone] || { phone, name: phone };
-  if (!profile.notificationsRead || typeof profile.notificationsRead !== 'object') profile.notificationsRead = {};
-  (db.notifications || []).forEach((n) => { profile.notificationsRead[n.id] = true; });
-  db.profiles[phone] = profile;
-  saveDb();
+  const existing = await marketplaceRepo.getUserProfile(phone);
+  const baseName = existing?.name || phone;
+  const read = { ...(existing?.notificationsRead && typeof existing.notificationsRead === 'object' ? existing.notificationsRead : {}) };
+  const all = await marketplaceRepo.listNotificationsApi();
+  all.forEach((n) => {
+    read[n.id] = true;
+  });
+  await marketplaceRepo.upsertUserProfile(phone, {
+    name: existing?.name || baseName,
+    firstName: existing?.firstName ?? undefined,
+    lastName: existing?.lastName ?? undefined,
+    address: existing?.address ?? undefined,
+    biometric: existing?.biometric ?? undefined,
+    notificationsRead: read
+  });
   return res.json({ ok: true });
 });
 
-app.post('/api/v1/orders/:orderNumber/feedback', (req, res) => {
-  const order = db.orders.find((o) => String(o.orderNumber) === String(req.params.orderNumber));
-  if (!order) return res.status(404).json({ ok: false, message: 'Buyurtma topilmadi' });
-  order.feedbackRating = Number(req.body.feedbackRating || 0);
-  order.feedbackComment = String(req.body.feedbackComment || '').trim();
-  order.feedbackAt = nowIso();
-  order.updated_at = nowIso();
-  saveDb();
-  return res.json({ ok: true, order: orderPublic(order) });
+app.post('/api/v1/orders/:orderNumber/feedback', async (req, res) => {
+  const legacy = await marketplaceRepo.loadOrderLegacy({ orderNumber: String(req.params.orderNumber) });
+  if (!legacy) return res.status(404).json({ ok: false, message: 'Buyurtma topilmadi' });
+  const updated = await marketplaceRepo.patchOrderScalars(legacy.id, {
+    feedbackRating: Number(req.body.feedbackRating || 0),
+    feedbackComment: String(req.body.feedbackComment || '').trim(),
+    feedbackAt: new Date(),
+    trackingUpdatedAt: new Date()
+  });
+  return res.json({ ok: true, order: orderPublic(updated) });
 });
 
-app.get('/api/v1/customer/orders', (req, res) => {
+app.get('/api/v1/customer/orders', async (req, res) => {
   const phone = normalizePhone(req.query.phone);
   if (!phone) return res.status(400).json({ ok: false, message: 'phone query kerak' });
-  const orders = db.orders.filter((o) => String(o.customerPhone) === phone).map(orderPublic);
+  const all = await marketplaceRepo.listOrdersLegacySorted();
+  const orders = all.filter((o) => String(o.customerPhone) === phone).map(orderPublic);
   return res.json({ ok: true, orders });
 });
 
-app.get('/api/v1/orders-display/feed', (req, res) => {
+app.get('/api/v1/orders-display/feed', async (req, res) => {
   const activeStatuses = new Set([
     'created',
     'payment_pending',
@@ -1204,7 +1098,8 @@ app.get('/api/v1/orders-display/feed', (req, res) => {
     'delivered',
     'cancelled'
   ]);
-  const feedOrders = db.orders
+  const allOrders = await marketplaceRepo.listOrdersForFeed();
+  const feedOrders = allOrders
     .map((order) => ({
       ...order,
       status: normalizeOrderStatus(order.status),
@@ -1259,39 +1154,36 @@ app.post('/api/v1/admin-v2/login', (req, res) => {
   return res.json({ ok: true, token });
 });
 
-app.get('/api/v1/admin-v2/settings/theme', requireAdminV2, (req, res) => {
-  return res.json({ ok: true, theme: db.adminV2Theme });
+app.get('/api/v1/admin-v2/settings/theme', requireAdminV2, async (req, res) => {
+  return res.json({ ok: true, theme: await marketplaceRepo.getAdminV2ThemeJson() });
 });
 
-app.put('/api/v1/admin-v2/settings/theme', requireAdminV2, (req, res) => {
+app.put('/api/v1/admin-v2/settings/theme', requireAdminV2, async (req, res) => {
   const body = req.body || {};
-  db.adminV2Theme = {
-    ...db.adminV2Theme,
+  const prev = await marketplaceRepo.getAdminV2ThemeJson();
+  const nextTheme = {
+    ...prev,
     primaryColor:
-      String(body.primaryColor ?? db.adminV2Theme.primaryColor ?? '').trim() || '#4f7dff',
+      String(body.primaryColor ?? prev.primaryColor ?? '').trim() || '#4f7dff',
     accentColor:
-      String(body.accentColor ?? db.adminV2Theme.accentColor ?? '').trim() || '#6a4dff',
+      String(body.accentColor ?? prev.accentColor ?? '').trim() || '#6a4dff',
     radiusPx: Math.max(
       0,
-      Math.min(48, Number(body.radiusPx ?? db.adminV2Theme.radiusPx ?? 16) || 16)
+      Math.min(48, Number(body.radiusPx ?? prev.radiusPx ?? 16) || 16)
     )
   };
-  db.homeSettings = {
-    ...db.homeSettings,
-    accentColor: db.adminV2Theme.accentColor
-  };
-  saveDb();
-  return res.json({ ok: true, theme: db.adminV2Theme });
+  await marketplaceRepo.setAdminV2ThemeJson(nextTheme);
+  await marketplaceRepo.mergeHomeSettings({ accentColor: nextTheme.accentColor });
+  return res.json({ ok: true, theme: nextTheme });
 });
 
-app.get('/api/v1/admin-v2/home-settings', requireAdminV2, (req, res) => {
-  return res.json({ ok: true, homeSettings: db.homeSettings });
+app.get('/api/v1/admin-v2/home-settings', requireAdminV2, async (req, res) => {
+  return res.json({ ok: true, homeSettings: await marketplaceRepo.getHomeSettingsJson() });
 });
 
-app.put('/api/v1/admin-v2/home-settings', requireAdminV2, (req, res) => {
-  db.homeSettings = { ...db.homeSettings, ...req.body };
-  saveDb();
-  return res.json({ ok: true, homeSettings: db.homeSettings });
+app.put('/api/v1/admin-v2/home-settings', requireAdminV2, async (req, res) => {
+  const next = await marketplaceRepo.mergeHomeSettings(req.body || {});
+  return res.json({ ok: true, homeSettings: next });
 });
 
 app.post('/api/v1/admin-v2/media/image', requireAdminV2, (req, res) => {
@@ -1333,321 +1225,234 @@ app.post('/api/v1/admin-v2/media/video', requireAdminV2, (req, res) => {
   });
 });
 
-app.get('/api/v1/admin-v2/banners', requireAdminV2, (req, res) => {
-  return res.json({ ok: true, banners: db.banners });
+app.get('/api/v1/admin-v2/banners', requireAdminV2, async (req, res) => {
+  const rows = await marketplaceRepo.listBannersOrdered();
+  return res.json({ ok: true, banners: rows.map(marketplaceRepo.bannerToApi) });
 });
 
-app.post('/api/v1/admin-v2/banners', requireAdminV2, (req, res) => {
-  const item = {
-    id: randomId('ban'),
+app.post('/api/v1/admin-v2/banners', requireAdminV2, async (req, res) => {
+  const item = await marketplaceRepo.createBannerApiShape({
     title: String(req.body.title || '').trim(),
     subtitle: String(req.body.subtitle || '').trim(),
     badge: String(req.body.badge || '').trim(),
     link_url: String(req.body.link_url || '').trim(),
     image_url: String(req.body.image_url || '').trim(),
     active: req.body.active !== false
-  };
-  db.banners.unshift(item);
-  saveDb();
+  });
   return res.json({ ok: true, banner: item });
 });
 
-app.put('/api/v1/admin-v2/banners/reorder', requireAdminV2, (req, res) => {
+app.put('/api/v1/admin-v2/banners/reorder', requireAdminV2, async (req, res) => {
   const ids = Array.isArray(req.body?.ids) ? req.body.ids.map((x) => String(x)) : [];
   if (!ids.length) return res.status(400).json({ ok: false, message: 'ids massivi kerak' });
-  const byId = new Map(db.banners.map((b) => [String(b.id), b]));
-  const next = [];
-  ids.forEach((id) => {
-    const b = byId.get(id);
-    if (b) next.push(b);
-  });
-  db.banners.forEach((b) => {
-    if (!next.includes(b)) next.push(b);
-  });
-  db.banners = next;
-  saveDb();
-  return res.json({ ok: true, banners: db.banners });
+  const banners = await marketplaceRepo.reorderBanners(ids);
+  return res.json({ ok: true, banners });
 });
 
-app.put('/api/v1/admin-v2/banners/:id', requireAdminV2, (req, res) => {
-  const i = db.banners.findIndex((x) => x.id === req.params.id);
-  if (i < 0) return res.status(404).json({ ok: false, message: 'Banner topilmadi' });
-  db.banners[i] = { ...db.banners[i], ...req.body, id: db.banners[i].id };
-  saveDb();
-  return res.json({ ok: true, banner: db.banners[i] });
+app.put('/api/v1/admin-v2/banners/:id', requireAdminV2, async (req, res) => {
+  const updated = await marketplaceRepo.updateBanner(req.params.id, req.body || {});
+  if (!updated) return res.status(404).json({ ok: false, message: 'Banner topilmadi' });
+  return res.json({ ok: true, banner: updated });
 });
 
-app.delete('/api/v1/admin-v2/banners/:id', requireAdminV2, (req, res) => {
-  db.banners = db.banners.filter((x) => x.id !== req.params.id);
-  saveDb();
+app.delete('/api/v1/admin-v2/banners/:id', requireAdminV2, async (req, res) => {
+  await marketplaceRepo.deleteBanner(req.params.id);
   return res.json({ ok: true });
 });
 
-app.get('/api/v1/admin-v2/shorts', requireAdminV2, (req, res) => {
-  return res.json({ ok: true, shorts: db.shorts || [] });
+app.get('/api/v1/admin-v2/shorts', requireAdminV2, async (req, res) => {
+  return res.json({ ok: true, shorts: await marketplaceRepo.listShortsApi() });
 });
 
-app.post('/api/v1/admin-v2/shorts', requireAdminV2, (req, res) => {
-  const shortItem = {
-    id: randomId('srt'),
-    title: String(req.body.title || '').trim(),
+app.post('/api/v1/admin-v2/shorts', requireAdminV2, async (req, res) => {
+  const title = String(req.body.title || '').trim();
+  if (!title) return res.status(400).json({ ok: false, message: 'Sarlavha majburiy' });
+  const count = (await marketplaceRepo.listShortsApi()).length;
+  const shortItem = await marketplaceRepo.createShortApi({
+    title,
     subtitle: String(req.body.subtitle ?? req.body.caption ?? '').trim(),
     media_url: String(req.body.media_url || '').trim(),
     thumbnail_url: String(req.body.thumbnail_url || '').trim(),
-    sortOrder: Number(req.body.sortOrder || (db.shorts?.length || 0) + 1),
+    sortOrder: Number(req.body.sortOrder || count + 1),
     active: req.body.active !== false
-  };
-  if (!shortItem.title) return res.status(400).json({ ok: false, message: 'Sarlavha majburiy' });
-  db.shorts.unshift(shortItem);
-  bumpShortsBroadcast(shortItem);
-  saveDb();
+  });
+  await bumpShortsBroadcast(shortItem);
   return res.json({ ok: true, short: shortItem });
 });
 
-app.put('/api/v1/admin-v2/shorts/reorder', requireAdminV2, (req, res) => {
+app.put('/api/v1/admin-v2/shorts/reorder', requireAdminV2, async (req, res) => {
   const order = Array.isArray(req.body?.order) ? req.body.order : [];
   if (!order.length) return res.status(400).json({ ok: false, message: 'order massivi kerak' });
-  order.forEach((row) => {
-    const id = String(row?.id || '');
-    const sortOrder = Number(row?.sortOrder);
-    const s = (db.shorts || []).find((x) => x.id === id);
-    if (s && Number.isFinite(sortOrder)) s.sortOrder = sortOrder;
-  });
-  saveDb();
-  return res.json({ ok: true, shorts: db.shorts || [] });
+  const shorts = await marketplaceRepo.reorderShorts(order);
+  return res.json({ ok: true, shorts });
 });
 
-app.put('/api/v1/admin-v2/shorts/:id', requireAdminV2, (req, res) => {
-  const i = (db.shorts || []).findIndex((x) => x.id === req.params.id);
-  if (i < 0) return res.status(404).json({ ok: false, message: 'Short topilmadi' });
-  const cur = db.shorts[i];
+app.put('/api/v1/admin-v2/shorts/:id', requireAdminV2, async (req, res) => {
+  const curList = await marketplaceRepo.listShortsApi();
+  const cur = curList.find((x) => x.id === req.params.id);
+  if (!cur) return res.status(404).json({ ok: false, message: 'Short topilmadi' });
   const wasActive = cur.active !== false;
-  db.shorts[i] = {
-    ...cur,
-    ...req.body,
-    id: cur.id,
-    title: String(req.body.title ?? cur.title ?? '').trim(),
-    subtitle: String(req.body.subtitle ?? req.body.caption ?? cur.subtitle ?? '').trim(),
-    media_url: String(req.body.media_url ?? cur.media_url ?? '').trim(),
-    thumbnail_url: String(req.body.thumbnail_url ?? cur.thumbnail_url ?? '').trim(),
-    sortOrder: Number(req.body.sortOrder ?? cur.sortOrder ?? 0),
-    active: req.body.active !== undefined ? req.body.active !== false : cur.active !== false
-  };
-  const nowActive = db.shorts[i].active !== false;
-  if (!wasActive && nowActive) bumpShortsBroadcast(db.shorts[i]);
-  saveDb();
-  return res.json({ ok: true, short: db.shorts[i] });
+  const updated = await marketplaceRepo.updateShortApi(req.params.id, req.body || {});
+  const nowActive = updated.active !== false;
+  if (!wasActive && nowActive) await bumpShortsBroadcast(updated);
+  return res.json({ ok: true, short: updated });
 });
 
-app.delete('/api/v1/admin-v2/shorts/:id', requireAdminV2, (req, res) => {
-  db.shorts = (db.shorts || []).filter((s) => s.id !== req.params.id);
-  saveDb();
+app.delete('/api/v1/admin-v2/shorts/:id', requireAdminV2, async (req, res) => {
+  await marketplaceRepo.deleteShort(req.params.id);
   return res.json({ ok: true });
 });
 
-app.get('/api/v1/admin-v2/products', requireAdminV2, (req, res) => {
+app.get('/api/v1/admin-v2/products', requireAdminV2, async (req, res) => {
   const q = String(req.query.search || '').trim().toLowerCase();
-  const products = db.products
-    .map(publicProduct)
-    .filter((p) => !q || `${p.name} ${p.code} ${p.category}`.toLowerCase().includes(q))
-    .slice(0, 80);
+  const products = (await marketplaceRepo.listAdminProducts(q)).slice(0, 80);
   return res.json({ ok: true, products, note: 'products-lite: faqat ko‘rish / qidiruv' });
 });
 
 // Admin API
-app.get('/api/v1/admin/banners', requireAdmin, (req, res) => {
-  res.json({ ok: true, banners: db.banners });
+app.get('/api/v1/admin/banners', requireAdmin, async (req, res) => {
+  const rows = await marketplaceRepo.listBannersOrdered();
+  res.json({ ok: true, banners: rows.map(marketplaceRepo.bannerToApi) });
 });
-app.post('/api/v1/admin/banners', requireAdmin, (req, res) => {
-  const item = {
-    id: randomId('ban'),
+app.post('/api/v1/admin/banners', requireAdmin, async (req, res) => {
+  const item = await marketplaceRepo.createBannerApiShape({
     title: String(req.body.title || '').trim(),
     subtitle: String(req.body.subtitle || '').trim(),
     badge: String(req.body.badge || '').trim(),
     link_url: String(req.body.link_url || '').trim(),
     image_url: String(req.body.image_url || '').trim(),
     active: req.body.active !== false
-  };
-  db.banners.unshift(item);
-  saveDb();
+  });
   res.json({ ok: true, banner: item });
 });
-app.put('/api/v1/admin/banners/:id', requireAdmin, (req, res) => {
-  const i = db.banners.findIndex((x) => x.id === req.params.id);
-  if (i < 0) return res.status(404).json({ ok: false, message: 'Banner topilmadi' });
-  db.banners[i] = { ...db.banners[i], ...req.body, id: db.banners[i].id };
-  saveDb();
-  res.json({ ok: true, banner: db.banners[i] });
+app.put('/api/v1/admin/banners/:id', requireAdmin, async (req, res) => {
+  const updated = await marketplaceRepo.updateBanner(req.params.id, req.body || {});
+  if (!updated) return res.status(404).json({ ok: false, message: 'Banner topilmadi' });
+  res.json({ ok: true, banner: updated });
 });
-app.delete('/api/v1/admin/banners/:id', requireAdmin, (req, res) => {
-  db.banners = db.banners.filter((x) => x.id !== req.params.id);
-  saveDb();
+app.delete('/api/v1/admin/banners/:id', requireAdmin, async (req, res) => {
+  await marketplaceRepo.deleteBanner(req.params.id);
   res.json({ ok: true });
 });
 
-app.get('/api/v1/admin/promotions', requireAdmin, (req, res) => {
-  res.json({ ok: true, promotions: db.promotions });
+app.get('/api/v1/admin/promotions', requireAdmin, async (req, res) => {
+  res.json({ ok: true, promotions: await marketplaceRepo.listPromotionsApi() });
 });
-app.post('/api/v1/admin/promotions', requireAdmin, (req, res) => {
-  const item = {
-    id: randomId('prm'),
+app.post('/api/v1/admin/promotions', requireAdmin, async (req, res) => {
+  const item = await marketplaceRepo.createPromotionApi({
     title: String(req.body.title || '').trim(),
     discount_text: String(req.body.discount_text || '').trim(),
     description: String(req.body.description || '').trim(),
     image_url: String(req.body.image_url || '').trim(),
     active: req.body.active !== false
-  };
-  db.promotions.unshift(item);
-  saveDb();
+  });
   res.json({ ok: true, promotion: item });
 });
-app.put('/api/v1/admin/promotions/:id', requireAdmin, (req, res) => {
-  const i = db.promotions.findIndex((x) => x.id === req.params.id);
-  if (i < 0) return res.status(404).json({ ok: false, message: 'Promotion topilmadi' });
-  db.promotions[i] = { ...db.promotions[i], ...req.body, id: db.promotions[i].id };
-  saveDb();
-  res.json({ ok: true, promotion: db.promotions[i] });
+app.put('/api/v1/admin/promotions/:id', requireAdmin, async (req, res) => {
+  const updated = await marketplaceRepo.updatePromotion(req.params.id, req.body || {});
+  if (!updated) return res.status(404).json({ ok: false, message: 'Promotion topilmadi' });
+  res.json({ ok: true, promotion: updated });
 });
-app.delete('/api/v1/admin/promotions/:id', requireAdmin, (req, res) => {
-  db.promotions = db.promotions.filter((x) => x.id !== req.params.id);
-  saveDb();
+app.delete('/api/v1/admin/promotions/:id', requireAdmin, async (req, res) => {
+  await marketplaceRepo.deletePromotion(req.params.id);
   res.json({ ok: true });
 });
 
-app.get('/api/v1/admin/home-settings', requireAdmin, (req, res) => {
-  res.json({ ok: true, homeSettings: db.homeSettings });
+app.get('/api/v1/admin/home-settings', requireAdmin, async (req, res) => {
+  res.json({ ok: true, homeSettings: await marketplaceRepo.getHomeSettingsJson() });
 });
-app.put('/api/v1/admin/home-settings', requireAdmin, (req, res) => {
-  db.homeSettings = { ...db.homeSettings, ...req.body };
-  saveDb();
-  res.json({ ok: true, homeSettings: db.homeSettings });
-});
-
-app.get('/api/v1/admin/categories', requireAdmin, (req, res) => {
-  const categories = db.categories.map((c) => ({
-    ...c,
-    productCount: db.products.filter((p) => p.categoryId === c.id).length
-  }));
-  res.json({ ok: true, categories });
-});
-app.put('/api/v1/admin/categories/:id', requireAdmin, (req, res) => {
-  const i = db.categories.findIndex((x) => x.id === req.params.id);
-  if (i < 0) return res.status(404).json({ ok: false, message: 'Category topilmadi' });
-  db.categories[i] = { ...db.categories[i], ...req.body, id: db.categories[i].id, name: db.categories[i].name };
-  saveDb();
-  res.json({ ok: true, category: db.categories[i] });
-});
-app.post('/api/v1/admin/categories/:id/image', requireAdmin, (req, res) => {
-  const category = db.categories.find((x) => x.id === req.params.id);
-  if (!category) return res.status(404).json({ ok: false, message: 'Category topilmadi' });
-  category.image_url = category.image_url || '';
-  saveDb();
-  return res.json({ ok: true, category, warning: 'Multipart upload hozircha mock rejimda' });
+app.put('/api/v1/admin/home-settings', requireAdmin, async (req, res) => {
+  const next = await marketplaceRepo.mergeHomeSettings(req.body || {});
+  res.json({ ok: true, homeSettings: next });
 });
 
-app.get('/api/v1/admin/products', requireAdmin, (req, res) => {
+app.get('/api/v1/admin/categories', requireAdmin, async (req, res) => {
+  res.json({ ok: true, categories: await marketplaceRepo.listCategoriesForAdmin() });
+});
+app.put('/api/v1/admin/categories/:id', requireAdmin, async (req, res) => {
+  const updated = await marketplaceRepo.updateCategory(req.params.id, req.body || {});
+  if (!updated) return res.status(404).json({ ok: false, message: 'Category topilmadi' });
+  const withCount = (await marketplaceRepo.listCategoriesForAdmin()).find((c) => c.id === updated.id);
+  res.json({ ok: true, category: withCount || updated });
+});
+app.post('/api/v1/admin/categories/:id/image', requireAdmin, async (req, res) => {
+  const updated = await marketplaceRepo.updateCategory(req.params.id, {});
+  if (!updated) return res.status(404).json({ ok: false, message: 'Category topilmadi' });
+  return res.json({ ok: true, category: updated, warning: 'Multipart upload hozircha mock rejimda' });
+});
+
+app.get('/api/v1/admin/products', requireAdmin, async (req, res) => {
   const q = String(req.query.search || '').trim().toLowerCase();
-  const products = db.products
-    .map(publicProduct)
-    .filter((p) => !q || `${p.name} ${p.code} ${p.category}`.toLowerCase().includes(q));
+  const products = await marketplaceRepo.listAdminProducts(q);
   res.json({ ok: true, products });
 });
 
-app.get('/api/v1/admin/notifications', requireAdmin, (req, res) => {
-  return res.json({ ok: true, notifications: db.notifications || [] });
+app.get('/api/v1/admin/notifications', requireAdmin, async (req, res) => {
+  return res.json({ ok: true, notifications: await marketplaceRepo.listNotificationsApi() });
 });
-app.post('/api/v1/admin/notifications', requireAdmin, (req, res) => {
-  const notification = {
-    id: randomId('ntf'),
-    title: String(req.body.title || '').trim(),
+app.post('/api/v1/admin/notifications', requireAdmin, async (req, res) => {
+  const title = String(req.body.title || '').trim();
+  if (!title) return res.status(400).json({ ok: false, message: 'Sarlavha majburiy' });
+  const notification = await marketplaceRepo.createNotificationApi({
+    title,
     body: String(req.body.body || '').trim(),
-    createdAt: nowIso(),
     active: req.body.active !== false
-  };
-  if (!notification.title) return res.status(400).json({ ok: false, message: 'Sarlavha majburiy' });
-  db.notifications.unshift(notification);
-  saveDb();
+  });
   return res.json({ ok: true, notification });
 });
-app.delete('/api/v1/admin/notifications/:id', requireAdmin, (req, res) => {
-  db.notifications = (db.notifications || []).filter((n) => n.id !== req.params.id);
-  saveDb();
+app.delete('/api/v1/admin/notifications/:id', requireAdmin, async (req, res) => {
+  await marketplaceRepo.deleteNotification(req.params.id);
   return res.json({ ok: true });
 });
 
-app.get('/api/v1/admin/shorts', requireAdmin, (req, res) => {
-  return res.json({ ok: true, shorts: db.shorts || [] });
+app.get('/api/v1/admin/shorts', requireAdmin, async (req, res) => {
+  return res.json({ ok: true, shorts: await marketplaceRepo.listShortsApi() });
 });
-app.post('/api/v1/admin/shorts', requireAdmin, (req, res) => {
-  const shortItem = {
-    id: randomId('srt'),
-    title: String(req.body.title || '').trim(),
+app.post('/api/v1/admin/shorts', requireAdmin, async (req, res) => {
+  const title = String(req.body.title || '').trim();
+  if (!title) return res.status(400).json({ ok: false, message: 'Sarlavha majburiy' });
+  const count = (await marketplaceRepo.listShortsApi()).length;
+  const shortItem = await marketplaceRepo.createShortApi({
+    title,
     subtitle: String(req.body.subtitle || '').trim(),
     media_url: String(req.body.media_url || '').trim(),
     thumbnail_url: String(req.body.thumbnail_url || '').trim(),
-    sortOrder: Number(req.body.sortOrder || (db.shorts?.length || 0) + 1),
+    sortOrder: Number(req.body.sortOrder || count + 1),
     active: req.body.active !== false
-  };
-  if (!shortItem.title) return res.status(400).json({ ok: false, message: 'Sarlavha majburiy' });
-  db.shorts.unshift(shortItem);
-  bumpShortsBroadcast(shortItem);
-  saveDb();
+  });
+  await bumpShortsBroadcast(shortItem);
   return res.json({ ok: true, short: shortItem });
 });
-app.put('/api/v1/admin/shorts/:id', requireAdmin, (req, res) => {
-  const i = (db.shorts || []).findIndex((x) => x.id === req.params.id);
-  if (i < 0) return res.status(404).json({ ok: false, message: 'Short topilmadi' });
-  const cur = db.shorts[i];
+app.put('/api/v1/admin/shorts/:id', requireAdmin, async (req, res) => {
+  const curList = await marketplaceRepo.listShortsApi();
+  const cur = curList.find((x) => x.id === req.params.id);
+  if (!cur) return res.status(404).json({ ok: false, message: 'Short topilmadi' });
   const wasActive = cur.active !== false;
-  db.shorts[i] = {
-    ...cur,
-    ...req.body,
-    id: cur.id,
-    title: String(req.body.title ?? cur.title ?? '').trim(),
-    subtitle: String(req.body.subtitle ?? cur.subtitle ?? '').trim(),
-    media_url: String(req.body.media_url ?? cur.media_url ?? '').trim(),
-    thumbnail_url: String(req.body.thumbnail_url ?? cur.thumbnail_url ?? '').trim(),
-    sortOrder: Number(req.body.sortOrder ?? cur.sortOrder ?? 0),
-    active: req.body.active !== undefined ? req.body.active !== false : cur.active !== false
-  };
-  const nowActive = db.shorts[i].active !== false;
-  if (!wasActive && nowActive) bumpShortsBroadcast(db.shorts[i]);
-  saveDb();
-  return res.json({ ok: true, short: db.shorts[i] });
+  const updated = await marketplaceRepo.updateShortApi(req.params.id, req.body || {});
+  const nowActive = updated.active !== false;
+  if (!wasActive && nowActive) await bumpShortsBroadcast(updated);
+  return res.json({ ok: true, short: updated });
 });
-app.delete('/api/v1/admin/shorts/:id', requireAdmin, (req, res) => {
-  db.shorts = (db.shorts || []).filter((s) => s.id !== req.params.id);
-  saveDb();
+app.delete('/api/v1/admin/shorts/:id', requireAdmin, async (req, res) => {
+  await marketplaceRepo.deleteShort(req.params.id);
   return res.json({ ok: true });
 });
-app.put('/api/v1/admin/products/:id', requireAdmin, (req, res) => {
-  const i = db.products.findIndex((x) => x.id === req.params.id);
-  if (i < 0) return res.status(404).json({ ok: false, message: 'Product topilmadi' });
-  const categoryId = String(req.body.categoryId || db.products[i].categoryId);
-  const category = db.categories.find((c) => c.id === categoryId);
-  db.products[i] = {
-    ...db.products[i],
-    ...req.body,
-    id: db.products[i].id,
-    price: toMoney(req.body.price ?? db.products[i].price),
-    stock: Math.max(0, Number(req.body.stock ?? db.products[i].stock)),
-    discount_percent: Math.max(0, Math.min(100, Number(req.body.discount_percent ?? (db.products[i].discount_percent ?? 0)))),
-    categoryId,
-    category: category?.name || db.products[i].category,
-    categoryDisplayName: category?.displayName || category?.name || db.products[i].categoryDisplayName
-  };
-  saveDb();
-  res.json({ ok: true, product: publicProduct(db.products[i]) });
+app.put('/api/v1/admin/products/:id', requireAdmin, async (req, res) => {
+  const updated = await marketplaceRepo.updateProduct(req.params.id, req.body || {});
+  if (!updated) return res.status(404).json({ ok: false, message: 'Product topilmadi' });
+  res.json({ ok: true, product: updated });
 });
-app.post('/api/v1/admin/products/import', requireAdmin, (req, res) => {
+app.post('/api/v1/admin/products/import', requireAdmin, async (req, res) => {
+  const summary = await marketplaceRepo.storeSummary();
+  const products = await marketplaceRepo.listProductsPublic();
   return res.json({
     ok: true,
     imported: 0,
     skipped: 0,
     invalidRows: 0,
-    categoriesDetected: db.categories.length,
+    categoriesDetected: summary.categories,
     skippedCategoryRows: 0,
-    productsAssignedCategory: db.products.length,
+    productsAssignedCategory: summary.products,
     productsWithoutCategoryFallback: 0,
     imageExtracted: 0,
     imageProcessed: 0,
@@ -1657,24 +1462,24 @@ app.post('/api/v1/admin/products/import', requireAdmin, (req, res) => {
     imageUpscaled: 0,
     imageSkippedExisting: 0,
     imageMissing: 0,
-    productsWithImageUrl: db.products.filter((p) => p.image_url).length,
+    productsWithImageUrl: products.filter((p) => p.image_url).length,
     productsWithEmbeddedImages: 0,
-    productsWithoutImages: db.products.filter((p) => !p.image_url).length,
+    productsWithoutImages: products.filter((p) => !p.image_url).length,
     processingTimeMs: 0,
     averageImageMs: 0,
     message: 'Excel import hozircha mock: admin CRUD orqali boshqarish mumkin'
   });
 });
 
-app.get('/api/v1/admin/ambient-playlist', requireAdmin, (req, res) => {
+app.get('/api/v1/admin/ambient-playlist', requireAdmin, async (req, res) => {
   return res.json({
     ok: true,
     maxSlots: ADMIN_AMBIENT_MAX_SLOTS,
-    tracks: getAdminAmbientTracksOrdered()
+    tracks: await getAdminAmbientTracksOrdered()
   });
 });
 
-app.post('/api/v1/admin/ambient-playlist/slots/:slot', requireAdmin, express.json({ limit: '30mb' }), (req, res) => {
+app.post('/api/v1/admin/ambient-playlist/slots/:slot', requireAdmin, express.json({ limit: '30mb' }), async (req, res) => {
   const slot = Math.round(Number(req.params.slot || 0));
   if (slot < 1 || slot > ADMIN_AMBIENT_MAX_SLOTS) {
     return res.status(400).json({ ok: false, message: 'Slot 1..5 oralig‘ida bo‘lishi kerak' });
@@ -1707,9 +1512,7 @@ app.post('/api/v1/admin/ambient-playlist/slots/:slot', requireAdmin, express.jso
     return res.status(500).json({ ok: false, message: 'Audio faylni saqlab bo‘lmadi' });
   }
 
-  const slots = Array.isArray(db.ambientPlaylist?.slots) ? db.ambientPlaylist.slots : [];
-  const existingIx = slots.findIndex((item) => Number(item?.slot) === slot);
-  const previousTrack = existingIx >= 0 ? slots[existingIx] : null;
+  const previousTrack = await prisma.ambientTrack.findUnique({ where: { slot } });
   const nextTrack = {
     slot,
     fileName: originalName || fileName,
@@ -1718,10 +1521,7 @@ app.post('/api/v1/admin/ambient-playlist/slots/:slot', requireAdmin, express.jso
     fileSize: parsed.buffer.length,
     updatedAt: nowIso()
   };
-  if (existingIx >= 0) slots[existingIx] = nextTrack;
-  else slots.push(nextTrack);
-  db.ambientPlaylist = { slots: slots.sort((a, b) => Number(a.slot) - Number(b.slot)) };
-  saveDb();
+  await marketplaceRepo.upsertAmbientTrack(slot, nextTrack);
 
   if (previousTrack?.fileUrl) {
     const previousName = path.basename(String(previousTrack.fileUrl || ''));
@@ -1734,35 +1534,32 @@ app.post('/api/v1/admin/ambient-playlist/slots/:slot', requireAdmin, express.jso
   return res.json({
     ok: true,
     track: nextTrack,
-    tracks: getAdminAmbientTracksOrdered()
+    tracks: await getAdminAmbientTracksOrdered()
   });
 });
 
-app.delete('/api/v1/admin/ambient-playlist/slots/:slot', requireAdmin, (req, res) => {
+app.delete('/api/v1/admin/ambient-playlist/slots/:slot', requireAdmin, async (req, res) => {
   const slot = Math.round(Number(req.params.slot || 0));
   if (slot < 1 || slot > ADMIN_AMBIENT_MAX_SLOTS) {
     return res.status(400).json({ ok: false, message: 'Slot 1..5 oralig‘ida bo‘lishi kerak' });
   }
-  const slots = Array.isArray(db.ambientPlaylist?.slots) ? db.ambientPlaylist.slots : [];
-  const existingIx = slots.findIndex((item) => Number(item?.slot) === slot);
-  if (existingIx < 0) {
-    return res.json({ ok: true, removed: false, tracks: getAdminAmbientTracksOrdered() });
+  const existing = await prisma.ambientTrack.findUnique({ where: { slot } });
+  if (!existing) {
+    return res.json({ ok: true, removed: false, tracks: await getAdminAmbientTracksOrdered() });
   }
-  const existing = slots[existingIx];
-  slots.splice(existingIx, 1);
-  db.ambientPlaylist = { slots: slots.sort((a, b) => Number(a.slot) - Number(b.slot)) };
-  saveDb();
+  await marketplaceRepo.deleteAmbientSlot(slot);
   if (existing?.fileUrl) {
     const filePath = path.join(ADMIN_AMBIENT_UPLOADS_DIR, path.basename(String(existing.fileUrl)));
     if (fs.existsSync(filePath)) {
       try { fs.unlinkSync(filePath); } catch {}
     }
   }
-  return res.json({ ok: true, removed: true, tracks: getAdminAmbientTracksOrdered() });
+  return res.json({ ok: true, removed: true, tracks: await getAdminAmbientTracksOrdered() });
 });
 
-app.get('/api/v1/admin/orders', requireAdmin, (req, res) => {
-  const orders = db.orders
+app.get('/api/v1/admin/orders', requireAdmin, async (req, res) => {
+  const ordersRaw = await marketplaceRepo.listOrdersLegacySorted();
+  const orders = ordersRaw
     .map((order) => ({
       ...order,
       status: normalizeOrderStatus(order.status),
@@ -1779,49 +1576,32 @@ app.get('/api/v1/admin/orders', requireAdmin, (req, res) => {
     .map(orderPublic);
   res.json({ ok: true, orders });
 });
-app.get('/api/v1/admin/customers/biometric', requireAdmin, (req, res) => {
-  const customers = Object.values(db.profiles || {})
-    .map((profile) => {
-      const bio = profile?.biometric || null;
-      return {
-        phone: profile?.phone || '',
-        name: profile?.name || 'Mijoz',
-        updatedAt: profile?.updatedAt || null,
-        biometricStatus: Boolean(bio?.consentGiven && bio?.imageUrl),
-        biometric: bio
-          ? {
-              consentGiven: Boolean(bio.consentGiven),
-              consentAt: bio.consentAt || null,
-              capturedAt: bio.capturedAt || null,
-              imageUrl: bio.imageUrl || '',
-              mimeType: bio.mimeType || '',
-              fileSize: Number(bio.fileSize || 0)
-            }
-          : null
-      };
-    })
-    .sort((a, b) => {
-      const at = new Date(a.biometric?.capturedAt || a.updatedAt || 0).getTime();
-      const bt = new Date(b.biometric?.capturedAt || b.updatedAt || 0).getTime();
-      return bt - at;
-    });
+app.get('/api/v1/admin/customers/biometric', requireAdmin, async (req, res) => {
+  const customers = (await marketplaceRepo.listUsersForBiometricAdmin()).sort((a, b) => {
+    const at = new Date(a.biometric?.capturedAt || a.updatedAt || 0).getTime();
+    const bt = new Date(b.biometric?.capturedAt || b.updatedAt || 0).getTime();
+    return bt - at;
+  });
   res.json({ ok: true, customers });
 });
-app.post('/api/v1/admin/orders/:id/cancel', requireAdmin, (req, res) => {
-  const o = db.orders.find((x) => x.id === req.params.id);
+app.post('/api/v1/admin/orders/:id/cancel', requireAdmin, async (req, res) => {
+  const o = await marketplaceRepo.loadOrderLegacyById(req.params.id);
   if (!o) return res.status(404).json({ ok: false, message: 'Order topilmadi' });
   const currentStatus = normalizeOrderStatus(o.status);
   if (TERMINAL_ORDER_STATUSES.has(currentStatus)) {
     return res.status(409).json({ ok: false, message: `Buyurtma allaqachon yakunlangan (${currentStatus})`, code: 'ORDER_TERMINAL' });
   }
-  o.status = 'cancelled';
-  o.delivery_status = 'cancelled';
   applyOrderUpdateTimestamp(o);
-  saveDb();
-  return res.json({ ok: true, order: orderPublic(o) });
+  const next = await marketplaceRepo.patchOrderScalars(o.id, {
+    status: 'cancelled',
+    deliveryStatus: 'cancelled',
+    trackingUpdatedAt: new Date(o.trackingUpdatedAt || o.updated_at),
+    updatedAt: new Date(o.updated_at)
+  });
+  return res.json({ ok: true, order: orderPublic(next) });
 });
-app.post('/api/v1/admin/orders/:id/assign-courier', requireAdmin, (req, res) => {
-  const o = db.orders.find((x) => x.id === req.params.id);
+app.post('/api/v1/admin/orders/:id/assign-courier', requireAdmin, async (req, res) => {
+  const o = await marketplaceRepo.loadOrderLegacyById(req.params.id);
   if (!o) return res.status(404).json({ ok: false, message: 'Order topilmadi' });
   const currentStatus = normalizeOrderStatus(o.status);
   if (!canTransitionOrderStatus(currentStatus, 'courier_assigned')) {
@@ -1831,16 +1611,19 @@ app.post('/api/v1/admin/orders/:id/assign-courier', requireAdmin, (req, res) => 
       code: 'INVALID_ORDER_TRANSITION'
     });
   }
-  o.courierName = String(req.body.courierName || '').trim();
-  o.courierPhone = String(req.body.courierPhone || '').trim();
-  o.status = 'courier_assigned';
-  o.delivery_status = 'courier_assigned';
   applyOrderUpdateTimestamp(o);
-  saveDb();
-  return res.json({ ok: true, order: orderPublic(o) });
+  const next = await marketplaceRepo.patchOrderScalars(o.id, {
+    courierName: String(req.body.courierName || '').trim(),
+    courierPhone: String(req.body.courierPhone || '').trim(),
+    status: 'courier_assigned',
+    deliveryStatus: 'courier_assigned',
+    trackingUpdatedAt: new Date(o.trackingUpdatedAt || o.updated_at),
+    updatedAt: new Date(o.updated_at)
+  });
+  return res.json({ ok: true, order: orderPublic(next) });
 });
-app.put('/api/v1/admin/orders/:id/status', requireAdmin, (req, res) => {
-  const o = db.orders.find((x) => x.id === req.params.id);
+app.put('/api/v1/admin/orders/:id/status', requireAdmin, async (req, res) => {
+  const o = await marketplaceRepo.loadOrderLegacyById(req.params.id);
   if (!o) return res.status(404).json({ ok: false, message: 'Order topilmadi' });
   const requestedStatusRaw = String(req.body.status || o.status);
   const requestedStatus = normalizeOrderStatus(requestedStatusRaw);
@@ -1854,31 +1637,41 @@ app.put('/api/v1/admin/orders/:id/status', requireAdmin, (req, res) => {
   }
   o.status = requestedStatus;
   o.delivery_status = o.status;
-  if (o.status === 'delivered' && ['pending', 'unpaid'].includes(String(o.paymentStatus || ''))) o.paymentStatus = 'paid';
-  if (o.status === 'delivered' || o.status === 'cancelled') o.courierTokenUsed = true;
+  let paymentStatus = o.paymentStatus;
+  if (o.status === 'delivered' && ['pending', 'unpaid'].includes(String(paymentStatus || ''))) paymentStatus = 'paid';
+  let courierTokenUsed = o.courierTokenUsed;
+  if (o.status === 'delivered' || o.status === 'cancelled') courierTokenUsed = true;
   ensureCourierToken(o);
   applyOrderUpdateTimestamp(o);
-  saveDb();
-  return res.json({ ok: true, order: orderPublic(o) });
+  const next = await marketplaceRepo.patchOrderScalars(o.id, {
+    status: requestedStatus,
+    deliveryStatus: requestedStatus,
+    paymentStatus,
+    courierTokenUsed,
+    courierToken: o.courierToken,
+    trackingUpdatedAt: new Date(o.trackingUpdatedAt || o.updated_at),
+    updatedAt: new Date(o.updated_at)
+  });
+  return res.json({ ok: true, order: orderPublic(next) });
 });
 
 app.get('/api/v1/admin/orders/:id/qr', requireAdmin, async (req, res) => {
-  const order = db.orders.find((x) => x.id === req.params.id);
+  const order = await marketplaceRepo.loadOrderLegacyById(req.params.id);
   if (!order) return res.status(404).json({ ok: false, message: 'Order topilmadi' });
   ensureCourierToken(order);
+  await marketplaceRepo.patchOrderScalars(order.id, { courierToken: order.courierToken });
   const courierUrl = `${req.protocol}://${req.get('host')}/courier/${encodeURIComponent(order.courierToken)}`;
   try {
     const qrDataUrl = await require('qrcode').toDataURL(courierUrl, { width: 280, margin: 1 });
-    saveDb();
     return res.json({ ok: true, courierUrl, qrDataUrl });
   } catch {
     return res.status(500).json({ ok: false, message: 'QR yaratilmadi' });
   }
 });
 
-app.get('/api/v1/courier/:token', (req, res) => {
+app.get('/api/v1/courier/:token', async (req, res) => {
   const token = String(req.params.token || '').trim();
-  const order = db.orders.find((o) => String(o.courierToken || '') === token);
+  const order = await marketplaceRepo.loadOrderLegacy({ courierToken: token });
   if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
   if (order.courierTokenUsed && !['out_for_delivery', 'courier_assigned'].includes(normalizeOrderStatus(order.status))) {
     return res.status(410).json({ ok: false, message: 'Bu QR kod yaroqsiz yoki ishlatilgan' });
@@ -1886,27 +1679,30 @@ app.get('/api/v1/courier/:token', (req, res) => {
   return res.json({ ok: true, order: orderPublic(order) });
 });
 
-app.post('/api/v1/courier/:token/accept', (req, res) => {
+app.post('/api/v1/courier/:token/accept', async (req, res) => {
   const token = String(req.params.token || '').trim();
-  const order = db.orders.find((o) => String(o.courierToken || '') === token);
+  const order = await marketplaceRepo.loadOrderLegacy({ courierToken: token });
   if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
   const currentStatus = normalizeOrderStatus(order.status);
   if (!canTransitionOrderStatus(currentStatus, 'out_for_delivery')) {
     return res.status(409).json({ ok: false, message: `Bu statusda qabul qilib bo'lmaydi: ${currentStatus}` });
   }
-  order.courierName = String(req.body.courierName || order.courierName || '').trim();
-  order.courierPhone = String(req.body.courierPhone || order.courierPhone || '').trim();
-  order.status = 'out_for_delivery';
-  order.delivery_status = 'out_for_delivery';
-  order.courierTokenUsed = false;
   applyOrderUpdateTimestamp(order);
-  saveDb();
-  return res.json({ ok: true, order: orderPublic(order) });
+  const next = await marketplaceRepo.patchOrderScalars(order.id, {
+    courierName: String(req.body.courierName || order.courierName || '').trim(),
+    courierPhone: String(req.body.courierPhone || order.courierPhone || '').trim(),
+    status: 'out_for_delivery',
+    deliveryStatus: 'out_for_delivery',
+    courierTokenUsed: false,
+    trackingUpdatedAt: new Date(order.trackingUpdatedAt || order.updated_at),
+    updatedAt: new Date(order.updated_at)
+  });
+  return res.json({ ok: true, order: orderPublic(next) });
 });
 
-app.post('/api/v1/courier/:token/location', (req, res) => {
+app.post('/api/v1/courier/:token/location', async (req, res) => {
   const token = String(req.params.token || '').trim();
-  const order = db.orders.find((o) => String(o.courierToken || '') === token);
+  const order = await marketplaceRepo.loadOrderLegacy({ courierToken: token });
   if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
   if (normalizeOrderStatus(order.status) !== 'out_for_delivery') {
     return res.status(409).json({ ok: false, message: 'Lokatsiya faqat yo‘lda statusida qabul qilinadi' });
@@ -1914,44 +1710,61 @@ app.post('/api/v1/courier/:token/location', (req, res) => {
   const lat = toFiniteNumber(req.body.lat);
   const lng = toFiniteNumber(req.body.lng);
   if (!isValidLatLng(lat, lng)) return res.status(400).json({ ok: false, message: 'Lokatsiya noto‘g‘ri' });
+  const at = nowIso();
   order.courierLocationLat = lat;
   order.courierLocationLng = lng;
   order.courierLocationAccuracy = toFiniteNumber(req.body.accuracy);
-  order.courierLocationUpdatedAt = nowIso();
+  order.courierLocationUpdatedAt = at;
   applyOrderUpdateTimestamp(order);
-  saveDb();
-  return res.json({ ok: true, order: orderPublic(order) });
+  const next = await marketplaceRepo.patchOrderScalars(order.id, {
+    courierLocationLat: lat,
+    courierLocationLng: lng,
+    courierLocationAccuracy: toFiniteNumber(req.body.accuracy),
+    courierLocationUpdatedAt: new Date(at),
+    trackingUpdatedAt: new Date(order.trackingUpdatedAt || order.updated_at),
+    updatedAt: new Date(order.updated_at)
+  });
+  return res.json({ ok: true, order: orderPublic(next) });
 });
 
-app.post('/api/v1/courier/:token/deliver', (req, res) => {
+app.post('/api/v1/courier/:token/deliver', async (req, res) => {
   const token = String(req.params.token || '').trim();
-  const order = db.orders.find((o) => String(o.courierToken || '') === token);
+  const order = await marketplaceRepo.loadOrderLegacy({ courierToken: token });
   if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
   const currentStatus = normalizeOrderStatus(order.status);
   if (!canTransitionOrderStatus(currentStatus, 'delivered')) {
     return res.status(409).json({ ok: false, message: `Buyurtma bu holatda yopilmaydi: ${currentStatus}` });
   }
-  order.status = 'delivered';
-  order.delivery_status = 'delivered';
-  if (['pending', 'unpaid'].includes(String(order.paymentStatus || ''))) order.paymentStatus = 'paid';
-  order.courierTokenUsed = true;
+  let paymentStatus = order.paymentStatus;
+  if (['pending', 'unpaid'].includes(String(paymentStatus || ''))) paymentStatus = 'paid';
   applyOrderUpdateTimestamp(order);
-  saveDb();
-  return res.json({ ok: true, order: orderPublic(order) });
+  const next = await marketplaceRepo.patchOrderScalars(order.id, {
+    status: 'delivered',
+    deliveryStatus: 'delivered',
+    paymentStatus,
+    courierTokenUsed: true,
+    trackingUpdatedAt: new Date(order.trackingUpdatedAt || order.updated_at),
+    updatedAt: new Date(order.updated_at)
+  });
+  return res.json({ ok: true, order: orderPublic(next) });
 });
 
-app.post('/api/v1/admin/store/reload', requireAdmin, (req, res) => {
-  db = readDb();
+app.post('/api/v1/admin/store/reload', requireAdmin, async (req, res) => {
+  await prisma.$disconnect();
+  await prisma.$connect();
+  console.log('PostgreSQL connected');
+  await marketplaceRepo.ensureAppState();
   return res.json({ ok: true });
 });
-app.get('/api/v1/admin/store/summary', requireAdmin, (req, res) => {
+app.get('/api/v1/admin/store/summary', requireAdmin, async (req, res) => {
+  const s = await marketplaceRepo.storeSummary();
   const summary = {
-    categories: db.categories.length,
-    products: db.products.length,
-    orders: db.orders.length,
-    banners: db.banners.length,
-    promotions: db.promotions.length,
-    storageFile: DB_FILE
+    categories: s.categories,
+    products: s.products,
+    orders: s.orders,
+    banners: s.banners,
+    promotions: s.promotions,
+    storageMode: s.storageMode
   };
   return res.json({ ok: true, summary });
 });
@@ -1960,7 +1773,7 @@ app.get('/api/v1/integrations/status', requireAdmin, (req, res) => {
   res.json({
     ok: true,
     integrations: { dalionTrend1C: { enabled: false } },
-    stats: { storageMode: 'local' }
+    stats: { storageMode: 'postgresql' }
   });
 });
 app.post('/api/v1/admin/dalion/sync', requireAdmin, (req, res) => {
@@ -1971,6 +1784,16 @@ app.get('/health', (req, res) => {
   res.status(200).json({ ok: true, service: 'dalion-mobile-app' });
 });
 
-app.listen(PORT, () => {
-  console.info(`[SERVER] started on port ${PORT}`);
+async function main() {
+  await prisma.$connect();
+  console.log('PostgreSQL connected');
+  await marketplaceRepo.ensureAppState();
+  app.listen(PORT, () => {
+    console.info(`[SERVER] started on port ${PORT}`);
+  });
+}
+
+main().catch((error) => {
+  console.error('[SERVER] failed to start', error?.message || error);
+  process.exit(1);
 });
