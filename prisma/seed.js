@@ -6,6 +6,32 @@ const prisma = new PrismaClient();
 
 const ROOT = path.join(__dirname, '..');
 const AMBIENT_DIR = path.join(ROOT, 'uploads', 'audio', 'ambient-jazz');
+const ADMIN_AMBIENT_DIR = path.join(ROOT, 'uploads', 'audio', 'admin-ambient');
+const SHORTS_UPLOAD_DIR = path.join(ROOT, 'uploads', 'shorts');
+
+/** Canonical admin ambient playlist (slots 1–4); disk filenames match repo-tracked uploads. */
+const ADMIN_AMBIENT_SLOTS = [
+  {
+    slot: 1,
+    fileName: 'Silviana — ho capito che ti amo',
+    diskFile: 'slot-1-silviana-ho-capito-che-ti-amo.mp3'
+  },
+  {
+    slot: 2,
+    fileName: 'Italianskaya Felichita',
+    diskFile: 'slot-2-italy-felicita-muzce-com.mp3'
+  },
+  {
+    slot: 3,
+    fileName: 'Fausto Leali',
+    diskFile: 'slot-3-fausto-leali-quando-ami-una-donna-when-a-man-loves-a-woman.mp3'
+  },
+  {
+    slot: 4,
+    fileName: 'Riccardo Cocciante',
+    diskFile: 'slot-4-riccardo-cocciante-per-lei.mp3'
+  }
+];
 
 /** Minimal audible PCM WAV (mono 16-bit) for demo / CI playback */
 function buildToneWav(durationSec = 0.35, freqHz = 440, volume = 0.22, sampleRate = 44100) {
@@ -300,8 +326,34 @@ async function seedBanners() {
   }
 }
 
+function titleFromShortFilename(file) {
+  const base = path.basename(file, path.extname(file));
+  const cleaned = base.replace(/^short_\d+_[^_]+_/i, '').replace(/[_-]+/g, ' ').trim();
+  return cleaned ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1) : base;
+}
+
 async function seedShorts() {
-  const shorts = [
+  const diskRows = [];
+  if (fs.existsSync(SHORTS_UPLOAD_DIR)) {
+    const files = fs
+      .readdirSync(SHORTS_UPLOAD_DIR)
+      .filter((f) => /\.(mp4|webm)$/i.test(f))
+      .sort();
+    files.forEach((file, idx) => {
+      diskRows.push({
+        id: `seed_short_${file.replace(/[^a-zA-Z0-9._-]/g, '_')}`,
+        title: titleFromShortFilename(file),
+        subtitle: '',
+        videoUrl: `/uploads/shorts/${file}`,
+        thumbnailUrl: '',
+        active: true,
+        sortOrder: idx
+      });
+    });
+  }
+
+  const demoOffset = diskRows.length;
+  const demos = [
     {
       id: 'demo_short_vertical_clip',
       title: 'GlobusMarket ga qisqa sayohat',
@@ -309,7 +361,7 @@ async function seedShorts() {
       videoUrl: DEMO_SHORT_PRIMARY_MP4,
       thumbnailUrl: 'https://picsum.photos/seed/gmdemo-short-a/720/1280',
       active: true,
-      sortOrder: 0
+      sortOrder: demoOffset
     },
     {
       id: 'demo_short_sample_md',
@@ -318,9 +370,11 @@ async function seedShorts() {
       videoUrl: DEMO_SHORT_SECOND_MP4,
       thumbnailUrl: 'https://picsum.photos/seed/gmdemo-short-b/720/1280',
       active: true,
-      sortOrder: 1
+      sortOrder: demoOffset + 1
     }
   ];
+
+  const shorts = [...diskRows, ...demos];
   for (const s of shorts) {
     await prisma.short.upsert({
       where: { id: s.id },
@@ -338,15 +392,25 @@ async function seedShorts() {
 }
 
 async function seedAmbientTracks() {
-  const meta = [
-    { slot: 1, fileName: 'Calm Jazz 01' },
-    { slot: 2, fileName: 'Calm Jazz 02' },
-    { slot: 3, fileName: 'Calm Jazz 03' },
-    { slot: 4, fileName: 'Calm Jazz 04' }
-  ];
   const now = new Date();
-  for (const { slot, fileName } of meta) {
-    const { absPath, urlPath, mimeType } = ambientFileForSlot(slot);
+  for (const { slot, fileName, diskFile } of ADMIN_AMBIENT_SLOTS) {
+    const adminAbs = path.join(ADMIN_AMBIENT_DIR, diskFile);
+    let absPath;
+    let urlPath;
+    let mimeType;
+
+    if (fs.existsSync(adminAbs) && fs.statSync(adminAbs).size >= 1024) {
+      absPath = adminAbs;
+      urlPath = `/uploads/audio/admin-ambient/${diskFile}`;
+      mimeType = 'audio/mpeg';
+    } else {
+      console.warn(`[seed] missing or tiny admin-ambient file ${diskFile}, using ambient-jazz fallback for slot ${slot}`);
+      const fb = ambientFileForSlot(slot);
+      absPath = fb.absPath;
+      urlPath = fb.urlPath;
+      mimeType = fb.mimeType;
+    }
+
     const stat = fs.statSync(absPath);
     await prisma.ambientTrack.upsert({
       where: { slot },
