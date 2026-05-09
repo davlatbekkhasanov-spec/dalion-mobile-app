@@ -107,6 +107,52 @@ async function deleteFromR2(key) {
   );
 }
 
+/**
+ * @returns {{ ok: true } | { ok: false, message: string, code: string, detail?: string }}
+ */
+function diagnoseR2PublicUrl() {
+  const raw = String(process.env.R2_PUBLIC_URL || '').trim();
+  if (!raw) {
+    return { ok: false, message: 'R2_PUBLIC_URL sozlanmagan yoki bo‘sh', code: 'R2_PUBLIC_URL_MISSING' };
+  }
+  try {
+    const u = new URL(raw);
+    if (!/^https?:$/i.test(u.protocol)) {
+      return {
+        ok: false,
+        message: 'R2_PUBLIC_URL faqat http yoki https bo‘lishi kerak',
+        code: 'R2_PUBLIC_URL_BAD_PROTOCOL',
+        detail: String(u.protocol || '')
+      };
+    }
+  } catch {
+    return {
+      ok: false,
+      message: 'R2_PUBLIC_URL yaroqsiz URL',
+      code: 'R2_PUBLIC_URL_INVALID',
+      detail: raw.slice(0, 160)
+    };
+  }
+  return { ok: true };
+}
+
+/**
+ * @param {unknown} err
+ * @returns {{ code: string, hints: string[], detail: string }}
+ */
+function describeR2UploadFailure(err) {
+  const code = String(err?.Code || err?.code || err?.name || 'R2_UPLOAD_FAILED');
+  const detail = String(err?.message || err || '');
+  const hints = [];
+  if (/ENOTFOUND|getaddrinfo/i.test(detail)) hints.push('DNS yoki R2_ACCOUNT_ID / endpoint tekshiring');
+  if (/NetworkingError|Timeout|ETIMEDOUT/i.test(code + detail)) hints.push('Tarmoq yoki firewall');
+  if (/AccessDenied|403/i.test(code + detail)) hints.push('R2 kalitlari yoki bucket ruxsati');
+  if (/SignatureDoesNotMatch/i.test(code + detail)) hints.push('R2_SECRET_ACCESS_KEY');
+  if (/InvalidAccessKeyId/i.test(code + detail)) hints.push('R2_ACCESS_KEY_ID');
+  if (/NoSuchBucket/i.test(code + detail)) hints.push('R2_BUCKET_NAME');
+  return { code: code.slice(0, 120), hints, detail: detail.slice(0, 500) };
+}
+
 module.exports = {
   REQUIRED_ENV_KEYS,
   isR2Configured,
@@ -116,6 +162,8 @@ module.exports = {
   sanitizeKeyFileName,
   uploadToR2,
   deleteFromR2,
+  diagnoseR2PublicUrl,
+  describeR2UploadFailure,
   setR2S3ClientForTests,
   clearR2S3ClientForTests
 };

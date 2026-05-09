@@ -3049,6 +3049,14 @@ Oq fonli foto</div>
       if (!u) return false;
       if (/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(u)) return true;
       if (u.includes('/uploads/shorts/')) return true;
+      if (u.includes('/shorts/')) return true;
+      try {
+        const host = new URL(u).hostname.toLowerCase();
+        if (host.endsWith('.r2.dev')) return true;
+        if (host.includes('r2.cloudflarestorage.com')) return true;
+      } catch (_) {
+        /* ignore */
+      }
       return false;
     }
 

@@ -610,6 +610,23 @@ async function deletePromotion(id) {
   await prisma.promotion.deleteMany({ where: { id } });
 }
 
+function inferShortMimeTypeFromMediaUrl(url) {
+  const u = String(url || '').trim().toLowerCase();
+  if (!u) return '';
+  if (/\.webm(\?|#|$)/.test(u)) return 'video/webm';
+  if (/\.mov(\?|#|$)/.test(u)) return 'video/quicktime';
+  if (/\.(mp4|m4v)(\?|#|$)/.test(u)) return 'video/mp4';
+  if (u.includes('/shorts/')) return 'video/mp4';
+  if (u.includes('/uploads/shorts/')) return 'video/mp4';
+  try {
+    const host = new URL(u).hostname.toLowerCase();
+    if (host.endsWith('.r2.dev') || host.includes('r2.cloudflarestorage.com')) return 'video/mp4';
+  } catch (_) {
+    /* ignore */
+  }
+  return '';
+}
+
 async function listShortsApi() {
   const rows = await prisma.short.findMany({
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }]
@@ -620,6 +637,7 @@ async function listShortsApi() {
     subtitle: s.subtitle,
     media_url: s.videoUrl,
     thumbnail_url: s.thumbnailUrl,
+    mime_type: inferShortMimeTypeFromMediaUrl(s.videoUrl),
     active: s.active,
     sortOrder: s.sortOrder
   }));
@@ -643,6 +661,7 @@ async function createShortApi(body) {
     subtitle: s.subtitle,
     media_url: s.videoUrl,
     thumbnail_url: s.thumbnailUrl,
+    mime_type: inferShortMimeTypeFromMediaUrl(s.videoUrl),
     active: s.active,
     sortOrder: s.sortOrder
   };
@@ -684,6 +703,7 @@ async function updateShortApi(id, body) {
     subtitle: s.subtitle,
     media_url: s.videoUrl,
     thumbnail_url: s.thumbnailUrl,
+    mime_type: inferShortMimeTypeFromMediaUrl(s.videoUrl),
     active: s.active,
     sortOrder: s.sortOrder
   };

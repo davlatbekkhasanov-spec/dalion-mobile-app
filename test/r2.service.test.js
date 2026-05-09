@@ -81,6 +81,22 @@ test('shouldUseR2 is true when all R2 env vars are non-empty', () => {
   }
 });
 
+test('diagnoseR2PublicUrl rejects missing or invalid base URL', () => {
+  const stash = stashR2Env();
+  try {
+    seedFullR2Env();
+    assert.equal(r2.diagnoseR2PublicUrl().ok, true);
+    process.env.R2_PUBLIC_URL = '   ';
+    assert.equal(r2.diagnoseR2PublicUrl().ok, false);
+    process.env.R2_PUBLIC_URL = 'not-a-url';
+    assert.equal(r2.diagnoseR2PublicUrl().code, 'R2_PUBLIC_URL_INVALID');
+    process.env.R2_PUBLIC_URL = 'ftp://bad.example/o';
+    assert.equal(r2.diagnoseR2PublicUrl().code, 'R2_PUBLIC_URL_BAD_PROTOCOL');
+  } finally {
+    restoreR2Env(stash);
+  }
+});
+
 test('uploadToR2 sends PutObject with buffer body and returns public URL', async () => {
   const stash = stashR2Env();
   try {

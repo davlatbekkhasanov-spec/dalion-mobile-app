@@ -305,7 +305,53 @@ function sanitizeFileName(name) {
 
 const ALLOWED_ADMIN_V2_IMAGE_PURPOSES = new Set(['banner', 'shorts', 'generic']);
 const ALLOWED_ADMIN_V2_IMAGE_MIME = new Set(['image/png', 'image/jpeg']);
-const ALLOWED_SHORTS_VIDEO_MIME = new Set(['video/mp4', 'video/webm']);
+const ALLOWED_SHORTS_VIDEO_MIME = new Set(['video/mp4', 'video/webm', 'video/quicktime']);
+
+function readShortsUploadSniffBuffer(absPath) {
+  try {
+    const stat = fs.statSync(absPath);
+    const len = Math.min(65536, Number(stat.size) || 0);
+    if (len < 12) return null;
+    const fd = fs.openSync(absPath, 'r');
+    try {
+      const buf = Buffer.allocUnsafe(len);
+      fs.readSync(fd, buf, 0, len, 0);
+      return buf;
+    } finally {
+      fs.closeSync(fd);
+    }
+  } catch {
+    return null;
+  }
+}
+
+function sniffShortsVideoContainerMime(buffer) {
+  if (!buffer || buffer.length < 12) return '';
+  if (buffer.subarray(4, 8).toString('ascii') === 'ftyp') {
+    const brand = buffer.subarray(8, Math.min(16, buffer.length)).toString('ascii');
+    if (brand.startsWith('qt')) return 'video/quicktime';
+    return 'video/mp4';
+  }
+  if (buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3) {
+    return 'video/webm';
+  }
+  return '';
+}
+
+function resolveShortsUploadedContentType(absPath, declaredMime) {
+  const d = String(declaredMime || '').toLowerCase();
+  if (ALLOWED_SHORTS_VIDEO_MIME.has(d)) return d;
+  const sniffBuf = readShortsUploadSniffBuffer(absPath);
+  const sniffed = sniffBuf ? sniffShortsVideoContainerMime(sniffBuf) : '';
+  if (sniffed) return sniffed;
+  const loose = new Set(['application/octet-stream', 'binary/octet-stream', '']);
+  if (!loose.has(d)) return '';
+  const ext = path.extname(absPath || '').toLowerCase();
+  if (ext === '.webm') return 'video/webm';
+  if (ext === '.mov') return 'video/quicktime';
+  if (ext === '.mp4' || ext === '.m4v') return 'video/mp4';
+  return '';
+}
 
 function normalizeAdminV2ImagePurpose(raw) {
   const p = String(raw === undefined || raw === null ? 'banner' : raw)
@@ -334,14 +380,33 @@ const shortsVideoUpload = multer({
     },
     filename: (req, file, cb) => {
       const mime = String(file.mimetype || '').toLowerCase();
-      const ext = mime === 'video/webm' ? '.webm' : '.mp4';
+      const origExt = path.extname(file.originalname || '').toLowerCase();
+      let ext = '.mp4';
+      if (mime === 'video/webm' || origExt === '.webm') ext = '.webm';
+      else if (mime === 'video/quicktime' || origExt === '.mov') ext = '.mov';
+      else if (
+        (mime === 'application/octet-stream' ||
+          mime === 'binary/octet-stream' ||
+          mime === '') &&
+        (origExt === '.webm' || origExt === '.mov')
+      ) {
+        ext = origExt;
+      }
       cb(null, `short_${Date.now()}_${randomId('v')}${ext}`);
     }
   }),
-  limits: { fileSize: MAX_SHORTS_VIDEO_BYTES },
+  limits: { fileSize: MAX_SHORTS_VIDEO_BYTES, fields: 32, fieldSize: 2048, parts: 32 },
   fileFilter: (req, file, cb) => {
     const mime = String(file.mimetype || '').toLowerCase();
-    if (mime === 'video/mp4' || mime === 'video/webm') return cb(null, true);
+    if (ALLOWED_SHORTS_VIDEO_MIME.has(mime)) return cb(null, true);
+    const origExt = path.extname(file.originalname || '').toLowerCase();
+    const looseMime = new Set(['application/octet-stream', 'binary/octet-stream', '']);
+    if (
+      looseMime.has(mime) &&
+      (origExt === '.mp4' || origExt === '.webm' || origExt === '.mov' || origExt === '.m4v')
+    ) {
+      return cb(null, true);
+    }
     cb(new Error('UNSUPPORTED_VIDEO'));
   }
 });
@@ -1257,27 +1322,70 @@ app.post('/api/v1/admin-v2/media/video', requireAdminV2, (req, res) => {
       if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({
           ok: false,
+          code: 'LIMIT_FILE_SIZE',
           message: `Video juda katta (maks ${Math.round(MAX_SHORTS_VIDEO_BYTES / (1024 * 1024))}MB)`
         });
       }
-      return res.status(400).json({ ok: false, message: 'Faqat MP4 yoki WebM video yuklang' });
+      if (err instanceof multer.MulterError && err.code === 'LIMIT_UNEXPECTED_FILE') {
+        return res.status(400).json({
+          ok: false,
+          code: err.code,
+          message: 'Multipart maydon nomi noto‘g‘ri (video yuboring)'
+        });
+      }
+      if (err instanceof multer.MulterError) {
+        return res.status(400).json({
+          ok: false,
+          code: err.code || 'MULTER_ERROR',
+          message: err.message || 'Yuklash xatosi'
+        });
+      }
+      if (String(err?.message || '') === 'UNSUPPORTED_VIDEO') {
+        return res.status(400).json({
+          ok: false,
+          code: 'UNSUPPORTED_VIDEO_TYPE',
+          message: 'Faqat MP4 / WebM / QuickTime (MOV) video yoki Content-Type noto‘g‘ri'
+        });
+      }
+      return res.status(400).json({
+        ok: false,
+        code: 'UPLOAD_REJECTED',
+        message: String(err?.message || 'Video yuklash rad etildi')
+      });
     }
     const f = req.file;
-    if (!f) return res.status(400).json({ ok: false, message: 'Video fayl kerak (maydon nomi: video)' });
+    if (!f) return res.status(400).json({ ok: false, code: 'VIDEO_REQUIRED', message: 'Video fayl kerak (maydon nomi: video)' });
     const baseName = path.basename(f.filename);
-    const mimeLower = String(f.mimetype || '').toLowerCase();
-    if (!ALLOWED_SHORTS_VIDEO_MIME.has(mimeLower)) {
+    const resolvedMime = resolveShortsUploadedContentType(f.path, f.mimetype);
+    if (!resolvedMime || !ALLOWED_SHORTS_VIDEO_MIME.has(resolvedMime)) {
       try {
         fs.unlinkSync(f.path);
       } catch (_) {}
-      return res.status(400).json({ ok: false, message: 'Faqat MP4 yoki WebM video yuklang' });
+      return res.status(400).json({
+        ok: false,
+        code: 'UNSUPPORTED_CONTAINER',
+        message: 'Video konteyner formati tanilmadi (MP4 / WebM / MOV kutilyapti)'
+      });
     }
 
     if (r2Service.shouldUseR2()) {
+      const pubDiag = r2Service.diagnoseR2PublicUrl();
+      if (!pubDiag.ok) {
+        try {
+          fs.unlinkSync(f.path);
+        } catch (_) {}
+        logStructured('error', 'admin_v2_media_video_r2_public_url', { code: pubDiag.code, detail: pubDiag.detail });
+        return res.status(500).json({
+          ok: false,
+          code: pubDiag.code || 'R2_PUBLIC_URL_INVALID',
+          message: pubDiag.message,
+          ...(pubDiag.detail ? { detail: pubDiag.detail } : {})
+        });
+      }
       try {
         const buf = fs.readFileSync(f.path);
         const key = r2Service.buildObjectKey('shorts', baseName);
-        const { url } = await r2Service.uploadToR2(buf, key, mimeLower);
+        const { url } = await r2Service.uploadToR2(buf, key, resolvedMime);
         try {
           fs.unlinkSync(f.path);
         } catch (_) {}
@@ -1286,8 +1394,19 @@ app.post('/api/v1/admin-v2/media/video', requireAdminV2, (req, res) => {
         try {
           fs.unlinkSync(f.path);
         } catch (_) {}
-        logStructured('error', 'admin_v2_media_video_r2_failed', { message: error?.message });
-        return res.status(500).json({ ok: false, message: 'Video saqlab bo‘lmadi' });
+        const described = r2Service.describeR2UploadFailure(error);
+        logStructured('error', 'admin_v2_media_video_r2_failed', {
+          code: described.code,
+          message: described.detail
+        });
+        const prod = process.env.NODE_ENV === 'production';
+        return res.status(502).json({
+          ok: false,
+          code: described.code,
+          message: 'R2 ga video yuklanmadi — sozlamalar yoki tarmoqni tekshiring',
+          ...(prod ? {} : { detail: described.detail }),
+          ...(described.hints.length ? { hints: described.hints } : {})
+        });
       }
     }
 
