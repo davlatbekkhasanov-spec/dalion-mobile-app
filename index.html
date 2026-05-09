@@ -1008,21 +1008,20 @@
 
     #shortsFeed.short-strip {
       gap: 14px;
-      padding: 4px 4px 12px;
+      padding: 2px 4px 6px;
+      margin-top: 4px;
+      margin-bottom: 6px;
       align-items: flex-start;
     }
-    #homeView .home-shorts-head {
-      margin: 2px 2px 6px;
-    }
     #homeView #shortsFeed.short-strip + .home-search-lg {
-      margin-top: 6px;
+      margin-top: 4px;
     }
     .short-reel-card {
       flex: 0 0 auto;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
+      gap: 4px;
       width: 84px;
       margin: 0;
       border: none;
@@ -1053,10 +1052,12 @@
       border: 2px solid rgba(8, 12, 22, 0.96);
       box-sizing: border-box;
     }
-    .short-reel-inner img {
+    .short-reel-inner .short-reel-media {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      display: block;
+      pointer-events: none;
     }
     .short-reel-play {
       font-size: 26px;
@@ -1072,8 +1073,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      color: #e8eefc;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+      color: #0f172a;
     }
     .reels-overlay {
       position: fixed;
@@ -1131,6 +1131,22 @@
       object-fit: contain;
       border-radius: 14px;
       background: #000;
+    }
+    #reelsStill {
+      flex: 1;
+      width: 100%;
+      max-height: min(88vh, 860px);
+      margin: auto 0;
+      object-fit: contain;
+      border-radius: 14px;
+      background: #000;
+      display: none;
+    }
+    .reels-overlay.reels-mode-still #reelsVideo {
+      display: none;
+    }
+    .reels-overlay.reels-mode-still #reelsStill {
+      display: block;
     }
     .reels-caption {
       color: rgba(248, 250, 252, 0.95);
@@ -2164,9 +2180,6 @@
           </div>
         </header>
 
-        <div class="section-head gm-section-header home-shorts-head">
-          <h4 id="shortsSectionTitle">Shorts</h4>
-        </div>
         <section class="home-scroll short-strip" id="shortsFeed"></section>
 
         <button class="search home-search-lg" id="openSearchBtn">Mahsulot qidirish...</button>
@@ -2421,6 +2434,7 @@ Oq fonli foto</div>
       <button type="button" class="reels-close" id="reelsCloseBtn" aria-label="Yopish">✕</button>
       <button type="button" class="reels-mute-btn" id="reelsMuteBtn" aria-pressed="true" aria-label="Ovozni yoqish yoki o‘chirish">🔇</button>
       <video id="reelsVideo" playsinline webkit-playsinline preload="metadata"></video>
+      <img id="reelsStill" alt="" decoding="async" />
       <div class="reels-caption" id="reelsCaption"></div>
     </div>
   </main>
@@ -2934,6 +2948,7 @@ Oq fonli foto</div>
     const shortsFeed = document.getElementById('shortsFeed');
     const reelsOverlay = document.getElementById('reelsOverlay');
     const reelsVideo = document.getElementById('reelsVideo');
+    const reelsStill = document.getElementById('reelsStill');
     const reelsCaption = document.getElementById('reelsCaption');
     const reelsCloseBtn = document.getElementById('reelsCloseBtn');
     const reelsMuteBtn = document.getElementById('reelsMuteBtn');
@@ -3029,6 +3044,63 @@ Oq fonli foto</div>
         .replace(/"/g, '&quot;');
     }
 
+    function shortMediaLooksLikeVideo(url) {
+      const u = String(url || '').trim().toLowerCase();
+      if (!u) return false;
+      if (/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(u)) return true;
+      if (u.includes('/uploads/shorts/')) return true;
+      return false;
+    }
+
+    function shortMediaLooksLikeImage(url) {
+      const u = String(url || '').trim().toLowerCase();
+      if (!u) return false;
+      return /\.(jpe?g|png|gif|webp|bmp|svg)(\?|#|$)/i.test(u);
+    }
+
+    function videoUrlWithThumbFragment(url) {
+      const u = String(url || '').trim();
+      if (!u) return u;
+      if (/#/.test(u)) return u;
+      return `${u}#t=0.1`;
+    }
+
+    function classifyShortMedia(item) {
+      const media = String(item?.media_url || '').trim();
+      const mime = String(item?.mime_type || item?.mimeType || '').toLowerCase();
+      if (mime.startsWith('video/')) return 'video';
+      if (mime.startsWith('image/')) return 'image';
+      if (shortMediaLooksLikeImage(media)) return 'image';
+      if (shortMediaLooksLikeVideo(media)) return 'video';
+      return 'unknown';
+    }
+
+    function buildShortStripInner(s) {
+      const thumb = String(s.thumbnail_url || '').trim();
+      const media = String(s.media_url || '').trim();
+      const kind = classifyShortMedia(s);
+
+      if (kind === 'image') {
+        const src = media || thumb;
+        if (src) return `<img class="short-reel-media" src="${escapeHtml(src)}" alt="" loading="lazy" />`;
+      } else if (kind === 'video' && media) {
+        if (thumb) {
+          return `<img class="short-reel-media" src="${escapeHtml(thumb)}" alt="" loading="lazy" />`;
+        }
+        const vsrc = escapeHtml(videoUrlWithThumbFragment(media));
+        return `<video class="short-reel-media" muted playsinline webkit-playsinline preload="metadata" src="${vsrc}" aria-hidden="true"></video>`;
+      } else {
+        if (thumb) return `<img class="short-reel-media" src="${escapeHtml(thumb)}" alt="" loading="lazy" />`;
+        if (media && shortMediaLooksLikeVideo(media)) {
+          const vsrc = escapeHtml(videoUrlWithThumbFragment(media));
+          return `<video class="short-reel-media" muted playsinline webkit-playsinline preload="metadata" src="${vsrc}" aria-hidden="true"></video>`;
+        }
+        if (media) return `<img class="short-reel-media" src="${escapeHtml(media)}" alt="" loading="lazy" />`;
+      }
+
+      return `<span class="short-reel-play" aria-hidden="true">▶</span>`;
+    }
+
     function syncReelsMuteButton() {
       if (!reelsMuteBtn || !reelsVideo) return;
       const muted = reelsVideo.muted;
@@ -3037,24 +3109,50 @@ Oq fonli foto</div>
     }
 
     function openReelsViewer(shortItem) {
-      if (!reelsOverlay || !reelsVideo) return;
-      const url = String(shortItem?.media_url || '').trim();
-      if (!url) return;
+      if (!reelsOverlay) return;
+      const rawUrl = String(shortItem?.media_url || '').trim();
+      if (!rawUrl) return;
       const capParts = [
         String(shortItem?.title || '').trim(),
         String(shortItem?.caption || shortItem?.subtitle || '').trim()
       ].filter(Boolean);
       reelsCaption.textContent = capParts.join(' · ');
+      const kind = classifyShortMedia(shortItem);
+
+      if (kind === 'image' && reelsStill) {
+        if (reelsVideo) {
+          reelsVideo.pause();
+          reelsVideo.removeAttribute('src');
+          reelsVideo.removeAttribute('poster');
+          reelsVideo.load();
+        }
+        reelsStill.src = rawUrl;
+        reelsOverlay.classList.add('reels-mode-still');
+        if (reelsMuteBtn) reelsMuteBtn.style.visibility = 'hidden';
+        reelsOverlay.classList.add('open');
+        reelsOverlay.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        return;
+      }
+
+      if (reelsStill) {
+        reelsStill.removeAttribute('src');
+      }
+      reelsOverlay.classList.remove('reels-mode-still');
+      if (reelsMuteBtn) reelsMuteBtn.style.visibility = '';
+
+      if (!reelsVideo) return;
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const playUrl = rawUrl.replace(/#.*$/, '');
       reelsVideo.pause();
       reelsVideo.removeAttribute('src');
       reelsVideo.load();
-      reelsVideo.src = url;
+      reelsVideo.src = playUrl;
       const poster = String(shortItem?.thumbnail_url || '').trim();
       if (poster) reelsVideo.setAttribute('poster', poster);
       else reelsVideo.removeAttribute('poster');
       reelsVideo.muted = true;
       reelsVideo.playsInline = true;
-      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       reelsOverlay.classList.add('open');
       reelsOverlay.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
@@ -3067,13 +3165,18 @@ Oq fonli foto</div>
     }
 
     function closeReelsViewer() {
-      if (!reelsOverlay || !reelsVideo) return;
+      if (!reelsOverlay) return;
       reelsOverlay.classList.remove('open');
       reelsOverlay.setAttribute('aria-hidden', 'true');
-      reelsVideo.pause();
-      reelsVideo.removeAttribute('src');
-      reelsVideo.removeAttribute('poster');
-      reelsVideo.load();
+      reelsOverlay.classList.remove('reels-mode-still');
+      if (reelsMuteBtn) reelsMuteBtn.style.visibility = '';
+      if (reelsVideo) {
+        reelsVideo.pause();
+        reelsVideo.removeAttribute('src');
+        reelsVideo.removeAttribute('poster');
+        reelsVideo.load();
+      }
+      if (reelsStill) reelsStill.removeAttribute('src');
       reelsCaption.textContent = '';
       document.body.style.overflow = '';
       reelsTouchY0 = null;
@@ -3504,7 +3607,6 @@ Oq fonli foto</div>
       document.querySelector('#profileView .title').textContent = t('profile');
       document.querySelector('#checkoutView .title').textContent = t('checkout');
       document.getElementById('notificationsTitle').textContent = t('notifications');
-      document.getElementById('shortsSectionTitle').textContent = t('shorts');
       document.getElementById('searchInput').placeholder = t('search');
       document.getElementById('searchClearBtn').setAttribute('aria-label', t('searchClear'));
       document.getElementById('homeAllCategoriesLink').textContent = t('homeAll');
@@ -4118,18 +4220,11 @@ Oq fonli foto</div>
       const shorts = homePayload?.shorts || [];
       shortsFeed.innerHTML = shorts
         .map((s) => {
-          const thumb = String(s.thumbnail_url || '').trim();
-          const media = String(s.media_url || '').trim();
-          const looksLikeVideo =
-            /\.(mp4|webm)(\?|#|$)/i.test(media) || media.includes('/uploads/shorts/');
-          const imgSrc = thumb || (!looksLikeVideo ? media : '');
           const title = String(s.title || '').trim();
           const label = escapeHtml(title);
           const aria = escapeHtml(title || 'Short');
           const sid = escapeHtml(s.id);
-          const inner = imgSrc
-            ? `<img src="${escapeHtml(imgSrc)}" alt="" loading="lazy" />`
-            : `<span class="short-reel-play" aria-hidden="true">▶</span>`;
+          const inner = buildShortStripInner(s);
           return `
         <button type="button" class="short-reel-card" data-short-id="${sid}" aria-label="${aria}">
           <div class="short-reel-ring"><div class="short-reel-inner">${inner}</div></div>
