@@ -3983,6 +3983,7 @@ Oq fonli foto</div>
 
     function initIntroAmbientPlayer() {
       const INTRO_AMBIENT_LS_PLAYING = 'gm_intro_ambient_playing';
+      const LOCAL_AMBIENT_SRC = '/uploads/ambient/ambient-local-safe.wav';
       const INTRO_AMBIENT_LS_TRACK = 'gm_intro_ambient_track_ix';
       const INTRO_AMBIENT_TRACK_CANDIDATES = [
         { src: '/uploads/ambient/ambient-local-safe.wav', label: 'local-safe', local: true },
@@ -4000,6 +4001,143 @@ Oq fonli foto</div>
       const debugStatus = document.getElementById('ambientDebugStatus');
       const toggleButtons = Array.from(document.querySelectorAll('#homeAmbientToggle, #introAmbientToggle, [data-ambient-toggle]'));
       if (!audio || !toggleButtons.length) return;
+      {
+
+      let miniHideTimer = null;
+      let longPressTimer = null;
+      let longPressHold = false;
+      let skipToggleClick = false;
+
+      audio.src = LOCAL_AMBIENT_SRC;
+      audio.preload = 'auto';
+      audio.loop = true;
+      audio.playsInline = true;
+      audio.setAttribute('playsinline', '');
+      audio.setAttribute('webkit-playsinline', '');
+      audio.muted = false;
+      audio.defaultMuted = false;
+      audio.volume = 0.85;
+      audio.pause();
+
+      if (debugStatus) {
+        debugStatus.classList.remove('visible');
+        debugStatus.setAttribute('aria-hidden', 'true');
+      }
+
+      syncAmbientChrome = () => {
+        const playing = !audio.paused;
+        const labelPlay = t('introAmbientPlayAria');
+        const labelPause = t('introAmbientPauseAria');
+        const icon = playing
+          ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
+          : '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
+        toggleButtons.forEach((btn) => {
+          const dotClass = playing ? 'ambient-state-dot is-on' : 'ambient-state-dot';
+          btn.innerHTML = `${icon}<span class="${dotClass}" aria-hidden="true"></span>`;
+          btn.setAttribute('aria-label', playing ? labelPause : labelPlay);
+          btn.setAttribute('aria-pressed', playing ? 'true' : 'false');
+        });
+        if (prevBtn) prevBtn.setAttribute('aria-label', t('introAmbientPrevAria'));
+        if (nextBtn) nextBtn.setAttribute('aria-label', t('introAmbientNextAria'));
+        if (mini) mini.setAttribute('aria-label', t('introAmbientToolbarAria'));
+      };
+
+      function hideMiniBar() {
+        mini?.classList.remove('visible');
+        if (mini) mini.setAttribute('aria-hidden', 'true');
+        if (miniHideTimer) clearTimeout(miniHideTimer);
+        miniHideTimer = null;
+      }
+
+      function scheduleMiniHide() {
+        if (miniHideTimer) clearTimeout(miniHideTimer);
+        miniHideTimer = setTimeout(() => hideMiniBar(), 5000);
+      }
+
+      function showMiniBar() {
+        mini?.classList.add('visible');
+        mini?.setAttribute('aria-hidden', 'false');
+        scheduleMiniHide();
+      }
+
+      function bumpMiniActivity() {
+        if (mini?.classList.contains('visible')) scheduleMiniHide();
+      }
+
+      async function togglePlayback() {
+        if (audio.paused) {
+          try {
+            await audio.play();
+            localStorage.setItem(INTRO_AMBIENT_LS_PLAYING, '1');
+          } catch {
+            localStorage.setItem(INTRO_AMBIENT_LS_PLAYING, '0');
+          }
+        } else {
+          audio.pause();
+          localStorage.setItem(INTRO_AMBIENT_LS_PLAYING, '0');
+        }
+        syncAmbientChrome();
+      }
+
+      function bindAmbientToggle(btn) {
+        if (!btn || btn.dataset.ambientBound === '1') return;
+        btn.dataset.ambientBound = '1';
+        btn.addEventListener('pointerdown', () => {
+          longPressHold = false;
+          longPressTimer = window.setTimeout(() => {
+            longPressHold = true;
+            showMiniBar();
+          }, 480);
+        });
+        btn.addEventListener('pointerup', () => {
+          window.clearTimeout(longPressTimer);
+          if (longPressHold) {
+            skipToggleClick = true;
+            longPressHold = false;
+          }
+        });
+        btn.addEventListener('pointercancel', () => window.clearTimeout(longPressTimer));
+        btn.addEventListener('pointerleave', () => window.clearTimeout(longPressTimer));
+        btn.addEventListener('click', async (e) => {
+          if (skipToggleClick) {
+            skipToggleClick = false;
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+          await togglePlayback();
+        });
+      }
+
+      toggleButtons.forEach(bindAmbientToggle);
+
+      if (prevBtn) {
+        prevBtn.disabled = true;
+        prevBtn.addEventListener('click', bumpMiniActivity);
+      }
+      if (nextBtn) {
+        nextBtn.disabled = true;
+        nextBtn.addEventListener('click', bumpMiniActivity);
+      }
+      mini?.addEventListener('pointerdown', bumpMiniActivity);
+
+      audio.addEventListener('playing', () => {
+        localStorage.setItem(INTRO_AMBIENT_LS_PLAYING, '1');
+        syncAmbientChrome();
+      });
+      audio.addEventListener('pause', () => {
+        localStorage.setItem(INTRO_AMBIENT_LS_PLAYING, '0');
+        syncAmbientChrome();
+      });
+      audio.addEventListener('error', () => {
+        localStorage.setItem(INTRO_AMBIENT_LS_PLAYING, '0');
+        syncAmbientChrome();
+      });
+
+      hideMiniBar();
+      syncAmbientChrome();
+      }
+      return;
 
       const embeddedFallbackTrack = {
         src: buildEmbeddedAmbientWav(7.5),
