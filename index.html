@@ -165,6 +165,20 @@
     .intro-music-toggle:active{transform:scale(.94)}
     .intro-music-toggle:focus-visible{outline:2px solid rgba(127,213,255,.55);outline-offset:2px}
     .intro-music-toggle svg{width:15px;height:15px;display:block;opacity:.92}
+    #homeAmbientToggle,
+    #introAmbientToggle,
+    [data-ambient-toggle]{position:relative}
+    .ambient-state-dot{
+      position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:999px;
+      background:#6cf79f;box-shadow:0 0 0 0 rgba(108,247,159,.55);opacity:.18;
+      transform:scale(.72);transition:opacity .2s ease,transform .2s ease;pointer-events:none;
+    }
+    .ambient-state-dot.is-on{opacity:1;transform:scale(1);animation:ambientDotPulse 1.35s ease-in-out infinite}
+    @keyframes ambientDotPulse{
+      0%{box-shadow:0 0 0 0 rgba(108,247,159,.55)}
+      70%{box-shadow:0 0 0 7px rgba(108,247,159,0)}
+      100%{box-shadow:0 0 0 0 rgba(108,247,159,0)}
+    }
     .intro-music-toggle--sheet{
       border-color:rgba(29,36,64,.14);background:rgba(255,255,255,.94);color:#344054;
       box-shadow:0 2px 10px rgba(17,24,39,.08);width:34px;height:34px;
@@ -2027,6 +2041,7 @@
             <button class="bell gm-icon-btn" aria-label="Bildirishnomalar" id="homeBellBtn">🔔<span class="badge gm-chip gm-chip--warning" id="homeBellBadge">0</span></button>
             <button type="button" class="gm-icon-btn" id="homeAmbientToggle" aria-label="Ambient music" aria-pressed="false">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+              <span class="ambient-state-dot" aria-hidden="true"></span>
             </button>
           </div>
         </header>
@@ -3962,8 +3977,9 @@ Oq fonli foto</div>
       let skipToggleClick = false;
       let errorSkipDepth = 0;
       let userActivatedAudio = false;
+      let playedUnlockChirp = false;
       let fallbackCtx = null;
-      let fallbackOsc = null;
+      let fallbackLoopSource = null;
       let fallbackGain = null;
       let fallbackEnabled = false;
 
@@ -3971,6 +3987,7 @@ Oq fonli foto</div>
       audio.preload = 'auto';
       audio.playsInline = true;
       audio.setAttribute('playsinline', '');
+      audio.setAttribute('webkit-playsinline', '');
       audio.muted = false;
       audio.defaultMuted = false;
       audio.volume = 0.85;
@@ -4037,6 +4054,29 @@ Oq fonli foto</div>
         if (ctx && ctx.state === 'suspended') {
           try { await ctx.resume(); } catch {}
         }
+        audio.muted = false;
+        audio.defaultMuted = false;
+        if (audio.volume < 0.6) audio.volume = 0.85;
+      }
+
+      function playUnlockChirp() {
+        const ctx = ensureFallbackCtx();
+        if (!ctx) return false;
+        const now = ctx.currentTime + 0.01;
+        const chirpGain = ctx.createGain();
+        const chirpOsc = ctx.createOscillator();
+        chirpOsc.type = 'triangle';
+        chirpOsc.frequency.setValueAtTime(740, now);
+        chirpOsc.frequency.exponentialRampToValueAtTime(1180, now + 0.12);
+        chirpOsc.frequency.exponentialRampToValueAtTime(940, now + 0.2);
+        chirpGain.gain.setValueAtTime(0.0001, now);
+        chirpGain.gain.exponentialRampToValueAtTime(0.16, now + 0.018);
+        chirpGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.23);
+        chirpOsc.connect(chirpGain);
+        chirpGain.connect(ctx.destination);
+        chirpOsc.start(now);
+        chirpOsc.stop(now + 0.24);
+        return true;
       }
 
       async function startFallbackTone() {
@@ -4049,15 +4089,34 @@ Oq fonli foto</div>
             return false;
           }
         }
-        if (!fallbackOsc || !fallbackGain) {
-          fallbackOsc = ctx.createOscillator();
+        if (!fallbackLoopSource || !fallbackGain) {
+          const durationSec = 3.2;
+          const sampleRate = ctx.sampleRate;
+          const sampleFrames = Math.floor(durationSec * sampleRate);
+          const buffer = ctx.createBuffer(1, sampleFrames, sampleRate);
+          const samples = buffer.getChannelData(0);
+          let smoothNoise = 0;
+          for (let i = 0; i < sampleFrames; i += 1) {
+            const tSec = i / sampleRate;
+            const white = Math.random() * 2 - 1;
+            smoothNoise = smoothNoise * 0.985 + white * 0.015;
+            const pad = (
+              Math.sin(2 * Math.PI * 146 * tSec) * 0.32 +
+              Math.sin(2 * Math.PI * 196 * tSec) * 0.23 +
+              Math.sin(2 * Math.PI * 246 * tSec) * 0.18
+            );
+            const pulse = 0.78 + Math.sin(2 * Math.PI * 0.15 * tSec) * 0.22;
+            samples[i] = Math.max(-1, Math.min(1, (smoothNoise * 0.36 + pad * 0.28) * pulse));
+          }
+          fallbackLoopSource = ctx.createBufferSource();
+          fallbackLoopSource.buffer = buffer;
+          fallbackLoopSource.loop = true;
           fallbackGain = ctx.createGain();
-          fallbackOsc.type = 'sine';
-          fallbackOsc.frequency.value = 196;
-          fallbackGain.gain.value = 0.018;
-          fallbackOsc.connect(fallbackGain);
+          fallbackGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+          fallbackGain.gain.exponentialRampToValueAtTime(0.05, ctx.currentTime + 0.34);
+          fallbackLoopSource.connect(fallbackGain);
           fallbackGain.connect(ctx.destination);
-          fallbackOsc.start();
+          fallbackLoopSource.start();
         }
         fallbackEnabled = true;
         return true;
@@ -4065,12 +4124,12 @@ Oq fonli foto</div>
 
       function stopFallbackTone() {
         fallbackEnabled = false;
-        if (fallbackOsc) {
-          fallbackOsc.stop();
-          fallbackOsc.disconnect();
+        if (fallbackLoopSource) {
+          fallbackLoopSource.stop();
+          fallbackLoopSource.disconnect();
         }
         if (fallbackGain) fallbackGain.disconnect();
-        fallbackOsc = null;
+        fallbackLoopSource = null;
         fallbackGain = null;
       }
 
@@ -4103,7 +4162,8 @@ Oq fonli foto</div>
           ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
           : '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
         toggleButtons.forEach((btn) => {
-          btn.innerHTML = icon;
+          const dotClass = playing ? 'ambient-state-dot is-on' : 'ambient-state-dot';
+          btn.innerHTML = `${icon}<span class="${dotClass}" aria-hidden="true"></span>`;
           btn.setAttribute('aria-label', playing ? labelPause : labelPlay);
           btn.setAttribute('aria-pressed', playing ? 'true' : 'false');
         });
@@ -4182,6 +4242,10 @@ Oq fonli foto</div>
       async function togglePlayback() {
         await unlockAudioPipelines();
         if (audio.paused && !fallbackEnabled) {
+          if (!playedUnlockChirp) {
+            playUnlockChirp();
+            playedUnlockChirp = true;
+          }
           let played = await tryPlayCurrentTrack();
           if (!played) {
             played = await tryAdvanceOnError(true);
@@ -4270,6 +4334,7 @@ Oq fonli foto</div>
       toggleButtons.forEach(bindAmbientToggle);
       prevBtn?.addEventListener('click', async () => {
         bumpMiniActivity();
+        await unlockAudioPipelines();
         const wasPlaying = !audio.paused || fallbackEnabled;
         stopFallbackTone();
         loadTrack(-1);
@@ -4279,6 +4344,7 @@ Oq fonli foto</div>
 
       nextBtn?.addEventListener('click', async () => {
         bumpMiniActivity();
+        await unlockAudioPipelines();
         const wasPlaying = !audio.paused || fallbackEnabled;
         stopFallbackTone();
         loadTrack(1);
