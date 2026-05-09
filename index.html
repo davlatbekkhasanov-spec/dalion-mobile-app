@@ -205,19 +205,18 @@
     .intro-music-mini button:active{transform:scale(.92)}
     .ambient-debug-status{
       position:fixed;
-      left:50%;
-      top:calc(var(--safe-top) + 8px);
-      transform:translateX(-50%);
+      right:calc(var(--safe-right) + 8px);
+      top:calc(var(--safe-top) + 46px);
       z-index:120;
-      max-width:min(92vw, 360px);
-      padding:6px 10px;
-      border-radius:10px;
+      max-width:min(70vw, 260px);
+      padding:4px 8px;
+      border-radius:999px;
       border:1px solid rgba(255,255,255,.16);
-      background:rgba(7,12,22,.84);
+      background:rgba(7,12,22,.78);
       color:#dbe8ff;
-      font-size:11px;
-      line-height:1.2;
-      letter-spacing:.1px;
+      font-size:10px;
+      line-height:1.15;
+      letter-spacing:.08px;
       backdrop-filter:blur(8px);
       -webkit-backdrop-filter:blur(8px);
       opacity:0;
@@ -226,6 +225,7 @@
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+      text-align:right;
     }
     .ambient-debug-status.visible{opacity:1}
     .cinematic-main{flex:1;display:flex;flex-direction:column;align-items:center;width:100%;padding-top:clamp(22px,5vh,40px);padding-bottom:clamp(18px,7vh,64px)}
@@ -3425,6 +3425,13 @@ Oq fonli foto</div>
         toastAmbientSourceMissing: "Musiqa fayli topilmadi, boshqa manbaga o'tildi",
         toastAmbientPlayFail: "Musiqani yoqib bo'lmadi. Internetni tekshirib qayta urinib ko'ring",
         toastAmbientNoSources: "Musiqa manbasi topilmadi, faqat zaxira tovush ishlaydi",
+        toastAmbientDeviceHint: "Ovoz chiqmasa, iltimos telefon ovozi va silent rejimni tekshiring",
+        audioCheckLabel: 'Audio check',
+        audioCheckTapReceived: 'bosish qabul qilindi',
+        audioCheckContextRunning: 'audio kontekst ishlamoqda',
+        audioCheckTonePlayed: 'test tovush chalindi',
+        audioCheckAmbientRunning: 'fon musiqa ishlamoqda',
+        audioCheckBlocked: 'brauzer/qurilma blokladi',
         validationAuthFirst: "Avval ro'yxatdan o'ting",
         validationPaymentPick: "To'lov turini tanlang",
         validationAddressRequired: "Manzilni kiriting yoki lokatsiyani yoqing",
@@ -3652,6 +3659,13 @@ Oq fonli foto</div>
         toastAmbientSourceMissing: 'Музыкальный файл недоступен, переключили источник',
         toastAmbientPlayFail: 'Не удалось включить музыку. Проверьте интернет и повторите',
         toastAmbientNoSources: 'Источники музыки недоступны, работает только резервный звук',
+        toastAmbientDeviceHint: 'Если звука нет, проверьте громкость телефона и беззвучный режим',
+        audioCheckLabel: 'Проверка аудио',
+        audioCheckTapReceived: 'нажатие получено',
+        audioCheckContextRunning: 'аудиоконтекст активен',
+        audioCheckTonePlayed: 'тестовый звук проигран',
+        audioCheckAmbientRunning: 'фоновый звук работает',
+        audioCheckBlocked: 'заблокировано браузером/устройством',
         validationAuthFirst: 'Сначала зарегистрируйтесь',
         validationPaymentPick: 'Выберите способ оплаты',
         validationAddressRequired: 'Введите адрес или включите геолокацию',
@@ -4010,6 +4024,8 @@ Oq fonli foto</div>
       let fallbackGain = null;
       let fallbackEnabled = false;
       let audioNeedsUnlock = false;
+      let hasPlayedEmergencyCheck = false;
+      let blockedPlayAttempts = 0;
       let debugTimer = null;
 
       audio.crossOrigin = 'anonymous';
@@ -4069,14 +4085,15 @@ Oq fonli foto</div>
         localStorage.setItem(INTRO_AMBIENT_LS_TRACK, String(trackIndex));
       }
 
-      function setDebugStatus(message) {
+      function setDebugStatus(statusKey) {
         if (!debugStatus) return;
-        debugStatus.textContent = `Audio: ${message}`;
+        const text = t(statusKey) || statusKey;
+        debugStatus.textContent = `${t('audioCheckLabel')}: ${text}`;
         debugStatus.classList.add('visible');
         if (debugTimer) clearTimeout(debugTimer);
         debugTimer = setTimeout(() => {
           debugStatus.classList.remove('visible');
-        }, 2600);
+        }, 3200);
       }
 
       function ensureFallbackCtx(createIfNeeded = false) {
@@ -4090,7 +4107,7 @@ Oq fonli foto</div>
           if (state === 'interrupted' || state === 'suspended') {
             audioNeedsUnlock = true;
           }
-          setDebugStatus(`ctx state ${state}`);
+          if (state === 'running') setDebugStatus('audioCheckContextRunning');
         };
         return fallbackCtx;
       }
@@ -4102,18 +4119,18 @@ Oq fonli foto</div>
           try {
             await ctx.resume();
             audioNeedsUnlock = false;
-            setDebugStatus('audio context resume ok');
+            setDebugStatus('audioCheckContextRunning');
           } catch (error) {
             audioNeedsUnlock = true;
-            setDebugStatus(`audio context resume fail (${String(error?.name || 'Error')})`);
+            setDebugStatus('audioCheckBlocked');
           }
         } else if (ctx) {
           audioNeedsUnlock = false;
-          setDebugStatus('audio context already running');
+          setDebugStatus('audioCheckContextRunning');
         }
         audio.muted = false;
         audio.defaultMuted = false;
-        if (audio.volume < 0.6) audio.volume = 0.85;
+        if (audio.volume < 0.64) audio.volume = 0.88;
       }
 
       function playUnlockChirp() {
@@ -4133,6 +4150,43 @@ Oq fonli foto</div>
         chirpGain.connect(ctx.destination);
         chirpOsc.start(now);
         chirpOsc.stop(now + 0.24);
+        return true;
+      }
+
+      async function playEmergencyTestSequence() {
+        const ctx = ensureFallbackCtx(true);
+        if (!ctx) return false;
+        if (ctx.state === 'suspended') {
+          try {
+            await ctx.resume();
+          } catch {
+            return false;
+          }
+        }
+        const startAt = ctx.currentTime + 0.03;
+        const notes = [
+          { freq: 880, duration: 0.16, level: 0.2 },
+          { freq: 1240, duration: 0.16, level: 0.23 },
+          { freq: 988, duration: 0.22, level: 0.24 }
+        ];
+        let cursor = startAt;
+        notes.forEach((note) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(note.freq, cursor);
+          gain.gain.setValueAtTime(0.0001, cursor);
+          gain.gain.linearRampToValueAtTime(note.level, cursor + 0.018);
+          gain.gain.exponentialRampToValueAtTime(0.0001, cursor + note.duration);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(cursor);
+          osc.stop(cursor + note.duration + 0.01);
+          cursor += note.duration + 0.085;
+        });
+        const waitMs = Math.max(220, Math.round((cursor - startAt + 0.08) * 1000));
+        await new Promise((resolve) => window.setTimeout(resolve, waitMs));
+        setDebugStatus('audioCheckTonePlayed');
         return true;
       }
 
@@ -4172,13 +4226,13 @@ Oq fonli foto</div>
           fallbackLoopSource.loop = true;
           fallbackGain = ctx.createGain();
           fallbackGain.gain.setValueAtTime(0.0001, ctx.currentTime);
-          fallbackGain.gain.exponentialRampToValueAtTime(0.05, ctx.currentTime + 0.34);
+          fallbackGain.gain.exponentialRampToValueAtTime(0.085, ctx.currentTime + 0.34);
           fallbackLoopSource.connect(fallbackGain);
           fallbackGain.connect(ctx.destination);
           fallbackLoopSource.start();
         }
         fallbackEnabled = true;
-        setDebugStatus('fallback generator started');
+        setDebugStatus('audioCheckAmbientRunning');
         return true;
       }
 
@@ -4198,6 +4252,14 @@ Oq fonli foto</div>
         if (name === 'NotAllowedError') return t('toastAmbientGestureRequired');
         if (name === 'NotSupportedError') return t('toastAmbientSourceMissing');
         return t('toastAmbientPlayFail');
+      }
+
+      function markBlockedPlayback() {
+        blockedPlayAttempts += 1;
+        setDebugStatus('audioCheckBlocked');
+        if (blockedPlayAttempts >= 2) {
+          showToast(t('toastAmbientDeviceHint'));
+        }
       }
 
       function currentTrack() {
@@ -4267,10 +4329,11 @@ Oq fonli foto</div>
         audio.defaultMuted = false;
         try {
           await audio.play();
-          setDebugStatus('html audio play ok');
+          blockedPlayAttempts = 0;
+          setDebugStatus('audioCheckAmbientRunning');
           return true;
         } catch (error) {
-          setDebugStatus(`html audio play fail (${String(error?.name || 'Error')})`);
+          markBlockedPlayback();
           if (String(error?.name || '') === 'NotAllowedError') persistPlaying(false);
           showToast(classifyPlaybackError(error));
           return false;
@@ -4304,13 +4367,24 @@ Oq fonli foto</div>
       async function togglePlayback() {
         await unlockAudioPipelines();
         if (audio.paused && !fallbackEnabled) {
-          setDebugStatus('button tap received');
+          setDebugStatus('audioCheckTapReceived');
           if (!playedUnlockChirp) {
             playUnlockChirp();
             playedUnlockChirp = true;
           }
+          if (!hasPlayedEmergencyCheck) {
+            const testPlayed = await playEmergencyTestSequence();
+            if (!testPlayed) {
+              markBlockedPlayback();
+              persistPlaying(false);
+              syncAmbientChrome();
+              return;
+            }
+            hasPlayedEmergencyCheck = true;
+          }
           let played = await startFallbackTone();
           if (!played) {
+            markBlockedPlayback();
             persistPlaying(false);
             syncAmbientChrome();
             return;
@@ -4336,7 +4410,7 @@ Oq fonli foto</div>
         if (!btn || btn.dataset.ambientBound === '1') return;
         btn.dataset.ambientBound = '1';
         btn.addEventListener('pointerdown', () => {
-          setDebugStatus('button tap received');
+          setDebugStatus('audioCheckTapReceived');
           longPressHold = false;
           longPressTimer = window.setTimeout(() => {
             longPressHold = true;
@@ -4381,7 +4455,7 @@ Oq fonli foto</div>
       });
 
       audio.addEventListener('error', async () => {
-        setDebugStatus('html audio error event');
+        setDebugStatus('audioCheckBlocked');
         const wantResume = !audio.paused || localStorage.getItem(INTRO_AMBIENT_LS_PLAYING) === '1';
         await tryAdvanceOnError(wantResume);
       });
@@ -4424,7 +4498,8 @@ Oq fonli foto</div>
       }
       trackIndex = Math.min(tracks.length - 1, Math.max(0, trackIndex));
       loadTrack(0);
-      setDebugStatus('audio standby');
+      setDebugStatus('audioCheckTapReceived');
+      if (debugStatus) debugStatus.classList.remove('visible');
       syncAmbientChrome();
     }
 
