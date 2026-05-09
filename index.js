@@ -721,12 +721,17 @@ app.get('/api/v1/products', (req, res) => {
 
 app.put('/api/v1/profile', (req, res) => {
   const phone = normalizePhone(req.body.phone);
-  const name = String(req.body.name || '').trim();
+  const firstNameRaw = req.body.firstName !== undefined ? String(req.body.firstName || '').trim() : '';
+  const lastNameRaw = req.body.lastName !== undefined ? String(req.body.lastName || '').trim() : '';
+  const combinedName = `${firstNameRaw} ${lastNameRaw}`.trim();
+  const name = String(req.body.name || combinedName || '').trim();
   if (!phone || !name) {
     return res.status(400).json({ ok: false, message: 'Name va phone majburiy' });
   }
   const now = nowIso();
   const existingProfile = db.profiles[phone] || {};
+  const firstName = firstNameRaw || existingProfile.firstName || '';
+  const lastName = lastNameRaw || existingProfile.lastName || '';
   const consentChecked = req.body.biometricConsent === true;
   const consentAtRaw = req.body.biometricConsentAt;
   const selfieRaw = req.body.biometricSelfieDataUrl;
@@ -777,6 +782,8 @@ app.put('/api/v1/profile', (req, res) => {
     ...existingProfile,
     phone,
     name,
+    firstName,
+    lastName,
     address: nextAddress,
     updatedAt: now,
     biometric

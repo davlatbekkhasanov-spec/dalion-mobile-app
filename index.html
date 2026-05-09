@@ -1164,17 +1164,54 @@
       left: 0;
       right: 0;
       width: calc(100% - 24px);
-      max-width: 372px;
+      max-width: 388px;
       margin: 0 auto;
       bottom: 12px;
       border: 1px solid rgba(201, 216, 244, 0.9);
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(243, 247, 255, 0.98));
-      border-radius: 18px;
-      padding: 14px;
+      background:
+        radial-gradient(120% 80% at 0% 0%, rgba(91, 76, 255, 0.07), rgba(91, 76, 255, 0) 55%),
+        radial-gradient(120% 80% at 100% 0%, rgba(37, 244, 143, 0.06), rgba(37, 244, 143, 0) 55%),
+        linear-gradient(180deg, #ffffff 0%, #f6f8ff 100%);
+      border-radius: 22px;
+      padding: 18px 16px 16px;
       transform: translateY(120%);
       transition: transform 220ms ease;
-      box-shadow: 0 18px 34px rgba(20, 30, 49, 0.14);
+      box-shadow: 0 22px 42px rgba(20, 30, 49, 0.18);
+      overflow: hidden;
+      isolation: isolate;
     }
+
+    .auth-sheet-aurora {
+      position: absolute;
+      inset: -1px;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 70%, rgba(91, 76, 255, 0.04) 100%);
+      z-index: 0;
+    }
+    .auth-sheet-glow {
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      filter: blur(48px);
+      opacity: 0.55;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .auth-sheet-glow--a {
+      top: -80px;
+      left: -50px;
+      background: radial-gradient(circle, rgba(91, 76, 255, 0.55), rgba(91, 76, 255, 0) 70%);
+    }
+    .auth-sheet-glow--b {
+      top: -60px;
+      right: -60px;
+      width: 160px;
+      height: 160px;
+      background: radial-gradient(circle, rgba(37, 244, 143, 0.45), rgba(37, 244, 143, 0) 70%);
+    }
+    .auth-sheet > *:not(.auth-sheet-aurora):not(.auth-sheet-glow) { position: relative; z-index: 1; }
 
     .auth-sheet-overlay.show .auth-sheet {
       transform: translateY(0);
@@ -1199,31 +1236,69 @@
       cursor: pointer;
     }
 
+    .auth-name-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .auth-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+    .auth-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #5b6478;
+      padding-left: 2px;
+    }
+
     .auth-input {
       width: 100%;
       background: #ffffff;
-      border: 1px solid #d0d5dd;
+      border: 1px solid #d6dae6;
       border-radius: 14px;
       color: #1d2440;
       padding: 13px 14px;
       font-size: 16px;
-      margin-top: 10px;
       outline: none;
       transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
     }
 
     .auth-input:focus {
-      border-color: rgba(94, 250, 179, 0.7);
-      box-shadow: 0 0 0 3px rgba(77, 226, 157, 0.18);
+      border-color: #5b4cff;
+      box-shadow: 0 0 0 3px rgba(91, 76, 255, 0.16);
     }
 
     .auth-input.is-invalid {
-      border-color: rgba(255, 122, 138, 0.85);
-      box-shadow: 0 0 0 3px rgba(255, 122, 138, 0.15);
+      border-color: #ef4f64;
+      box-shadow: 0 0 0 3px rgba(239, 79, 100, 0.14);
     }
 
     .auth-input.is-valid {
-      border-color: rgba(94, 250, 179, 0.7);
+      border-color: #25c987;
+      box-shadow: 0 0 0 3px rgba(37, 201, 135, 0.12);
+    }
+
+    .auth-otp-input {
+      letter-spacing: 0.45em;
+      text-align: center;
+      font-weight: 700;
+      font-size: 22px;
+      padding: 14px 12px;
+      font-variant-numeric: tabular-nums;
+    }
+    .auth-otp-input::placeholder { color: #c8cdd8; letter-spacing: 0.45em; }
+
+    .auth-send-btn { width: 100%; min-height: 52px; border-radius: 14px; font-weight: 700; }
+    .auth-consent-foot {
+      display: block;
+      margin-top: 10px;
+      font-size: 11.5px;
+      line-height: 1.4;
+      color: #6b7587;
+      text-align: center;
     }
 
     .auth-hint {
@@ -1244,59 +1319,24 @@
 
     .auth-error.show { display: block; }
 
-    .auth-trust {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 6px;
-      margin: 12px 0 4px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid #d6e1f4;
-      background: linear-gradient(145deg, rgba(244, 248, 255, 0.96), rgba(237, 244, 255, 0.98));
-    }
-
-    .auth-trust-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12.5px;
-      line-height: 1.35;
-      color: #334155;
-    }
-
-    .auth-trust-item .auth-trust-icon {
-      flex: 0 0 22px;
-      width: 22px;
-      height: 22px;
-      border-radius: 8px;
-      display: grid;
-      place-items: center;
-      font-size: 13px;
-      background: linear-gradient(140deg, rgba(91, 76, 255, 0.1), rgba(111, 173, 255, 0.18));
-      border: 1px solid rgba(111, 173, 255, 0.35);
-    }
-
-    .auth-trust-item strong { color: #1d2440; font-weight: 700; }
-    .auth-consent {
-      margin-top: 10px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid #d6e1f4;
-      background: linear-gradient(150deg, rgba(245, 249, 255, 0.95), rgba(236, 244, 255, 0.97));
-      font-size: 12px;
-      line-height: 1.45;
-      color: #344054;
-    }
-    .auth-consent-check { display: flex; gap: 8px; align-items: flex-start; margin-top: 8px; font-size: 12px; color: #344054; }
-    .auth-consent-check input { margin-top: 2px; accent-color: #53f5a9; }
     .auth-sms-card {
-      margin-top: 10px;
-      border: 1px solid #cfddf4;
-      border-radius: 12px;
-      background: linear-gradient(145deg, rgba(247, 251, 255, 0.98), rgba(238, 246, 255, 0.98));
-      padding: 10px;
+      margin-top: 14px;
+      border: 1px solid #d8def0;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(247, 250, 255, 0.96), rgba(241, 246, 255, 0.96));
+      padding: 12px 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
-    .auth-success { display: none; margin-top: 8px; font-size: 12px; color: #a5f3cd; }
+    .auth-sms-card[hidden] { display: none !important; }
+    .auth-sms-card-head {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      color: #475467;
+    }
+    .auth-success { display: none; margin-top: 4px; font-size: 12px; font-weight: 600; color: #16a472; }
     .auth-success.show { display: block; }
     .gm-btn.is-loading {
       position: relative;
@@ -1730,8 +1770,7 @@
     .profile-avatar{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:28px}
     .profile-menu .menu-item{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid #eceff5;border-radius:12px;margin-top:8px;background:#fff;color:#1d2440}
     .profile-menu .menu-item small{color:#667085}
-    .auth-sheet{background:linear-gradient(180deg,#fefefe,#f4f7ff);border:1px solid #dde3f2;box-shadow:0 16px 32px rgba(17,24,39,.12)}
-    .auth-input{background:#fff;color:#1d2440;border:1px solid #d0d5dd}
+    .auth-input{background:#fff;color:#1d2440;border:1px solid #d6dae6}
 
   .premium-intro{position:relative;min-height:100%;background:linear-gradient(180deg,#ffffff 0%,#f3efff 100%);padding:24px 16px max(24px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;overflow:hidden}
   .premium-intro .intro-logo{opacity:0;transform:scale(.95);animation:introLogo .65s .35s forwards}
@@ -1881,71 +1920,81 @@
     </section>
 
     <div class="auth-sheet-overlay" id="authSheetOverlay">
-      <div class="auth-sheet" id="authSheet">
+      <div class="auth-sheet" id="authSheet" role="dialog" aria-modal="true" aria-labelledby="authSheetTitle">
+        <span class="auth-sheet-aurora" aria-hidden="true"></span>
+        <span class="auth-sheet-glow auth-sheet-glow--a" aria-hidden="true"></span>
+        <span class="auth-sheet-glow auth-sheet-glow--b" aria-hidden="true"></span>
         <div class="auth-sheet-head">
           <span aria-hidden="true"></span>
           <h3 style="margin:0;" id="authSheetTitle">Ro‘yxatdan o‘tish</h3>
           <button class="auth-sheet-close" id="closeAuthSheetBtn" aria-label="Yopish">✕</button>
         </div>
 
-        <input
-          id="authName"
-          class="auth-input"
-          placeholder="Ismingiz"
-          autocomplete="name"
-          autocapitalize="words"
-          maxlength="60"
-          aria-label="Ism"
-        />
-        <small class="auth-error" id="authNameError">Iltimos, ismingizni kiriting (kamida 2 harf)</small>
+        <div class="auth-name-row">
+          <div class="auth-field">
+            <label class="auth-label" for="authFirstName" id="authFirstNameLabel">Ism</label>
+            <input
+              id="authFirstName"
+              class="auth-input"
+              placeholder="Ism"
+              autocomplete="given-name"
+              autocapitalize="words"
+              maxlength="40"
+              aria-label="Ism"
+            />
+          </div>
+          <div class="auth-field">
+            <label class="auth-label" for="authLastName" id="authLastNameLabel">Familiya</label>
+            <input
+              id="authLastName"
+              class="auth-input"
+              placeholder="Familiya"
+              autocomplete="family-name"
+              autocapitalize="words"
+              maxlength="40"
+              aria-label="Familiya"
+            />
+          </div>
+        </div>
+        <small class="auth-error" id="authNameError">Iltimos, ism va familiyangizni kiriting</small>
 
-        <input
-          id="authPhone"
-          class="auth-input"
-          placeholder="+998 90 123 45 67"
-          inputmode="tel"
-          autocomplete="tel"
-          maxlength="19"
-          aria-label="Telefon raqam"
-        />
-        <small class="auth-hint" id="authPhoneHint">Format: +998 XX XXX XX XX</small>
+        <div class="auth-field" style="margin-top:10px;">
+          <label class="auth-label" for="authPhone" id="authPhoneLabel">Telefon</label>
+          <input
+            id="authPhone"
+            class="auth-input"
+            placeholder="+998 90 123 45 67"
+            inputmode="tel"
+            autocomplete="tel"
+            maxlength="19"
+            aria-label="Telefon raqam"
+          />
+        </div>
+        <small class="auth-hint" id="authPhoneHint">+998 XX XXX XX XX</small>
         <small class="auth-error" id="authPhoneError">Telefon raqamni to‘liq kiriting (+998 XX XXX XX XX)</small>
 
-        <div class="auth-trust" id="authTrust" aria-label="Bizning afzalliklar">
-          <div class="auth-trust-item"><span class="auth-trust-icon">🚀</span><span><strong id="authTrustDeliveryTitle">Yetkazib berish</strong> — <span id="authTrustDeliveryBody">Samarqand bo‘ylab odatda 1–4 soat, vaqt tirbandlik va buyurtma yuklamasiga bog‘liq</span></span></div>
-          <div class="auth-trust-item"><span class="auth-trust-icon">🔒</span><span><strong id="authTrustPaymentTitle">Xavfsiz to‘lov</strong> — <span id="authTrustPaymentBody">Payme orqali rasmiy to‘lov havolasi yoki yetkazilganda naqd to‘lov</span></span></div>
-          <div class="auth-trust-item"><span class="auth-trust-icon">💬</span><span><strong id="authTrustSupportTitle">Qo‘llab-quvvatlash</strong> — <span id="authTrustSupportBody">buyurtma bo‘yicha operator siz bilan bog‘lanadi</span></span></div>
-        </div>
-        <div class="auth-consent">
-          <span id="authConsentLead">Telefon raqamingizni SMS kod bilan tasdiqlaymiz — bu akkauntni himoya qilish va yetkazib berish bilan bog‘lanish uchun.</span>
-          <label class="auth-consent-check" for="smsConsentCheckbox">
-            <input type="checkbox" id="smsConsentCheckbox" />
-            <span id="authConsentCheckText">Telefonimga tasdiqlash kodi yuborilishiga va shu kanal orqali xizmat xabarlariga roziman.</span>
-          </label>
-          <small class="auth-hint" id="authConsentHint">Ma’lumotlar faqat xizmat sifati va xavfsizlik uchun ishlatiladi, uchinchi tomonlarga berilmaydi.</small>
-          <small class="auth-error" id="smsConsentError">Davom etish uchun rozilikni belgilang.</small>
-        </div>
-        <div class="auth-sms-card" id="authSmsCard">
-          <div class="muted" style="margin-bottom:6px;" id="authSmsSectionTitle">SMS orqali tasdiqlash</div>
-          <button type="button" class="btn gm-btn gm-btn-secondary btn-secondary" id="sendSmsBtn">Kod yuborish</button>
-          <small class="auth-hint" id="smsSendHint">Avval telefonni to‘liq kiriting, keyin kod yuboring.</small>
-          <small class="auth-error" id="smsSendError"></small>
+        <button type="button" class="btn gm-btn gm-btn-primary btn-primary auth-send-btn" id="sendSmsBtn" style="margin-top:14px;">SMS kod yuborish</button>
+        <small class="auth-hint" id="smsSendHint">Telefoningizga 6 xonali tasdiq kodi keladi.</small>
+        <small class="auth-error" id="smsSendError"></small>
+
+        <div class="auth-sms-card" id="authSmsCard" hidden>
+          <div class="auth-sms-card-head" id="authSmsSectionTitle">Kod yuborildi</div>
           <input
             id="authOtpInput"
-            class="auth-input"
+            class="auth-input auth-otp-input"
             inputmode="numeric"
-            maxlength="8"
+            maxlength="6"
             autocomplete="one-time-code"
-            placeholder="SMS kod"
-            aria-label="SMS kod"
-            style="margin-top:8px;"
+            placeholder="••••••"
+            aria-label="SMS tasdiqlash kodi"
           />
+          <small class="auth-hint" id="otpAutoHint">Kod to‘liq kiritilganda avtomatik tekshiriladi.</small>
           <small class="auth-error" id="smsOtpError"></small>
-          <button type="button" class="btn gm-btn gm-btn-secondary btn-secondary" id="verifySmsBtn" style="margin-top:8px;">Kodni tasdiqlash</button>
           <small class="auth-success" id="smsVerifiedSuccess">Telefon tasdiqlandi.</small>
         </div>
 
-        <button type="button" class="btn gm-btn gm-btn-primary btn-primary" id="submitAuthBtn" style="margin-top:10px;">Davom etish</button>
+        <button type="button" class="btn gm-btn gm-btn-primary btn-primary" id="submitAuthBtn" style="margin-top:12px;display:none;">Davom etish</button>
+        <small class="auth-consent-foot" id="authConsentFoot">Davom etish bilan SMS kod yuborish va xizmat xabarlariga rozisiz.</small>
       </div>
     </div>
 
@@ -2275,13 +2324,12 @@ Oq fonli foto</div>
     const cinematicStarfield = document.getElementById('cinematicStarfield');
     const authSheetOverlay = document.getElementById('authSheetOverlay');
     const closeAuthSheetBtn = document.getElementById('closeAuthSheetBtn');
-    const authName = document.getElementById('authName');
+    const authFirstName = document.getElementById('authFirstName');
+    const authLastName = document.getElementById('authLastName');
     const authPhone = document.getElementById('authPhone');
-    const smsConsentCheckbox = document.getElementById('smsConsentCheckbox');
-    const smsConsentError = document.getElementById('smsConsentError');
     const sendSmsBtn = document.getElementById('sendSmsBtn');
-    const verifySmsBtn = document.getElementById('verifySmsBtn');
     const authOtpInput = document.getElementById('authOtpInput');
+    const authSmsCard = document.getElementById('authSmsCard');
     const smsSendHint = document.getElementById('smsSendHint');
     const smsSendError = document.getElementById('smsSendError');
     const smsOtpError = document.getElementById('smsOtpError');
@@ -2292,8 +2340,11 @@ Oq fonli foto</div>
     const authPhoneError = document.getElementById('authPhoneError');
     const authPhoneHint = document.getElementById('authPhoneHint');
 
+    const OTP_LENGTH = 6;
     let smsPhoneVerified = false;
     let smsVerificationToken = '';
+    let otpAutoVerifyTimer = null;
+    let otpAutoVerifyInFlight = false;
 
 
     const gmAnalytics = (() => {
@@ -2396,25 +2447,36 @@ Oq fonli foto</div>
     }
 
     function validateAuthName(silent) {
-      const value = String(authName?.value || '').trim();
-      const ok = value.length >= 2;
-      if (!silent) setFieldError(authName, authNameError, ok ? '' : 'Iltimos, ismingizni kiriting (kamida 2 harf)');
+      const first = String(authFirstName?.value || '').trim();
+      const last = String(authLastName?.value || '').trim();
+      const firstOk = first.length >= 1;
+      const lastOk = last.length >= 1;
+      const ok = firstOk && lastOk;
+      if (!silent) {
+        setFieldError(authFirstName, null, firstOk ? '' : ' ');
+        setFieldError(authLastName, null, lastOk ? '' : ' ');
+        if (authNameError) {
+          if (ok) authNameError.classList.remove('show');
+          else { authNameError.textContent = t('authNameError'); authNameError.classList.add('show'); }
+        }
+      }
       return ok;
     }
 
     function validateAuthPhone(silent) {
       const ok = Boolean(normalizedAuthPhone());
       if (!silent) {
-        setFieldError(authPhone, authPhoneError, ok ? '' : 'Telefon raqamni to‘liq kiriting (+998 XX XXX XX XX)');
+        setFieldError(authPhone, authPhoneError, ok ? '' : t('authPhoneError'));
         if (authPhoneHint) authPhoneHint.style.display = ok ? '' : 'none';
       }
       return ok;
     }
 
     function clearAuthErrors() {
-      setFieldError(authName, authNameError, '');
+      setFieldError(authFirstName, null, '');
+      setFieldError(authLastName, null, '');
+      if (authNameError) authNameError.classList.remove('show');
       setFieldError(authPhone, authPhoneError, '');
-      setFieldError(null, smsConsentError, '');
       setFieldError(null, smsSendError, '');
       setFieldError(null, smsOtpError, '');
       if (authPhoneHint) authPhoneHint.style.display = '';
@@ -2423,19 +2485,28 @@ Oq fonli foto</div>
     function resetSmsAuthState() {
       smsPhoneVerified = false;
       smsVerificationToken = '';
-      if (authOtpInput) authOtpInput.value = '';
+      otpAutoVerifyInFlight = false;
+      if (otpAutoVerifyTimer) { clearTimeout(otpAutoVerifyTimer); otpAutoVerifyTimer = null; }
+      if (authOtpInput) {
+        authOtpInput.value = '';
+        authOtpInput.classList.remove('is-valid', 'is-invalid');
+      }
+      if (authSmsCard) authSmsCard.hidden = true;
+      if (sendSmsBtn) {
+        sendSmsBtn.dataset.sent = '';
+        sendSmsBtn.textContent = t('smsSendBtn');
+      }
+      if (submitAuthBtn) submitAuthBtn.style.display = 'none';
       if (smsVerifiedSuccess) smsVerifiedSuccess.classList.remove('show');
       setFieldError(null, smsSendError, '');
       setFieldError(null, smsOtpError, '');
     }
 
     async function sendSmsCode() {
-      if (!smsConsentCheckbox?.checked) {
-        setFieldError(null, smsConsentError, t('smsConsentError'));
-        return false;
-      }
+      const nameOk = validateAuthName();
       const phoneOk = validateAuthPhone();
-      if (!phoneOk) return false;
+      if (!nameOk) { authFirstName?.focus(); return false; }
+      if (!phoneOk) { authPhone?.focus(); return false; }
       setFieldError(null, smsSendError, '');
       const phoneValue = normalizedAuthPhone();
       setBtnLoading(sendSmsBtn, true);
@@ -2444,6 +2515,19 @@ Oq fonli foto</div>
           method: 'POST',
           body: JSON.stringify({ phone: phoneValue })
         });
+        if (authSmsCard) authSmsCard.hidden = false;
+        if (sendSmsBtn) {
+          sendSmsBtn.dataset.sent = '1';
+          sendSmsBtn.textContent = t('smsResendBtn');
+        }
+        if (authOtpInput) {
+          authOtpInput.value = '';
+          authOtpInput.classList.remove('is-valid', 'is-invalid');
+          setTimeout(() => { try { authOtpInput.focus(); } catch (_) {} }, 60);
+        }
+        smsPhoneVerified = false;
+        smsVerificationToken = '';
+        if (smsVerifiedSuccess) smsVerifiedSuccess.classList.remove('show');
         showToast(t('smsSentToast'));
         return true;
       } catch (err) {
@@ -2454,15 +2538,17 @@ Oq fonli foto</div>
       }
     }
 
-    async function verifySmsCode() {
-      const phoneOk = validateAuthPhone();
+    async function verifySmsCode(options = {}) {
+      const auto = Boolean(options.auto);
+      const phoneOk = validateAuthPhone(auto);
       const code = String(authOtpInput?.value || '').replace(/\D/g, '').trim();
-      if (!phoneOk || !code) {
-        setFieldError(authOtpInput, smsOtpError, t('smsOtpMissing'));
+      if (!phoneOk || code.length < OTP_LENGTH) {
+        if (!auto) setFieldError(authOtpInput, smsOtpError, t('smsOtpMissing'));
         return false;
       }
       setFieldError(null, smsOtpError, '');
-      setBtnLoading(verifySmsBtn, true);
+      otpAutoVerifyInFlight = true;
+      if (authOtpInput) authOtpInput.disabled = true;
       try {
         const data = await api('/auth/sms/verify', {
           method: 'POST',
@@ -2471,24 +2557,35 @@ Oq fonli foto</div>
         smsPhoneVerified = true;
         smsVerificationToken = data.verificationToken || '';
         if (smsVerifiedSuccess) smsVerifiedSuccess.classList.add('show');
+        if (authOtpInput) authOtpInput.classList.add('is-valid');
+        if (submitAuthBtn) {
+          submitAuthBtn.style.display = '';
+          setTimeout(() => { try { submitAuthBtn.focus(); } catch (_) {} }, 80);
+        }
         showToast(t('smsVerifiedToast'));
         return true;
       } catch (err) {
+        smsPhoneVerified = false;
+        if (authOtpInput) authOtpInput.classList.add('is-invalid');
         setFieldError(null, smsOtpError, err.message || t('smsVerifyFail'));
         return false;
       } finally {
-        setBtnLoading(verifySmsBtn, false);
+        otpAutoVerifyInFlight = false;
+        if (authOtpInput) {
+          authOtpInput.disabled = false;
+          if (!smsPhoneVerified) {
+            try { authOtpInput.focus(); } catch (_) {}
+          }
+        }
       }
     }
 
     function validateSmsBlock(silent) {
-      const consentOk = Boolean(smsConsentCheckbox?.checked);
       const smsOk = Boolean(smsPhoneVerified);
-      if (!silent) {
-        setFieldError(null, smsConsentError, consentOk ? '' : t('smsConsentError'));
-        setFieldError(null, smsOtpError, !smsOk && consentOk ? t('smsNotVerifiedError') : '');
+      if (!silent && !smsOk) {
+        setFieldError(null, smsOtpError, t('smsNotVerifiedError'));
       }
-      return consentOk && smsOk;
+      return smsOk;
     }
 
     function setBtnLoading(btn, loading) {
@@ -2516,18 +2613,37 @@ Oq fonli foto</div>
         smsPhoneVerified = false;
         smsVerificationToken = '';
         if (smsVerifiedSuccess) smsVerifiedSuccess.classList.remove('show');
+        if (submitAuthBtn) submitAuthBtn.style.display = 'none';
       });
       authPhone.addEventListener('blur', () => {
         if (authPhone.value) validateAuthPhone();
       });
     }
 
-    if (authName) {
-      authName.addEventListener('input', () => {
+    [authFirstName, authLastName].forEach((input) => {
+      if (!input) return;
+      input.addEventListener('input', () => {
         if (authNameError?.classList.contains('show')) validateAuthName();
       });
-      authName.addEventListener('blur', () => {
-        if (authName.value) validateAuthName();
+      input.addEventListener('blur', () => {
+        if (authFirstName?.value && authLastName?.value) validateAuthName();
+      });
+    });
+
+    if (authOtpInput) {
+      authOtpInput.addEventListener('input', () => {
+        const digits = String(authOtpInput.value || '').replace(/\D/g, '').slice(0, OTP_LENGTH);
+        if (digits !== authOtpInput.value) authOtpInput.value = digits;
+        authOtpInput.classList.remove('is-valid', 'is-invalid');
+        if (smsOtpError?.classList.contains('show')) setFieldError(null, smsOtpError, '');
+        smsPhoneVerified = false;
+        smsVerificationToken = '';
+        if (smsVerifiedSuccess) smsVerifiedSuccess.classList.remove('show');
+        if (submitAuthBtn) submitAuthBtn.style.display = 'none';
+        if (otpAutoVerifyTimer) { clearTimeout(otpAutoVerifyTimer); otpAutoVerifyTimer = null; }
+        if (digits.length === OTP_LENGTH && !otpAutoVerifyInFlight) {
+          otpAutoVerifyTimer = setTimeout(() => { verifySmsCode({ auto: true }); }, 180);
+        }
       });
     }
 
@@ -2610,7 +2726,22 @@ Oq fonli foto</div>
     function openRegistrationFlow() {
       introScreen?.classList.add('fade-out');
       const existingUser = JSON.parse(localStorage.getItem('globusUser') || 'null');
-      if (existingUser?.name && !authName.value) authName.value = existingUser.name;
+      if (existingUser) {
+        const existingFirst = String(existingUser.firstName || '').trim();
+        const existingLast = String(existingUser.lastName || '').trim();
+        if (authFirstName && !authFirstName.value) {
+          if (existingFirst) {
+            authFirstName.value = existingFirst;
+          } else if (existingUser.name) {
+            const parts = String(existingUser.name).trim().split(/\s+/);
+            authFirstName.value = parts[0] || '';
+            if (authLastName && !authLastName.value && parts.length > 1) {
+              authLastName.value = parts.slice(1).join(' ');
+            }
+          }
+        }
+        if (authLastName && !authLastName.value && existingLast) authLastName.value = existingLast;
+      }
       if (existingUser?.phone && !authPhone.value) {
         authPhone.value = formatUzPhone(existingUser.phone);
       } else if (authPhone?.value) {
@@ -2618,11 +2749,10 @@ Oq fonli foto</div>
       }
       clearAuthErrors();
       resetSmsAuthState();
-      if (smsConsentCheckbox) smsConsentCheckbox.checked = false;
       gmAnalytics.track('register_open', { hasExistingUser: Boolean(existingUser) });
       setTimeout(() => {
         authSheetOverlay.classList.add('show');
-        authName?.focus();
+        (authFirstName?.value ? authPhone : authFirstName)?.focus();
       }, 220);
     }
     const searchResults = document.getElementById('searchResults');
@@ -2813,35 +2943,31 @@ Oq fonli foto</div>
         introCtaAuthed: "Xaridni boshlash",
         introCtaGuest: "Ro‘yxatdan o‘tish",
         authSheetTitle: "Ro'yxatdan o'tish",
-        authNamePlaceholder: "Ismingiz",
-        authNameAriaLabel: "Ism",
-        authNameError: "Iltimos, ismingizni kiriting (kamida 2 harf)",
+        authFirstNameLabel: "Ism",
+        authFirstNamePlaceholder: "Ism",
+        authFirstNameAriaLabel: "Ism",
+        authLastNameLabel: "Familiya",
+        authLastNamePlaceholder: "Familiya",
+        authLastNameAriaLabel: "Familiya",
+        authNameError: "Iltimos, ism va familiyangizni kiriting",
+        authPhoneLabel: "Telefon",
         authPhoneAriaLabel: "Telefon raqam",
-        authPhoneHint: "Format: +998 XX XXX XX XX",
+        authPhoneHint: "+998 XX XXX XX XX",
         authPhoneError: "Telefon raqamni to'liq kiriting (+998 XX XXX XX XX)",
         authCloseAriaLabel: "Yopish",
-        authTrustAriaLabel: 'Bizning afzalliklar',
-        authTrustDeliveryTitle: 'Yetkazib berish',
-        authTrustDeliveryBody: "Samarqand bo'ylab odatda 1-4 soat, vaqt tirbandlik va buyurtma yuklamasiga bog'liq",
-        authTrustPaymentTitle: "Xavfsiz to'lov",
-        authTrustPaymentBody: "Payme orqali rasmiy to'lov havolasi yoki yetkazilganda naqd to'lov",
-        authTrustSupportTitle: "Qo'llab-quvvatlash",
-        authTrustSupportBody: "buyurtma bo'yicha operator siz bilan bog'lanadi",
-        authConsentLead: "Telefon raqamingizni SMS kod bilan tasdiqlaymiz — akkauntni himoya qilish va yetkazib berish bilan bog‘lanish uchun.",
-        authConsentCheckText: "Telefonimga tasdiqlash kodi yuborilishiga va shu kanal orqali xizmat xabarlariga roziman.",
-        authConsentHint: "Ma'lumotlar faqat xizmat sifati va xavfsizlik uchun ishlatiladi, uchinchi tomonlarga berilmaydi.",
-        smsConsentError: "Davom etish uchun rozilikni belgilang.",
+        authConsentFoot: "Davom etish bilan SMS kod yuborish va xizmat xabarlariga rozisiz.",
         smsNotVerifiedError: "Avval SMS kodni tasdiqlang.",
         smsSendFail: "Kod yuborilmadi, qayta urinib ko‘ring.",
         smsVerifyFail: "Kod noto‘g‘ri yoki muddati o‘tgan.",
         smsOtpMissing: "SMS kodni kiriting.",
         smsSentToast: "Kod yuborildi",
         smsVerifiedToast: "Telefon tasdiqlandi",
-        smsSectionTitle: "SMS orqali tasdiqlash",
-        smsSendBtn: "Kod yuborish",
-        smsVerifyBtn: "Kodni tasdiqlash",
-        smsSendHint: "Telefonni to‘liq kiriting, keyin kod yuboring.",
-        smsOtpPlaceholder: "SMS kod",
+        smsSectionTitle: "Kod yuborildi",
+        smsSendBtn: "SMS kod yuborish",
+        smsResendBtn: "Kodni qayta yuborish",
+        smsSendHint: "Telefoningizga 6 xonali tasdiq kodi keladi.",
+        otpAutoHint: "Kod to‘liq kiritilganda avtomatik tekshiriladi.",
+        smsOtpPlaceholder: "••••••",
         smsOtpAria: "SMS tasdiqlash kodi",
         smsVerifiedSuccess: "Telefon tasdiqlandi.",
         authSubmit: 'Davom etish',
@@ -3019,35 +3145,31 @@ Oq fonli foto</div>
         introCtaAuthed: 'Начать покупки',
         introCtaGuest: 'Зарегистрироваться',
         authSheetTitle: 'Регистрация',
-        authNamePlaceholder: 'Ваше имя',
-        authNameAriaLabel: 'Имя',
-        authNameError: 'Введите имя (минимум 2 буквы)',
+        authFirstNameLabel: 'Имя',
+        authFirstNamePlaceholder: 'Имя',
+        authFirstNameAriaLabel: 'Имя',
+        authLastNameLabel: 'Фамилия',
+        authLastNamePlaceholder: 'Фамилия',
+        authLastNameAriaLabel: 'Фамилия',
+        authNameError: 'Введите имя и фамилию',
+        authPhoneLabel: 'Телефон',
         authPhoneAriaLabel: 'Номер телефона',
-        authPhoneHint: 'Формат: +998 XX XXX XX XX',
+        authPhoneHint: '+998 XX XXX XX XX',
         authPhoneError: 'Введите полный номер телефона (+998 XX XXX XX XX)',
         authCloseAriaLabel: 'Закрыть',
-        authTrustAriaLabel: 'Наши преимущества',
-        authTrustDeliveryTitle: 'Доставка',
-        authTrustDeliveryBody: 'По Самарканду обычно 1-4 часа, время зависит от пробок и загрузки заказов',
-        authTrustPaymentTitle: 'Безопасная оплата',
-        authTrustPaymentBody: 'Официальная ссылка на оплату через Payme или наличными при получении',
-        authTrustSupportTitle: 'Поддержка',
-        authTrustSupportBody: 'оператор свяжется с вами по заказу',
-        authConsentLead: 'Мы подтвердим номер телефона по SMS — для защиты аккаунта и связи по доставке.',
-        authConsentCheckText: 'Согласен(на) на отправку кода подтверждения и сервисные SMS на этот номер.',
-        authConsentHint: 'Данные используются только для качества сервиса и безопасности, третьим лицам не передаются.',
-        smsConsentError: 'Отметьте согласие, чтобы продолжить.',
+        authConsentFoot: 'Продолжая, вы соглашаетесь на получение SMS-кода и сервисных сообщений.',
         smsNotVerifiedError: 'Сначала подтвердите код из SMS.',
         smsSendFail: 'Не удалось отправить код, попробуйте еще раз.',
         smsVerifyFail: 'Неверный код или срок действия истек.',
         smsOtpMissing: 'Введите код из SMS.',
         smsSentToast: 'Код отправлен',
         smsVerifiedToast: 'Телефон подтвержден',
-        smsSectionTitle: 'Подтверждение по SMS',
-        smsSendBtn: 'Отправить код',
-        smsVerifyBtn: 'Подтвердить код',
-        smsSendHint: 'Введите полный номер, затем отправьте код.',
-        smsOtpPlaceholder: 'Код SMS',
+        smsSectionTitle: 'Код отправлен',
+        smsSendBtn: 'Отправить SMS-код',
+        smsResendBtn: 'Отправить код повторно',
+        smsSendHint: 'На телефон придёт 6-значный код подтверждения.',
+        otpAutoHint: 'Код проверится автоматически при полном вводе.',
+        smsOtpPlaceholder: '••••••',
         smsOtpAria: 'Код подтверждения SMS',
         smsVerifiedSuccess: 'Телефон подтвержден.',
         authSubmit: 'Продолжить',
@@ -3183,40 +3305,32 @@ Oq fonli foto</div>
       syncIntroCta();
       const authSheetTitle = document.getElementById('authSheetTitle');
       if (authSheetTitle) authSheetTitle.textContent = t('authSheetTitle');
-      if (authName) {
-        authName.placeholder = t('authNamePlaceholder');
-        authName.setAttribute('aria-label', t('authNameAriaLabel'));
+      const authFirstNameLabel = document.getElementById('authFirstNameLabel');
+      const authLastNameLabel = document.getElementById('authLastNameLabel');
+      const authPhoneLabel = document.getElementById('authPhoneLabel');
+      if (authFirstNameLabel) authFirstNameLabel.textContent = t('authFirstNameLabel');
+      if (authLastNameLabel) authLastNameLabel.textContent = t('authLastNameLabel');
+      if (authPhoneLabel) authPhoneLabel.textContent = t('authPhoneLabel');
+      if (authFirstName) {
+        authFirstName.placeholder = t('authFirstNamePlaceholder');
+        authFirstName.setAttribute('aria-label', t('authFirstNameAriaLabel'));
+      }
+      if (authLastName) {
+        authLastName.placeholder = t('authLastNamePlaceholder');
+        authLastName.setAttribute('aria-label', t('authLastNameAriaLabel'));
       }
       if (authNameError) authNameError.textContent = t('authNameError');
       if (authPhone) authPhone.setAttribute('aria-label', t('authPhoneAriaLabel'));
       if (authPhoneHint) authPhoneHint.textContent = t('authPhoneHint');
       if (authPhoneError) authPhoneError.textContent = t('authPhoneError');
       if (closeAuthSheetBtn) closeAuthSheetBtn.setAttribute('aria-label', t('authCloseAriaLabel'));
-      const authTrust = document.getElementById('authTrust');
-      if (authTrust) authTrust.setAttribute('aria-label', t('authTrustAriaLabel'));
-      const authTrustDeliveryTitle = document.getElementById('authTrustDeliveryTitle');
-      const authTrustDeliveryBody = document.getElementById('authTrustDeliveryBody');
-      const authTrustPaymentTitle = document.getElementById('authTrustPaymentTitle');
-      const authTrustPaymentBody = document.getElementById('authTrustPaymentBody');
-      const authTrustSupportTitle = document.getElementById('authTrustSupportTitle');
-      const authTrustSupportBody = document.getElementById('authTrustSupportBody');
-      if (authTrustDeliveryTitle) authTrustDeliveryTitle.textContent = t('authTrustDeliveryTitle');
-      if (authTrustDeliveryBody) authTrustDeliveryBody.textContent = t('authTrustDeliveryBody');
-      if (authTrustPaymentTitle) authTrustPaymentTitle.textContent = t('authTrustPaymentTitle');
-      if (authTrustPaymentBody) authTrustPaymentBody.textContent = t('authTrustPaymentBody');
-      if (authTrustSupportTitle) authTrustSupportTitle.textContent = t('authTrustSupportTitle');
-      if (authTrustSupportBody) authTrustSupportBody.textContent = t('authTrustSupportBody');
-      const authConsentLead = document.getElementById('authConsentLead');
-      const authConsentCheckText = document.getElementById('authConsentCheckText');
-      const authConsentHint = document.getElementById('authConsentHint');
-      if (authConsentLead) authConsentLead.textContent = t('authConsentLead');
-      if (authConsentCheckText) authConsentCheckText.textContent = t('authConsentCheckText');
-      if (authConsentHint) authConsentHint.textContent = t('authConsentHint');
-      if (smsConsentError && !smsConsentError.classList.contains('show')) smsConsentError.textContent = t('smsConsentError');
+      const authConsentFoot = document.getElementById('authConsentFoot');
+      if (authConsentFoot) authConsentFoot.textContent = t('authConsentFoot');
       if (authSmsSectionTitle) authSmsSectionTitle.textContent = t('smsSectionTitle');
-      if (sendSmsBtn) sendSmsBtn.textContent = t('smsSendBtn');
-      if (verifySmsBtn) verifySmsBtn.textContent = t('smsVerifyBtn');
+      if (sendSmsBtn) sendSmsBtn.textContent = sendSmsBtn.dataset.sent === '1' ? t('smsResendBtn') : t('smsSendBtn');
       if (smsSendHint) smsSendHint.textContent = t('smsSendHint');
+      const otpAutoHint = document.getElementById('otpAutoHint');
+      if (otpAutoHint) otpAutoHint.textContent = t('otpAutoHint');
       if (smsVerifiedSuccess) smsVerifiedSuccess.textContent = t('smsVerifiedSuccess');
       if (authOtpInput) {
         authOtpInput.placeholder = t('smsOtpPlaceholder');
@@ -3872,17 +3986,20 @@ Oq fonli foto</div>
       const phoneOk = validateAuthPhone();
       const smsOk = validateSmsBlock();
       if (!nameOk || !phoneOk || !smsOk) {
-        if (!nameOk) authName?.focus();
+        if (!nameOk) (authFirstName?.value ? authLastName : authFirstName)?.focus();
         else if (!phoneOk) authPhone?.focus();
-        else if (!smsOk && smsConsentCheckbox && !smsConsentCheckbox.checked) smsConsentCheckbox.focus();
         else if (!smsOk) authOtpInput?.focus();
         showToast(!nameOk ? t('toastNameInvalid') : (!phoneOk ? t('toastPhoneInvalid') : t('toastSmsIncomplete')));
         return false;
       }
-      const nameValue = String(authName.value || '').trim();
+      const firstName = String(authFirstName?.value || '').trim();
+      const lastName = String(authLastName?.value || '').trim();
+      const fullName = `${firstName} ${lastName}`.trim();
       const phoneValue = normalizedAuthPhone();
       currentUser = {
-        name: nameValue,
+        name: fullName,
+        firstName,
+        lastName,
         phone: phoneValue,
         createdAt: new Date().toISOString(),
         smsConsent: true,
@@ -3894,8 +4011,10 @@ Oq fonli foto</div>
       await api('/profile', {
         method: 'PUT',
         body: JSON.stringify({
-          name: currentUser.name,
-          phone: currentUser.phone,
+          name: fullName,
+          firstName,
+          lastName,
+          phone: phoneValue,
           address: ''
         })
       });
@@ -4882,12 +5001,6 @@ Oq fonli foto</div>
     sendSmsBtn?.addEventListener('click', async () => {
       await sendSmsCode();
     });
-    verifySmsBtn?.addEventListener('click', async () => {
-      await verifySmsCode();
-    });
-    smsConsentCheckbox?.addEventListener('change', () => {
-      if (smsConsentError?.classList.contains('show')) validateSmsBlock();
-    });
 
     logoutBtn?.addEventListener('click', () => {
       localStorage.removeItem('globusUser');
@@ -4906,9 +5019,8 @@ Oq fonli foto</div>
     profileRegisterBtn?.addEventListener('click', () => {
       clearAuthErrors();
       resetSmsAuthState();
-      if (smsConsentCheckbox) smsConsentCheckbox.checked = false;
       authSheetOverlay.classList.add('show');
-      authName?.focus();
+      authFirstName?.focus();
     });
 
     profileOrders?.addEventListener('click', async (e) => {
