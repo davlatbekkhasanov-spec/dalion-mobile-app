@@ -33,19 +33,28 @@ function defaultAdminV2Theme(homeSettings) {
 }
 
 async function ensureAppState() {
-  let row = await prisma.appState.findUnique({ where: { id: APP_ID } });
-  if (!row) {
-    const hs = defaultHomeSettings();
-    row = await prisma.appState.create({
-      data: {
-        id: APP_ID,
-        homeSettings: hs,
-        adminV2Theme: defaultAdminV2Theme(hs),
-        shortsRevision: 0
-      }
-    });
+  try {
+    let row = await prisma.appState.findUnique({ where: { id: APP_ID } });
+    if (!row) {
+      const hs = defaultHomeSettings();
+      row = await prisma.appState.create({
+        data: {
+          id: APP_ID,
+          homeSettings: hs,
+          adminV2Theme: defaultAdminV2Theme(hs),
+          shortsRevision: 0
+        }
+      });
+    }
+    return row;
+  } catch (err) {
+    if (err && err.code === 'P2021') {
+      console.error(
+        '[DB] Schema out of date (table missing, Prisma P2021). Run: prisma migrate deploy'
+      );
+    }
+    throw err;
   }
-  return row;
 }
 
 async function getHomeSettingsJson() {
