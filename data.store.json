@@ -164,5 +164,17 @@
       "active": true,
       "sortOrder": 2
     }
-  ]
+  ],
+  "ambientPlaylist": {
+    "slots": [
+      {
+        "slot": 1,
+        "fileName": "Italianskaya-Felicita-muzce-com.mp3",
+        "fileUrl": "/uploads/audio/admin-ambient/slot-1-italy-felicita-muzce-com.mp3",
+        "mimeType": "audio/mpeg",
+        "fileSize": 6113115,
+        "updatedAt": "2026-05-09T11:12:39Z"
+      }
+    ]
+  }
 }
