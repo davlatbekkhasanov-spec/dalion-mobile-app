@@ -21,6 +21,14 @@ Add these variables in Railway **Variables** section:
 - `PAYME_TEST_KEY`
 - `PAYME_SECRET_KEY`
 
+### Railway variables for SMS (DevSMS)
+
+- `SMS_GATEWAY_MODE` or `SMS_PROVIDER`: set to `devsms` for [DevSMS](https://devsms.uz/api/docs.php). Without `DEVSMS_API_KEY` / `SMS_API_KEY`, the server falls back to **log** mode (no outbound SMS).
+- `DEVSMS_API_KEY` (or generic `SMS_API_KEY`): Bearer token for `Authorization: Bearer …`.
+- `DEVSMS_SENDER_FROM`: sender ID (optional; default `4546` per provider docs).
+- `DEVSMS_CALLBACK_URL`: optional delivery-status webhook URL (only if you consume callbacks).
+- Optional: `DEVSMS_API_URL` (default `https://devsms.uz/api/send_sms.php`), `DEVSMS_OTP_MESSAGE_TEMPLATE` / `SMS_MESSAGE_TEMPLATE` with `{{code}}`, `DEVSMS_SMS_TYPE` (e.g. `universal_otp`), `SMS_LOG_OTP_CODE=true` to log plaintext OTP (avoid in production).
+
 `POST /api/payme` now requires Basic authorization in test mode using `PAYME_MERCHANT_ID:PAYME_TEST_KEY`.
 If credentials are missing, the endpoint returns configuration error until variables are set.
 
@@ -162,35 +170,21 @@ Current `store.json` fallback is meant as a temporary persistence layer.
 - Checkoutdagi naqd to‘lov majburiyati matni hozircha **draft** holatda.
 - Productionga chiqarishdan oldin ushbu matn yuridik (legal) tekshiruvdan o‘tishi shart.
 
-## SMS/OTP foundation (mock mode)
+## SMS/OTP
 
-Current implementation provides infrastructure only; real SMS provider is **not connected yet**.
+Adapter: `src/services/sms.service.js` (`sendSmsOtp`). Default gateway mode is **log** (no provider call). Use `SMS_GATEWAY_MODE=devsms` with `DEVSMS_API_KEY` for [DevSMS](https://devsms.uz/api/send_sms.php); missing API key keeps **log** fallback.
 
 ### Endpoints
 
-- `POST /api/v1/auth/request-otp`
-  - body: `{ "phone": "+998..." }`
-  - mock response: `{ "ok": true, "devOtp": "123456" }`
-- `POST /api/v1/auth/verify-otp`
-  - body: `{ "phone": "+998...", "code": "123456" }`
-  - success: marks user `phoneVerified=true`, sets `otpVerifiedAt`, returns user.
+- `POST /api/v1/auth/request-otp` or `POST /api/v1/auth/sms/send` — body `{ "phone": "+998..." }`
+- `POST /api/v1/auth/verify-otp` or `POST /api/v1/auth/sms/verify` — body `{ "phone": "+998...", "code": "..." }`
+  - success: `phoneVerified=true` on profile, returns `verificationToken` and `user`.
+
+Non-production (or `ALLOW_OTP_DEV_UI=true` in production): responses may include `devHint` with the OTP for UI/testing.
 
 ### Environment variables
 
-- `SMS_PROVIDER=mock` (default)
-- `SMS_API_KEY` (reserved for future provider adapters)
-- `SMS_SENDER` (reserved for future provider adapters)
-
-### Current behavior
-
-- In `mock` mode, no real SMS is sent.
-- `request-otp` returns `devOtp` for local/dev testing.
-- Existing registration/checkout flow stays non-blocking while provider remains mock.
-
-### Future integration point
-
-Provider adapter integration point: `src/services/sms.service.js` (`sendOtp(phone, code)`).
-When ready, replace mock branch with real provider SDK/API call and keep endpoint contracts unchanged.
+See **Railway variables for SMS (DevSMS)** above; also `SMS_OTP_PEPPER`, `SMS_OTP_DIGITS`, `SMS_OTP_TTL_MS`, `ALLOW_OTP_DEV_UI`, `SMS_LOG_OTP_CODE`.
 
 ## Android Courier App (Native Kotlin)
 
