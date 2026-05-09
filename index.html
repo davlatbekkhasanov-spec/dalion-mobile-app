@@ -3112,6 +3112,7 @@ Oq fonli foto</div>
       if (!reelsOverlay) return;
       const rawUrl = String(shortItem?.media_url || '').trim();
       if (!rawUrl) return;
+      if (typeof window.pauseAmbientForReelsOverlay === 'function') window.pauseAmbientForReelsOverlay();
       const capParts = [
         String(shortItem?.title || '').trim(),
         String(shortItem?.caption || shortItem?.subtitle || '').trim()
@@ -3180,6 +3181,7 @@ Oq fonli foto</div>
       reelsCaption.textContent = '';
       document.body.style.overflow = '';
       reelsTouchY0 = null;
+      if (typeof window.resumeAmbientAfterReelsOverlay === 'function') window.resumeAmbientAfterReelsOverlay();
     }
 
     const i18n = {
@@ -3240,6 +3242,7 @@ Oq fonli foto</div>
         toastAmbientSourceMissing: "Musiqa fayli topilmadi, boshqa manbaga o'tildi",
         toastAmbientPlayFail: "Musiqani yoqib bo'lmadi. Internetni tekshirib qayta urinib ko'ring",
         toastAmbientNoSources: "Musiqa fayllari hali qo'shilmagan",
+        toastNewShorts: 'Yangi shorts',
         validationAuthFirst: "Avval ro'yxatdan o'ting",
         validationPaymentPick: "To'lov turini tanlang",
         validationAddressRequired: "Manzilni kiriting yoki lokatsiyani yoqing",
@@ -3442,6 +3445,7 @@ Oq fonli foto</div>
         toastAmbientSourceMissing: 'Музыкальный файл недоступен, переключили источник',
         toastAmbientPlayFail: 'Не удалось включить музыку. Проверьте интернет и повторите',
         toastAmbientNoSources: 'Музыкальные файлы еще не добавлены',
+        toastNewShorts: 'Новые шортсы',
         validationAuthFirst: 'Сначала зарегистрируйтесь',
         validationPaymentPick: 'Выберите способ оплаты',
         validationAddressRequired: 'Введите адрес или включите геолокацию',
@@ -4110,6 +4114,28 @@ Oq fonli foto</div>
           }
         }, 700);
       };
+
+      let reelsOverlayAmbientHold = null;
+      window.pauseAmbientForReelsOverlay = () => {
+        if (!audio || reelsOverlayAmbientHold) return;
+        reelsOverlayAmbientHold = {
+          wasAudiblyPlaying: !audio.paused && !audio.ended,
+          prefOn: localStorage.getItem(INTRO_AMBIENT_LS_PLAYING) !== '0'
+        };
+        audio.pause();
+        syncAmbientChrome();
+      };
+      window.resumeAmbientAfterReelsOverlay = () => {
+        if (!audio || !reelsOverlayAmbientHold) return;
+        const hold = reelsOverlayAmbientHold;
+        reelsOverlayAmbientHold = null;
+        const shouldResume = hold.wasAudiblyPlaying || hold.prefOn;
+        if (!shouldResume) {
+          syncAmbientChrome();
+          return;
+        }
+        playCurrentTrack({ silent: true }).catch(() => {});
+      };
     }
 
     async function api(path, options = {}) {
@@ -4232,6 +4258,8 @@ Oq fonli foto</div>
         </button>`;
         })
         .join('');
+
+      applyShortsRevisionFromServer(homePayload?.shortsRevision);
     }
 
     async function loadCart() {
@@ -4253,6 +4281,7 @@ Oq fonli foto</div>
       const local = JSON.parse(localStorage.getItem('globusUser') || 'null');
       if (local && local.name && local.phone) {
         local.address = String(local.address || '').trim() || DEFAULT_LOCATION_ADDRESS;
+        if (local.phoneVerified === undefined) local.phoneVerified = true;
         currentUser = local;
         localStorage.setItem('globusUser', JSON.stringify(currentUser));
         return;
@@ -4357,11 +4386,71 @@ Oq fonli foto</div>
       return cart[id] || 0;
     }
 
-    function showToast(text) {
+    const SHORTS_SEEN_REVISION_LS = 'gm_shorts_seen_revision';
+
+    function shouldPollShortsAlerts() {
+      return isAuthed() && currentUser && currentUser.phoneVerified !== false;
+    }
+
+    /** Baselines localStorage on first key miss; toasts when server revision moves ahead (registered users). */
+    function applyShortsRevisionFromServer(revision) {
+      const srv = Number(revision);
+      if (!Number.isFinite(srv)) return;
+      if (!shouldPollShortsAlerts()) return;
+      const raw = localStorage.getItem(SHORTS_SEEN_REVISION_LS);
+      if (raw === null || raw === '') {
+        localStorage.setItem(SHORTS_SEEN_REVISION_LS, String(srv));
+        return;
+      }
+      const prev = parseInt(raw, 10);
+      if (!Number.isFinite(prev)) {
+        localStorage.setItem(SHORTS_SEEN_REVISION_LS, String(srv));
+        return;
+      }
+      if (srv > prev) {
+        showToast(t('toastNewShorts'), 4200);
+        localStorage.setItem(SHORTS_SEEN_REVISION_LS, String(srv));
+      }
+    }
+
+    let shortsRevisionPollTimer = null;
+
+    function stopShortsRevisionPolling() {
+      if (shortsRevisionPollTimer) {
+        clearTimeout(shortsRevisionPollTimer);
+        shortsRevisionPollTimer = null;
+      }
+    }
+
+    function scheduleShortsRevisionPollLoop() {
+      stopShortsRevisionPolling();
+      if (!shouldPollShortsAlerts() || !phone?.classList.contains('show-app')) return;
+      const tick = async () => {
+        shortsRevisionPollTimer = null;
+        if (!phone?.classList.contains('show-app') || !shouldPollShortsAlerts()) return;
+        if (!document.hidden) {
+          try {
+            const data = await api('/shorts/meta');
+            applyShortsRevisionFromServer(data?.shortsRevision);
+          } catch (_) {}
+        }
+        const delay = 12000 + Math.floor(Math.random() * 9000);
+        shortsRevisionPollTimer = setTimeout(tick, delay);
+      };
+      const delay = 12000 + Math.floor(Math.random() * 9000);
+      shortsRevisionPollTimer = setTimeout(tick, delay);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopShortsRevisionPolling();
+      else scheduleShortsRevisionPollLoop();
+    });
+
+    function showToast(text, durationMs = 1300) {
       toast.textContent = text;
       toast.classList.add('show');
       clearTimeout(showToast.timer);
-      showToast.timer = setTimeout(() => toast.classList.remove('show'), 1300);
+      showToast.timer = setTimeout(() => toast.classList.remove('show'), durationMs);
     }
 
     function orderStatusLabel(status) {
@@ -5269,6 +5358,7 @@ Oq fonli foto</div>
         applyLang();
         await loadNotifications();
         renderAll();
+        scheduleShortsRevisionPollLoop();
       } catch (error) {
         showToast(error.message || t('toastDataLoadErr'));
       }
@@ -5323,6 +5413,7 @@ Oq fonli foto</div>
     });
 
     logoutBtn?.addEventListener('click', () => {
+      stopShortsRevisionPolling();
       localStorage.removeItem('globusUser');
       resetSmsAuthState();
       currentUser = null;

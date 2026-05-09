@@ -439,7 +439,8 @@ function defaultDb() {
     ],
     ambientPlaylist: {
       slots: []
-    }
+    },
+    shortsRevision: 0
   };
 }
 
@@ -470,6 +471,9 @@ function ensureDbShape() {
   if (!db.smsOtpChallenges || typeof db.smsOtpChallenges !== 'object') db.smsOtpChallenges = {};
   if (!Array.isArray(db.notifications)) db.notifications = [];
   if (!Array.isArray(db.shorts)) db.shorts = [];
+  if (typeof db.shortsRevision !== 'number' || !Number.isFinite(db.shortsRevision) || db.shortsRevision < 0) {
+    db.shortsRevision = 0;
+  }
   if (!db.adminV2Theme || typeof db.adminV2Theme !== 'object') {
     const accent = String(db.homeSettings?.accentColor || '#6a4dff').trim() || '#6a4dff';
     db.adminV2Theme = {
@@ -522,6 +526,29 @@ ensureDbShape();
 
 function saveDb() {
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
+}
+
+function getShortsRevision() {
+  const n = Number(db.shortsRevision);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+}
+
+/** Bump revision + optional global notification when an active short is published or activated. */
+function bumpShortsBroadcast(shortItem) {
+  if (!shortItem || shortItem.active === false) return;
+  db.shortsRevision = getShortsRevision() + 1;
+  const headline = 'Yangi shorts';
+  const notification = {
+    id: randomId('ntf'),
+    type: 'new_shorts',
+    title: headline,
+    body: String(shortItem.title || '').trim() || headline,
+    createdAt: nowIso(),
+    active: true,
+    meta: { shortId: shortItem.id, shortsRevision: db.shortsRevision }
+  };
+  if (!Array.isArray(db.notifications)) db.notifications = [];
+  db.notifications.unshift(notification);
 }
 
 function getAdminAmbientTracksOrdered() {
@@ -838,12 +865,17 @@ app.get('/api/v1/home', (req, res) => {
     banners: db.banners.filter((b) => b.active !== false),
     promotions: db.promotions.filter((p) => p.active !== false),
     shorts: activeShorts,
+    shortsRevision: getShortsRevision(),
     delivery_info: {
       location: db.homeSettings.locationText || 'Toshkent shahri',
       time: db.homeSettings.deliveryTimeText || '30 daqiqa',
       price: 18000
     }
   });
+});
+
+app.get('/api/v1/shorts/meta', (req, res) => {
+  return res.json({ ok: true, shortsRevision: getShortsRevision() });
 });
 
 app.get('/api/v1/ambient-playlist', (req, res) => {
@@ -1367,6 +1399,7 @@ app.post('/api/v1/admin-v2/shorts', requireAdminV2, (req, res) => {
   };
   if (!shortItem.title) return res.status(400).json({ ok: false, message: 'Sarlavha majburiy' });
   db.shorts.unshift(shortItem);
+  bumpShortsBroadcast(shortItem);
   saveDb();
   return res.json({ ok: true, short: shortItem });
 });
@@ -1388,6 +1421,7 @@ app.put('/api/v1/admin-v2/shorts/:id', requireAdminV2, (req, res) => {
   const i = (db.shorts || []).findIndex((x) => x.id === req.params.id);
   if (i < 0) return res.status(404).json({ ok: false, message: 'Short topilmadi' });
   const cur = db.shorts[i];
+  const wasActive = cur.active !== false;
   db.shorts[i] = {
     ...cur,
     ...req.body,
@@ -1399,6 +1433,8 @@ app.put('/api/v1/admin-v2/shorts/:id', requireAdminV2, (req, res) => {
     sortOrder: Number(req.body.sortOrder ?? cur.sortOrder ?? 0),
     active: req.body.active !== undefined ? req.body.active !== false : cur.active !== false
   };
+  const nowActive = db.shorts[i].active !== false;
+  if (!wasActive && nowActive) bumpShortsBroadcast(db.shorts[i]);
   saveDb();
   return res.json({ ok: true, short: db.shorts[i] });
 });
@@ -1554,6 +1590,7 @@ app.post('/api/v1/admin/shorts', requireAdmin, (req, res) => {
   };
   if (!shortItem.title) return res.status(400).json({ ok: false, message: 'Sarlavha majburiy' });
   db.shorts.unshift(shortItem);
+  bumpShortsBroadcast(shortItem);
   saveDb();
   return res.json({ ok: true, short: shortItem });
 });
@@ -1561,6 +1598,7 @@ app.put('/api/v1/admin/shorts/:id', requireAdmin, (req, res) => {
   const i = (db.shorts || []).findIndex((x) => x.id === req.params.id);
   if (i < 0) return res.status(404).json({ ok: false, message: 'Short topilmadi' });
   const cur = db.shorts[i];
+  const wasActive = cur.active !== false;
   db.shorts[i] = {
     ...cur,
     ...req.body,
@@ -1572,6 +1610,8 @@ app.put('/api/v1/admin/shorts/:id', requireAdmin, (req, res) => {
     sortOrder: Number(req.body.sortOrder ?? cur.sortOrder ?? 0),
     active: req.body.active !== undefined ? req.body.active !== false : cur.active !== false
   };
+  const nowActive = db.shorts[i].active !== false;
+  if (!wasActive && nowActive) bumpShortsBroadcast(db.shorts[i]);
   saveDb();
   return res.json({ ok: true, short: db.shorts[i] });
 });
