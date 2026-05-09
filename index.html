@@ -3812,6 +3812,7 @@ Oq fonli foto</div>
     }
 
     let syncAmbientChrome = () => {};
+    let handleAmbientHomeEntry = async () => {};
 
     function applyLang() {
       document.documentElement.lang = currentLang;
@@ -3957,6 +3958,7 @@ Oq fonli foto</div>
       const INTRO_AMBIENT_LS_TRACK = 'gm_intro_ambient_track_ix';
       const INTRO_AMBIENT_VOLUME = 0.72;
       const INTRO_AMBIENT_FADE_MS = 650;
+      const INTRO_AMBIENT_AUTOPLAY_HINT_COOLDOWN_MS = 12000;
       const INTRO_AMBIENT_PLAYLIST = [
         { src: '/uploads/audio/ambient-jazz/calm-jazz-01.mp3', title: 'Calm Jazz 01' },
         { src: '/uploads/audio/ambient-jazz/calm-jazz-02.mp3', title: 'Calm Jazz 02' },
@@ -3979,6 +3981,8 @@ Oq fonli foto</div>
       let skipToggleClick = false;
       let fadeFrame = 0;
       let isSwitchingTrack = false;
+      let consecutivePlaybackFailures = 0;
+      let lastAutoplayHintAt = 0;
 
       audio.preload = 'metadata';
       audio.playsInline = true;
@@ -3998,6 +4002,18 @@ Oq fonli foto</div>
 
       function currentTrack() {
         return tracks[trackIndex] || null;
+      }
+
+      function shouldAttemptAutoplayByPreference() {
+        const pref = localStorage.getItem(INTRO_AMBIENT_LS_PLAYING);
+        return pref === null || pref === '1';
+      }
+
+      function maybeShowAutoplayHint() {
+        const now = Date.now();
+        if (now - lastAutoplayHintAt < INTRO_AMBIENT_AUTOPLAY_HINT_COOLDOWN_MS) return;
+        lastAutoplayHintAt = now;
+        showToast(t('toastAmbientGestureRequired'));
       }
 
       function classifyPlaybackError(error) {
@@ -4037,17 +4053,40 @@ Oq fonli foto</div>
         persistTrackIx();
       }
 
-      async function findAvailableTracks() {
-        const checks = INTRO_AMBIENT_PLAYLIST.map(async (track) => {
+      async function resolvePlaybackTracks() {
+        const mapServerTracks = (serverTracks) =>
+          serverTracks
+            .slice()
+            .sort((a, b) => Number(a.slot || 0) - Number(b.slot || 0))
+            .map((track) => ({
+              src: String(track.fileUrl || '').trim(),
+              title: String(track.fileName || `Slot ${track.slot || ''}`).trim()
+            }))
+            .filter((track) => track.src);
+
+        const fetchServerTracks = async () => {
+          const response = await fetch('/api/v1/ambient-playlist', { cache: 'no-store' });
+          if (!response.ok) throw new Error('ambient_playlist_http');
+          const payload = await response.json().catch(() => ({}));
+          return Array.isArray(payload?.tracks) ? payload.tracks : [];
+        };
+
+        try {
+          let serverTracks = await fetchServerTracks();
+          if (!serverTracks.length) return INTRO_AMBIENT_PLAYLIST.slice();
+          const mapped = mapServerTracks(serverTracks);
+          return mapped.length ? mapped : INTRO_AMBIENT_PLAYLIST.slice();
+        } catch {
           try {
-            const response = await fetch(track.src, { method: 'HEAD', cache: 'no-store' });
-            return response.ok ? track : null;
+            await new Promise((r) => setTimeout(r, 350));
+            const serverTracks = await fetchServerTracks();
+            if (!serverTracks.length) return INTRO_AMBIENT_PLAYLIST.slice();
+            const mapped = mapServerTracks(serverTracks);
+            return mapped.length ? mapped : INTRO_AMBIENT_PLAYLIST.slice();
           } catch {
-            return null;
+            return [];
           }
-        });
-        const available = (await Promise.all(checks)).filter(Boolean);
-        return available.length ? available : [];
+        }
       }
 
       syncAmbientChrome = () => {
@@ -4106,6 +4145,7 @@ Oq fonli foto</div>
         audio.volume = 0;
         try {
           await audio.play();
+          consecutivePlaybackFailures = 0;
           persistPlaying(true);
           syncAmbientChrome();
           await fadeVolume(INTRO_AMBIENT_VOLUME);
@@ -4115,6 +4155,7 @@ Oq fonli foto</div>
           audio.pause();
           audio.volume = INTRO_AMBIENT_VOLUME;
           if (String(error?.name || '') !== 'NotAllowedError') persistPlaying(false);
+          if (options.autoAttempt && String(error?.name || '') === 'NotAllowedError') maybeShowAutoplayHint();
           syncAmbientChrome();
           return false;
         }
@@ -4192,12 +4233,19 @@ Oq fonli foto</div>
         if (!isSwitchingTrack) syncAmbientChrome();
       });
       audio.addEventListener('ended', async () => {
-        await switchTrack(1, true);
+        switchTrack(1, true).catch(() => {});
       });
       audio.addEventListener('error', async () => {
         if (!tracks.length) return;
+        consecutivePlaybackFailures += 1;
+        if (consecutivePlaybackFailures >= tracks.length) {
+          persistPlaying(false);
+          showToast(t('toastAmbientSourceMissing'));
+          syncAmbientChrome();
+          return;
+        }
         showToast(t('toastAmbientSourceMissing'));
-        await switchTrack(1, localStorage.getItem(INTRO_AMBIENT_LS_PLAYING) === '1');
+        switchTrack(1, shouldAttemptAutoplayByPreference()).catch(() => {});
       });
 
       toggleButtons.forEach(bindAmbientToggle);
@@ -4214,19 +4262,30 @@ Oq fonli foto</div>
       hideMiniBar();
       syncAmbientChrome();
 
-      findAvailableTracks().then(async (availableTracks) => {
-        tracks = availableTracks;
+      async function maybeAutoplayAmbientOnMainScreen() {
+        if (!phone?.classList.contains('show-app')) return;
+        if (currentView !== 'homeView') return;
+        if (!tracks.length || !shouldAttemptAutoplayByPreference()) return;
+        if (!audio.paused && !audio.ended) return;
+        await playCurrentTrack({ silent: true, autoAttempt: true });
+      }
+
+      resolvePlaybackTracks().then(async (availableTracks) => {
+        tracks = Array.isArray(availableTracks) ? availableTracks : [];
         trackIndex = tracks.length ? Math.min(tracks.length - 1, Math.max(0, trackIndex)) : 0;
+        consecutivePlaybackFailures = 0;
         loadCurrentTrack();
         syncAmbientChrome();
-        if (localStorage.getItem(INTRO_AMBIENT_LS_PLAYING) === '1') {
-          await playCurrentTrack({ silent: true });
-        }
+        await maybeAutoplayAmbientOnMainScreen();
       }).catch(() => {
         tracks = [];
         audio.removeAttribute('src');
         syncAmbientChrome();
       });
+
+      handleAmbientHomeEntry = async () => {
+        await maybeAutoplayAmbientOnMainScreen();
+      };
     }
 
     async function api(path, options = {}) {
@@ -5325,6 +5384,9 @@ Oq fonli foto</div>
         history.pushState({ type: 'view', viewId }, '');
       }
       updateInlineBackTitle();
+      if (viewId === 'homeView') {
+        Promise.resolve(handleAmbientHomeEntry()).catch(() => {});
+      }
     }
 
     function appGoBack() {
@@ -5380,6 +5442,7 @@ Oq fonli foto</div>
         phone.classList.add('show-app');
         setView('homeView');
         await initializeAppData();
+        Promise.resolve(handleAmbientHomeEntry()).catch(() => {});
         return;
       }
       openRegistrationFlow();
@@ -5408,6 +5471,7 @@ Oq fonli foto</div>
         syncIntroCta();
         setView('homeView');
         await initializeAppData();
+        Promise.resolve(handleAmbientHomeEntry()).catch(() => {});
       } catch (error) {
         showToast(error.message || t('toastAuthErr'));
       } finally {
