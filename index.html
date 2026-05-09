@@ -104,7 +104,18 @@
       transition: opacity 600ms ease, transform 600ms ease, visibility 600ms ease;
     }
 
-    .intro { z-index: 20; overflow: hidden; background: radial-gradient(circle at 30% 20%, #1c2f5f, #090f1f 55%, #050913 100%); display: flex; align-items: stretch; justify-content: stretch; position:relative; min-height: 100%; height: 100%; }
+    .intro {
+      z-index: 20;
+      overflow: hidden;
+      background: radial-gradient(circle at 30% 20%, #1c2f5f, #090f1f 55%, #050913 100%);
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      position: relative;
+      min-height: 100%;
+      height: 100%;
+      isolation: isolate;
+    }
     .intro::before{
       content:"";
       position:absolute;
@@ -133,7 +144,7 @@
     .intro-head{
       position:absolute;
       top:calc(var(--safe-top) + 10px);
-      right:calc(var(--safe-right) + 2px);
+      right:calc(var(--safe-right) + 8px);
       z-index:30;
       display:flex;
       align-items:center;
@@ -379,8 +390,6 @@
       .cinematic-intro .cinematic-text { transition: none; animation: none; }
     }
     @media (max-width: 360px) {
-      .intro-inner { padding-inline: 14px; padding-top: calc(var(--safe-top) + 14px); }
-      .intro-head { right: calc(var(--safe-right) + 4px); top: calc(var(--safe-top) + 8px); }
       .cinematic-chip { font-size: 10px; letter-spacing: .06em; margin-top: clamp(46px, 13vh, 92px); width: min(100%, 228px); }
       .intro-lang-switcher { gap: 4px; padding: 3px; }
       .lang-switch-btn { min-width: 34px; min-height: 28px; padding: 0 8px; }
@@ -1833,6 +1842,61 @@
     .gm-section-header h4 { font-size:23px; margin-bottom:9px; font-weight:800; }
     .gm-section-header a { margin-left:auto; align-self:center; }
 
+    /* Intro layout freeze: single source of truth for viewport + safe areas */
+    html,
+    body {
+      min-height: var(--app-vh);
+      min-height: -webkit-fill-available;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      display: block;
+      overflow-x: hidden;
+    }
+    .phone {
+      width: 100%;
+      max-width: none;
+      height: var(--app-vh);
+      min-height: var(--app-vh);
+      border-radius: 0;
+      border: 0;
+      box-shadow: none;
+    }
+    .phone::before,
+    .phone::after,
+    .app::before {
+      display: none;
+    }
+    .phone .screen {
+      min-height: var(--app-vh);
+      height: var(--app-vh);
+    }
+    .phone:not(.show-app) .intro {
+      position: absolute;
+      inset: 0;
+      min-height: var(--app-vh);
+      height: var(--app-vh);
+      padding-top: 0;
+      margin-top: 0;
+    }
+    .phone:not(.show-app) .intro-inner {
+      width: 100%;
+      max-width: 100%;
+      min-height: 100%;
+      height: 100%;
+      margin: 0;
+      padding: calc(var(--safe-top) + 14px) calc(var(--safe-right) + 16px) calc(var(--safe-bottom) + 18px) calc(var(--safe-left) + 16px);
+    }
+    .phone:not(.show-app) .intro-head {
+      top: calc(var(--safe-top) + 10px);
+      right: calc(var(--safe-right) + 8px);
+      z-index: 40;
+    }
+    .phone:not(.show-app) .intro-lang-switcher {
+      pointer-events: auto;
+    }
+
   </style>
   <link rel="stylesheet" href="/styles.css" />
 </head>
@@ -1840,13 +1904,13 @@
   <main class="phone" id="phone">
     
     <section class="screen intro" id="introScreen">
-      <div class="intro-inner cinematic-intro" id="cinematicIntro">
-        <div class="intro-head">
-          <div class="intro-lang-switcher" aria-label="Language selector">
-            <button class="lang-switch-btn" id="introLangUzBtn" type="button">UZ</button>
-            <button class="lang-switch-btn" id="introLangRuBtn" type="button">RU</button>
-          </div>
+      <div class="intro-head">
+        <div class="intro-lang-switcher" aria-label="Language selector">
+          <button class="lang-switch-btn" id="introLangUzBtn" type="button">UZ</button>
+          <button class="lang-switch-btn" id="introLangRuBtn" type="button">RU</button>
         </div>
+      </div>
+      <div class="intro-inner cinematic-intro" id="cinematicIntro">
         <p class="cinematic-chip" id="introChip">Qulay xarid, tezkor yetkazish</p>
         <div class="cinematic-main">
           <div class="cinematic-stage">
