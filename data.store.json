@@ -169,11 +169,35 @@
     "slots": [
       {
         "slot": 1,
+        "fileName": "silviana-di-lorenzo-ho-capito-che-ti-amo.mp3",
+        "fileUrl": "/uploads/audio/admin-ambient/slot-1-silviana-ho-capito-che-ti-amo.mp3",
+        "mimeType": "audio/mpeg",
+        "fileSize": 7948133,
+        "updatedAt": "2026-05-09T12:40:09Z"
+      },
+      {
+        "slot": 2,
         "fileName": "Italianskaya-Felicita-muzce-com.mp3",
-        "fileUrl": "/uploads/audio/admin-ambient/slot-1-italy-felicita-muzce-com.mp3",
+        "fileUrl": "/uploads/audio/admin-ambient/slot-2-italy-felicita-muzce-com.mp3",
         "mimeType": "audio/mpeg",
         "fileSize": 6113115,
-        "updatedAt": "2026-05-09T11:12:39Z"
+        "updatedAt": "2026-05-09T12:40:09Z"
+      },
+      {
+        "slot": 3,
+        "fileName": "fausto-leali-quando-ami-una-donna-when-a-man-loves-a-woman.mp3",
+        "fileUrl": "/uploads/audio/admin-ambient/slot-3-fausto-leali-quando-ami-una-donna-when-a-man-loves-a-woman.mp3",
+        "mimeType": "audio/mpeg",
+        "fileSize": 9344157,
+        "updatedAt": "2026-05-09T12:40:09Z"
+      },
+      {
+        "slot": 4,
+        "fileName": "riccardo-cocciante-per-lei.mp3",
+        "fileUrl": "/uploads/audio/admin-ambient/slot-4-riccardo-cocciante-per-lei.mp3",
+        "mimeType": "audio/mpeg",
+        "fileSize": 10957411,
+        "updatedAt": "2026-05-09T12:40:09Z"
       }
     ]
   }
