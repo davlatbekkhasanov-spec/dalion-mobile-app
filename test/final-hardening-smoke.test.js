@@ -45,7 +45,13 @@ test('final hardening critical flow smoke', async () => {
   const baseUrl = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ['index.js'], {
     cwd: ROOT,
-    env: { ...process.env, PORT: String(port) },
+    env: {
+      ...process.env,
+      PORT: String(port),
+      NODE_ENV: 'test',
+      SMS_GATEWAY_MODE: 'log',
+      ALLOW_OTP_DEV_UI: 'true'
+    },
     stdio: 'ignore'
   });
 
@@ -72,10 +78,16 @@ test('final hardening critical flow smoke', async () => {
     assert.equal(profile.res.status, 200);
     assert.equal(profile.payload.ok, true);
 
-    const otpRequest = await api(baseUrl, 'POST', '/api/v1/auth/request-otp', { phone: PHONE });
+    const otpRequest = await api(baseUrl, 'POST', '/api/v1/auth/sms/send', { phone: PHONE });
     assert.equal(otpRequest.payload.ok, true);
-    assert.equal(otpRequest.payload.devOtp, '1111');
-    const otpVerify = await api(baseUrl, 'POST', '/api/v1/auth/verify-otp', { phone: PHONE, code: '1111' });
+    assert.ok(
+      otpRequest.payload.devHint && String(otpRequest.payload.devHint).length >= 4,
+      'devHint expected in non-production smoke'
+    );
+    const otpVerify = await api(baseUrl, 'POST', '/api/v1/auth/sms/verify', {
+      phone: PHONE,
+      code: String(otpRequest.payload.devHint)
+    });
     assert.equal(otpVerify.payload.ok, true);
 
     const products = await api(baseUrl, 'GET', '/api/v1/products');

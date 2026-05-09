@@ -1289,97 +1289,15 @@
     }
     .auth-consent-check { display: flex; gap: 8px; align-items: flex-start; margin-top: 8px; font-size: 12px; color: #344054; }
     .auth-consent-check input { margin-top: 2px; accent-color: #53f5a9; }
-    .auth-selfie-card {
+    .auth-sms-card {
       margin-top: 10px;
       border: 1px solid #cfddf4;
       border-radius: 12px;
       background: linear-gradient(145deg, rgba(247, 251, 255, 0.98), rgba(238, 246, 255, 0.98));
       padding: 10px;
     }
-    .selfie-preview-wrap { position: relative; margin-top: 8px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(121, 170, 235, 0.3); background: linear-gradient(180deg, rgba(229, 240, 255, 0.92), rgba(211, 229, 255, 0.9)); }
-    .selfie-preview-wrap video,
-    .selfie-preview-wrap img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
-    .selfie-preview-mirror { transform: scaleX(-1); }
-    .selfie-guide {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      display: none;
-    }
-    .selfie-guide.show { display: block; }
-    .selfie-guide-head {
-      position: absolute;
-      left: 50%;
-      top: 48.5%;
-      width: min(58%, 270px);
-      height: min(74%, 340px);
-      transform: translate(-50%, -50%);
-      border-radius: 50%;
-      border: 2px solid rgba(117, 203, 255, 0.85);
-      box-shadow:
-        0 0 0 9999px rgba(16, 37, 68, 0.32),
-        0 0 24px rgba(78, 177, 255, 0.38);
-      transition: border-color .2s ease, box-shadow .2s ease;
-    }
-    .selfie-guide-head::before,
-    .selfie-guide-head::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      border: 1px solid rgba(116, 188, 255, 0.5);
-      border-top: none;
-      border-radius: 0 0 22px 22px;
-      opacity: 0.7;
-    }
-    .selfie-guide-head::before {
-      bottom: -12%;
-      width: 52%;
-      height: 11%;
-    }
-    .selfie-guide-head::after {
-      bottom: -21%;
-      width: 74%;
-      height: 13%;
-      border-color: rgba(116, 188, 255, 0.35);
-    }
-    .selfie-guide.aligned .selfie-guide-head {
-      border-color: rgba(92, 248, 166, 0.95);
-      box-shadow:
-        0 0 0 9999px rgba(16, 37, 68, 0.28),
-        0 0 26px rgba(92, 248, 166, 0.44);
-    }
-    .selfie-guide.aligned .selfie-guide-head::before,
-    .selfie-guide.aligned .selfie-guide-head::after {
-      border-color: rgba(128, 255, 194, 0.58);
-    }
-    .selfie-guide-status {
-      position: absolute;
-      left: 50%;
-      bottom: 10px;
-      transform: translateX(-50%);
-      width: calc(100% - 14px);
-      padding: 6px 9px;
-      border-radius: 9px;
-      text-align: center;
-      font-size: 11px;
-      letter-spacing: .01em;
-      color: #1f3a5b;
-      background: rgba(233, 243, 255, 0.86);
-      border: 1px solid rgba(114, 171, 255, 0.4);
-      backdrop-filter: blur(3px);
-    }
-    .selfie-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
     .auth-success { display: none; margin-top: 8px; font-size: 12px; color: #a5f3cd; }
     .auth-success.show { display: block; }
-    @media (max-width: 420px) {
-      .selfie-guide-head {
-        width: 62%;
-        height: 70%;
-      }
-    }
-
-
     .gm-btn.is-loading {
       position: relative;
       color: transparent !important;
@@ -1999,33 +1917,32 @@
           <div class="auth-trust-item"><span class="auth-trust-icon">💬</span><span><strong id="authTrustSupportTitle">Qo‘llab-quvvatlash</strong> — <span id="authTrustSupportBody">buyurtma bo‘yicha operator siz bilan bog‘lanadi</span></span></div>
         </div>
         <div class="auth-consent">
-          <span id="authConsentLead">Hisobingizni himoya qilish va buyurtmalarni xavfsiz tasdiqlash uchun bir martalik selfie olinadi.</span>
-          <label class="auth-consent-check" for="biometricConsentCheckbox">
-            <input type="checkbox" id="biometricConsentCheckbox" />
-            <span id="authConsentCheckText">Akkauntimni himoya qilish uchun selfie tasdig‘imdan foydalanilishiga roziman.</span>
+          <span id="authConsentLead">Telefon raqamingizni SMS kod bilan tasdiqlaymiz — bu akkauntni himoya qilish va yetkazib berish bilan bog‘lanish uchun.</span>
+          <label class="auth-consent-check" for="smsConsentCheckbox">
+            <input type="checkbox" id="smsConsentCheckbox" />
+            <span id="authConsentCheckText">Telefonimga tasdiqlash kodi yuborilishiga va shu kanal orqali xizmat xabarlariga roziman.</span>
           </label>
           <small class="auth-hint" id="authConsentHint">Ma’lumotlar faqat xizmat sifati va xavfsizlik uchun ishlatiladi, uchinchi tomonlarga berilmaydi.</small>
-          <small class="auth-error" id="biometricConsentError">Davom etish uchun biometrik rozilikni belgilang.</small>
+          <small class="auth-error" id="smsConsentError">Davom etish uchun rozilikni belgilang.</small>
         </div>
-        <div class="auth-selfie-card">
-          <div class="muted" style="margin-bottom:6px;" id="authSelfieSectionTitle">Biometrik tasdiqlash (selfie)</div>
-          <button type="button" class="btn gm-btn gm-btn-secondary btn-secondary" id="startFaceIdBtn">Face ID ni boshlash</button>
-          <small class="auth-hint" id="selfieHint">Kamera ochiladi, selfieni oling va tasdiqlang.</small>
-          <small class="auth-error" id="selfieError">Ro‘yxatdan o‘tishdan oldin selfieni tasdiqlang.</small>
-          <div class="selfie-preview-wrap" id="selfiePreviewWrap" style="display:none;">
-            <video id="selfieVideo" autoplay playsinline muted></video>
-            <img id="selfieImagePreview" alt="Selfie preview" style="display:none;" />
-            <canvas id="selfieCanvas" style="display:none;"></canvas>
-            <div class="selfie-guide" id="selfieGuide">
-              <div class="selfie-guide-head"></div>
-              <div class="selfie-guide-status" id="selfieGuideStatus">Yuzingizni oval ichiga joylashtiring.</div>
-            </div>
-          </div>
-          <div class="selfie-actions" id="selfieActions" style="display:none;">
-            <button type="button" class="btn gm-btn gm-btn-secondary btn-secondary" id="captureSelfieBtn">Selfieni olish</button>
-            <button type="button" class="btn gm-btn gm-btn-primary btn-primary" id="confirmSelfieBtn" disabled>Tasdiqlash</button>
-          </div>
-          <small class="auth-success" id="selfieSuccess">Selfie tasdiqlandi. Davom etishingiz mumkin.</small>
+        <div class="auth-sms-card" id="authSmsCard">
+          <div class="muted" style="margin-bottom:6px;" id="authSmsSectionTitle">SMS orqali tasdiqlash</div>
+          <button type="button" class="btn gm-btn gm-btn-secondary btn-secondary" id="sendSmsBtn">Kod yuborish</button>
+          <small class="auth-hint" id="smsSendHint">Avval telefonni to‘liq kiriting, keyin kod yuboring.</small>
+          <small class="auth-error" id="smsSendError"></small>
+          <input
+            id="authOtpInput"
+            class="auth-input"
+            inputmode="numeric"
+            maxlength="8"
+            autocomplete="one-time-code"
+            placeholder="SMS kod"
+            aria-label="SMS kod"
+            style="margin-top:8px;"
+          />
+          <small class="auth-error" id="smsOtpError"></small>
+          <button type="button" class="btn gm-btn gm-btn-secondary btn-secondary" id="verifySmsBtn" style="margin-top:8px;">Kodni tasdiqlash</button>
+          <small class="auth-success" id="smsVerifiedSuccess">Telefon tasdiqlandi.</small>
         </div>
 
         <button type="button" class="btn gm-btn gm-btn-primary btn-primary" id="submitAuthBtn" style="margin-top:10px;">Davom etish</button>
@@ -2360,440 +2277,24 @@ Oq fonli foto</div>
     const closeAuthSheetBtn = document.getElementById('closeAuthSheetBtn');
     const authName = document.getElementById('authName');
     const authPhone = document.getElementById('authPhone');
-    const biometricConsentCheckbox = document.getElementById('biometricConsentCheckbox');
-    const biometricConsentError = document.getElementById('biometricConsentError');
-    const startFaceIdBtn = document.getElementById('startFaceIdBtn');
-    const captureSelfieBtn = document.getElementById('captureSelfieBtn');
-    const confirmSelfieBtn = document.getElementById('confirmSelfieBtn');
-    const selfieVideo = document.getElementById('selfieVideo');
-    const selfieCanvas = document.getElementById('selfieCanvas');
-    const selfieImagePreview = document.getElementById('selfieImagePreview');
-    const selfiePreviewWrap = document.getElementById('selfiePreviewWrap');
-    const selfieActions = document.getElementById('selfieActions');
-    const selfieHint = document.getElementById('selfieHint');
-    const selfieError = document.getElementById('selfieError');
-    const selfieSuccess = document.getElementById('selfieSuccess');
-    const selfieGuide = document.getElementById('selfieGuide');
-    const selfieGuideStatus = document.getElementById('selfieGuideStatus');
+    const smsConsentCheckbox = document.getElementById('smsConsentCheckbox');
+    const smsConsentError = document.getElementById('smsConsentError');
+    const sendSmsBtn = document.getElementById('sendSmsBtn');
+    const verifySmsBtn = document.getElementById('verifySmsBtn');
+    const authOtpInput = document.getElementById('authOtpInput');
+    const smsSendHint = document.getElementById('smsSendHint');
+    const smsSendError = document.getElementById('smsSendError');
+    const smsOtpError = document.getElementById('smsOtpError');
+    const smsVerifiedSuccess = document.getElementById('smsVerifiedSuccess');
+    const authSmsSectionTitle = document.getElementById('authSmsSectionTitle');
     const submitAuthBtn = document.getElementById('submitAuthBtn');
     const authNameError = document.getElementById('authNameError');
     const authPhoneError = document.getElementById('authPhoneError');
     const authPhoneHint = document.getElementById('authPhoneHint');
 
-    let selfieStream = null;
-    let biometricSelfie = { dataUrl: '', confirmed: false, capturedAt: '' };
-    let selfieFaceDetector = null;
-    let selfieDetectorTimer = null;
-    let selfieFallbackTimer = null;
-    let selfieFallbackOffscreenCanvas = null;
-    let selfieFallbackLastLuma = null;
-    let selfieAlignmentStartedAt = 0;
-    let selfieCountdownTimer = null;
-    let selfieCountdownStartedAt = 0;
-    let selfieCountdownTargetAt = 0;
-    let selfieIsDetectingFrame = false;
-    let selfieDetectionMode = 'none';
-    let selfieForceFallbackMode = false;
-    let selfieAutoCaptureEligible = false;
-    let selfieCurrentState = 'idle';
-    const selfieDebugTransitions = [];
-    const selfieRuntimeEvents = [];
-    let selfieLastStillAlignedLogAt = 0;
-    const SELFIE_PREVIEW_MIRRORED = true;
-    const SELFIE_CAPTURE_OUTPUT_MIRRORED = false;
-    const SELFIE_STABLE_MS = 1400;
-    const SELFIE_COUNTDOWN_MS = 1200;
-    const SELFIE_FALLBACK_SAMPLE_W = 112;
-    const SELFIE_FALLBACK_SAMPLE_H = 144;
-    const SELFIE_AUTO_CAPTURE_MODES = new Set(['native', 'fallback']);
+    let smsPhoneVerified = false;
+    let smsVerificationToken = '';
 
-    function trackSelfieTransition(state, extra) {
-      if (selfieCurrentState === state) return;
-      selfieCurrentState = state;
-      const event = {
-        state,
-        at: new Date().toISOString(),
-        extra: extra && typeof extra === 'object' ? extra : null
-      };
-      selfieDebugTransitions.push(event);
-      while (selfieDebugTransitions.length > 40) selfieDebugTransitions.shift();
-      try {
-        console.info('[SELFIE_FLOW]', event);
-      } catch (_) {}
-      window.__gmSelfieDebug = window.__gmSelfieDebug || {};
-      window.__gmSelfieDebug.transitions = selfieDebugTransitions.slice();
-    }
-
-    function trackSelfieRuntimeEvent(event, extra) {
-      const entry = {
-        event,
-        at: new Date().toISOString(),
-        state: selfieCurrentState,
-        detectionMode: selfieDetectionMode,
-        countdownActive: Boolean(selfieCountdownTargetAt),
-        countdownMsLeft: selfieCountdownTargetAt ? Math.max(0, selfieCountdownTargetAt - Date.now()) : 0,
-        autoEligible: Boolean(selfieAutoCaptureEligible),
-        extra: extra && typeof extra === 'object' ? extra : null
-      };
-      selfieRuntimeEvents.push(entry);
-      while (selfieRuntimeEvents.length > 120) selfieRuntimeEvents.shift();
-      try {
-        console.info('[SELFIE_RUNTIME]', entry);
-      } catch (_) {}
-      window.__gmSelfieDebug = window.__gmSelfieDebug || {};
-      window.__gmSelfieDebug.runtime = selfieRuntimeEvents.slice();
-    }
-
-    function setSelfieGuideStatus(text, aligned) {
-      if (selfieGuideStatus && text) selfieGuideStatus.textContent = text;
-      if (selfieGuide) selfieGuide.classList.toggle('aligned', Boolean(aligned));
-    }
-
-    function showSelfieGuideOverlay() {
-      if (selfieGuide) selfieGuide.classList.add('show');
-    }
-
-    function applySelfieMirrorClass() {
-      if (selfieVideo) selfieVideo.classList.toggle('selfie-preview-mirror', SELFIE_PREVIEW_MIRRORED);
-      if (selfieImagePreview) selfieImagePreview.classList.toggle('selfie-preview-mirror', false);
-    }
-
-    function clearSelfieCountdown(reason) {
-      if (selfieCountdownTimer) {
-        clearTimeout(selfieCountdownTimer);
-        selfieCountdownTimer = null;
-      }
-      selfieAutoCaptureEligible = false;
-      selfieCountdownStartedAt = 0;
-      selfieCountdownTargetAt = 0;
-      if (reason) trackSelfieRuntimeEvent('countdown_cleared', { reason });
-      if (reason) trackSelfieTransition('align_required', { reason });
-    }
-
-    function finalizeSelfieCountdown(mode, source) {
-      trackSelfieRuntimeEvent('finalize_countdown_called', { mode, source: source || 'timer' });
-      if (!selfieCountdownTargetAt || Date.now() < selfieCountdownTargetAt) return false;
-      if (selfieCountdownTimer) {
-        clearTimeout(selfieCountdownTimer);
-        selfieCountdownTimer = null;
-      }
-      const stillEligible = selfieAutoCaptureEligible
-        && selfieDetectionMode === mode;
-      if (!stillEligible) {
-        trackSelfieRuntimeEvent('finalize_blocked', {
-          reason: 'not-eligible',
-          mode,
-          currentState: selfieCurrentState,
-          detectionMode: selfieDetectionMode
-        });
-        selfieAutoCaptureEligible = false;
-        return false;
-      }
-      if (!selfieStream || !selfieVideo || selfieVideo.style.display === 'none') {
-        trackSelfieRuntimeEvent('finalize_blocked', {
-          reason: 'stream-unavailable',
-          mode
-        });
-        selfieAutoCaptureEligible = false;
-        return false;
-      }
-      trackSelfieTransition('countdown_complete', { mode, source: source || 'timer' });
-      trackSelfieTransition('capture_called', { auto: true, mode, source: source || 'timer' });
-      trackSelfieRuntimeEvent('capture_invoked', { auto: true, mode, source: source || 'timer' });
-      captureSelfieFrame({ auto: true, mode });
-      selfieAutoCaptureEligible = false;
-      return true;
-    }
-
-    function scheduleSelfieCountdownCheck(mode) {
-      if (!selfieCountdownTargetAt) return;
-      const timeLeftMs = selfieCountdownTargetAt - Date.now();
-      if (timeLeftMs <= 0) {
-        finalizeSelfieCountdown(mode, 'timer');
-        return;
-      }
-      selfieCountdownTimer = setTimeout(() => {
-        selfieCountdownTimer = null;
-        scheduleSelfieCountdownCheck(mode);
-      }, Math.min(140, timeLeftMs));
-    }
-
-    function startSelfieCountdown(mode) {
-      if (selfieCountdownTimer || !selfieStream || !selfieVideo || selfieVideo.style.display === 'none') return;
-      if (!SELFIE_AUTO_CAPTURE_MODES.has(mode || '')) return;
-      if (selfieCurrentState !== 'aligned') return;
-      selfieAutoCaptureEligible = true;
-      selfieCountdownStartedAt = Date.now();
-      selfieCountdownTargetAt = selfieCountdownStartedAt + SELFIE_COUNTDOWN_MS;
-      trackSelfieTransition('countdown', { mode });
-      trackSelfieRuntimeEvent('countdown_started', { mode });
-      scheduleSelfieCountdownCheck(mode);
-    }
-
-    function getSelfieGuideFrame(videoWidth, videoHeight) {
-      const cx = videoWidth * 0.5;
-      const cy = videoHeight * 0.49;
-      const rx = videoWidth * 0.29;
-      const ry = videoHeight * 0.36;
-      return { cx, cy, rx, ry };
-    }
-
-    function drawSelfieFrameToCanvas(ctx, source, width, height, mirrored) {
-      ctx.clearRect(0, 0, width, height);
-      if (mirrored) {
-        ctx.save();
-        ctx.translate(width, 0);
-        ctx.scale(-1, 1);
-        ctx.drawImage(source, 0, 0, width, height);
-        ctx.restore();
-        return;
-      }
-      ctx.drawImage(source, 0, 0, width, height);
-    }
-
-    function isFaceInsideGuide(faceBox, videoWidth, videoHeight) {
-      if (!faceBox || !videoWidth || !videoHeight) return false;
-      const guide = getSelfieGuideFrame(videoWidth, videoHeight);
-      const faceCx = Number(faceBox.x || 0) + Number(faceBox.width || 0) / 2;
-      const faceCy = Number(faceBox.y || 0) + Number(faceBox.height || 0) / 2;
-      const dx = (faceCx - guide.cx) / guide.rx;
-      const dy = (faceCy - guide.cy) / guide.ry;
-      const centered = ((dx * dx) + (dy * dy)) <= 0.95;
-      const faceAreaRatio = (Number(faceBox.width || 0) * Number(faceBox.height || 0)) / (videoWidth * videoHeight);
-      const sizeValid = faceAreaRatio >= 0.08 && faceAreaRatio <= 0.5;
-      return centered && sizeValid;
-    }
-
-    function isReliableFaceCandidate(face) {
-      if (!face || !face.boundingBox) return false;
-      const landmarks = Array.isArray(face.landmarks) ? face.landmarks : [];
-      const landmarkTypes = new Set(landmarks.map((item) => String(item?.type || '').toLowerCase()));
-      const hasEyes = landmarkTypes.has('eye') || (landmarkTypes.has('left eye') && landmarkTypes.has('right eye'));
-      const hasNoseOrMouth = landmarkTypes.has('nose') || landmarkTypes.has('mouth');
-      if (landmarks.length >= 3 && hasEyes && hasNoseOrMouth) return true;
-      if (landmarks.length >= 4) return true;
-      return false;
-    }
-
-    function switchToManualSelfieMode(reason, details) {
-      stopSelfieDetectionLoop();
-      showSelfieGuideOverlay();
-      selfieDetectionMode = 'manual';
-      selfieAlignmentStartedAt = 0;
-      setSelfieGuideStatus(t('selfieGuideManual'), false);
-      trackSelfieTransition('manual_required', { reason: reason || 'detector-unavailable', details: details || null });
-      if (selfieHint) {
-        const isFallbackFailure = String(reason || '').startsWith('fallback-');
-        selfieHint.textContent = isFallbackFailure
-          ? t('selfieHintManualFallback')
-          : t('selfieHintManualNoAuto');
-      }
-    }
-
-    async function runSelfieDetectionFrame() {
-      if (!selfieFaceDetector || selfieIsDetectingFrame || !selfieVideo || selfieVideo.style.display === 'none') return;
-      const width = selfieVideo.videoWidth || 0;
-      const height = selfieVideo.videoHeight || 0;
-      if (!width || !height || !selfieStream) return;
-      selfieIsDetectingFrame = true;
-      try {
-        const faces = await selfieFaceDetector.detect(selfieVideo);
-        const firstFace = Array.isArray(faces) && faces.length ? faces[0] : null;
-        if (!firstFace) {
-          selfieAlignmentStartedAt = 0;
-          clearSelfieCountdown('no-face');
-          setSelfieGuideStatus(t('selfieGuideNoFace'), false);
-          return;
-        }
-        if (!isReliableFaceCandidate(firstFace)) {
-          selfieAlignmentStartedAt = 0;
-          clearSelfieCountdown('low-confidence-face');
-          setSelfieGuideStatus(t('selfieGuideLowConfidence'), false);
-          return;
-        }
-        const aligned = isFaceInsideGuide(firstFace.boundingBox, width, height);
-        if (!aligned) {
-          selfieAlignmentStartedAt = 0;
-          clearSelfieCountdown('misaligned');
-          setSelfieGuideStatus(t('selfieGuideMisaligned'), false);
-          return;
-        }
-        if (!selfieAlignmentStartedAt) selfieAlignmentStartedAt = Date.now();
-        if (!selfieCountdownTargetAt) {
-          trackSelfieTransition('aligned');
-        } else if ((Date.now() - selfieLastStillAlignedLogAt) > 260) {
-          selfieLastStillAlignedLogAt = Date.now();
-          trackSelfieRuntimeEvent('countdown_still_aligned', { mode: 'native' });
-        }
-        const heldForMs = Date.now() - selfieAlignmentStartedAt;
-        if (!selfieCountdownTimer) {
-          const secondsLeft = Math.max(1, Math.ceil((SELFIE_STABLE_MS - heldForMs) / 1000));
-          setSelfieGuideStatus(`${t('selfieGuideHoldStill')} (${secondsLeft}s)`, true);
-        }
-        if (heldForMs >= SELFIE_STABLE_MS) {
-          if (selfieCountdownTargetAt) finalizeSelfieCountdown('native', 'frame-loop');
-          const countdownLeftMs = Math.max(0, selfieCountdownTargetAt - Date.now());
-          const countdownLeftSec = Math.max(1, Math.ceil(countdownLeftMs / 1000));
-          if (!selfieCountdownTargetAt) {
-            startSelfieCountdown('native');
-          }
-          setSelfieGuideStatus(`${t('selfieGuideAutoCapture')} ${countdownLeftSec}s`, true);
-        }
-      } catch (error) {
-        switchToManualSelfieMode('detector-error', String(error?.message || error || 'unknown'));
-      } finally {
-        selfieIsDetectingFrame = false;
-      }
-    }
-
-    function ensureSelfieFallbackCanvas() {
-      if (selfieFallbackOffscreenCanvas) return selfieFallbackOffscreenCanvas;
-      selfieFallbackOffscreenCanvas = document.createElement('canvas');
-      selfieFallbackOffscreenCanvas.width = SELFIE_FALLBACK_SAMPLE_W;
-      selfieFallbackOffscreenCanvas.height = SELFIE_FALLBACK_SAMPLE_H;
-      return selfieFallbackOffscreenCanvas;
-    }
-
-    function sampleSelfieFallbackAlignment() {
-      if (!selfieVideo || !selfieStream || selfieVideo.style.display === 'none') return { aligned: false, reason: 'video-hidden' };
-      const sourceWidth = selfieVideo.videoWidth || 0;
-      const sourceHeight = selfieVideo.videoHeight || 0;
-      if (!sourceWidth || !sourceHeight) return { aligned: false, reason: 'no-frame' };
-      const sampleCanvas = ensureSelfieFallbackCanvas();
-      const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
-      if (!sampleCtx) return { aligned: false, reason: 'ctx-unavailable' };
-      drawSelfieFrameToCanvas(sampleCtx, selfieVideo, SELFIE_FALLBACK_SAMPLE_W, SELFIE_FALLBACK_SAMPLE_H, SELFIE_PREVIEW_MIRRORED);
-      const frame = sampleCtx.getImageData(0, 0, SELFIE_FALLBACK_SAMPLE_W, SELFIE_FALLBACK_SAMPLE_H);
-      const data = frame.data;
-      const guide = getSelfieGuideFrame(SELFIE_FALLBACK_SAMPLE_W, SELFIE_FALLBACK_SAMPLE_H);
-      let centerCount = 0;
-      let outerCount = 0;
-      let centerSum = 0;
-      let outerSum = 0;
-      let centerSqSum = 0;
-      let motionSum = 0;
-      const currentLuma = new Uint8Array(SELFIE_FALLBACK_SAMPLE_W * SELFIE_FALLBACK_SAMPLE_H);
-      for (let y = 0; y < SELFIE_FALLBACK_SAMPLE_H; y += 1) {
-        for (let x = 0; x < SELFIE_FALLBACK_SAMPLE_W; x += 1) {
-          const idx = (y * SELFIE_FALLBACK_SAMPLE_W + x);
-          const dataIdx = idx * 4;
-          const luma = (data[dataIdx] * 0.299) + (data[dataIdx + 1] * 0.587) + (data[dataIdx + 2] * 0.114);
-          currentLuma[idx] = Math.round(luma);
-          const dx = (x - guide.cx) / guide.rx;
-          const dy = (y - guide.cy) / guide.ry;
-          const inCenterOval = ((dx * dx) + (dy * dy)) <= 1;
-          if (inCenterOval) {
-            centerCount += 1;
-            centerSum += luma;
-            centerSqSum += luma * luma;
-          } else {
-            outerCount += 1;
-            outerSum += luma;
-          }
-          if (selfieFallbackLastLuma) {
-            motionSum += Math.abs(luma - selfieFallbackLastLuma[idx]);
-          }
-        }
-      }
-      selfieFallbackLastLuma = currentLuma;
-      if (!centerCount || !outerCount) return { aligned: false, reason: 'invalid-mask' };
-      const centerMean = centerSum / centerCount;
-      const outerMean = outerSum / outerCount;
-      const variance = Math.max(0, (centerSqSum / centerCount) - (centerMean * centerMean));
-      const centerStdDev = Math.sqrt(variance);
-      const motionScore = motionSum / (SELFIE_FALLBACK_SAMPLE_W * SELFIE_FALLBACK_SAMPLE_H);
-      const contrast = Math.abs(centerMean - outerMean);
-      const aligned = centerStdDev >= 20 && contrast >= 6 && motionScore <= 8.8;
-      return {
-        aligned,
-        reason: aligned ? 'stable-center' : (centerStdDev < 20 ? 'low-detail' : (contrast < 6 ? 'off-center' : 'movement')),
-        centerStdDev: Number(centerStdDev.toFixed(2)),
-        contrast: Number(contrast.toFixed(2)),
-        motionScore: Number(motionScore.toFixed(2))
-      };
-    }
-
-    function runSelfieFallbackFrame() {
-      if (selfieIsDetectingFrame) return;
-      selfieIsDetectingFrame = true;
-      try {
-        const sampled = sampleSelfieFallbackAlignment();
-        if (!sampled.aligned) {
-          selfieAlignmentStartedAt = 0;
-          clearSelfieCountdown(`fallback-${sampled.reason || 'misaligned'}`);
-          setSelfieGuideStatus(t('selfieGuideFallbackHoldCenter'), false);
-          return;
-        }
-        if (!selfieAlignmentStartedAt) selfieAlignmentStartedAt = Date.now();
-        if (!selfieCountdownTargetAt) {
-          trackSelfieTransition('aligned', { mode: 'fallback', metrics: sampled });
-        } else if ((Date.now() - selfieLastStillAlignedLogAt) > 260) {
-          selfieLastStillAlignedLogAt = Date.now();
-          trackSelfieRuntimeEvent('countdown_still_aligned', { mode: 'fallback', metrics: sampled });
-        }
-        const heldForMs = Date.now() - selfieAlignmentStartedAt;
-        if (!selfieCountdownTimer) {
-          const secondsLeft = Math.max(1, Math.ceil((SELFIE_STABLE_MS - heldForMs) / 1000));
-          setSelfieGuideStatus(`${t('selfieGuideFaceCentered')} (${secondsLeft}s)`, true);
-        }
-        if (heldForMs >= SELFIE_STABLE_MS) {
-          if (selfieCountdownTargetAt) finalizeSelfieCountdown('fallback', 'frame-loop');
-          const countdownLeftMs = Math.max(0, selfieCountdownTargetAt - Date.now());
-          const countdownLeftSec = Math.max(1, Math.ceil(countdownLeftMs / 1000));
-          if (!selfieCountdownTargetAt) startSelfieCountdown('fallback');
-          setSelfieGuideStatus(`${t('selfieGuideAutoCapture')} ${countdownLeftSec}s`, true);
-        }
-      } catch (_) {
-        switchToManualSelfieMode('fallback-error');
-        setSelfieGuideStatus(t('selfieGuideManualAfterFallback'), false);
-      } finally {
-        selfieIsDetectingFrame = false;
-      }
-    }
-
-    function stopSelfieDetectionLoop() {
-      if (selfieDetectorTimer) {
-        clearInterval(selfieDetectorTimer);
-        selfieDetectorTimer = null;
-      }
-      if (selfieFallbackTimer) {
-        clearInterval(selfieFallbackTimer);
-        selfieFallbackTimer = null;
-      }
-      clearSelfieCountdown();
-      selfieAlignmentStartedAt = 0;
-      selfieIsDetectingFrame = false;
-      selfieFaceDetector = null;
-      selfieFallbackLastLuma = null;
-      selfieDetectionMode = 'none';
-      if (selfieGuide) {
-        selfieGuide.classList.remove('aligned');
-      }
-    }
-
-    function startSelfieFallbackLoop(reason) {
-      stopSelfieDetectionLoop();
-      selfieDetectionMode = 'fallback';
-      selfieAlignmentStartedAt = 0;
-      setSelfieGuideStatus(t('selfieGuideFallbackAutoMode'), false);
-      selfieFallbackTimer = setInterval(() => {
-        runSelfieFallbackFrame();
-      }, 220);
-      trackSelfieTransition('align_required', { mode: 'fallback', reason: reason || 'native-unavailable' });
-      if (selfieHint) selfieHint.textContent = t('selfieHintFallbackAutoMode');
-    }
-
-    function setupSelfieFallbackDebugHook() {
-      window.__gmSelfieDebug = window.__gmSelfieDebug || {};
-      window.__gmSelfieDebug.getTransitions = () => selfieDebugTransitions.slice();
-      window.__gmSelfieDebug.getRuntimeEvents = () => selfieRuntimeEvents.slice();
-      window.__gmSelfieDebug.forceFallback = (value) => {
-        selfieForceFallbackMode = Boolean(value);
-        return selfieForceFallbackMode;
-      };
-      window.__gmSelfieDebug.runStrictFlowSmoke = () => runSelfieStrictFlowSmoke();
-    }
-    setupSelfieFallbackDebugHook();
 
     const gmAnalytics = (() => {
       const STORAGE_KEY = 'gm_events';
@@ -2913,200 +2414,81 @@ Oq fonli foto</div>
     function clearAuthErrors() {
       setFieldError(authName, authNameError, '');
       setFieldError(authPhone, authPhoneError, '');
-      setFieldError(null, biometricConsentError, '');
-      setFieldError(null, selfieError, '');
+      setFieldError(null, smsConsentError, '');
+      setFieldError(null, smsSendError, '');
+      setFieldError(null, smsOtpError, '');
       if (authPhoneHint) authPhoneHint.style.display = '';
     }
 
-    function stopSelfieStream() {
-      stopSelfieDetectionLoop();
-      if (selfieStream) {
-        selfieStream.getTracks().forEach((track) => track.stop());
-        selfieStream = null;
-      }
+    function resetSmsAuthState() {
+      smsPhoneVerified = false;
+      smsVerificationToken = '';
+      if (authOtpInput) authOtpInput.value = '';
+      if (smsVerifiedSuccess) smsVerifiedSuccess.classList.remove('show');
+      setFieldError(null, smsSendError, '');
+      setFieldError(null, smsOtpError, '');
     }
 
-    function resetSelfieState() {
-      stopSelfieStream();
-      biometricSelfie = { dataUrl: '', confirmed: false, capturedAt: '' };
-      if (selfieImagePreview) {
-        selfieImagePreview.style.display = 'none';
-        selfieImagePreview.removeAttribute('src');
+    async function sendSmsCode() {
+      if (!smsConsentCheckbox?.checked) {
+        setFieldError(null, smsConsentError, t('smsConsentError'));
+        return false;
       }
-      if (selfieVideo) selfieVideo.style.display = 'none';
-      if (selfiePreviewWrap) selfiePreviewWrap.style.display = 'none';
-      if (selfieActions) selfieActions.style.display = 'none';
-      if (confirmSelfieBtn) confirmSelfieBtn.disabled = true;
-      if (startFaceIdBtn) {
-        startFaceIdBtn.removeAttribute('disabled');
-        startFaceIdBtn.textContent = t('authStartFaceId');
-      }
-      if (selfieHint) selfieHint.style.display = '';
-      if (selfieSuccess) selfieSuccess.classList.remove('show');
-      setSelfieGuideStatus(t('selfieGuideAlignFrame'), false);
-      trackSelfieTransition('idle');
-    }
-
-    async function startSelfieCapture() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setFieldError(null, selfieError, t('selfieErrorCameraUnsupported'));
-        return;
-      }
-      setFieldError(null, selfieError, '');
-      setBtnLoading(startFaceIdBtn, true);
+      const phoneOk = validateAuthPhone();
+      if (!phoneOk) return false;
+      setFieldError(null, smsSendError, '');
+      const phoneValue = normalizedAuthPhone();
+      setBtnLoading(sendSmsBtn, true);
       try {
-        stopSelfieStream();
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 540 } },
-          audio: false
+        await api('/auth/sms/send', {
+          method: 'POST',
+          body: JSON.stringify({ phone: phoneValue })
         });
-        selfieStream = stream;
-        if (selfieVideo) {
-          selfieVideo.srcObject = stream;
-          selfieVideo.style.display = 'block';
-        }
-        if (selfieImagePreview) selfieImagePreview.style.display = 'none';
-        applySelfieMirrorClass();
-        if (selfiePreviewWrap) selfiePreviewWrap.style.display = 'block';
-        if (selfieActions) selfieActions.style.display = 'grid';
-        if (confirmSelfieBtn) confirmSelfieBtn.disabled = true;
-        if (selfieHint) selfieHint.style.display = '';
-        showSelfieGuideOverlay();
-        const faceDetectorSupported = !selfieForceFallbackMode && typeof window.FaceDetector === 'function';
-        if (faceDetectorSupported) {
-          try {
-            selfieFaceDetector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
-            selfieDetectionMode = 'native';
-            setSelfieGuideStatus(t('selfieGuideAlignFrame'), false);
-            selfieDetectorTimer = setInterval(() => {
-              runSelfieDetectionFrame();
-            }, 220);
-            trackSelfieTransition('align_required', { mode: 'native' });
-            if (selfieHint) selfieHint.textContent = t('selfieHintAutoActive');
-          } catch (error) {
-            startSelfieFallbackLoop('detector-init-failed');
-          }
-        } else {
-          startSelfieFallbackLoop('native-unsupported');
-        }
-      } catch (_) {
-        setFieldError(null, selfieError, t('selfieErrorCameraPermission'));
+        showToast(t('smsSentToast'));
+        return true;
+      } catch (err) {
+        setFieldError(null, smsSendError, err.message || t('smsSendFail'));
+        return false;
       } finally {
-        setBtnLoading(startFaceIdBtn, false);
+        setBtnLoading(sendSmsBtn, false);
       }
     }
 
-    function captureSelfieFrame(options) {
-      if (!selfieVideo || !selfieCanvas || !selfieImagePreview) return;
-      const captureOptions = options && typeof options === 'object' ? options : {};
-      const requestedMode = String(captureOptions.mode || '').trim();
-      const activeDetectionMode = requestedMode || selfieDetectionMode;
-      if (captureOptions.auto) {
-        const allowedMode = SELFIE_AUTO_CAPTURE_MODES.has(activeDetectionMode);
-        const eligibleState = selfieAutoCaptureEligible;
-        if (!allowedMode || !eligibleState) {
-          trackSelfieRuntimeEvent('capture_blocked', {
-            auto: true,
-            mode: activeDetectionMode || 'none',
-            allowedMode,
-            eligibleState,
-            currentState: selfieCurrentState
-          });
-          trackSelfieTransition('capture_blocked', {
-            auto: true,
-            mode: activeDetectionMode || 'none',
-            allowedMode,
-            eligibleState
-          });
-          setSelfieGuideStatus(t('selfieGuideAutoCaptureBlocked'), false);
-          return;
-        }
+    async function verifySmsCode() {
+      const phoneOk = validateAuthPhone();
+      const code = String(authOtpInput?.value || '').replace(/\D/g, '').trim();
+      if (!phoneOk || !code) {
+        setFieldError(authOtpInput, smsOtpError, t('smsOtpMissing'));
+        return false;
       }
-      if (!captureOptions.auto && selfieDetectionMode === 'manual') {
-        const sampled = sampleSelfieFallbackAlignment();
-        if (!sampled.aligned) {
-          setSelfieGuideStatus(t('selfieGuideFaceNotDetected'), false);
-          setFieldError(null, selfieError, t('selfieErrorNoFaceForCapture'));
-          trackSelfieTransition('capture_blocked', {
-            auto: false,
-            mode: 'manual',
-            reason: sampled.reason || 'face-not-detected'
-          });
-          return;
-        }
+      setFieldError(null, smsOtpError, '');
+      setBtnLoading(verifySmsBtn, true);
+      try {
+        const data = await api('/auth/sms/verify', {
+          method: 'POST',
+          body: JSON.stringify({ phone: normalizedAuthPhone(), code })
+        });
+        smsPhoneVerified = true;
+        smsVerificationToken = data.verificationToken || '';
+        if (smsVerifiedSuccess) smsVerifiedSuccess.classList.add('show');
+        showToast(t('smsVerifiedToast'));
+        return true;
+      } catch (err) {
+        setFieldError(null, smsOtpError, err.message || t('smsVerifyFail'));
+        return false;
+      } finally {
+        setBtnLoading(verifySmsBtn, false);
       }
-      stopSelfieDetectionLoop();
-      const width = selfieVideo.videoWidth || 720;
-      const height = selfieVideo.videoHeight || 540;
-      if (!width || !height) {
-        setFieldError(null, selfieError, t('selfieErrorCameraNotReady'));
-        return;
-      }
-      selfieCanvas.width = width;
-      selfieCanvas.height = height;
-      const ctx = selfieCanvas.getContext('2d');
-      drawSelfieFrameToCanvas(ctx, selfieVideo, width, height, SELFIE_CAPTURE_OUTPUT_MIRRORED);
-      const dataUrl = selfieCanvas.toDataURL('image/jpeg', 0.82);
-      biometricSelfie = { dataUrl, confirmed: false, capturedAt: new Date().toISOString() };
-      selfieImagePreview.src = dataUrl;
-      selfieImagePreview.style.display = 'block';
-      selfieVideo.style.display = 'none';
-      if (selfieGuide) selfieGuide.classList.remove('show');
-      if (confirmSelfieBtn) confirmSelfieBtn.disabled = false;
-      setFieldError(null, selfieError, '');
-      if (selfieSuccess) selfieSuccess.classList.remove('show');
-      if (selfieHint) {
-        selfieHint.textContent = captureOptions.auto
-          ? t('selfieHintAutoCaptured')
-          : t('selfieHintManualCaptured');
-      }
-      trackSelfieRuntimeEvent('captured', { auto: Boolean(captureOptions.auto), mode: activeDetectionMode || 'manual' });
-      trackSelfieTransition('captured', { auto: Boolean(captureOptions.auto), mode: activeDetectionMode || 'manual' });
     }
 
-    function confirmSelfieFrame() {
-      if (!biometricSelfie.dataUrl) {
-        setFieldError(null, selfieError, t('selfieErrorCaptureFirst'));
-        return;
-      }
-      biometricSelfie.confirmed = true;
-      stopSelfieStream();
-      if (selfieHint) selfieHint.style.display = 'none';
-      if (selfieSuccess) selfieSuccess.classList.add('show');
-      setFieldError(null, selfieError, '');
-      trackSelfieTransition('confirmed');
-    }
-
-    function runSelfieStrictFlowSmoke() {
-      selfieDebugTransitions.length = 0;
-      selfieRuntimeEvents.length = 0;
-      selfieCurrentState = '';
-      trackSelfieTransition('idle');
-      trackSelfieTransition('align_required', { reason: 'camera-ready', mode: 'native' });
-      trackSelfieTransition('aligned', { mode: 'native' });
-      trackSelfieTransition('countdown');
-      trackSelfieTransition('countdown_complete', { mode: 'native', source: 'smoke' });
-      trackSelfieTransition('capture_called', { auto: true, mode: 'native', source: 'smoke' });
-      trackSelfieTransition('captured', { auto: true, mode: 'native' });
-      trackSelfieTransition('align_required', { reason: 'misaligned-reset-check', mode: 'native' });
-      trackSelfieTransition('manual_required', { reason: 'native-unsupported' });
-      trackSelfieTransition('captured', { auto: false, mode: 'manual' });
-      window.__gmSelfieDebug = window.__gmSelfieDebug || {};
-      window.__gmSelfieDebug.transitions = selfieDebugTransitions.slice();
-      const transitionStates = selfieDebugTransitions.map((item) => item.state);
-      const hasCoreFlow = transitionStates.join('>').includes('align_required>aligned>countdown>countdown_complete>capture_called>captured');
-      const fallbackAutoCapture = selfieDebugTransitions.some((item) => item.state === 'captured' && item?.extra?.mode === 'fallback' && item?.extra?.auto === true);
-      return { transitions: selfieDebugTransitions.slice(), hasCoreFlow, fallbackAutoCapture };
-    }
-
-    function validateBiometricBlock(silent) {
-      const consentOk = Boolean(biometricConsentCheckbox?.checked);
-      const selfieOk = Boolean(biometricSelfie.dataUrl && biometricSelfie.confirmed);
+    function validateSmsBlock(silent) {
+      const consentOk = Boolean(smsConsentCheckbox?.checked);
+      const smsOk = Boolean(smsPhoneVerified);
       if (!silent) {
-        setFieldError(null, biometricConsentError, consentOk ? '' : t('biometricConsentError'));
-        setFieldError(null, selfieError, selfieOk ? '' : t('selfieError'));
+        setFieldError(null, smsConsentError, consentOk ? '' : t('smsConsentError'));
+        setFieldError(null, smsOtpError, !smsOk && consentOk ? t('smsNotVerifiedError') : '');
       }
-      return consentOk && selfieOk;
+      return consentOk && smsOk;
     }
 
     function setBtnLoading(btn, loading) {
@@ -3131,6 +2513,9 @@ Oq fonli foto</div>
           }
         }
         if (authPhoneError?.classList.contains('show')) validateAuthPhone();
+        smsPhoneVerified = false;
+        smsVerificationToken = '';
+        if (smsVerifiedSuccess) smsVerifiedSuccess.classList.remove('show');
       });
       authPhone.addEventListener('blur', () => {
         if (authPhone.value) validateAuthPhone();
@@ -3232,8 +2617,8 @@ Oq fonli foto</div>
         authPhone.value = formatUzPhone(authPhone.value);
       }
       clearAuthErrors();
-      resetSelfieState();
-      if (biometricConsentCheckbox) biometricConsentCheckbox.checked = false;
+      resetSmsAuthState();
+      if (smsConsentCheckbox) smsConsentCheckbox.checked = false;
       gmAnalytics.track('register_open', { hasExistingUser: Boolean(existingUser) });
       setTimeout(() => {
         authSheetOverlay.classList.add('show');
@@ -3383,7 +2768,7 @@ Oq fonli foto</div>
         toastAuthFirst: "Avval ro'yxatdan o'ting",
         toastNameInvalid: "Ismingizni to'g'ri kiriting",
         toastPhoneInvalid: "Telefon raqam noto'g'ri",
-        toastBiometric: 'Biometrik tekshiruvni yakunlang',
+        toastSmsIncomplete: 'SMS tasdiqlashni yakunlang',
         toastRegistered: "Ro'yxatdan o'tildi",
         toastOutOfStock: "Omborda yo'q",
         toastAdded: "Savatga qo'shildi",
@@ -3442,49 +2827,29 @@ Oq fonli foto</div>
         authTrustPaymentBody: "Payme orqali rasmiy to'lov havolasi yoki yetkazilganda naqd to'lov",
         authTrustSupportTitle: "Qo'llab-quvvatlash",
         authTrustSupportBody: "buyurtma bo'yicha operator siz bilan bog'lanadi",
-        authConsentLead: "Hisobingizni himoya qilish va buyurtmalarni xavfsiz tasdiqlash uchun bir martalik selfie olinadi.",
-        authConsentCheckText: "Akkauntimni himoya qilish uchun selfie tasdig'imdan foydalanilishiga roziman.",
+        authConsentLead: "Telefon raqamingizni SMS kod bilan tasdiqlaymiz — akkauntni himoya qilish va yetkazib berish bilan bog‘lanish uchun.",
+        authConsentCheckText: "Telefonimga tasdiqlash kodi yuborilishiga va shu kanal orqali xizmat xabarlariga roziman.",
         authConsentHint: "Ma'lumotlar faqat xizmat sifati va xavfsizlik uchun ishlatiladi, uchinchi tomonlarga berilmaydi.",
-        biometricConsentError: "Davom etish uchun biometrik rozilikni belgilang.",
-        authSelfieSectionTitle: 'Biometrik tasdiqlash (selfie)',
-        authStartFaceId: 'Face ID ni boshlash',
-        selfieHint: 'Kamera ochiladi, selfieni oling va tasdiqlang.',
-        selfieError: "Ro'yxatdan o'tishdan oldin selfieni tasdiqlang.",
-        selfieGuideInitial: 'Yuzingizni oval ichiga joylashtiring.',
-        selfieCaptureBtn: 'Selfieni olish',
-        selfieConfirmBtn: 'Tasdiqlash',
-        selfieSuccess: 'Selfie tasdiqlandi. Davom etishingiz mumkin.',
+        smsConsentError: "Davom etish uchun rozilikni belgilang.",
+        smsNotVerifiedError: "Avval SMS kodni tasdiqlang.",
+        smsSendFail: "Kod yuborilmadi, qayta urinib ko‘ring.",
+        smsVerifyFail: "Kod noto‘g‘ri yoki muddati o‘tgan.",
+        smsOtpMissing: "SMS kodni kiriting.",
+        smsSentToast: "Kod yuborildi",
+        smsVerifiedToast: "Telefon tasdiqlandi",
+        smsSectionTitle: "SMS orqali tasdiqlash",
+        smsSendBtn: "Kod yuborish",
+        smsVerifyBtn: "Kodni tasdiqlash",
+        smsSendHint: "Telefonni to‘liq kiriting, keyin kod yuboring.",
+        smsOtpPlaceholder: "SMS kod",
+        smsOtpAria: "SMS tasdiqlash kodi",
+        smsVerifiedSuccess: "Telefon tasdiqlandi.",
         authSubmit: 'Davom etish',
-        selfiePreviewAlt: 'Selfie preview',
         introAmbientPlayAria: 'Fon musiqasini yoqish',
         introAmbientPauseAria: 'Fon musiqasini to‘xtatish',
         introAmbientPrevAria: 'Oldingi trek',
         introAmbientNextAria: 'Keyingi trek',
         introAmbientToolbarAria: 'Fon musiqasi boshqaruvi',
-        selfieGuideManual: "Qo'lda rejim: avto olish yo'q.",
-        selfieHintManualFallback: "Avto aniqlash ishlamadi. Qo'lda rejimga o'tildi, selfieni qo'lda oling.",
-        selfieHintManualNoAuto: "Qo'lda rejim faol: bu brauzerda avto selfie yo'q.",
-        selfieGuideNoFace: "Ramkaga to'g'rilang: yuz topilmadi.",
-        selfieGuideLowConfidence: "Yuz noaniq. Yorug'likni yaxshilang va to'g'ri turing.",
-        selfieGuideMisaligned: "Ramkaga to'g'rilang: yuz markazda emas.",
-        selfieGuideHoldStill: 'Barqaror turing',
-        selfieGuideAutoCapture: 'Avto olish',
-        selfieGuideFallbackHoldCenter: "Ramkaga to'g'rilang: markazda barqaror turing.",
-        selfieGuideFaceCentered: 'Yuz markazda',
-        selfieGuideManualAfterFallback: "Ramkaga to'g'rilang, so'ng qo'lda oling.",
-        selfieGuideFallbackAutoMode: 'Fallback avto rejim: markazda barqaror turing.',
-        selfieHintFallbackAutoMode: 'Fallback avto rejim faol: yuz markazda barqaror tursa selfie olinadi.',
-        selfieGuideAlignFrame: "Ramkaga to'g'rilang.",
-        selfieHintAutoActive: 'Avto rejim faol: yuz markazda barqaror tursa selfie olinadi.',
-        selfieGuideAutoCaptureBlocked: "Avto olish bloklandi. Yuzni qayta to'g'rilang yoki qo'lda oling.",
-        selfieGuideFaceNotDetected: "Yuz topilmadi. Ramkaga to'g'rilang.",
-        selfieErrorNoFaceForCapture: "Yuz ko'rinmasdan selfie olinmaydi.",
-        selfieErrorCameraUnsupported: "Kamera ushbu qurilmada qo'llab-quvvatlanmaydi. Boshqa brauzer qurilmadan urinib ko'ring.",
-        selfieErrorCameraPermission: "Kameraga ruxsat berilmadi yoki mavjud emas. Ruxsatni yoqib qayta urinib ko'ring.",
-        selfieErrorCameraNotReady: "Kamera tayyor emas, iltimos qayta urinib ko'ring.",
-        selfieHintAutoCaptured: 'Avto rejim: selfie olindi. Endi "Tasdiqlash" tugmasini bosing.',
-        selfieHintManualCaptured: "Qo'lda rejim: selfie olindi. Endi \"Tasdiqlash\" tugmasini bosing.",
-        selfieErrorCaptureFirst: 'Avval selfieni oling.',
         homeTab: 'Bosh sahifa',
         bannerSection: 'Siz uchun',
         cartEmptyTitle: "Savatingiz bo'sh",
@@ -3609,7 +2974,7 @@ Oq fonli foto</div>
         toastAuthFirst: 'Сначала зарегистрируйтесь',
         toastNameInvalid: 'Введите корректное имя',
         toastPhoneInvalid: 'Неверный номер телефона',
-        toastBiometric: 'Завершите биометрическую проверку',
+        toastSmsIncomplete: 'Завершите подтверждение по SMS',
         toastRegistered: 'Регистрация завершена',
         toastOutOfStock: 'Нет в наличии',
         toastAdded: 'Добавлено в корзину',
@@ -3668,49 +3033,29 @@ Oq fonli foto</div>
         authTrustPaymentBody: 'Официальная ссылка на оплату через Payme или наличными при получении',
         authTrustSupportTitle: 'Поддержка',
         authTrustSupportBody: 'оператор свяжется с вами по заказу',
-        authConsentLead: 'Для защиты аккаунта и безопасного подтверждения заказов делается одноразовое селфи.',
-        authConsentCheckText: 'Согласен(на) на использование селфи-подтверждения для защиты аккаунта.',
+        authConsentLead: 'Мы подтвердим номер телефона по SMS — для защиты аккаунта и связи по доставке.',
+        authConsentCheckText: 'Согласен(на) на отправку кода подтверждения и сервисные SMS на этот номер.',
         authConsentHint: 'Данные используются только для качества сервиса и безопасности, третьим лицам не передаются.',
-        biometricConsentError: 'Отметьте биометрическое согласие, чтобы продолжить.',
-        authSelfieSectionTitle: 'Биометрическое подтверждение (селфи)',
-        authStartFaceId: 'Начать Face ID',
-        selfieHint: 'Откроется камера, сделайте селфи и подтвердите.',
-        selfieError: 'Подтвердите селфи перед регистрацией.',
-        selfieGuideInitial: 'Поместите лицо внутрь овала.',
-        selfieCaptureBtn: 'Сделать селфи',
-        selfieConfirmBtn: 'Подтвердить',
-        selfieSuccess: 'Селфи подтверждено. Можно продолжить.',
+        smsConsentError: 'Отметьте согласие, чтобы продолжить.',
+        smsNotVerifiedError: 'Сначала подтвердите код из SMS.',
+        smsSendFail: 'Не удалось отправить код, попробуйте еще раз.',
+        smsVerifyFail: 'Неверный код или срок действия истек.',
+        smsOtpMissing: 'Введите код из SMS.',
+        smsSentToast: 'Код отправлен',
+        smsVerifiedToast: 'Телефон подтвержден',
+        smsSectionTitle: 'Подтверждение по SMS',
+        smsSendBtn: 'Отправить код',
+        smsVerifyBtn: 'Подтвердить код',
+        smsSendHint: 'Введите полный номер, затем отправьте код.',
+        smsOtpPlaceholder: 'Код SMS',
+        smsOtpAria: 'Код подтверждения SMS',
+        smsVerifiedSuccess: 'Телефон подтвержден.',
         authSubmit: 'Продолжить',
-        selfiePreviewAlt: 'Превью селфи',
         introAmbientPlayAria: 'Включить фоновую музыку',
         introAmbientPauseAria: 'Остановить фоновую музыку',
         introAmbientPrevAria: 'Предыдущий трек',
         introAmbientNextAria: 'Следующий трек',
         introAmbientToolbarAria: 'Управление фоновой музыкой',
-        selfieGuideManual: 'Ручной режим: авто-съемка отключена.',
-        selfieHintManualFallback: 'Автоопределение не сработало. Включен ручной режим, сделайте селфи вручную.',
-        selfieHintManualNoAuto: 'Активен ручной режим: в этом браузере нет авто-селфи.',
-        selfieGuideNoFace: 'Выровняйтесь в рамке: лицо не найдено.',
-        selfieGuideLowConfidence: 'Лицо нечеткое. Улучшите освещение и смотрите прямо.',
-        selfieGuideMisaligned: 'Выровняйтесь в рамке: лицо не по центру.',
-        selfieGuideHoldStill: 'Не двигайтесь',
-        selfieGuideAutoCapture: 'Автосъемка через',
-        selfieGuideFallbackHoldCenter: 'Выровняйтесь в рамке: держите лицо стабильно по центру.',
-        selfieGuideFaceCentered: 'Лицо по центру',
-        selfieGuideManualAfterFallback: 'Выровняйтесь в рамке, затем сделайте снимок вручную.',
-        selfieGuideFallbackAutoMode: 'Авто-режим fallback: держите лицо стабильно по центру.',
-        selfieHintFallbackAutoMode: 'Активен авто-режим fallback: если лицо стабильно по центру, селфи снимется автоматически.',
-        selfieGuideAlignFrame: 'Выровняйтесь в рамке.',
-        selfieHintAutoActive: 'Активен авто-режим: если лицо стабильно по центру, селфи снимется автоматически.',
-        selfieGuideAutoCaptureBlocked: 'Автосъемка заблокирована. Выровняйте лицо заново или снимите вручную.',
-        selfieGuideFaceNotDetected: 'Лицо не найдено. Выровняйтесь в рамке.',
-        selfieErrorNoFaceForCapture: 'Без видимого лица селфи снять нельзя.',
-        selfieErrorCameraUnsupported: 'Камера не поддерживается на этом устройстве. Попробуйте другой браузер или устройство.',
-        selfieErrorCameraPermission: 'Доступ к камере не предоставлен или камера недоступна. Включите доступ и попробуйте снова.',
-        selfieErrorCameraNotReady: 'Камера не готова, попробуйте снова.',
-        selfieHintAutoCaptured: 'Авто-режим: селфи снято. Теперь нажмите кнопку "Подтвердить".',
-        selfieHintManualCaptured: 'Ручной режим: селфи снято. Теперь нажмите кнопку "Подтвердить".',
-        selfieErrorCaptureFirst: 'Сначала сделайте селфи.',
         homeTab: 'Главная',
         bannerSection: 'Для вас',
         cartEmptyTitle: 'Корзина пуста',
@@ -3864,21 +3209,20 @@ Oq fonli foto</div>
       const authConsentLead = document.getElementById('authConsentLead');
       const authConsentCheckText = document.getElementById('authConsentCheckText');
       const authConsentHint = document.getElementById('authConsentHint');
-      const authSelfieSectionTitle = document.getElementById('authSelfieSectionTitle');
       if (authConsentLead) authConsentLead.textContent = t('authConsentLead');
       if (authConsentCheckText) authConsentCheckText.textContent = t('authConsentCheckText');
       if (authConsentHint) authConsentHint.textContent = t('authConsentHint');
-      if (biometricConsentError && !biometricConsentError.classList.contains('show')) biometricConsentError.textContent = t('biometricConsentError');
-      if (authSelfieSectionTitle) authSelfieSectionTitle.textContent = t('authSelfieSectionTitle');
-      if (startFaceIdBtn) startFaceIdBtn.textContent = t('authStartFaceId');
-      if (selfieHint && !selfieHint.classList.contains('show')) selfieHint.textContent = t('selfieHint');
-      if (selfieError && !selfieError.classList.contains('show')) selfieError.textContent = t('selfieError');
-      if (selfieGuideStatus && selfieCurrentState === 'idle') selfieGuideStatus.textContent = t('selfieGuideInitial');
-      if (captureSelfieBtn) captureSelfieBtn.textContent = t('selfieCaptureBtn');
-      if (confirmSelfieBtn) confirmSelfieBtn.textContent = t('selfieConfirmBtn');
-      if (selfieSuccess) selfieSuccess.textContent = t('selfieSuccess');
+      if (smsConsentError && !smsConsentError.classList.contains('show')) smsConsentError.textContent = t('smsConsentError');
+      if (authSmsSectionTitle) authSmsSectionTitle.textContent = t('smsSectionTitle');
+      if (sendSmsBtn) sendSmsBtn.textContent = t('smsSendBtn');
+      if (verifySmsBtn) verifySmsBtn.textContent = t('smsVerifyBtn');
+      if (smsSendHint) smsSendHint.textContent = t('smsSendHint');
+      if (smsVerifiedSuccess) smsVerifiedSuccess.textContent = t('smsVerifiedSuccess');
+      if (authOtpInput) {
+        authOtpInput.placeholder = t('smsOtpPlaceholder');
+        authOtpInput.setAttribute('aria-label', t('smsOtpAria'));
+      }
       if (submitAuthBtn) submitAuthBtn.textContent = t('authSubmit');
-      if (selfieImagePreview) selfieImagePreview.alt = t('selfiePreviewAlt');
       const homeCategoriesTitle = document.getElementById('homeCategoriesTitle');
       const homeForYouTitle = document.getElementById('homeForYouTitle');
       const homeDiscountsTitle = document.getElementById('homeDiscountsTitle');
@@ -4522,12 +3866,13 @@ Oq fonli foto</div>
     async function submitAuth() {
       const nameOk = validateAuthName();
       const phoneOk = validateAuthPhone();
-      const biometricOk = validateBiometricBlock();
-      if (!nameOk || !phoneOk || !biometricOk) {
-        const firstInvalid = !nameOk ? authName : authPhone;
-        if (!biometricOk && biometricConsentCheckbox && !biometricConsentCheckbox.checked) biometricConsentCheckbox.focus();
-        firstInvalid?.focus();
-        showToast(!nameOk ? t('toastNameInvalid') : (!phoneOk ? t('toastPhoneInvalid') : t('toastBiometric')));
+      const smsOk = validateSmsBlock();
+      if (!nameOk || !phoneOk || !smsOk) {
+        if (!nameOk) authName?.focus();
+        else if (!phoneOk) authPhone?.focus();
+        else if (!smsOk && smsConsentCheckbox && !smsConsentCheckbox.checked) smsConsentCheckbox.focus();
+        else if (!smsOk) authOtpInput?.focus();
+        showToast(!nameOk ? t('toastNameInvalid') : (!phoneOk ? t('toastPhoneInvalid') : t('toastSmsIncomplete')));
         return false;
       }
       const nameValue = String(authName.value || '').trim();
@@ -4536,10 +3881,10 @@ Oq fonli foto</div>
         name: nameValue,
         phone: phoneValue,
         createdAt: new Date().toISOString(),
-        biometricConsent: true,
-        biometricConsentAt: new Date().toISOString(),
-        biometricSelfieCapturedAt: biometricSelfie.capturedAt || new Date().toISOString(),
-        biometricSelfiePreview: biometricSelfie.dataUrl
+        smsConsent: true,
+        smsConsentAt: new Date().toISOString(),
+        phoneVerified: true,
+        smsVerificationToken: smsVerificationToken || undefined
       };
       localStorage.setItem('globusUser', JSON.stringify(currentUser));
       await api('/profile', {
@@ -4547,17 +3892,13 @@ Oq fonli foto</div>
         body: JSON.stringify({
           name: currentUser.name,
           phone: currentUser.phone,
-          address: '',
-          biometricConsent: true,
-          biometricConsentAt: currentUser.biometricConsentAt,
-          biometricCapturedAt: currentUser.biometricSelfieCapturedAt,
-          biometricSelfieDataUrl: biometricSelfie.dataUrl
+          address: ''
         })
       });
-      resetSelfieState();
+      resetSmsAuthState();
       authSheetOverlay.classList.remove('show');
       showToast(t('toastRegistered'));
-      gmAnalytics.track('register_success', { hasBiometric: true });
+      gmAnalytics.track('register_success', { channel: 'sms' });
       return true;
     }
 
@@ -5503,14 +4844,14 @@ Oq fonli foto</div>
     });
 
     closeAuthSheetBtn?.addEventListener('click', () => {
-      stopSelfieStream();
+      resetSmsAuthState();
       authSheetOverlay.classList.remove('show');
       if (!phone.classList.contains('show-app')) runCinematicIntro();
     });
 
     authSheetOverlay?.addEventListener('click', (e) => {
       if (e.target === authSheetOverlay) {
-        stopSelfieStream();
+        resetSmsAuthState();
         authSheetOverlay.classList.remove('show');
         if (!phone.classList.contains('show-app')) runCinematicIntro();
       }
@@ -5534,23 +4875,19 @@ Oq fonli foto</div>
         setBtnLoading(submitAuthBtn, false);
       }
     });
-    startFaceIdBtn?.addEventListener('click', async () => {
-      await startSelfieCapture();
+    sendSmsBtn?.addEventListener('click', async () => {
+      await sendSmsCode();
     });
-    captureSelfieBtn?.addEventListener('click', () => {
-      setSelfieGuideStatus('Qo‘lda olish', false);
-      captureSelfieFrame();
+    verifySmsBtn?.addEventListener('click', async () => {
+      await verifySmsCode();
     });
-    confirmSelfieBtn?.addEventListener('click', () => {
-      confirmSelfieFrame();
-    });
-    biometricConsentCheckbox?.addEventListener('change', () => {
-      if (biometricConsentError?.classList.contains('show')) validateBiometricBlock();
+    smsConsentCheckbox?.addEventListener('change', () => {
+      if (smsConsentError?.classList.contains('show')) validateSmsBlock();
     });
 
     logoutBtn?.addEventListener('click', () => {
       localStorage.removeItem('globusUser');
-      resetSelfieState();
+      resetSmsAuthState();
       currentUser = null;
       activeOrderNumber = '';
       localStorage.removeItem('activeOrderNumber');
@@ -5563,7 +4900,11 @@ Oq fonli foto</div>
     });
 
     profileRegisterBtn?.addEventListener('click', () => {
+      clearAuthErrors();
+      resetSmsAuthState();
+      if (smsConsentCheckbox) smsConsentCheckbox.checked = false;
       authSheetOverlay.classList.add('show');
+      authName?.focus();
     });
 
     profileOrders?.addEventListener('click', async (e) => {

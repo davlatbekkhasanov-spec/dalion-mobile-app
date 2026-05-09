@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
+const smsService = require('./src/services/sms.service');
 
 process.on('uncaughtException', (error) => {
   console.error('[PROCESS] uncaughtException', { message: error?.message });
@@ -33,6 +35,16 @@ const ALLOWED_ADMIN_AMBIENT_MIME_TYPES = new Set([
 ]);
 const MAX_REASONABLE_DISTANCE_KM = 120;
 const MAX_DELIVERY_FEE = 300000;
+const SMS_OTP_PEPPER = process.env.SMS_OTP_PEPPER || process.env.OTP_PEPPER || 'dev-sms-pepper-change-me';
+const SMS_OTP_DIGITS = Math.min(8, Math.max(4, Number(process.env.SMS_OTP_DIGITS || 6) || 6));
+const SMS_OTP_TTL_MS = Math.min(
+  30 * 60 * 1000,
+  Math.max(60 * 1000, Number(process.env.SMS_OTP_TTL_MS || 600000) || 600000)
+);
+
+const smsThrottlePhone = new Map();
+const smsThrottleIp = new Map();
+const smsVerifyThrottleIp = new Map();
 
 function logStructured(level, event, details = {}) {
   const payload = {
@@ -64,8 +76,158 @@ function randomId(prefix = 'id') {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function normalizeSmsPhone(input) {
+  const digits = String(input || '').replace(/\D/g, '');
+  if (!digits) return '';
+  let nine = '';
+  if (digits.length >= 12 && digits.startsWith('998')) {
+    nine = digits.slice(-9);
+  } else if (digits.length === 9) {
+    nine = digits;
+  } else if (digits.length > 9) {
+    nine = digits.slice(-9);
+  }
+  if (/^[1-9]\d{8}$/.test(nine)) return `+998${nine}`;
+  return '';
+}
+
 function normalizePhone(phone) {
+  const uz = normalizeSmsPhone(phone);
+  if (uz) return uz;
   return String(phone || '').trim();
+}
+
+function clientIp(req) {
+  const fwd = String(req.headers['x-forwarded-for'] || '')
+    .split(',')[0]
+    .trim();
+  if (fwd) return fwd;
+  return req.socket?.remoteAddress || '';
+}
+
+function smsThrottleTouch(map, key, minMs) {
+  const now = Date.now();
+  const last = map.get(key) || 0;
+  if (now - last < minMs) {
+    return { ok: false, retryAfterMs: minMs - (now - last) };
+  }
+  map.set(key, now);
+  return { ok: true };
+}
+
+function generateSmsOtpCode() {
+  const n = SMS_OTP_DIGITS;
+  const min = 10 ** (n - 1);
+  const max = 10 ** n - 1;
+  return String(crypto.randomInt(min, max + 1));
+}
+
+function hashSmsOtp(phone, code) {
+  return crypto.createHash('sha256').update(`${SMS_OTP_PEPPER}|${phone}|${code}`).digest('hex');
+}
+
+function smsOtpDevHint(code) {
+  const prod = process.env.NODE_ENV === 'production';
+  const allowUi = String(process.env.ALLOW_OTP_DEV_UI || '').toLowerCase() === 'true';
+  if (prod && !allowUi) return {};
+  return { devHint: code };
+}
+
+async function handleSmsOtpSend(req, res) {
+  if (!db.smsOtpChallenges || typeof db.smsOtpChallenges !== 'object') db.smsOtpChallenges = {};
+  const phone = normalizeSmsPhone(req.body.phone);
+  if (!phone) {
+    return res.status(400).json({ ok: false, message: 'Telefon +998 formatida kiriting' });
+  }
+  const ip = clientIp(req);
+  const tp = smsThrottleTouch(smsThrottlePhone, phone, 45000);
+  if (!tp.ok) {
+    return res.status(429).json({
+      ok: false,
+      message: 'Kodni qayta yuborishdan oldin kuting',
+      retryAfterMs: tp.retryAfterMs
+    });
+  }
+  const ti = smsThrottleTouch(smsThrottleIp, ip || 'unknown', 12000);
+  if (!ti.ok) {
+    return res.status(429).json({
+      ok: false,
+      message: 'So‘rovlar juda tez',
+      retryAfterMs: ti.retryAfterMs
+    });
+  }
+
+  const code = generateSmsOtpCode();
+  const codeHash = hashSmsOtp(phone, code);
+  const expiresAt = Date.now() + SMS_OTP_TTL_MS;
+  db.smsOtpChallenges[phone] = {
+    codeHash,
+    expiresAt,
+    attempts: 0,
+    createdAt: nowIso()
+  };
+  saveDb();
+
+  const sendResult = await smsService.sendSmsOtp(phone, code);
+  if (!sendResult.ok) {
+    delete db.smsOtpChallenges[phone];
+    saveDb();
+    return res.status(502).json({
+      ok: false,
+      message: sendResult.message || 'SMS yuborilmadi'
+    });
+  }
+
+  return res.json({ ok: true, ...smsOtpDevHint(code) });
+}
+
+function handleSmsOtpVerify(req, res) {
+  if (!db.smsOtpChallenges || typeof db.smsOtpChallenges !== 'object') db.smsOtpChallenges = {};
+  const phone = normalizeSmsPhone(req.body.phone);
+  const code = String(req.body.code || '').replace(/\D/g, '').trim();
+  if (!phone || !code) {
+    return res.status(400).json({ ok: false, message: 'Telefon va kod kiriting' });
+  }
+
+  const ip = clientIp(req);
+  const tv = smsThrottleTouch(smsVerifyThrottleIp, `${ip}|${phone}`, 600);
+  if (!tv.ok) {
+    return res.status(429).json({
+      ok: false,
+      message: 'Urinishlar juda tez',
+      retryAfterMs: tv.retryAfterMs
+    });
+  }
+
+  const ch = db.smsOtpChallenges[phone];
+  if (!ch || Date.now() > Number(ch.expiresAt || 0)) {
+    return res.status(400).json({ ok: false, message: 'Kod eskirgan yoki yuborilmagan' });
+  }
+  ch.attempts = Math.min(99, Number(ch.attempts || 0) + 1);
+  if (ch.attempts > 10) {
+    delete db.smsOtpChallenges[phone];
+    saveDb();
+    return res.status(429).json({ ok: false, message: 'Urinishlar limiti' });
+  }
+  if (hashSmsOtp(phone, code) !== ch.codeHash) {
+    saveDb();
+    return res.status(400).json({ ok: false, message: 'Kod noto‘g‘ri' });
+  }
+  delete db.smsOtpChallenges[phone];
+  const profile = db.profiles[phone] || { phone, name: phone };
+  profile.phone = phone;
+  profile.phoneVerified = true;
+  profile.smsVerifiedAt = nowIso();
+  db.profiles[phone] = profile;
+  saveDb();
+
+  const verificationToken = randomId('smsv');
+  return res.json({
+    ok: true,
+    phoneVerified: true,
+    verificationToken,
+    user: profile
+  });
 }
 
 function ensureDir(dirPath) {
@@ -220,6 +382,7 @@ function defaultDb() {
     profiles: {},
     carts: {},
     otp: {},
+    smsOtpChallenges: {},
     orders: [],
     notifications: [],
     shorts: [
@@ -256,6 +419,7 @@ function ensureDbShape() {
   if (!db.profiles || typeof db.profiles !== 'object') db.profiles = {};
   if (!db.carts || typeof db.carts !== 'object') db.carts = {};
   if (!db.otp || typeof db.otp !== 'object') db.otp = {};
+  if (!db.smsOtpChallenges || typeof db.smsOtpChallenges !== 'object') db.smsOtpChallenges = {};
   if (!Array.isArray(db.notifications)) db.notifications = [];
   if (!Array.isArray(db.shorts)) db.shorts = [];
   if (!db.ambientPlaylist || typeof db.ambientPlaylist !== 'object') db.ambientPlaylist = { slots: [] };
@@ -558,14 +722,16 @@ app.put('/api/v1/profile', (req, res) => {
   const consentAtRaw = req.body.biometricConsentAt;
   const selfieRaw = req.body.biometricSelfieDataUrl;
   const capturedAtRaw = req.body.biometricCapturedAt;
-  const wantsBiometricUpdate = selfieRaw !== undefined || req.body.biometricConsent !== undefined;
+  const selfiePayload =
+    selfieRaw !== undefined && selfieRaw !== null ? String(selfieRaw).trim() : '';
+  const wantsSelfieUpload = selfiePayload.length > 0;
 
   let biometric = existingProfile.biometric || null;
-  if (selfieRaw !== undefined || (consentChecked && capturedAtRaw)) {
+  if (wantsSelfieUpload) {
     if (!consentChecked) {
       return res.status(400).json({ ok: false, message: 'Biometrik selfie uchun rozilik majburiy' });
     }
-    const parsedImage = parseImageDataUrl(selfieRaw);
+    const parsedImage = parseImageDataUrl(selfiePayload);
     if (!parsedImage) {
       return res.status(400).json({ ok: false, message: 'Selfie formati noto‘g‘ri (faqat PNG/JPG data URL)' });
     }
@@ -585,8 +751,6 @@ app.put('/api/v1/profile', (req, res) => {
       mimeType: parsedImage.mimeType,
       fileSize: parsedImage.buffer.length
     };
-  } else if (wantsBiometricUpdate && !consentChecked) {
-    return res.status(400).json({ ok: false, message: 'Biometrik rozilik belgilanmagan' });
   } else if (consentChecked && biometric) {
     biometric = {
       ...biometric,
@@ -595,10 +759,16 @@ app.put('/api/v1/profile', (req, res) => {
     };
   }
 
+  const nextAddress =
+    req.body.address !== undefined
+      ? String(req.body.address || '').trim()
+      : String(existingProfile.address || '').trim();
+
   db.profiles[phone] = {
+    ...existingProfile,
     phone,
     name,
-    address: String(req.body.address || '').trim(),
+    address: nextAddress,
     updatedAt: now,
     biometric
   };
@@ -606,26 +776,23 @@ app.put('/api/v1/profile', (req, res) => {
   return res.json({ ok: true, profile: db.profiles[phone] });
 });
 
-app.post('/api/v1/auth/request-otp', (req, res) => {
-  const phone = normalizePhone(req.body.phone);
-  if (!phone) return res.status(400).json({ ok: false, message: 'Phone kiriting' });
-  db.otp[phone] = { code: '1111', createdAt: nowIso() };
-  saveDb();
-  return res.json({ ok: true, devOtp: '1111' });
+app.post('/api/v1/auth/sms/send', (req, res) => {
+  handleSmsOtpSend(req, res).catch((error) => {
+    logStructured('error', 'sms_send_failed', { message: error?.message });
+    res.status(500).json({ ok: false, message: 'Server xatolik' });
+  });
 });
 
-app.post('/api/v1/auth/verify-otp', (req, res) => {
-  const phone = normalizePhone(req.body.phone);
-  const code = String(req.body.code || '').trim();
-  const otp = db.otp[phone];
-  if (!otp || otp.code !== code) return res.status(400).json({ ok: false, message: 'OTP noto‘g‘ri' });
-  const profile = db.profiles[phone] || { phone, name: phone };
-  profile.phoneVerified = true;
-  profile.otpVerifiedAt = nowIso();
-  db.profiles[phone] = profile;
-  saveDb();
-  return res.json({ ok: true, user: profile });
+app.post('/api/v1/auth/sms/verify', handleSmsOtpVerify);
+
+app.post('/api/v1/auth/request-otp', (req, res) => {
+  handleSmsOtpSend(req, res).catch((error) => {
+    logStructured('error', 'sms_send_failed', { message: error?.message });
+    res.status(500).json({ ok: false, message: 'Server xatolik' });
+  });
 });
+
+app.post('/api/v1/auth/verify-otp', handleSmsOtpVerify);
 
 app.get('/api/v1/cart', (req, res) => {
   const phone = getUserPhone(req);
