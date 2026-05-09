@@ -167,6 +167,8 @@ Order dashboard display page:
 
 Customer `/` home consumes these settings with fallback defaults.
 
+After a **fresh Postgres** database (or empty catalog), run **`npm run db:seed`** once migrations have applied so categories, products, banners, shorts, and ambient tracks exist.
+
 ## Data persistence (current mode)
 
 - Application data is persisted to `data/store.json` and loaded back on server start.

@@ -3736,10 +3736,10 @@ Oq fonli foto</div>
       const INTRO_AMBIENT_FADE_MS = 650;
       const INTRO_AMBIENT_AUTOPLAY_HINT_COOLDOWN_MS = 12000;
       const INTRO_AMBIENT_PLAYLIST = [
-        { src: '/uploads/audio/ambient-jazz/calm-jazz-01.mp3', title: 'Calm Jazz 01' },
-        { src: '/uploads/audio/ambient-jazz/calm-jazz-02.mp3', title: 'Calm Jazz 02' },
-        { src: '/uploads/audio/ambient-jazz/calm-jazz-03.mp3', title: 'Calm Jazz 03' },
-        { src: '/uploads/audio/ambient-jazz/calm-jazz-04.mp3', title: 'Calm Jazz 04' }
+        { src: '/uploads/audio/ambient-jazz/calm-jazz-01.wav', title: 'Calm Jazz 01' },
+        { src: '/uploads/audio/ambient-jazz/calm-jazz-02.wav', title: 'Calm Jazz 02' },
+        { src: '/uploads/audio/ambient-jazz/calm-jazz-03.wav', title: 'Calm Jazz 03' },
+        { src: '/uploads/audio/ambient-jazz/calm-jazz-04.wav', title: 'Calm Jazz 04' }
       ];
 
       const audio = document.getElementById('introAmbientAudio');
@@ -3848,17 +3848,17 @@ Oq fonli foto</div>
         };
 
         try {
-          let serverTracks = await fetchServerTracks();
-          if (!serverTracks.length) return INTRO_AMBIENT_PLAYLIST.slice();
+          const serverTracks = await fetchServerTracks();
           const mapped = mapServerTracks(serverTracks);
-          return mapped.length ? mapped : INTRO_AMBIENT_PLAYLIST.slice();
+          if (mapped.length) return mapped;
+          return INTRO_AMBIENT_PLAYLIST.slice();
         } catch {
           try {
             await new Promise((r) => setTimeout(r, 350));
             const serverTracks = await fetchServerTracks();
-            if (!serverTracks.length) return INTRO_AMBIENT_PLAYLIST.slice();
             const mapped = mapServerTracks(serverTracks);
-            return mapped.length ? mapped : INTRO_AMBIENT_PLAYLIST.slice();
+            if (mapped.length) return mapped;
+            return INTRO_AMBIENT_PLAYLIST.slice();
           } catch {
             return [];
           }
