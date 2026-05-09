@@ -17,7 +17,20 @@ const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'data.store.json');
 const ADMIN_TOKEN = process.env.ADMIN_IMPORT_TOKEN || '12345';
 const BIOMETRIC_UPLOADS_DIR = path.join(__dirname, 'uploads', 'biometric');
+const ADMIN_AMBIENT_UPLOADS_DIR = path.join(__dirname, 'uploads', 'audio', 'admin-ambient');
 const MAX_BIOMETRIC_BYTES = 1.5 * 1024 * 1024;
+const MAX_ADMIN_AMBIENT_BYTES = 12 * 1024 * 1024;
+const ADMIN_AMBIENT_MAX_SLOTS = 5;
+const ALLOWED_ADMIN_AMBIENT_MIME_TYPES = new Set([
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/wav',
+  'audio/x-wav',
+  'audio/ogg',
+  'audio/mp4',
+  'audio/x-m4a',
+  'audio/aac'
+]);
 const MAX_REASONABLE_DISTANCE_KM = 120;
 const MAX_DELIVERY_FEE = 300000;
 
@@ -70,6 +83,40 @@ function parseImageDataUrl(input) {
   if (!buffer.length) return null;
   const ext = mimeType === 'image/png' ? 'png' : 'jpg';
   return { mimeType, buffer, ext };
+}
+
+function parseAudioDataUrl(input) {
+  const raw = String(input || '').trim();
+  const match = raw.match(/^data:(audio\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/i);
+  if (!match) return null;
+  const mimeType = String(match[1] || '').toLowerCase();
+  const cleanBase64 = String(match[2] || '').replace(/\s/g, '');
+  if (!cleanBase64) return null;
+  const buffer = Buffer.from(cleanBase64, 'base64');
+  if (!buffer.length) return null;
+  return { mimeType, buffer };
+}
+
+function sanitizeFileName(name) {
+  return String(name || '')
+    .trim()
+    .replace(/[^\w.\-]+/g, '_')
+    .replace(/_+/g, '_')
+    .slice(0, 120);
+}
+
+function adminAmbientExtFromMime(mimeType) {
+  const map = {
+    'audio/mpeg': '.mp3',
+    'audio/mp3': '.mp3',
+    'audio/wav': '.wav',
+    'audio/x-wav': '.wav',
+    'audio/ogg': '.ogg',
+    'audio/mp4': '.m4a',
+    'audio/x-m4a': '.m4a',
+    'audio/aac': '.aac'
+  };
+  return map[String(mimeType || '').toLowerCase()] || '';
 }
 
 function toMoney(value) {
@@ -178,7 +225,10 @@ function defaultDb() {
     shorts: [
       { id: 's1', title: 'Yangi aksiya', subtitle: 'Top mahsulotlar bo‘yicha chegirmalar', media_url: '', active: true, sortOrder: 1 },
       { id: 's2', title: 'Tezkor yetkazish', subtitle: 'Buyurtma odatda 1-4 soatda yetib boradi', media_url: '', active: true, sortOrder: 2 }
-    ]
+    ],
+    ambientPlaylist: {
+      slots: []
+    }
   };
 }
 
@@ -208,6 +258,25 @@ function ensureDbShape() {
   if (!db.otp || typeof db.otp !== 'object') db.otp = {};
   if (!Array.isArray(db.notifications)) db.notifications = [];
   if (!Array.isArray(db.shorts)) db.shorts = [];
+  if (!db.ambientPlaylist || typeof db.ambientPlaylist !== 'object') db.ambientPlaylist = { slots: [] };
+  if (!Array.isArray(db.ambientPlaylist.slots)) db.ambientPlaylist.slots = [];
+  db.ambientPlaylist.slots = db.ambientPlaylist.slots
+    .map((slot) => {
+      const slotNumber = Math.round(Number(slot?.slot || 0));
+      if (slotNumber < 1 || slotNumber > ADMIN_AMBIENT_MAX_SLOTS) return null;
+      const fileUrl = String(slot?.fileUrl || '').trim();
+      if (!fileUrl) return null;
+      return {
+        slot: slotNumber,
+        fileName: String(slot?.fileName || '').trim() || `track-${slotNumber}`,
+        fileUrl,
+        mimeType: String(slot?.mimeType || '').trim(),
+        fileSize: Math.max(0, Math.round(Number(slot?.fileSize || 0))),
+        updatedAt: String(slot?.updatedAt || nowIso())
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.slot - b.slot);
   db.orders = db.orders.map((order) => {
     const normalizedStatus = normalizeOrderStatus(order.status);
     const hasCourierTerminalStatus = ['delivered', 'cancelled'].includes(normalizedStatus);
@@ -229,6 +298,21 @@ ensureDbShape();
 
 function saveDb() {
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
+}
+
+function getAdminAmbientTracksOrdered() {
+  const slots = Array.isArray(db.ambientPlaylist?.slots) ? db.ambientPlaylist.slots : [];
+  return slots
+    .filter((slot) => slot && slot.fileUrl && Number(slot.slot) >= 1 && Number(slot.slot) <= ADMIN_AMBIENT_MAX_SLOTS)
+    .sort((a, b) => Number(a.slot) - Number(b.slot))
+    .map((slot) => ({
+      slot: Number(slot.slot),
+      fileName: String(slot.fileName || ''),
+      fileUrl: String(slot.fileUrl || ''),
+      mimeType: String(slot.mimeType || ''),
+      fileSize: Number(slot.fileSize || 0),
+      updatedAt: String(slot.updatedAt || '')
+    }));
 }
 
 function getUserPhone(req) {
@@ -434,6 +518,15 @@ app.get('/api/v1/home', (req, res) => {
       time: db.homeSettings.deliveryTimeText || '30 daqiqa',
       price: 18000
     }
+  });
+});
+
+app.get('/api/v1/ambient-playlist', (req, res) => {
+  const tracks = getAdminAmbientTracksOrdered();
+  return res.json({
+    ok: true,
+    tracks,
+    source: tracks.length ? 'admin' : 'default'
   });
 });
 
@@ -948,6 +1041,101 @@ app.post('/api/v1/admin/products/import', requireAdmin, (req, res) => {
     averageImageMs: 0,
     message: 'Excel import hozircha mock: admin CRUD orqali boshqarish mumkin'
   });
+});
+
+app.get('/api/v1/admin/ambient-playlist', requireAdmin, (req, res) => {
+  return res.json({
+    ok: true,
+    maxSlots: ADMIN_AMBIENT_MAX_SLOTS,
+    tracks: getAdminAmbientTracksOrdered()
+  });
+});
+
+app.post('/api/v1/admin/ambient-playlist/slots/:slot', requireAdmin, express.json({ limit: '30mb' }), (req, res) => {
+  const slot = Math.round(Number(req.params.slot || 0));
+  if (slot < 1 || slot > ADMIN_AMBIENT_MAX_SLOTS) {
+    return res.status(400).json({ ok: false, message: 'Slot 1..5 oralig‘ida bo‘lishi kerak' });
+  }
+  const parsed = parseAudioDataUrl(req.body?.fileDataUrl);
+  if (!parsed) {
+    return res.status(400).json({ ok: false, message: 'Audio fayl formati noto‘g‘ri (data URL kerak)' });
+  }
+  if (!ALLOWED_ADMIN_AMBIENT_MIME_TYPES.has(parsed.mimeType)) {
+    return res.status(400).json({ ok: false, message: 'Faqat MP3/WAV/OGG/M4A/AAC audio ruxsat etiladi' });
+  }
+  if (parsed.buffer.length > MAX_ADMIN_AMBIENT_BYTES) {
+    return res.status(400).json({ ok: false, message: 'Audio hajmi juda katta (maksimum 12MB)' });
+  }
+  const ext = adminAmbientExtFromMime(parsed.mimeType);
+  if (!ext) {
+    return res.status(400).json({ ok: false, message: 'Audio MIME turi qo‘llab-quvvatlanmaydi' });
+  }
+
+  ensureDir(ADMIN_AMBIENT_UPLOADS_DIR);
+  const originalName = sanitizeFileName(req.body?.fileName || '');
+  const baseName = originalName ? originalName.replace(/\.[a-z0-9]+$/i, '') : `slot-${slot}`;
+  const fileName = `slot-${slot}-${Date.now()}-${baseName}${ext}`.slice(0, 150);
+  const absolutePath = path.join(ADMIN_AMBIENT_UPLOADS_DIR, fileName);
+
+  try {
+    fs.writeFileSync(absolutePath, parsed.buffer);
+  } catch (error) {
+    logStructured('error', 'admin_ambient_write_failed', { message: error?.message || 'failed writing ambient track', slot });
+    return res.status(500).json({ ok: false, message: 'Audio faylni saqlab bo‘lmadi' });
+  }
+
+  const slots = Array.isArray(db.ambientPlaylist?.slots) ? db.ambientPlaylist.slots : [];
+  const existingIx = slots.findIndex((item) => Number(item?.slot) === slot);
+  const previousTrack = existingIx >= 0 ? slots[existingIx] : null;
+  const nextTrack = {
+    slot,
+    fileName: originalName || fileName,
+    fileUrl: `/uploads/audio/admin-ambient/${fileName}`,
+    mimeType: parsed.mimeType,
+    fileSize: parsed.buffer.length,
+    updatedAt: nowIso()
+  };
+  if (existingIx >= 0) slots[existingIx] = nextTrack;
+  else slots.push(nextTrack);
+  db.ambientPlaylist = { slots: slots.sort((a, b) => Number(a.slot) - Number(b.slot)) };
+  saveDb();
+
+  if (previousTrack?.fileUrl) {
+    const previousName = path.basename(String(previousTrack.fileUrl || ''));
+    const previousPath = path.join(ADMIN_AMBIENT_UPLOADS_DIR, previousName);
+    if (previousPath !== absolutePath && fs.existsSync(previousPath)) {
+      try { fs.unlinkSync(previousPath); } catch {}
+    }
+  }
+
+  return res.json({
+    ok: true,
+    track: nextTrack,
+    tracks: getAdminAmbientTracksOrdered()
+  });
+});
+
+app.delete('/api/v1/admin/ambient-playlist/slots/:slot', requireAdmin, (req, res) => {
+  const slot = Math.round(Number(req.params.slot || 0));
+  if (slot < 1 || slot > ADMIN_AMBIENT_MAX_SLOTS) {
+    return res.status(400).json({ ok: false, message: 'Slot 1..5 oralig‘ida bo‘lishi kerak' });
+  }
+  const slots = Array.isArray(db.ambientPlaylist?.slots) ? db.ambientPlaylist.slots : [];
+  const existingIx = slots.findIndex((item) => Number(item?.slot) === slot);
+  if (existingIx < 0) {
+    return res.json({ ok: true, removed: false, tracks: getAdminAmbientTracksOrdered() });
+  }
+  const existing = slots[existingIx];
+  slots.splice(existingIx, 1);
+  db.ambientPlaylist = { slots: slots.sort((a, b) => Number(a.slot) - Number(b.slot)) };
+  saveDb();
+  if (existing?.fileUrl) {
+    const filePath = path.join(ADMIN_AMBIENT_UPLOADS_DIR, path.basename(String(existing.fileUrl)));
+    if (fs.existsSync(filePath)) {
+      try { fs.unlinkSync(filePath); } catch {}
+    }
+  }
+  return res.json({ ok: true, removed: true, tracks: getAdminAmbientTracksOrdered() });
 });
 
 app.get('/api/v1/admin/orders', requireAdmin, (req, res) => {

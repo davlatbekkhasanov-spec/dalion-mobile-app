@@ -199,12 +199,17 @@
       <p class="muted">Rozilik va selfie saqlangan mijozlar ro‘yxati.</p>
       <div id="biometricCustomersList" class="list"></div>
     </section>
+    <section class="panel card" id="ambient-panel">
+      <h3 id="ambientTitle">Ambient Music Manager</h3>
+      <p class="muted">Slotlar bo‘yicha 1..5 audio yuklang. App shu tartibda ketma-ket ijro etadi.</p>
+      <div id="ambientSlotsList" class="list"></div>
+    </section>
   </div>
 
   <div class="toast" id="toast"></div>
   <script>
     const tabs = [
-      ['excel','Excel Import'],['banners','Banners'],['promotions','Promotions'],['home-settings','Home Settings'],['categories','Categories'],['products','Products'],['notifications','Notifications'],['shorts','Shorts'],['orders','Orders'],['biometric','Biometric']
+      ['excel','Excel Import'],['banners','Banners'],['promotions','Promotions'],['home-settings','Home Settings'],['categories','Categories'],['products','Products'],['notifications','Notifications'],['shorts','Shorts'],['orders','Orders'],['biometric','Biometric'],['ambient','Ambient Music']
     ];
     const i18n = {
       uz: {
@@ -219,6 +224,7 @@
         products: 'Products',
         orders: 'Orders',
         biometric: 'Biometric',
+        ambient: 'Ambient Music',
         processImages: 'Rasmlarni qayta ishlash',
         overwriteImages: 'Mavjud rasmlarni overwrite qilish',
         updateOnlyStockPrice: "Faqat qoldiq/narxni yangilash",
@@ -258,6 +264,16 @@
         ,ordersPanel: 'Buyurtmalar'
         ,biometricPanel: 'Biometrik mijozlar'
         ,biometricEmpty: "Hozircha mijozlar ro'yxati bo'sh."
+        ,ambientPanel: 'Ambient musiqa'
+        ,ambientStatusEmpty: 'Bo‘sh'
+        ,ambientStatusReady: 'Yuklangan'
+        ,ambientChooseFile: 'Audio fayl tanlash'
+        ,ambientUpload: 'Yuklash'
+        ,ambientDelete: 'O‘chirish'
+        ,ambientUploadOk: 'Ambient track saqlandi'
+        ,ambientDeleteOk: 'Ambient track o‘chirildi'
+        ,ambientFileRequired: 'Audio fayl tanlang'
+        ,ambientUploadError: 'Ambient track yuklashda xatolik'
         ,dalionSyncStarted: 'DALION sinxronizatsiyasi ishga tushdi'
         ,dalionSyncReply: 'DALION xizmati javobi olindi'
         ,dalionNotReady: 'DALION integratsiyasi hali sozlanmagan'
@@ -274,6 +290,7 @@
         products: 'Товары',
         orders: 'Заказы',
         biometric: 'Биометрия',
+        ambient: 'Ambient музыка',
         processImages: 'Обрабатывать изображения',
         overwriteImages: 'Перезаписывать существующие изображения',
         updateOnlyStockPrice: 'Обновить только остаток/цену',
@@ -313,6 +330,16 @@
         ordersPanel: 'Заказы',
         biometricPanel: 'Биометрические клиенты',
         biometricEmpty: 'Пока список клиентов пуст.',
+        ambientPanel: 'Ambient музыка',
+        ambientStatusEmpty: 'Пусто',
+        ambientStatusReady: 'Загружено',
+        ambientChooseFile: 'Выбрать аудио файл',
+        ambientUpload: 'Загрузить',
+        ambientDelete: 'Удалить',
+        ambientUploadOk: 'Ambient трек сохранен',
+        ambientDeleteOk: 'Ambient трек удален',
+        ambientFileRequired: 'Выберите аудио файл',
+        ambientUploadError: 'Ошибка загрузки ambient трека',
         dalionSyncStarted: 'Синхронизация DALION запущена',
         dalionSyncReply: 'Получен ответ сервиса DALION',
         dalionNotReady: 'Интеграция DALION пока не настроена'
@@ -371,6 +398,7 @@
       document.querySelector('#shorts-panel h3').textContent = t.shorts;
       document.querySelector('#orders-panel h3').textContent = t.ordersPanel;
       document.querySelector('#biometric-panel h3').textContent = t.biometricPanel;
+      document.getElementById('ambientTitle').textContent = t.ambientPanel;
       document.querySelector('#processImagesLabel span').textContent = t.processImages;
       document.querySelector('#overwriteImagesLabel span').textContent = t.overwriteImages;
       document.querySelector('#updateOnlyStockPriceLabel span').textContent = t.updateOnlyStockPrice;
@@ -393,6 +421,7 @@
         if (key === 'shorts') btn.textContent = t.shorts;
         if (key === 'orders') btn.textContent = t.orders;
         if (key === 'biometric') btn.textContent = t.biometric;
+        if (key === 'ambient') btn.textContent = t.ambient;
       });
     }
     document.getElementById('langUz').onclick = () => { lang = 'uz'; localStorage.setItem(langKey, lang); applyLang(); };
@@ -993,18 +1022,128 @@
       }).join('');
     }
 
-    async function bootstrap(){
-      try{
-        document.getElementById('addBannerBtn').textContent = t('add');
-        document.getElementById('addPromoBtn').textContent = t('add');
-        await Promise.all([loadBanners(),loadPromotions(),loadHomeSettings(),loadCategories(),loadProducts(),loadNotifications(),loadShorts(),loadStoreSummary(),loadDalionStatus(),loadOrdersAdmin(),loadBiometricCustomers()]);
+    function fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error(t('ambientUploadError')));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderAmbientSlots(tracks) {
+      const safeTracks = Array.isArray(tracks) ? tracks : [];
+      const bySlot = new Map(safeTracks.map((item) => [Number(item && item.slot), item]));
+      const wrap = document.getElementById('ambientSlotsList');
+      wrap.innerHTML = Array.from({ length: 5 }, (_, ix) => {
+        const slot = ix + 1;
+        const track = bySlot.get(slot);
+        const status = track ? t('ambientStatusReady') : t('ambientStatusEmpty');
+        const fileLabel = track?.fileName || '-';
+        return `
+          <div class="item" data-slot-item="${slot}">
+            <div class="row" style="justify-content:space-between;align-items:center;">
+              <div>
+                <b>Slot ${slot}</b>
+                <div class="muted">${status}: ${fileLabel}</div>
+              </div>
+              <div class="row">
+                <input type="file" accept="audio/*" data-slot-file="${slot}" aria-label="${t('ambientChooseFile')} ${slot}" />
+                <button data-slot-upload="${slot}">${t('ambientUpload')}</button>
+                <button data-slot-delete="${slot}" ${track ? '' : 'disabled'}>${t('ambientDelete')}</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function loadAmbientPlaylist(){
+      try {
+        const { tracks = [] } = await api('/admin/ambient-playlist');
+        renderAmbientSlots(tracks);
+      } catch (err) {
+        renderAmbientSlots([]);
+        throw err;
       }
-      catch(e){showToast(e.message||t('checkToken'))}
+    }
+
+    document.getElementById('ambientSlotsList').onclick = async (e) => {
+      const uploadBtn = e.target.closest('button[data-slot-upload]');
+      const deleteBtn = e.target.closest('button[data-slot-delete]');
+      if (!uploadBtn && !deleteBtn) return;
+      if (uploadBtn) {
+        const slot = Number(uploadBtn.dataset.slotUpload || 0);
+        const fileInput = document.querySelector(`input[data-slot-file="${slot}"]`);
+        const file = fileInput?.files?.[0];
+        if (!file) {
+          showToast(t('ambientFileRequired'));
+          return;
+        }
+        try {
+          setBtnLoading(uploadBtn, true, t('ambientUpload'));
+          const fileDataUrl = await fileToDataUrl(file);
+          await api(`/admin/ambient-playlist/slots/${slot}`, {
+            method: 'POST',
+            body: JSON.stringify({
+              fileName: file.name,
+              fileDataUrl
+            })
+          });
+          showToast(t('ambientUploadOk'));
+          await loadAmbientPlaylist();
+        } catch (err) {
+          showToast(err.message || t('ambientUploadError'));
+        } finally {
+          setBtnLoading(uploadBtn, false, t('ambientUpload'));
+        }
+      }
+      if (deleteBtn) {
+        const slot = Number(deleteBtn.dataset.slotDelete || 0);
+        try {
+          setBtnLoading(deleteBtn, true, t('ambientDelete'));
+          await api(`/admin/ambient-playlist/slots/${slot}`, { method: 'DELETE' });
+          showToast(t('ambientDeleteOk'));
+          await loadAmbientPlaylist();
+        } catch (err) {
+          showToast(err.message || t('ambientUploadError'));
+        } finally {
+          setBtnLoading(deleteBtn, false, t('ambientDelete'));
+        }
+      }
+    };
+
+    async function bootstrap(){
+      document.getElementById('addBannerBtn').textContent = t('add');
+      document.getElementById('addPromoBtn').textContent = t('add');
+      const tasks = [
+        ['banners', loadBanners],
+        ['promotions', loadPromotions],
+        ['home-settings', loadHomeSettings],
+        ['categories', loadCategories],
+        ['products', loadProducts],
+        ['notifications', loadNotifications],
+        ['shorts', loadShorts],
+        ['store-summary', loadStoreSummary],
+        ['dalion-status', loadDalionStatus],
+        ['orders', loadOrdersAdmin],
+        ['biometric', loadBiometricCustomers],
+        ['ambient', loadAmbientPlaylist]
+      ];
+      const results = await Promise.allSettled(tasks.map(([, fn]) => fn()));
+      const failures = results
+        .map((r, ix) => ({ result: r, name: tasks[ix][0] }))
+        .filter((entry) => entry.result.status === 'rejected');
+      if (failures.length) {
+        const message = failures[0].result.reason?.message || t('checkToken');
+        showToast(message);
+      }
     }
     bootstrap();
     setInterval(() => {
       if (document.getElementById('orders-panel').classList.contains('active')) loadOrdersAdmin().catch(()=>{});
       if (document.getElementById('biometric-panel').classList.contains('active')) loadBiometricCustomers().catch(()=>{});
+      if (document.getElementById('ambient-panel').classList.contains('active')) loadAmbientPlaylist().catch(()=>{});
     }, 5000);
   </script>
 </body>

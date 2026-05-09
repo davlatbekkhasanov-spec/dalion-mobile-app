@@ -3813,6 +3813,7 @@ Oq fonli foto</div>
 
     let syncAmbientChrome = () => {};
     let handleAmbientHomeEntry = async () => {};
+    let startAmbientFromUserGesture = () => {};
 
     function applyLang() {
       document.documentElement.lang = currentLang;
@@ -4262,12 +4263,23 @@ Oq fonli foto</div>
       hideMiniBar();
       syncAmbientChrome();
 
+      let pendingAutoplayRequest = false;
+      let pendingAutoplayRetryTimer = null;
+
+      function clearPendingAutoplayRetry() {
+        if (pendingAutoplayRetryTimer) {
+          clearInterval(pendingAutoplayRetryTimer);
+          pendingAutoplayRetryTimer = null;
+        }
+      }
+
       async function maybeAutoplayAmbientOnMainScreen() {
-        if (!phone?.classList.contains('show-app')) return;
-        if (currentView !== 'homeView') return;
-        if (!tracks.length || !shouldAttemptAutoplayByPreference()) return;
-        if (!audio.paused && !audio.ended) return;
-        await playCurrentTrack({ silent: true, autoAttempt: true });
+        if (!phone?.classList.contains('show-app')) return false;
+        if (currentView !== 'homeView') return false;
+        if (!shouldAttemptAutoplayByPreference()) return false;
+        if (!audio.paused && !audio.ended) return true;
+        if (!tracks.length) return false;
+        return await playCurrentTrack({ silent: true, autoAttempt: true });
       }
 
       resolvePlaybackTracks().then(async (availableTracks) => {
@@ -4276,15 +4288,56 @@ Oq fonli foto</div>
         consecutivePlaybackFailures = 0;
         loadCurrentTrack();
         syncAmbientChrome();
-        await maybeAutoplayAmbientOnMainScreen();
+        if (pendingAutoplayRequest) {
+          await maybeAutoplayAmbientOnMainScreen();
+        }
       }).catch(() => {
         tracks = [];
         audio.removeAttribute('src');
         syncAmbientChrome();
       });
 
+      startAmbientFromUserGesture = () => {
+        // Called synchronously inside a user-gesture handler (Continue / Start Shopping).
+        // Captures gesture by starting playback immediately when tracks are ready.
+        pendingAutoplayRequest = true;
+        persistPlaying(true);
+        if (tracks.length && (audio.paused || audio.ended)) {
+          if (!audio.getAttribute('src')) loadCurrentTrack();
+          audio.volume = INTRO_AMBIENT_VOLUME;
+          const playPromise = audio.play();
+          if (playPromise && typeof playPromise.then === 'function') {
+            playPromise.then(() => {
+              consecutivePlaybackFailures = 0;
+              syncAmbientChrome();
+            }).catch(() => {
+              // Will be retried by handleAmbientHomeEntry after the view enters home.
+            });
+          }
+        }
+      };
+
       handleAmbientHomeEntry = async () => {
-        await maybeAutoplayAmbientOnMainScreen();
+        clearPendingAutoplayRetry();
+        const ok = await maybeAutoplayAmbientOnMainScreen();
+        if (ok) {
+          pendingAutoplayRequest = false;
+          return;
+        }
+        // Retry briefly to absorb track-loading races and transient gesture loss.
+        let attempts = 0;
+        pendingAutoplayRetryTimer = setInterval(async () => {
+          attempts += 1;
+          if (currentView !== 'homeView') {
+            clearPendingAutoplayRetry();
+            return;
+          }
+          const success = await maybeAutoplayAmbientOnMainScreen();
+          if (success || attempts >= 8) {
+            if (success) pendingAutoplayRequest = false;
+            clearPendingAutoplayRetry();
+          }
+        }, 700);
       };
     }
 
@@ -5439,6 +5492,7 @@ Oq fonli foto</div>
 
     openRegisterBtn?.addEventListener('click', async () => {
       if (isAuthed()) {
+        startAmbientFromUserGesture();
         phone.classList.add('show-app');
         setView('homeView');
         await initializeAppData();
@@ -5463,6 +5517,8 @@ Oq fonli foto</div>
     });
 
     submitAuthBtn?.addEventListener('click', async () => {
+      // Capture user gesture for ambient autoplay before any awaits consume it.
+      startAmbientFromUserGesture();
       setBtnLoading(submitAuthBtn, true);
       try {
         const ok = await submitAuth();
