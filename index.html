@@ -3930,6 +3930,7 @@ Oq fonli foto</div>
       const INTRO_AMBIENT_LS_PLAYING = 'gm_intro_ambient_playing';
       const INTRO_AMBIENT_LS_TRACK = 'gm_intro_ambient_track_ix';
       const INTRO_AMBIENT_TRACK_CANDIDATES = [
+        { src: '/uploads/ambient/ambient-local-safe.wav', label: 'local-safe', local: true },
         { src: '/audio/globus-ambient-jazz-1.mp3', label: 'local-1', local: true },
         { src: '/audio/globus-ambient-jazz-2.mp3', label: 'local-2', local: true },
         { src: '/audio/globus-ambient-jazz-3.mp3', label: 'local-3', local: true },
@@ -4148,6 +4149,7 @@ Oq fonli foto</div>
           await audio.play();
           return true;
         } catch (error) {
+          if (String(error?.name || '') === 'NotAllowedError') persistPlaying(false);
           showToast(classifyPlaybackError(error));
           return false;
         }
@@ -4285,7 +4287,6 @@ Oq fonli foto</div>
       });
       mini?.addEventListener('pointerdown', bumpMiniActivity);
 
-      tracks = tracks.filter((track) => !(track.local && !track.embedded && track.src.startsWith('/audio/')));
       if (!tracks.some((track) => track.embedded)) tracks.push(embeddedFallbackTrack);
       if (!tracks.length) {
         tracks = [embeddedFallbackTrack];
