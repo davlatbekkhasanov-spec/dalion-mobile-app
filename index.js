@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const smsService = require('./src/services/sms.service');
 const prisma = require('./src/prisma-client');
 const marketplaceRepo = require('./src/marketplace-repository');
+const r2Service = require('./src/services/r2.service');
 
 process.on('uncaughtException', (error) => {
   console.error('[PROCESS] uncaughtException', { message: error?.message });
@@ -34,6 +35,7 @@ const ADMIN_AMBIENT_UPLOADS_DIR = path.join(__dirname, 'uploads', 'audio', 'admi
 const MAX_BIOMETRIC_BYTES = 1.5 * 1024 * 1024;
 const MAX_ADMIN_AMBIENT_BYTES = 12 * 1024 * 1024;
 const SHORTS_VIDEO_UPLOADS_DIR = path.join(__dirname, 'uploads', 'shorts');
+const GENERIC_MEDIA_UPLOADS_DIR = path.join(__dirname, 'uploads', 'uploads');
 const MAX_SHORTS_VIDEO_BYTES = Math.min(
   200 * 1024 * 1024,
   Math.max(
@@ -299,6 +301,29 @@ function sanitizeFileName(name) {
     .replace(/[^\w.\-]+/g, '_')
     .replace(/_+/g, '_')
     .slice(0, 120);
+}
+
+const ALLOWED_ADMIN_V2_IMAGE_PURPOSES = new Set(['banner', 'shorts', 'generic']);
+const ALLOWED_ADMIN_V2_IMAGE_MIME = new Set(['image/png', 'image/jpeg']);
+const ALLOWED_SHORTS_VIDEO_MIME = new Set(['video/mp4', 'video/webm']);
+
+function normalizeAdminV2ImagePurpose(raw) {
+  const p = String(raw === undefined || raw === null ? 'banner' : raw)
+    .trim()
+    .toLowerCase();
+  if (ALLOWED_ADMIN_V2_IMAGE_PURPOSES.has(p)) return p;
+  return 'banner';
+}
+
+function resolveAdminV2ImageStorage(purpose) {
+  switch (purpose) {
+    case 'shorts':
+      return { localDir: SHORTS_VIDEO_UPLOADS_DIR, urlPathSegment: 'shorts', r2Prefix: 'shorts' };
+    case 'generic':
+      return { localDir: GENERIC_MEDIA_UPLOADS_DIR, urlPathSegment: 'uploads', r2Prefix: 'uploads' };
+    default:
+      return { localDir: BANNER_UPLOADS_DIR, urlPathSegment: 'banners', r2Prefix: 'banners' };
+  }
 }
 
 const shortsVideoUpload = multer({
@@ -1186,29 +1211,48 @@ app.put('/api/v1/admin-v2/home-settings', requireAdminV2, async (req, res) => {
   return res.json({ ok: true, homeSettings: next });
 });
 
-app.post('/api/v1/admin-v2/media/image', requireAdminV2, (req, res) => {
+app.post('/api/v1/admin-v2/media/image', requireAdminV2, async (req, res) => {
   const parsed = parseImageDataUrl(req.body?.imageDataUrl);
   if (!parsed) {
     return res.status(400).json({ ok: false, message: 'PNG/JPG data URL kiriting' });
   }
+  const mimeLower = String(parsed.mimeType || '').toLowerCase();
+  if (!ALLOWED_ADMIN_V2_IMAGE_MIME.has(mimeLower)) {
+    return res.status(400).json({ ok: false, message: 'Faqat PNG yoki JPG ruxsat etiladi' });
+  }
   if (parsed.buffer.length > MAX_BANNER_IMAGE_BYTES) {
     return res.status(400).json({ ok: false, message: 'Rasm hajmi juda katta (maks ~2MB)' });
   }
-  ensureDir(BANNER_UPLOADS_DIR);
-  const fileName = `cms_${Date.now()}_${randomId('img')}.${parsed.ext}`;
-  const absolutePath = path.join(BANNER_UPLOADS_DIR, fileName);
+  const purpose = normalizeAdminV2ImagePurpose(req.body?.purpose);
+  const { localDir, urlPathSegment, r2Prefix } = resolveAdminV2ImageStorage(purpose);
+  const stem = purpose === 'shorts' ? 'short_thumb' : 'cms';
+  const fileName = `${stem}_${Date.now()}_${randomId('img')}.${parsed.ext}`;
+
+  if (r2Service.shouldUseR2()) {
+    const key = r2Service.buildObjectKey(r2Prefix, fileName);
+    try {
+      const { url } = await r2Service.uploadToR2(parsed.buffer, key, mimeLower);
+      return res.json({ ok: true, url });
+    } catch (error) {
+      logStructured('error', 'admin_v2_media_image_r2_failed', { message: error?.message });
+      return res.status(500).json({ ok: false, message: 'Saqlab bo‘lmadi' });
+    }
+  }
+
+  ensureDir(localDir);
+  const absolutePath = path.join(localDir, fileName);
   try {
     fs.writeFileSync(absolutePath, parsed.buffer);
   } catch (error) {
     logStructured('error', 'admin_v2_banner_image_write_failed', { message: error?.message });
     return res.status(500).json({ ok: false, message: 'Saqlab bo‘lmadi' });
   }
-  const url = `/uploads/banners/${fileName}`;
+  const url = `/uploads/${urlPathSegment}/${fileName}`;
   return res.json({ ok: true, url });
 });
 
 app.post('/api/v1/admin-v2/media/video', requireAdminV2, (req, res) => {
-  shortsVideoUpload.single('video')(req, res, (err) => {
+  shortsVideoUpload.single('video')(req, res, async (err) => {
     if (err) {
       if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({
@@ -1220,7 +1264,34 @@ app.post('/api/v1/admin-v2/media/video', requireAdminV2, (req, res) => {
     }
     const f = req.file;
     if (!f) return res.status(400).json({ ok: false, message: 'Video fayl kerak (maydon nomi: video)' });
-    const url = `/uploads/shorts/${path.basename(f.filename)}`;
+    const baseName = path.basename(f.filename);
+    const mimeLower = String(f.mimetype || '').toLowerCase();
+    if (!ALLOWED_SHORTS_VIDEO_MIME.has(mimeLower)) {
+      try {
+        fs.unlinkSync(f.path);
+      } catch (_) {}
+      return res.status(400).json({ ok: false, message: 'Faqat MP4 yoki WebM video yuklang' });
+    }
+
+    if (r2Service.shouldUseR2()) {
+      try {
+        const buf = fs.readFileSync(f.path);
+        const key = r2Service.buildObjectKey('shorts', baseName);
+        const { url } = await r2Service.uploadToR2(buf, key, mimeLower);
+        try {
+          fs.unlinkSync(f.path);
+        } catch (_) {}
+        return res.json({ ok: true, url });
+      } catch (error) {
+        try {
+          fs.unlinkSync(f.path);
+        } catch (_) {}
+        logStructured('error', 'admin_v2_media_video_r2_failed', { message: error?.message });
+        return res.status(500).json({ ok: false, message: 'Video saqlab bo‘lmadi' });
+      }
+    }
+
+    const url = `/uploads/shorts/${baseName}`;
     return res.json({ ok: true, url });
   });
 });

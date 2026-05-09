@@ -91,13 +91,22 @@ curl -X POST "https://<your-domain>/api/v1/integrations/excel/import/products-xl
 | `ADMIN_V2_SECRET` | HMAC secret used to sign JWTs (change in production; default is a dev placeholder). |
 | `ADMIN_V2_JWT_TTL_SEC` | Optional token lifetime in seconds (default **604800** = 7 days, capped at 30 days). |
 
+**Cloudflare R2 (media uploads, optional)**  
+
+When all of the following are set, banner images, shorts videos/thumbnails, and generic CMS images are stored in R2 and responses use public URLs under `R2_PUBLIC_URL`. If any variable is missing, the server keeps using local `uploads/` (handy for development).
+
+- `R2_ACCOUNT_ID` — Cloudflare account ID used in the R2 S3 endpoint  
+- `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` — R2 API token credentials (never log these)  
+- `R2_BUCKET_NAME` — bucket name  
+- `R2_PUBLIC_URL` — public base URL for the bucket (no trailing slash required)
+
 **Admin v2 HTTP**
 
 - `POST /api/v1/admin-v2/login` — body `{ "password": "…" }` → `{ ok, token }` (light IP rate limit; passwords are never logged).
 - Bearer JWT on all other admin-v2 routes: `Authorization: Bearer <token>`.
 - `GET/PUT /api/v1/admin-v2/settings/theme`, `GET/PUT /api/v1/admin-v2/home-settings`
 - `GET/POST/PUT/DELETE /api/v1/admin-v2/banners`, `PUT /api/v1/admin-v2/banners/reorder`
-- `POST /api/v1/admin-v2/media/image` — body `{ "imageDataUrl": "data:image/jpeg;base64,..." }` → `{ ok, url }` (PNG/JPG, max ~2MB)
+- `POST /api/v1/admin-v2/media/image` — body `{ "imageDataUrl": "data:image/jpeg;base64,...", "purpose": "banner" | "shorts" | "generic" }` → `{ ok, url }` (PNG/JPG, max ~2MB; default `purpose` is `banner`)
 - `GET/POST/PUT/DELETE /api/v1/admin-v2/shorts`, `PUT /api/v1/admin-v2/shorts/reorder`
 - `GET /api/v1/admin-v2/products?search=` — read-only list for the Products-lite tab
 
