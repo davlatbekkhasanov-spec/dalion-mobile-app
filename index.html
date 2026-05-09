@@ -1008,8 +1008,14 @@
 
     #shortsFeed.short-strip {
       gap: 14px;
-      padding: 6px 4px 14px;
+      padding: 4px 4px 12px;
       align-items: flex-start;
+    }
+    #homeView .home-shorts-head {
+      margin: 2px 2px 6px;
+    }
+    #homeView #shortsFeed.short-strip + .home-search-lg {
+      margin-top: 6px;
     }
     .short-reel-card {
       flex: 0 0 auto;
@@ -2158,6 +2164,11 @@
           </div>
         </header>
 
+        <div class="section-head gm-section-header home-shorts-head">
+          <h4 id="shortsSectionTitle">Shorts</h4>
+        </div>
+        <section class="home-scroll short-strip" id="shortsFeed"></section>
+
         <button class="search home-search-lg" id="openSearchBtn">Mahsulot qidirish...</button>
 
         <div class="section-head gm-section-header" id="popularSectionHead">
@@ -2201,10 +2212,6 @@
           <h4 id="promoSectionTitle">Aksiyalar</h4>
         </div>
         <section class="home-scroll" id="promoCarousel"></section>
-        <div class="section-head gm-section-header">
-          <h4 id="shortsSectionTitle">Shorts</h4>
-        </div>
-        <section class="home-scroll short-strip" id="shortsFeed"></section>
         <section id="activeOrderCardWrap" style="margin-top:10px;"></section>
       </section>
 
