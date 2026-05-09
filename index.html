@@ -3905,13 +3905,16 @@ Oq fonli foto</div>
       checkoutPrice.textContent = t('checkoutPricePending');
 
       const shorts = homePayload?.shorts || [];
-      shortsFeed.innerHTML = shorts.map((s) => `
+      shortsFeed.innerHTML = shorts.map((s) => {
+        const thumb = String(s.thumbnail_url || s.media_url || '').trim();
+        return `
         <article class="short-card">
-          <div class="short-thumb">${s.media_url ? `<img src="${s.media_url}" alt="${s.title || ''}" />` : '▶'}</div>
+          <div class="short-thumb">${thumb ? `<img src="${thumb}" alt="${s.title || ''}" />` : '▶'}</div>
           <b>${s.title || ''}</b>
           <p>${s.subtitle || ''}</p>
         </article>
-      `).join('');
+      `;
+      }).join('');
     }
 
     async function loadCart() {

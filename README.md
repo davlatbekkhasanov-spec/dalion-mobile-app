@@ -77,9 +77,42 @@ curl -X POST "https://<your-domain>/api/v1/integrations/excel/import/products-xl
 - Token is entered in admin page and stored in browser `localStorage` for admin API requests.
 - Public customer app `/` does not expose admin controls.
 
+### Admin v2 (GlobusMarket visual CMS)
+
+- **URL:** `/admin-v2` or **`/admin-v2.html`** (both registered).
+- **Styles:** `GET /admin-v2.css`
+- Password login → JWT stored in browser `localStorage` under key **`globusAdminV2Jwt`** (Bearer token for admin-v2 APIs).
+
+**Environment variables**
+
+| Variable | Purpose |
+|----------|---------|
+| `ADMIN_V2_PASSWORD` | Login password (default **`8080`** if unset). Never logged server-side. |
+| `ADMIN_V2_SECRET` | HMAC secret used to sign JWTs (change in production; default is a dev placeholder). |
+| `ADMIN_V2_JWT_TTL_SEC` | Optional token lifetime in seconds (default **604800** = 7 days, capped at 30 days). |
+
+**Admin v2 HTTP**
+
+- `POST /api/v1/admin-v2/login` — body `{ "password": "…" }` → `{ ok, token }` (light IP rate limit; passwords are never logged).
+- Bearer JWT on all other admin-v2 routes: `Authorization: Bearer <token>`.
+- `GET/PUT /api/v1/admin-v2/settings/theme`, `GET/PUT /api/v1/admin-v2/home-settings`
+- `GET/POST/PUT/DELETE /api/v1/admin-v2/banners`, `PUT /api/v1/admin-v2/banners/reorder`
+- `POST /api/v1/admin-v2/media/image` — body `{ "imageDataUrl": "data:image/jpeg;base64,..." }` → `{ ok, url }` (PNG/JPG, max ~2MB)
+- `GET/POST/PUT/DELETE /api/v1/admin-v2/shorts`, `PUT /api/v1/admin-v2/shorts/reorder`
+- `GET /api/v1/admin-v2/products?search=` — read-only list for the Products-lite tab
+
+**MVP (implemented)**  
+
+Theme editor (primary/accent/radius persisted to `adminV2Theme` + accent synced to `homeSettings.accentColor`), home headline fields, banners (CRUD, drag reorder, optional PNG/JPG upload via data URL), shorts/reels (CRUD, thumbnail URL or upload, caption, drag reorder), products-lite read-only list.
+
+**Future hooks**  
+
+Rich product editing, promotions tab parity with legacy admin, optional customer-app consumption of `primaryColor` / `radiusPx`, multipart uploads without base64.
+
 ### Admin APIs (token protected)
 
-- `GET/POST/PUT/DELETE /api/v1/admin/banners`
+- `GET/POST/PUT/DELETE /api/v1/admin/banners` (banner objects may include optional `badge`, `link_url`)
+- `GET/POST/PUT/DELETE /api/v1/admin/shorts` (optional `thumbnail_url` on shorts)
 - `GET/POST/PUT/DELETE /api/v1/admin/promotions`
 - `GET/PUT /api/v1/admin/home-settings`
 - `GET/PUT /api/v1/admin/categories`

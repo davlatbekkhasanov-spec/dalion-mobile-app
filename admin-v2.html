@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>GlobusMarket Admin</title>
+  <link rel="stylesheet" href="/admin-v2.css" />
+</head>
+<body>
+  <div id="loginView" class="shell login-panel card">
+    <h2 style="margin-top:0">GlobusMarket · Admin</h2>
+    <p class="hint">Parol bilan kirish (visual CMS)</p>
+    <div class="field" style="margin-top:14px">
+      <label for="pw">Parol</label>
+      <input id="pw" type="password" autocomplete="current-password" />
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button type="button" class="btn" id="loginBtn">Kirish</button>
+    </div>
+    <p id="loginErr" class="hint" style="color:#ffb4c2;display:none"></p>
+  </div>
+
+  <div id="appView" class="shell hidden">
+    <header class="topbar">
+      <div class="brand">
+        <strong>GlobusMarket Admin</strong>
+        <span>Visual CMS · v2</span>
+      </div>
+      <div class="row" style="flex:0">
+        <a class="pill" href="/" target="_blank" rel="noopener">Do‘kon</a>
+        <button type="button" class="btn btn-ghost" id="logoutBtn">Chiqish</button>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="Bo‘limlar">
+      <button type="button" class="tab" role="tab" data-tab="home">Bosh sahifa</button>
+      <button type="button" class="tab" role="tab" data-tab="theme">Tema</button>
+      <button type="button" class="tab" role="tab" data-tab="banners">Bannerlar</button>
+      <button type="button" class="tab" role="tab" data-tab="shorts">Shorts</button>
+      <button type="button" class="tab" role="tab" data-tab="products">Mahsulotlar</button>
+    </nav>
+
+    <section id="panel-home" class="card panel hidden" role="tabpanel">
+      <h2>Bosh sahifa matnlari</h2>
+      <div class="row">
+        <div class="field">
+          <label for="hs-brand">Brend nomi</label>
+          <input id="hs-brand" type="text" />
+        </div>
+        <div class="field">
+          <label for="hs-loc">Manzil matni</label>
+          <input id="hs-loc" type="text" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="hs-hero">Hero sarlavha</label>
+          <input id="hs-hero" type="text" />
+        </div>
+        <div class="field">
+          <label for="hs-sub">Hero subtitr</label>
+          <input id="hs-sub" type="text" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="hs-time">Yetkazish vaqti</label>
+          <input id="hs-time" type="text" />
+        </div>
+        <div class="field">
+          <label for="hs-search">Qidiruv placeholder</label>
+          <input id="hs-search" type="text" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" class="btn" id="saveHomeBtn">Saqlash</button>
+      </div>
+    </section>
+
+    <section id="panel-theme" class="card panel hidden" role="tabpanel">
+      <h2>Tema (CSS o‘zgaruvchilari)</h2>
+      <p class="hint">Accent rang mijoz ilovasidagi tugmalar chegarasi bilan bog‘langan.</p>
+      <div class="row">
+        <div class="field">
+          <label for="th-primary">Primary</label>
+          <input id="th-primary" type="color" />
+        </div>
+        <div class="field">
+          <label for="th-accent">Accent</label>
+          <input id="th-accent" type="color" />
+        </div>
+        <div class="field">
+          <label for="th-radius">Radius (px)</label>
+          <input id="th-radius" type="range" min="8" max="40" step="1" />
+          <span class="range-val" id="th-radius-val"></span>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" class="btn" id="saveThemeBtn">Temani saqlash</button>
+      </div>
+    </section>
+
+    <section id="panel-banners" class="card panel hidden" role="tabpanel">
+      <h2>Bannerlar</h2>
+      <p class="hint">Tortib tartiblang; rasm uchun URL yoki fayl yuklash.</p>
+      <div id="bannerList" class="banner-list"></div>
+      <h3 style="margin:16px 0 8px;font-size:14px;color:var(--gm-muted)">Tahrirlash / yangi</h3>
+      <div class="row">
+        <div class="field">
+          <label for="bn-title">Sarlavha</label>
+          <input id="bn-title" type="text" />
+        </div>
+        <div class="field">
+          <label for="bn-sub">Subtitr</label>
+          <input id="bn-sub" type="text" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="bn-badge">Nishon (badge)</label>
+          <input id="bn-badge" type="text" />
+        </div>
+        <div class="field">
+          <label for="bn-link">Havola</label>
+          <input id="bn-link" type="url" placeholder="https://" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="bn-img">Rasm URL</label>
+          <input id="bn-img" type="url" placeholder="/uploads/..." />
+        </div>
+        <div class="field">
+          <label for="bn-file">Rasm fayl</label>
+          <input id="bn-file" type="file" accept="image/png,image/jpeg" />
+        </div>
+      </div>
+      <div class="row" style="align-items:center;margin-top:8px">
+        <label class="pill"><input type="checkbox" id="bn-active" checked /> Faol</label>
+      </div>
+      <div class="thumb" id="bn-preview" style="width:100%;max-width:280px;height:120px;margin-top:10px">
+        Ko‘rinish
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" class="btn" id="bn-newBtn">Yangi banner</button>
+        <button type="button" class="btn btn-ghost" id="bn-saveBtn">Saqlash</button>
+        <button type="button" class="btn btn-danger" id="bn-delBtn">O‘chirish</button>
+      </div>
+    </section>
+
+    <section id="panel-shorts" class="card panel hidden" role="tabpanel">
+      <h2>Shorts / reels</h2>
+      <p class="hint">Video uchun URL (yoki tashqi hosting); eskiz — rasm URL yoki yuklash.</p>
+      <div id="shortList" class="short-list"></div>
+      <h3 style="margin:16px 0 8px;font-size:14px;color:var(--gm-muted)">Tahrirlash / yangi</h3>
+      <div class="row">
+        <div class="field">
+          <label for="sh-title">Sarlavha</label>
+          <input id="sh-title" type="text" />
+        </div>
+        <div class="field">
+          <label for="sh-cap">Taglavha (caption)</label>
+          <input id="sh-cap" type="text" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="sh-media">Video URL</label>
+          <input id="sh-media" type="url" placeholder="https://..." />
+        </div>
+        <div class="field">
+          <label for="sh-thumb-url">Eskiz URL</label>
+          <input id="sh-thumb-url" type="url" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="sh-thumb-file">Eskiz fayl</label>
+          <input id="sh-thumb-file" type="file" accept="image/png,image/jpeg" />
+        </div>
+        <div class="field">
+          <label for="sh-order">Tartib raqami</label>
+          <input id="sh-order" type="number" min="0" step="1" />
+        </div>
+      </div>
+      <div class="row" style="align-items:center;margin-top:8px">
+        <label class="pill"><input type="checkbox" id="sh-active" checked /> Faol</label>
+      </div>
+      <div class="thumb" id="sh-preview" style="width:100%;max-width:200px;height:140px;margin-top:10px">Eskiz</div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" class="btn" id="sh-newBtn">Yangi short</button>
+        <button type="button" class="btn btn-ghost" id="sh-saveBtn">Saqlash</button>
+        <button type="button" class="btn btn-danger" id="sh-delBtn">O‘chirish</button>
+      </div>
+    </section>
+
+    <section id="panel-products" class="card panel hidden" role="tabpanel">
+      <h2>Mahsulotlar (lite)</h2>
+      <p class="hint">Tez orada to‘liq tahrir — hozircha qidiruv va ko‘rish.</p>
+      <div class="field" style="max-width:320px">
+        <label for="pr-q">Qidiruv</label>
+        <input id="pr-q" type="text" placeholder="nom, kod..." />
+      </div>
+      <div style="overflow-x:auto;margin-top:12px">
+        <table class="mini" id="pr-table">
+          <thead>
+            <tr>
+              <th>Kod</th>
+              <th>Nom</th>
+              <th>Narx</th>
+              <th>Ombor</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+
+  <script>
+    const TOKEN_KEY = 'globusAdminV2Jwt';
+    let banners = [];
+    let shorts = [];
+    let selectedBannerId = null;
+    let selectedShortId = null;
+    let dragBannerId = null;
+    let dragShortId = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    function toast(msg) {
+      const el = $('toast');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.add('hidden'), 2600);
+    }
+
+    function authHeaders() {
+      const token = localStorage.getItem(TOKEN_KEY);
+      const h = { 'Content-Type': 'application/json' };
+      if (token) h.Authorization = 'Bearer ' + token;
+      return h;
+    }
+
+    async function api(path, opts = {}) {
+      const res = await fetch(path, {
+        ...opts,
+        headers: { ...authHeaders(), ...(opts.headers || {}) }
+      });
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        /* ignore */
+      }
+      if (res.status === 401 && path.indexOf('login') === -1) {
+        logout();
+        throw new Error('Unauthorized');
+      }
+      return { res, data };
+    }
+
+    function logout() {
+      localStorage.removeItem(TOKEN_KEY);
+      $('appView').classList.add('hidden');
+      $('loginView').classList.remove('hidden');
+    }
+
+    function applyThemeToPanel(theme) {
+      const root = document.documentElement;
+      const primary = theme.primaryColor || '#4f7dff';
+      const accent = theme.accentColor || '#6a4dff';
+      const r = Number(theme.radiusPx || 16);
+      root.style.setProperty('--panel-primary', primary);
+      root.style.setProperty('--panel-accent', accent);
+      root.style.setProperty('--panel-radius', r + 'px');
+    }
+
+    async function login() {
+      const password = $('pw').value || '';
+      $('loginErr').style.display = 'none';
+      $('loginBtn').disabled = true;
+      try {
+        const { res, data } = await fetch('/api/v1/admin-v2/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        }).then(async (r) => ({ res: r, data: await r.json().catch(() => ({})) }));
+        if (!res.ok || !data.ok || !data.token) {
+          $('loginErr').textContent = data.message || 'Kirish muvaffaqiyatsiz';
+          $('loginErr').style.display = 'block';
+          return;
+        }
+        localStorage.setItem(TOKEN_KEY, data.token);
+        $('loginView').classList.add('hidden');
+        $('appView').classList.remove('hidden');
+        $('pw').value = '';
+        await bootstrapApp();
+        toast('Xush kelibsiz');
+      } finally {
+        $('loginBtn').disabled = false;
+      }
+    }
+
+    function selectTab(name) {
+      document.querySelectorAll('.tab').forEach((t) => {
+        t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false');
+      });
+      document.querySelectorAll('.panel').forEach((p) => p.classList.add('hidden'));
+      const panel = $('panel-' + name);
+      if (panel) panel.classList.remove('hidden');
+    }
+
+    async function loadThemeControls() {
+      const { res, data } = await api('/api/v1/admin-v2/settings/theme');
+      if (!res.ok || !data.theme) return;
+      applyThemeToPanel(data.theme);
+      $('th-primary').value = hexFromMaybe(data.theme.primaryColor);
+      $('th-accent').value = hexFromMaybe(data.theme.accentColor);
+      $('th-radius').value = String(data.theme.radiusPx || 16);
+      $('th-radius-val').textContent = (data.theme.radiusPx || 16) + 'px';
+    }
+
+    function hexFromMaybe(c) {
+      const s = String(c || '').trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(s)) return s;
+      return '#4f7dff';
+    }
+
+    async function saveTheme() {
+      const body = {
+        primaryColor: $('th-primary').value,
+        accentColor: $('th-accent').value,
+        radiusPx: Number($('th-radius').value || 16)
+      };
+      const { res, data } = await api('/api/v1/admin-v2/settings/theme', {
+        method: 'PUT',
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) return toast(data.message || 'Xatolik');
+      applyThemeToPanel(data.theme);
+      toast('Tema saqlandi');
+    }
+
+    async function loadHomeSettings() {
+      const { res, data } = await api('/api/v1/admin-v2/home-settings');
+      if (!res.ok || !data.homeSettings) return;
+      const h = data.homeSettings;
+      $('hs-brand').value = h.brandName || '';
+      $('hs-loc').value = h.locationText || '';
+      $('hs-hero').value = h.heroTitle || '';
+      $('hs-sub').value = h.heroSubtitle || '';
+      $('hs-time').value = h.deliveryTimeText || '';
+      $('hs-search').value = h.searchPlaceholder || '';
+    }
+
+    async function saveHomeSettings() {
+      const body = {
+        brandName: $('hs-brand').value.trim(),
+        locationText: $('hs-loc').value.trim(),
+        heroTitle: $('hs-hero').value.trim(),
+        heroSubtitle: $('hs-sub').value.trim(),
+        deliveryTimeText: $('hs-time').value.trim(),
+        searchPlaceholder: $('hs-search').value.trim()
+      };
+      const { res, data } = await api('/api/v1/admin-v2/home-settings', {
+        method: 'PUT',
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) return toast(data.message || 'Xatolik');
+      toast('Bosh sahifa saqlandi');
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+    }
+
+    async function uploadImageFile(inputEl) {
+      const f = inputEl.files && inputEl.files[0];
+      if (!f) return null;
+      const dataUrl = await readFileAsDataUrl(f);
+      const { res, data } = await api('/api/v1/admin-v2/media/image', {
+        method: 'POST',
+        body: JSON.stringify({ imageDataUrl: dataUrl })
+      });
+      inputEl.value = '';
+      if (!res.ok || !data.url) {
+        toast(data.message || 'Yuklash xatosi');
+        return null;
+      }
+      return data.url;
+    }
+
+    async function refreshBanners() {
+      const { res, data } = await api('/api/v1/admin-v2/banners');
+      if (!res.ok) return;
+      banners = data.banners || [];
+      renderBannerList();
+    }
+
+    function renderBannerList() {
+      const root = $('bannerList');
+      root.innerHTML = banners
+        .map(
+          (b) => `
+        <div class="drag-item" draggable="true" data-id="${b.id}">
+          <div class="thumb">${b.image_url ? `<img src="${b.image_url}" alt="" />` : '□'}</div>
+          <div class="item-body">
+            <strong>${escapeHtml(b.title || '(nom)')}</strong>
+            <small>${escapeHtml(b.subtitle || '')}</small>
+          </div>
+          <div class="item-actions">
+            <button type="button" class="btn btn-ghost" data-pick="${b.id}">Tanlash</button>
+          </div>
+        </div>`
+        )
+        .join('');
+      root.querySelectorAll('.drag-item').forEach((el) => {
+        el.addEventListener('dragstart', (e) => {
+          dragBannerId = el.dataset.id;
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        el.addEventListener('dragover', (e) => e.preventDefault());
+        el.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          const targetId = el.dataset.id;
+          if (!dragBannerId || dragBannerId === targetId) return;
+          const ids = banners.map((x) => x.id);
+          const from = ids.indexOf(dragBannerId);
+          const to = ids.indexOf(targetId);
+          if (from < 0 || to < 0) return;
+          const next = ids.slice();
+          const [moved] = next.splice(from, 1);
+          next.splice(to, 0, moved);
+          const { res, data } = await api('/api/v1/admin-v2/banners/reorder', {
+            method: 'PUT',
+            body: JSON.stringify({ ids: next })
+          });
+          if (!res.ok) return toast(data.message || 'Tartibda xato');
+          banners = data.banners || banners;
+          renderBannerList();
+          toast('Tartib yangilandi');
+        });
+      });
+      root.querySelectorAll('[data-pick]').forEach((btn) => {
+        btn.addEventListener('click', () => pickBanner(btn.getAttribute('data-pick')));
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function pickBanner(id) {
+      selectedBannerId = id;
+      const b = banners.find((x) => x.id === id);
+      if (!b) return;
+      $('bn-title').value = b.title || '';
+      $('bn-sub').value = b.subtitle || '';
+      $('bn-badge').value = b.badge || '';
+      $('bn-link').value = b.link_url || '';
+      $('bn-img').value = b.image_url || '';
+      $('bn-active').checked = b.active !== false;
+      $('bn-file').value = '';
+      updateBnPreview();
+    }
+
+    function updateBnPreview() {
+      const url = $('bn-img').value.trim();
+      const el = $('bn-preview');
+      if (url) el.innerHTML = `<img src="${url}" alt="" />`;
+      else el.textContent = 'Ko‘rinish';
+    }
+
+    async function saveBanner() {
+      const body = {
+        title: $('bn-title').value.trim(),
+        subtitle: $('bn-sub').value.trim(),
+        badge: $('bn-badge').value.trim(),
+        link_url: $('bn-link').value.trim(),
+        image_url: $('bn-img').value.trim(),
+        active: $('bn-active').checked
+      };
+      const up = await uploadImageFile($('bn-file'));
+      if (up) body.image_url = up;
+      if (!body.title) return toast('Sarlavha kiriting');
+      if (selectedBannerId) {
+        const { res, data } = await api('/api/v1/admin-v2/banners/' + encodeURIComponent(selectedBannerId), {
+          method: 'PUT',
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) return toast(data.message || 'Xato');
+      } else {
+        const { res, data } = await api('/api/v1/admin-v2/banners', {
+          method: 'POST',
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) return toast(data.message || 'Xato');
+        selectedBannerId = data.banner && data.banner.id;
+      }
+      await refreshBanners();
+      toast('Banner saqlandi');
+    }
+
+    async function deleteBanner() {
+      if (!selectedBannerId) return toast('Banner tanlanmagan');
+      const { res, data } = await api('/api/v1/admin-v2/banners/' + encodeURIComponent(selectedBannerId), {
+        method: 'DELETE'
+      });
+      if (!res.ok) return toast(data.message || 'Xato');
+      selectedBannerId = null;
+      $('bn-title').value = '';
+      $('bn-sub').value = '';
+      $('bn-badge').value = '';
+      $('bn-link').value = '';
+      $('bn-img').value = '';
+      await refreshBanners();
+      toast('O‘chirildi');
+    }
+
+    function newBannerForm() {
+      selectedBannerId = null;
+      $('bn-title').value = '';
+      $('bn-sub').value = '';
+      $('bn-badge').value = '';
+      $('bn-link').value = '';
+      $('bn-img').value = '';
+      $('bn-active').checked = true;
+      $('bn-file').value = '';
+      updateBnPreview();
+    }
+
+    async function refreshShorts() {
+      const { res, data } = await api('/api/v1/admin-v2/shorts');
+      if (!res.ok) return;
+      shorts = (data.shorts || []).slice().sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+      renderShortList();
+    }
+
+    function renderShortList() {
+      const root = $('shortList');
+      root.innerHTML = shorts
+        .map((s) => {
+          const thumb = (s.thumbnail_url || s.media_url || '').trim();
+          return `
+        <div class="drag-item" draggable="true" data-sid="${s.id}">
+          <div class="thumb">${thumb ? `<img src="${thumb}" alt="" />` : '▶'}</div>
+          <div class="item-body">
+            <strong>${escapeHtml(s.title)}</strong>
+            <small>${escapeHtml(s.subtitle || '')} · #${s.sortOrder}</small>
+          </div>
+          <div class="item-actions">
+            <button type="button" class="btn btn-ghost" data-spick="${s.id}">Tanlash</button>
+          </div>
+        </div>`;
+        })
+        .join('');
+      root.querySelectorAll('.drag-item').forEach((el) => {
+        el.addEventListener('dragstart', (e) => {
+          dragShortId = el.dataset.sid;
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        el.addEventListener('dragover', (e) => e.preventDefault());
+        el.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          const targetId = el.dataset.sid;
+          if (!dragShortId || dragShortId === targetId) return;
+          const ids = shorts.map((x) => x.id);
+          const from = ids.indexOf(dragShortId);
+          const to = ids.indexOf(targetId);
+          if (from < 0 || to < 0) return;
+          const next = ids.slice();
+          const [moved] = next.splice(from, 1);
+          next.splice(to, 0, moved);
+          const order = next.map((id, idx) => ({ id, sortOrder: idx + 1 }));
+          const { res, data } = await api('/api/v1/admin-v2/shorts/reorder', {
+            method: 'PUT',
+            body: JSON.stringify({ order })
+          });
+          if (!res.ok) return toast(data.message || 'Xato');
+          shorts = (data.shorts || []).slice().sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+          renderShortList();
+          toast('Shorts tartibi yangilandi');
+        });
+      });
+      root.querySelectorAll('[data-spick]').forEach((btn) => {
+        btn.addEventListener('click', () => pickShort(btn.getAttribute('data-spick')));
+      });
+    }
+
+    function pickShort(id) {
+      selectedShortId = id;
+      const s = shorts.find((x) => x.id === id);
+      if (!s) return;
+      $('sh-title').value = s.title || '';
+      $('sh-cap').value = s.subtitle || '';
+      $('sh-media').value = s.media_url || '';
+      $('sh-thumb-url').value = s.thumbnail_url || '';
+      $('sh-order').value = String(s.sortOrder ?? '');
+      $('sh-active').checked = s.active !== false;
+      $('sh-thumb-file').value = '';
+      updateShPreview();
+    }
+
+    function updateShPreview() {
+      const url = ($('sh-thumb-url').value || '').trim() || ($('sh-media').value || '').trim();
+      const el = $('sh-preview');
+      if (url && !/\.(mp4|webm|mov)(\?|$)/i.test(url))
+        el.innerHTML = `<img src="${url}" alt="" />`;
+      else if (url) el.textContent = 'Video';
+      else el.textContent = 'Eskiz';
+    }
+
+    async function saveShort() {
+      const body = {
+        title: $('sh-title').value.trim(),
+        subtitle: $('sh-cap').value.trim(),
+        media_url: $('sh-media').value.trim(),
+        thumbnail_url: $('sh-thumb-url').value.trim(),
+        sortOrder: Number($('sh-order').value || 0),
+        active: $('sh-active').checked
+      };
+      const up = await uploadImageFile($('sh-thumb-file'));
+      if (up) body.thumbnail_url = up;
+      if (!body.title) return toast('Sarlavha kiriting');
+      if (selectedShortId) {
+        const { res, data } = await api('/api/v1/admin-v2/shorts/' + encodeURIComponent(selectedShortId), {
+          method: 'PUT',
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) return toast(data.message || 'Xato');
+      } else {
+        const { res, data } = await api('/api/v1/admin-v2/shorts', {
+          method: 'POST',
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) return toast(data.message || 'Xato');
+        selectedShortId = data.short && data.short.id;
+      }
+      await refreshShorts();
+      toast('Short saqlandi');
+    }
+
+    async function deleteShort() {
+      if (!selectedShortId) return toast('Short tanlanmagan');
+      const { res, data } = await api('/api/v1/admin-v2/shorts/' + encodeURIComponent(selectedShortId), {
+        method: 'DELETE'
+      });
+      if (!res.ok) return toast(data.message || 'Xato');
+      selectedShortId = null;
+      $('sh-title').value = '';
+      $('sh-cap').value = '';
+      $('sh-media').value = '';
+      $('sh-thumb-url').value = '';
+      $('sh-order').value = '';
+      await refreshShorts();
+      toast('O‘chirildi');
+    }
+
+    function newShortForm() {
+      selectedShortId = null;
+      $('sh-title').value = '';
+      $('sh-cap').value = '';
+      $('sh-media').value = '';
+      $('sh-thumb-url').value = '';
+      $('sh-order').value = String((shorts.length || 0) + 1);
+      $('sh-active').checked = true;
+      $('sh-thumb-file').value = '';
+      updateShPreview();
+    }
+
+    let prTimer;
+    async function loadProducts() {
+      const q = $('pr-q').value.trim();
+      const qs = q ? '?search=' + encodeURIComponent(q) : '';
+      const { res, data } = await api('/api/v1/admin-v2/products' + qs);
+      const tb = $('pr-table').querySelector('tbody');
+      if (!res.ok) {
+        tb.innerHTML = '';
+        return;
+      }
+      tb.innerHTML = (data.products || [])
+        .map(
+          (p) =>
+            `<tr><td>${escapeHtml(p.code)}</td><td>${escapeHtml(p.name)}</td><td>${p.price}</td><td>${p.stock}</td></tr>`
+        )
+        .join('');
+    }
+
+    async function bootstrapApp() {
+      await loadThemeControls();
+      await loadHomeSettings();
+      await refreshBanners();
+      await refreshShorts();
+      await loadProducts();
+      selectTab('home');
+    }
+
+    $('loginBtn').addEventListener('click', login);
+    $('pw').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') login();
+    });
+    $('logoutBtn').addEventListener('click', () => {
+      logout();
+      toast('Chiqildi');
+    });
+
+    document.querySelectorAll('.tab').forEach((t) => {
+      t.addEventListener('click', () => {
+        const name = t.dataset.tab;
+        selectTab(name);
+        if (name === 'products') loadProducts();
+      });
+    });
+
+    $('saveThemeBtn').addEventListener('click', saveTheme);
+    $('th-radius').addEventListener('input', () => {
+      $('th-radius-val').textContent = $('th-radius').value + 'px';
+    });
+
+    $('saveHomeBtn').addEventListener('click', saveHomeSettings);
+
+    $('bn-img').addEventListener('input', updateBnPreview);
+    $('bn-saveBtn').addEventListener('click', saveBanner);
+    $('bn-delBtn').addEventListener('click', deleteBanner);
+    $('bn-newBtn').addEventListener('click', newBannerForm);
+
+    $('sh-thumb-url').addEventListener('input', updateShPreview);
+    $('sh-media').addEventListener('input', updateShPreview);
+    $('sh-saveBtn').addEventListener('click', saveShort);
+    $('sh-delBtn').addEventListener('click', deleteShort);
+    $('sh-newBtn').addEventListener('click', newShortForm);
+
+    $('pr-q').addEventListener('input', () => {
+      clearTimeout(prTimer);
+      prTimer = setTimeout(loadProducts, 320);
+    });
+
+    if (localStorage.getItem(TOKEN_KEY)) {
+      $('loginView').classList.add('hidden');
+      $('appView').classList.remove('hidden');
+      bootstrapApp().catch(() => logout());
+    }
+  </script>
+</body>
+</html>

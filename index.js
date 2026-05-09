@@ -18,6 +18,15 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'data.store.json');
 const ADMIN_TOKEN = process.env.ADMIN_IMPORT_TOKEN || '12345';
+const ADMIN_V2_PASSWORD = process.env.ADMIN_V2_PASSWORD ?? '8080';
+const ADMIN_V2_SECRET =
+  process.env.ADMIN_V2_SECRET || 'dev-admin-v2-secret-change-in-production';
+const ADMIN_V2_JWT_TTL_SEC = Math.min(
+  30 * 24 * 3600,
+  Math.max(3600, Number(process.env.ADMIN_V2_JWT_TTL_SEC || 86400 * 7) || 86400 * 7)
+);
+const BANNER_UPLOADS_DIR = path.join(__dirname, 'uploads', 'banners');
+const MAX_BANNER_IMAGE_BYTES = 2 * 1024 * 1024;
 const BIOMETRIC_UPLOADS_DIR = path.join(__dirname, 'uploads', 'biometric');
 const ADMIN_AMBIENT_UPLOADS_DIR = path.join(__dirname, 'uploads', 'audio', 'admin-ambient');
 const MAX_BIOMETRIC_BYTES = 1.5 * 1024 * 1024;
@@ -45,6 +54,7 @@ const SMS_OTP_TTL_MS = Math.min(
 const smsThrottlePhone = new Map();
 const smsThrottleIp = new Map();
 const smsVerifyThrottleIp = new Map();
+const adminV2LoginHits = new Map();
 
 function logStructured(level, event, details = {}) {
   const payload = {
@@ -431,6 +441,18 @@ function ensureDbShape() {
   if (!db.smsOtpChallenges || typeof db.smsOtpChallenges !== 'object') db.smsOtpChallenges = {};
   if (!Array.isArray(db.notifications)) db.notifications = [];
   if (!Array.isArray(db.shorts)) db.shorts = [];
+  if (!db.adminV2Theme || typeof db.adminV2Theme !== 'object') {
+    const accent = String(db.homeSettings?.accentColor || '#6a4dff').trim() || '#6a4dff';
+    db.adminV2Theme = {
+      primaryColor: accent,
+      accentColor: accent,
+      radiusPx: 16
+    };
+  } else {
+    db.adminV2Theme.primaryColor = String(db.adminV2Theme.primaryColor || db.homeSettings?.accentColor || '#6a4dff');
+    db.adminV2Theme.accentColor = String(db.adminV2Theme.accentColor || db.homeSettings?.accentColor || '#6a4dff');
+    db.adminV2Theme.radiusPx = Math.max(0, Math.min(48, Number(db.adminV2Theme.radiusPx ?? 16) || 16));
+  }
   if (!db.ambientPlaylist || typeof db.ambientPlaylist !== 'object') db.ambientPlaylist = { slots: [] };
   if (!Array.isArray(db.ambientPlaylist.slots)) db.ambientPlaylist.slots = [];
   db.ambientPlaylist.slots = db.ambientPlaylist.slots
@@ -497,6 +519,99 @@ function requireAdmin(req, res, next) {
   if (!token || token !== ADMIN_TOKEN) {
     return res.status(401).json({ ok: false, message: 'Admin token noto‘g‘ri' });
   }
+  return next();
+}
+
+function adminV2B64urlJson(obj) {
+  return Buffer.from(JSON.stringify(obj), 'utf8')
+    .toString('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+}
+
+function adminV2ParseJwtPayload(segment) {
+  const pad = 4 - (segment.length % 4 || 4);
+  const b64 = segment.replace(/-/g, '+').replace(/_/g, '/') + (pad === 4 ? '' : '='.repeat(pad));
+  return JSON.parse(Buffer.from(b64, 'base64').toString('utf8'));
+}
+
+function adminV2SignJwt(payload) {
+  const header = adminV2B64urlJson({ alg: 'HS256', typ: 'JWT' });
+  const body = adminV2B64urlJson(payload);
+  const sig = crypto
+    .createHmac('sha256', ADMIN_V2_SECRET)
+    .update(`${header}.${body}`)
+    .digest('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+  return `${header}.${body}.${sig}`;
+}
+
+function adminV2VerifyJwt(token) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 3) return null;
+  const [h, p, s] = parts;
+  const expected = crypto
+    .createHmac('sha256', ADMIN_V2_SECRET)
+    .update(`${h}.${p}`)
+    .digest('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+  let sigBuf;
+  let expBuf;
+  try {
+    sigBuf = Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+    expBuf = Buffer.from(expected.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+  } catch {
+    return null;
+  }
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) return null;
+  let payload;
+  try {
+    payload = adminV2ParseJwtPayload(p);
+  } catch {
+    return null;
+  }
+  if (payload.typ !== 'admin-v2') return null;
+  if (typeof payload.exp === 'number' && Date.now() / 1000 > payload.exp) return null;
+  return payload;
+}
+
+function adminV2PasswordMatches(input) {
+  const a = crypto.createHash('sha256').update(String(input), 'utf8').digest();
+  const b = crypto.createHash('sha256').update(String(ADMIN_V2_PASSWORD), 'utf8').digest();
+  return crypto.timingSafeEqual(a, b);
+}
+
+function touchAdminV2Login(ip) {
+  const key = ip || 'unknown';
+  const now = Date.now();
+  const windowMs = 10 * 60 * 1000;
+  const maxReq = 24;
+  let rec = adminV2LoginHits.get(key);
+  if (!rec || now > rec.resetAt) {
+    rec = { count: 0, resetAt: now + windowMs };
+  }
+  rec.count += 1;
+  adminV2LoginHits.set(key, rec);
+  if (rec.count > maxReq) {
+    return { ok: false, retryAfterMs: Math.max(0, rec.resetAt - now) };
+  }
+  return { ok: true, resetAt: rec.resetAt };
+}
+
+function requireAdminV2(req, res, next) {
+  const raw = String(req.headers.authorization || '').trim();
+  const m = raw.match(/^Bearer\s+(.+)$/i);
+  const token = m ? m[1].trim() : '';
+  const payload = adminV2VerifyJwt(token);
+  if (!payload) {
+    return res.status(401).json({ ok: false, message: 'Admin v2 sessiyasi yaroqsiz' });
+  }
+  req.adminV2 = payload;
   return next();
 }
 
@@ -645,6 +760,14 @@ app.get('/ping', (req, res) => {
 
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+app.get(['/admin-v2', '/admin-v2.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin-v2.html'));
+});
+
+app.get('/admin-v2.css', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin-v2.css'));
 });
 
 app.get('/orders-display', (req, res) => {
@@ -1045,6 +1168,209 @@ app.get('/api/v1/orders-display/feed', (req, res) => {
   });
 });
 
+// Admin v2 API (GlobusMarket visual CMS — Bearer JWT from POST .../login)
+app.post('/api/v1/admin-v2/login', (req, res) => {
+  const ip = clientIp(req);
+  const hit = touchAdminV2Login(ip);
+  if (!hit.ok) {
+    logStructured('info', 'admin_v2_login_rate_limited', { ip: ip || null });
+    return res.status(429).json({
+      ok: false,
+      message: 'Juda ko‘p urinishlar, birozdan keyin qayta urinib ko‘ring',
+      retryAfterMs: hit.retryAfterMs
+    });
+  }
+  const password = req.body?.password;
+  if (password === undefined || password === null || typeof password !== 'string') {
+    logStructured('info', 'admin_v2_login_bad_request', { ip: ip || null });
+    return res.status(400).json({ ok: false, message: 'Parol kiriting' });
+  }
+  if (!adminV2PasswordMatches(password)) {
+    logStructured('info', 'admin_v2_login_failed', { ip: ip || null });
+    return res.status(401).json({ ok: false, message: 'Parol noto‘g‘ri' });
+  }
+  const nowSec = Math.floor(Date.now() / 1000);
+  const token = adminV2SignJwt({
+    typ: 'admin-v2',
+    iat: nowSec,
+    exp: nowSec + ADMIN_V2_JWT_TTL_SEC
+  });
+  return res.json({ ok: true, token });
+});
+
+app.get('/api/v1/admin-v2/settings/theme', requireAdminV2, (req, res) => {
+  return res.json({ ok: true, theme: db.adminV2Theme });
+});
+
+app.put('/api/v1/admin-v2/settings/theme', requireAdminV2, (req, res) => {
+  const body = req.body || {};
+  db.adminV2Theme = {
+    ...db.adminV2Theme,
+    primaryColor:
+      String(body.primaryColor ?? db.adminV2Theme.primaryColor ?? '').trim() || '#4f7dff',
+    accentColor:
+      String(body.accentColor ?? db.adminV2Theme.accentColor ?? '').trim() || '#6a4dff',
+    radiusPx: Math.max(
+      0,
+      Math.min(48, Number(body.radiusPx ?? db.adminV2Theme.radiusPx ?? 16) || 16)
+    )
+  };
+  db.homeSettings = {
+    ...db.homeSettings,
+    accentColor: db.adminV2Theme.accentColor
+  };
+  saveDb();
+  return res.json({ ok: true, theme: db.adminV2Theme });
+});
+
+app.get('/api/v1/admin-v2/home-settings', requireAdminV2, (req, res) => {
+  return res.json({ ok: true, homeSettings: db.homeSettings });
+});
+
+app.put('/api/v1/admin-v2/home-settings', requireAdminV2, (req, res) => {
+  db.homeSettings = { ...db.homeSettings, ...req.body };
+  saveDb();
+  return res.json({ ok: true, homeSettings: db.homeSettings });
+});
+
+app.post('/api/v1/admin-v2/media/image', requireAdminV2, (req, res) => {
+  const parsed = parseImageDataUrl(req.body?.imageDataUrl);
+  if (!parsed) {
+    return res.status(400).json({ ok: false, message: 'PNG/JPG data URL kiriting' });
+  }
+  if (parsed.buffer.length > MAX_BANNER_IMAGE_BYTES) {
+    return res.status(400).json({ ok: false, message: 'Rasm hajmi juda katta (maks ~2MB)' });
+  }
+  ensureDir(BANNER_UPLOADS_DIR);
+  const fileName = `cms_${Date.now()}_${randomId('img')}.${parsed.ext}`;
+  const absolutePath = path.join(BANNER_UPLOADS_DIR, fileName);
+  try {
+    fs.writeFileSync(absolutePath, parsed.buffer);
+  } catch (error) {
+    logStructured('error', 'admin_v2_banner_image_write_failed', { message: error?.message });
+    return res.status(500).json({ ok: false, message: 'Saqlab bo‘lmadi' });
+  }
+  const url = `/uploads/banners/${fileName}`;
+  return res.json({ ok: true, url });
+});
+
+app.get('/api/v1/admin-v2/banners', requireAdminV2, (req, res) => {
+  return res.json({ ok: true, banners: db.banners });
+});
+
+app.post('/api/v1/admin-v2/banners', requireAdminV2, (req, res) => {
+  const item = {
+    id: randomId('ban'),
+    title: String(req.body.title || '').trim(),
+    subtitle: String(req.body.subtitle || '').trim(),
+    badge: String(req.body.badge || '').trim(),
+    link_url: String(req.body.link_url || '').trim(),
+    image_url: String(req.body.image_url || '').trim(),
+    active: req.body.active !== false
+  };
+  db.banners.unshift(item);
+  saveDb();
+  return res.json({ ok: true, banner: item });
+});
+
+app.put('/api/v1/admin-v2/banners/reorder', requireAdminV2, (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map((x) => String(x)) : [];
+  if (!ids.length) return res.status(400).json({ ok: false, message: 'ids massivi kerak' });
+  const byId = new Map(db.banners.map((b) => [String(b.id), b]));
+  const next = [];
+  ids.forEach((id) => {
+    const b = byId.get(id);
+    if (b) next.push(b);
+  });
+  db.banners.forEach((b) => {
+    if (!next.includes(b)) next.push(b);
+  });
+  db.banners = next;
+  saveDb();
+  return res.json({ ok: true, banners: db.banners });
+});
+
+app.put('/api/v1/admin-v2/banners/:id', requireAdminV2, (req, res) => {
+  const i = db.banners.findIndex((x) => x.id === req.params.id);
+  if (i < 0) return res.status(404).json({ ok: false, message: 'Banner topilmadi' });
+  db.banners[i] = { ...db.banners[i], ...req.body, id: db.banners[i].id };
+  saveDb();
+  return res.json({ ok: true, banner: db.banners[i] });
+});
+
+app.delete('/api/v1/admin-v2/banners/:id', requireAdminV2, (req, res) => {
+  db.banners = db.banners.filter((x) => x.id !== req.params.id);
+  saveDb();
+  return res.json({ ok: true });
+});
+
+app.get('/api/v1/admin-v2/shorts', requireAdminV2, (req, res) => {
+  return res.json({ ok: true, shorts: db.shorts || [] });
+});
+
+app.post('/api/v1/admin-v2/shorts', requireAdminV2, (req, res) => {
+  const shortItem = {
+    id: randomId('srt'),
+    title: String(req.body.title || '').trim(),
+    subtitle: String(req.body.subtitle || '').trim(),
+    media_url: String(req.body.media_url || '').trim(),
+    thumbnail_url: String(req.body.thumbnail_url || '').trim(),
+    sortOrder: Number(req.body.sortOrder || (db.shorts?.length || 0) + 1),
+    active: req.body.active !== false
+  };
+  if (!shortItem.title) return res.status(400).json({ ok: false, message: 'Sarlavha majburiy' });
+  db.shorts.unshift(shortItem);
+  saveDb();
+  return res.json({ ok: true, short: shortItem });
+});
+
+app.put('/api/v1/admin-v2/shorts/reorder', requireAdminV2, (req, res) => {
+  const order = Array.isArray(req.body?.order) ? req.body.order : [];
+  if (!order.length) return res.status(400).json({ ok: false, message: 'order massivi kerak' });
+  order.forEach((row) => {
+    const id = String(row?.id || '');
+    const sortOrder = Number(row?.sortOrder);
+    const s = (db.shorts || []).find((x) => x.id === id);
+    if (s && Number.isFinite(sortOrder)) s.sortOrder = sortOrder;
+  });
+  saveDb();
+  return res.json({ ok: true, shorts: db.shorts || [] });
+});
+
+app.put('/api/v1/admin-v2/shorts/:id', requireAdminV2, (req, res) => {
+  const i = (db.shorts || []).findIndex((x) => x.id === req.params.id);
+  if (i < 0) return res.status(404).json({ ok: false, message: 'Short topilmadi' });
+  const cur = db.shorts[i];
+  db.shorts[i] = {
+    ...cur,
+    ...req.body,
+    id: cur.id,
+    title: String(req.body.title ?? cur.title ?? '').trim(),
+    subtitle: String(req.body.subtitle ?? cur.subtitle ?? '').trim(),
+    media_url: String(req.body.media_url ?? cur.media_url ?? '').trim(),
+    thumbnail_url: String(req.body.thumbnail_url ?? cur.thumbnail_url ?? '').trim(),
+    sortOrder: Number(req.body.sortOrder ?? cur.sortOrder ?? 0),
+    active: req.body.active !== undefined ? req.body.active !== false : cur.active !== false
+  };
+  saveDb();
+  return res.json({ ok: true, short: db.shorts[i] });
+});
+
+app.delete('/api/v1/admin-v2/shorts/:id', requireAdminV2, (req, res) => {
+  db.shorts = (db.shorts || []).filter((s) => s.id !== req.params.id);
+  saveDb();
+  return res.json({ ok: true });
+});
+
+app.get('/api/v1/admin-v2/products', requireAdminV2, (req, res) => {
+  const q = String(req.query.search || '').trim().toLowerCase();
+  const products = db.products
+    .map(publicProduct)
+    .filter((p) => !q || `${p.name} ${p.code} ${p.category}`.toLowerCase().includes(q))
+    .slice(0, 80);
+  return res.json({ ok: true, products, note: 'products-lite: faqat ko‘rish / qidiruv' });
+});
+
 // Admin API
 app.get('/api/v1/admin/banners', requireAdmin, (req, res) => {
   res.json({ ok: true, banners: db.banners });
@@ -1054,6 +1380,8 @@ app.post('/api/v1/admin/banners', requireAdmin, (req, res) => {
     id: randomId('ban'),
     title: String(req.body.title || '').trim(),
     subtitle: String(req.body.subtitle || '').trim(),
+    badge: String(req.body.badge || '').trim(),
+    link_url: String(req.body.link_url || '').trim(),
     image_url: String(req.body.image_url || '').trim(),
     active: req.body.active !== false
   };
@@ -1173,6 +1501,7 @@ app.post('/api/v1/admin/shorts', requireAdmin, (req, res) => {
     title: String(req.body.title || '').trim(),
     subtitle: String(req.body.subtitle || '').trim(),
     media_url: String(req.body.media_url || '').trim(),
+    thumbnail_url: String(req.body.thumbnail_url || '').trim(),
     sortOrder: Number(req.body.sortOrder || (db.shorts?.length || 0) + 1),
     active: req.body.active !== false
   };
@@ -1180,6 +1509,24 @@ app.post('/api/v1/admin/shorts', requireAdmin, (req, res) => {
   db.shorts.unshift(shortItem);
   saveDb();
   return res.json({ ok: true, short: shortItem });
+});
+app.put('/api/v1/admin/shorts/:id', requireAdmin, (req, res) => {
+  const i = (db.shorts || []).findIndex((x) => x.id === req.params.id);
+  if (i < 0) return res.status(404).json({ ok: false, message: 'Short topilmadi' });
+  const cur = db.shorts[i];
+  db.shorts[i] = {
+    ...cur,
+    ...req.body,
+    id: cur.id,
+    title: String(req.body.title ?? cur.title ?? '').trim(),
+    subtitle: String(req.body.subtitle ?? cur.subtitle ?? '').trim(),
+    media_url: String(req.body.media_url ?? cur.media_url ?? '').trim(),
+    thumbnail_url: String(req.body.thumbnail_url ?? cur.thumbnail_url ?? '').trim(),
+    sortOrder: Number(req.body.sortOrder ?? cur.sortOrder ?? 0),
+    active: req.body.active !== undefined ? req.body.active !== false : cur.active !== false
+  };
+  saveDb();
+  return res.json({ ok: true, short: db.shorts[i] });
 });
 app.delete('/api/v1/admin/shorts/:id', requireAdmin, (req, res) => {
   db.shorts = (db.shorts || []).filter((s) => s.id !== req.params.id);
