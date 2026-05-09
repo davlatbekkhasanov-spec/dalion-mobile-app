@@ -150,7 +150,7 @@
 
     <section id="panel-shorts" class="card panel hidden" role="tabpanel">
       <h2>Shorts / reels</h2>
-      <p class="hint">Video uchun URL (yoki tashqi hosting); eskiz — rasm URL yoki yuklash.</p>
+      <p class="hint">Video — URL yoki MP4/WebM fayl yuklash; eskiz — rasm URL yoki yuklash (poster).</p>
       <div id="shortList" class="short-list"></div>
       <h3 style="margin:16px 0 8px;font-size:14px;color:var(--gm-muted)">Tahrirlash / yangi</h3>
       <div class="row">
@@ -166,8 +166,16 @@
       <div class="row">
         <div class="field">
           <label for="sh-media">Video URL</label>
-          <input id="sh-media" type="url" placeholder="https://..." />
+          <input id="sh-media" type="url" placeholder="https://... yoki yuklashdan keyin to‘ldiriladi" />
         </div>
+        <div class="field">
+          <label for="sh-video-file">Video fayl (MP4 / WebM)</label>
+          <input id="sh-video-file" type="file" accept="video/mp4,video/webm,.mp4,.webm" />
+        </div>
+      </div>
+      <progress id="sh-video-progress" value="0" max="1" style="display:none;width:100%;max-width:420px;height:10px;margin-top:8px;border-radius:6px"></progress>
+      <p id="sh-video-progress-label" class="hint" style="display:none;margin-top:4px">Yuklanmoqda…</p>
+      <div class="row">
         <div class="field">
           <label for="sh-thumb-url">Eskiz URL</label>
           <input id="sh-thumb-url" type="url" />
@@ -399,6 +407,39 @@
       return data.url;
     }
 
+    function uploadVideoFileAdmin(file, onProgress) {
+      return new Promise((resolve, reject) => {
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (!token) {
+          reject(new Error('Sessiya yo‘q'));
+          return;
+        }
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/v1/admin-v2/media/video');
+        xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && typeof onProgress === 'function') onProgress(e.loaded / e.total);
+        };
+        xhr.onload = () => {
+          let data = {};
+          try {
+            data = JSON.parse(xhr.responseText || '{}');
+          } catch (_) {}
+          if (xhr.status === 401) {
+            logout();
+            reject(new Error('Unauthorized'));
+            return;
+          }
+          if (xhr.status >= 200 && xhr.status < 300 && data.ok && data.url) resolve(data.url);
+          else reject(new Error(data.message || 'Video yuklanmadi'));
+        };
+        xhr.onerror = () => reject(new Error('Tarmoq xatosi'));
+        const fd = new FormData();
+        fd.append('video', file);
+        xhr.send(fd);
+      });
+    }
+
     async function refreshBanners() {
       const { res, data } = await api('/api/v1/admin-v2/banners');
       if (!res.ok) return;
@@ -605,12 +646,13 @@
       const s = shorts.find((x) => x.id === id);
       if (!s) return;
       $('sh-title').value = s.title || '';
-      $('sh-cap').value = s.subtitle || '';
+      $('sh-cap').value = s.subtitle || s.caption || '';
       $('sh-media').value = s.media_url || '';
       $('sh-thumb-url').value = s.thumbnail_url || '';
       $('sh-order').value = String(s.sortOrder ?? '');
       $('sh-active').checked = s.active !== false;
       $('sh-thumb-file').value = '';
+      $('sh-video-file').value = '';
       updateShPreview();
     }
 
@@ -624,33 +666,63 @@
     }
 
     async function saveShort() {
-      const body = {
-        title: $('sh-title').value.trim(),
-        subtitle: $('sh-cap').value.trim(),
-        media_url: $('sh-media').value.trim(),
-        thumbnail_url: $('sh-thumb-url').value.trim(),
-        sortOrder: Number($('sh-order').value || 0),
-        active: $('sh-active').checked
-      };
-      const up = await uploadImageFile($('sh-thumb-file'));
-      if (up) body.thumbnail_url = up;
-      if (!body.title) return toast('Sarlavha kiriting');
-      if (selectedShortId) {
-        const { res, data } = await api('/api/v1/admin-v2/shorts/' + encodeURIComponent(selectedShortId), {
-          method: 'PUT',
-          body: JSON.stringify(body)
-        });
-        if (!res.ok) return toast(data.message || 'Xato');
-      } else {
-        const { res, data } = await api('/api/v1/admin-v2/shorts', {
-          method: 'POST',
-          body: JSON.stringify(body)
-        });
-        if (!res.ok) return toast(data.message || 'Xato');
-        selectedShortId = data.short && data.short.id;
+      const progEl = $('sh-video-progress');
+      const progLabel = $('sh-video-progress-label');
+      const vidInput = $('sh-video-file');
+      const vf = vidInput.files && vidInput.files[0];
+      $('sh-saveBtn').disabled = true;
+      try {
+        let mediaUrl = $('sh-media').value.trim();
+        if (vf) {
+          progEl.style.display = 'block';
+          progLabel.style.display = 'block';
+          progEl.value = 0;
+          try {
+            const url = await uploadVideoFileAdmin(vf, (p) => {
+              progEl.value = Math.max(0, Math.min(1, p));
+            });
+            mediaUrl = url;
+            $('sh-media').value = url;
+            vidInput.value = '';
+          } catch (err) {
+            toast(err.message || 'Video yuklash xatosi');
+            return;
+          } finally {
+            progEl.style.display = 'none';
+            progLabel.style.display = 'none';
+            progEl.value = 0;
+          }
+        }
+        const body = {
+          title: $('sh-title').value.trim(),
+          subtitle: $('sh-cap').value.trim(),
+          media_url: mediaUrl,
+          thumbnail_url: $('sh-thumb-url').value.trim(),
+          sortOrder: Number($('sh-order').value || 0),
+          active: $('sh-active').checked
+        };
+        const up = await uploadImageFile($('sh-thumb-file'));
+        if (up) body.thumbnail_url = up;
+        if (!body.title) return toast('Sarlavha kiriting');
+        if (selectedShortId) {
+          const { res, data } = await api('/api/v1/admin-v2/shorts/' + encodeURIComponent(selectedShortId), {
+            method: 'PUT',
+            body: JSON.stringify(body)
+          });
+          if (!res.ok) return toast(data.message || 'Xato');
+        } else {
+          const { res, data } = await api('/api/v1/admin-v2/shorts', {
+            method: 'POST',
+            body: JSON.stringify(body)
+          });
+          if (!res.ok) return toast(data.message || 'Xato');
+          selectedShortId = data.short && data.short.id;
+        }
+        await refreshShorts();
+        toast('Short saqlandi');
+      } finally {
+        $('sh-saveBtn').disabled = false;
       }
-      await refreshShorts();
-      toast('Short saqlandi');
     }
 
     async function deleteShort() {
@@ -665,6 +737,7 @@
       $('sh-media').value = '';
       $('sh-thumb-url').value = '';
       $('sh-order').value = '';
+      $('sh-video-file').value = '';
       await refreshShorts();
       toast('O‘chirildi');
     }
@@ -678,6 +751,7 @@
       $('sh-order').value = String((shorts.length || 0) + 1);
       $('sh-active').checked = true;
       $('sh-thumb-file').value = '';
+      $('sh-video-file').value = '';
       updateShPreview();
     }
 

@@ -1,4 +1,5 @@
 const express = require('express');
+const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -31,6 +32,14 @@ const BIOMETRIC_UPLOADS_DIR = path.join(__dirname, 'uploads', 'biometric');
 const ADMIN_AMBIENT_UPLOADS_DIR = path.join(__dirname, 'uploads', 'audio', 'admin-ambient');
 const MAX_BIOMETRIC_BYTES = 1.5 * 1024 * 1024;
 const MAX_ADMIN_AMBIENT_BYTES = 12 * 1024 * 1024;
+const SHORTS_VIDEO_UPLOADS_DIR = path.join(__dirname, 'uploads', 'shorts');
+const MAX_SHORTS_VIDEO_BYTES = Math.min(
+  200 * 1024 * 1024,
+  Math.max(
+    512 * 1024,
+    Number(process.env.MAX_SHORTS_VIDEO_BYTES || 30 * 1024 * 1024) || 30 * 1024 * 1024
+  )
+);
 const ADMIN_AMBIENT_MAX_SLOTS = 5;
 const ALLOWED_ADMIN_AMBIENT_MIME_TYPES = new Set([
   'audio/mpeg',
@@ -285,6 +294,26 @@ function sanitizeFileName(name) {
     .replace(/_+/g, '_')
     .slice(0, 120);
 }
+
+const shortsVideoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      ensureDir(SHORTS_VIDEO_UPLOADS_DIR);
+      cb(null, SHORTS_VIDEO_UPLOADS_DIR);
+    },
+    filename: (req, file, cb) => {
+      const mime = String(file.mimetype || '').toLowerCase();
+      const ext = mime === 'video/webm' ? '.webm' : '.mp4';
+      cb(null, `short_${Date.now()}_${randomId('v')}${ext}`);
+    }
+  }),
+  limits: { fileSize: MAX_SHORTS_VIDEO_BYTES },
+  fileFilter: (req, file, cb) => {
+    const mime = String(file.mimetype || '').toLowerCase();
+    if (mime === 'video/mp4' || mime === 'video/webm') return cb(null, true);
+    cb(new Error('UNSUPPORTED_VIDEO'));
+  }
+});
 
 function adminAmbientExtFromMime(mimeType) {
   const map = {
@@ -1254,6 +1283,24 @@ app.post('/api/v1/admin-v2/media/image', requireAdminV2, (req, res) => {
   return res.json({ ok: true, url });
 });
 
+app.post('/api/v1/admin-v2/media/video', requireAdminV2, (req, res) => {
+  shortsVideoUpload.single('video')(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          ok: false,
+          message: `Video juda katta (maks ${Math.round(MAX_SHORTS_VIDEO_BYTES / (1024 * 1024))}MB)`
+        });
+      }
+      return res.status(400).json({ ok: false, message: 'Faqat MP4 yoki WebM video yuklang' });
+    }
+    const f = req.file;
+    if (!f) return res.status(400).json({ ok: false, message: 'Video fayl kerak (maydon nomi: video)' });
+    const url = `/uploads/shorts/${path.basename(f.filename)}`;
+    return res.json({ ok: true, url });
+  });
+});
+
 app.get('/api/v1/admin-v2/banners', requireAdminV2, (req, res) => {
   return res.json({ ok: true, banners: db.banners });
 });
@@ -1312,7 +1359,7 @@ app.post('/api/v1/admin-v2/shorts', requireAdminV2, (req, res) => {
   const shortItem = {
     id: randomId('srt'),
     title: String(req.body.title || '').trim(),
-    subtitle: String(req.body.subtitle || '').trim(),
+    subtitle: String(req.body.subtitle ?? req.body.caption ?? '').trim(),
     media_url: String(req.body.media_url || '').trim(),
     thumbnail_url: String(req.body.thumbnail_url || '').trim(),
     sortOrder: Number(req.body.sortOrder || (db.shorts?.length || 0) + 1),
@@ -1346,7 +1393,7 @@ app.put('/api/v1/admin-v2/shorts/:id', requireAdminV2, (req, res) => {
     ...req.body,
     id: cur.id,
     title: String(req.body.title ?? cur.title ?? '').trim(),
-    subtitle: String(req.body.subtitle ?? cur.subtitle ?? '').trim(),
+    subtitle: String(req.body.subtitle ?? req.body.caption ?? cur.subtitle ?? '').trim(),
     media_url: String(req.body.media_url ?? cur.media_url ?? '').trim(),
     thumbnail_url: String(req.body.thumbnail_url ?? cur.thumbnail_url ?? '').trim(),
     sortOrder: Number(req.body.sortOrder ?? cur.sortOrder ?? 0),

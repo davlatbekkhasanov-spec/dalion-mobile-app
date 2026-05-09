@@ -1006,11 +1006,144 @@
       outline: none;
     }
 
-    .short-card{min-width:220px;padding:12px;border-radius:16px;border:1px solid rgba(126,155,207,.24);background:#fff;color:#1d2440}
-    .short-card b{display:block;margin-bottom:6px}
-    .short-card p{margin:0;color:#667085;font-size:13px}
-    .short-thumb{height:150px;border-radius:12px;background:#f4f6fb;display:grid;place-items:center;margin-bottom:8px;overflow:hidden}
-    .short-thumb img{width:100%;height:100%;object-fit:cover}
+    #shortsFeed.short-strip {
+      gap: 14px;
+      padding: 6px 4px 14px;
+      align-items: flex-start;
+    }
+    .short-reel-card {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      width: 84px;
+      margin: 0;
+      border: none;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+      color: inherit;
+      font: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .short-reel-ring {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      padding: 3px;
+      background: linear-gradient(135deg, #f09433 0%, #e6683c 22%, #dc2743 48%, #cc2366 72%, #bc1888 100%);
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+    .short-reel-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+      background: linear-gradient(160deg, #1e293b, #0f172a);
+      display: grid;
+      place-items: center;
+      border: 2px solid rgba(8, 12, 22, 0.96);
+      box-sizing: border-box;
+    }
+    .short-reel-inner img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .short-reel-play {
+      font-size: 26px;
+      line-height: 1;
+      opacity: 0.88;
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+    }
+    .short-reel-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      max-width: 88px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #e8eefc;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    }
+    .reels-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: rgba(0, 0, 0, 0.92);
+      display: none;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: center;
+      gap: 12px;
+      padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom))
+        max(12px, env(safe-area-inset-left));
+      box-sizing: border-box;
+    }
+    .reels-overlay.open {
+      display: flex;
+    }
+    .reels-overlay .reels-close {
+      position: absolute;
+      top: max(10px, env(safe-area-inset-top));
+      left: max(12px, env(safe-area-inset-left));
+      z-index: 2;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: rgba(20, 24, 34, 0.65);
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+    .reels-overlay .reels-mute-btn {
+      position: absolute;
+      top: max(10px, env(safe-area-inset-top));
+      right: max(12px, env(safe-area-inset-right));
+      z-index: 2;
+      min-width: 44px;
+      height: 44px;
+      padding: 0 12px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: rgba(20, 24, 34, 0.65);
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    #reelsVideo {
+      flex: 1;
+      width: 100%;
+      max-height: min(88vh, 860px);
+      margin: auto 0;
+      object-fit: contain;
+      border-radius: 14px;
+      background: #000;
+    }
+    .reels-caption {
+      color: rgba(248, 250, 252, 0.95);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.35;
+      text-align: center;
+      padding: 0 12px 8px;
+      max-height: 20vh;
+      overflow-y: auto;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .short-reel-ring {
+        background: linear-gradient(135deg, #64748b, #475569);
+      }
+      .reels-overlay {
+        transition: none !important;
+      }
+    }
 
     .checkout-input:focus {
       border-color: rgba(88, 243, 173, 0.65);
@@ -2071,7 +2204,7 @@
         <div class="section-head gm-section-header">
           <h4 id="shortsSectionTitle">Shorts</h4>
         </div>
-        <section class="home-scroll" id="shortsFeed"></section>
+        <section class="home-scroll short-strip" id="shortsFeed"></section>
         <section id="activeOrderCardWrap" style="margin-top:10px;"></section>
       </section>
 
@@ -2276,6 +2409,13 @@ Oq fonli foto</div>
         <div id="notificationsList" class="list"></div>
       </div>
     </div>
+
+    <div class="reels-overlay" id="reelsOverlay" aria-hidden="true" role="dialog" aria-modal="true">
+      <button type="button" class="reels-close" id="reelsCloseBtn" aria-label="Yopish">✕</button>
+      <button type="button" class="reels-mute-btn" id="reelsMuteBtn" aria-pressed="true" aria-label="Ovozni yoqish yoki o‘chirish">🔇</button>
+      <video id="reelsVideo" playsinline webkit-playsinline preload="metadata"></video>
+      <div class="reels-caption" id="reelsCaption"></div>
+    </div>
   </main>
 
   <script>
@@ -2304,6 +2444,7 @@ Oq fonli foto</div>
     let previousBadgeQty = 0;
     let cartItemsSnapshot = [];
     let homePayload = null;
+    let reelsTouchY0 = null;
     let latestOrderNumber = '';
     let activeOrderNumber = localStorage.getItem('activeOrderNumber') || '';
     let ordersHistory = JSON.parse(localStorage.getItem('orders_history') || '[]');
@@ -2784,6 +2925,11 @@ Oq fonli foto</div>
     const promoCarousel = document.getElementById('promoCarousel');
     const activeOrderCardWrap = document.getElementById('activeOrderCardWrap');
     const shortsFeed = document.getElementById('shortsFeed');
+    const reelsOverlay = document.getElementById('reelsOverlay');
+    const reelsVideo = document.getElementById('reelsVideo');
+    const reelsCaption = document.getElementById('reelsCaption');
+    const reelsCloseBtn = document.getElementById('reelsCloseBtn');
+    const reelsMuteBtn = document.getElementById('reelsMuteBtn');
     const checkoutLocation = document.getElementById('checkoutLocation');
     const checkoutSavedAddress = document.getElementById('checkoutSavedAddress');
     const checkoutGeo = document.getElementById('checkoutGeo');
@@ -2866,6 +3012,64 @@ Oq fonli foto</div>
 
     function money(v) {
       return `${Number(v || 0).toLocaleString('ru-RU')} so'm`;
+    }
+
+    function escapeHtml(s) {
+      return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function syncReelsMuteButton() {
+      if (!reelsMuteBtn || !reelsVideo) return;
+      const muted = reelsVideo.muted;
+      reelsMuteBtn.textContent = muted ? '🔇' : '🔊';
+      reelsMuteBtn.setAttribute('aria-pressed', muted ? 'true' : 'false');
+    }
+
+    function openReelsViewer(shortItem) {
+      if (!reelsOverlay || !reelsVideo) return;
+      const url = String(shortItem?.media_url || '').trim();
+      if (!url) return;
+      const capParts = [
+        String(shortItem?.title || '').trim(),
+        String(shortItem?.caption || shortItem?.subtitle || '').trim()
+      ].filter(Boolean);
+      reelsCaption.textContent = capParts.join(' · ');
+      reelsVideo.pause();
+      reelsVideo.removeAttribute('src');
+      reelsVideo.load();
+      reelsVideo.src = url;
+      const poster = String(shortItem?.thumbnail_url || '').trim();
+      if (poster) reelsVideo.setAttribute('poster', poster);
+      else reelsVideo.removeAttribute('poster');
+      reelsVideo.muted = true;
+      reelsVideo.playsInline = true;
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      reelsOverlay.classList.add('open');
+      reelsOverlay.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      syncReelsMuteButton();
+      if (!reducedMotion) {
+        reelsVideo.play().catch(() => {});
+      } else {
+        reelsVideo.pause();
+      }
+    }
+
+    function closeReelsViewer() {
+      if (!reelsOverlay || !reelsVideo) return;
+      reelsOverlay.classList.remove('open');
+      reelsOverlay.setAttribute('aria-hidden', 'true');
+      reelsVideo.pause();
+      reelsVideo.removeAttribute('src');
+      reelsVideo.removeAttribute('poster');
+      reelsVideo.load();
+      reelsCaption.textContent = '';
+      document.body.style.overflow = '';
+      reelsTouchY0 = null;
     }
 
     const i18n = {
@@ -3905,16 +4109,27 @@ Oq fonli foto</div>
       checkoutPrice.textContent = t('checkoutPricePending');
 
       const shorts = homePayload?.shorts || [];
-      shortsFeed.innerHTML = shorts.map((s) => {
-        const thumb = String(s.thumbnail_url || s.media_url || '').trim();
-        return `
-        <article class="short-card">
-          <div class="short-thumb">${thumb ? `<img src="${thumb}" alt="${s.title || ''}" />` : '▶'}</div>
-          <b>${s.title || ''}</b>
-          <p>${s.subtitle || ''}</p>
-        </article>
-      `;
-      }).join('');
+      shortsFeed.innerHTML = shorts
+        .map((s) => {
+          const thumb = String(s.thumbnail_url || '').trim();
+          const media = String(s.media_url || '').trim();
+          const looksLikeVideo =
+            /\.(mp4|webm)(\?|#|$)/i.test(media) || media.includes('/uploads/shorts/');
+          const imgSrc = thumb || (!looksLikeVideo ? media : '');
+          const title = String(s.title || '').trim();
+          const label = escapeHtml(title);
+          const aria = escapeHtml(title || 'Short');
+          const sid = escapeHtml(s.id);
+          const inner = imgSrc
+            ? `<img src="${escapeHtml(imgSrc)}" alt="" loading="lazy" />`
+            : `<span class="short-reel-play" aria-hidden="true">▶</span>`;
+          return `
+        <button type="button" class="short-reel-card" data-short-id="${sid}" aria-label="${aria}">
+          <div class="short-reel-ring"><div class="short-reel-inner">${inner}</div></div>
+          <span class="short-reel-label">${label}</span>
+        </button>`;
+        })
+        .join('');
     }
 
     async function loadCart() {
@@ -5235,6 +5450,53 @@ Oq fonli foto</div>
     modalOverlay.addEventListener('click', (e) => {
       if (e.target === modalOverlay) closeProductModal();
     });
+
+    shortsFeed?.addEventListener('click', (e) => {
+      const btn = e.target.closest('.short-reel-card');
+      if (!btn) return;
+      const id = btn.getAttribute('data-short-id');
+      const list = homePayload?.shorts || [];
+      const item = list.find((x) => String(x.id) === String(id));
+      if (item) openReelsViewer(item);
+    });
+    reelsCloseBtn?.addEventListener('click', () => closeReelsViewer());
+    reelsMuteBtn?.addEventListener('click', () => {
+      if (!reelsVideo) return;
+      reelsVideo.muted = !reelsVideo.muted;
+      syncReelsMuteButton();
+    });
+    reelsVideo?.addEventListener('volumechange', () => syncReelsMuteButton());
+    reelsVideo?.addEventListener('click', () => {
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!reducedMotion || !reelsVideo) return;
+      if (reelsVideo.paused) reelsVideo.play().catch(() => {});
+      else reelsVideo.pause();
+    });
+    reelsOverlay?.addEventListener('click', (e) => {
+      if (e.target === reelsOverlay) closeReelsViewer();
+    });
+    reelsOverlay?.addEventListener(
+      'touchstart',
+      (e) => {
+        reelsTouchY0 = e.changedTouches[0]?.clientY ?? null;
+      },
+      { passive: true }
+    );
+    reelsOverlay?.addEventListener(
+      'touchend',
+      (e) => {
+        if (reelsTouchY0 == null) return;
+        const y = e.changedTouches[0]?.clientY ?? reelsTouchY0;
+        if (y - reelsTouchY0 > 72) closeReelsViewer();
+        reelsTouchY0 = null;
+      },
+      { passive: true }
+    );
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (reelsOverlay?.classList.contains('open')) closeReelsViewer();
+    });
+
     window.addEventListener('popstate', () => appGoBack());
 
     modalAddBtn.addEventListener('click', async () => {
