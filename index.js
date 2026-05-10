@@ -313,6 +313,24 @@ const ALLOWED_SHORTS_VIDEO_MIME = new Set([
   'video/3gpp'
 ]);
 
+/** Browsers often send application/octet-stream for phone recordings; trust extension only in that case. */
+function normalizeShortsUploadMime(file) {
+  const raw = String(file?.mimetype || '').toLowerCase();
+  if (ALLOWED_SHORTS_VIDEO_MIME.has(raw)) return raw;
+  const loose =
+    raw === 'application/octet-stream' ||
+    raw === 'binary/octet-stream' ||
+    raw === '';
+  if (!loose) return '';
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  if (ext === '.webm') return 'video/webm';
+  if (ext === '.mov') return 'video/quicktime';
+  if (ext === '.m4v') return 'video/x-m4v';
+  if (ext === '.3gp') return 'video/3gpp';
+  if (ext === '.mp4') return 'video/mp4';
+  return '';
+}
+
 function normalizeAdminV2ImagePurpose(raw) {
   const p = String(raw === undefined || raw === null ? 'banner' : raw)
     .trim()
@@ -339,7 +357,7 @@ const shortsVideoUpload = multer({
       cb(null, SHORTS_VIDEO_UPLOADS_DIR);
     },
     filename: (req, file, cb) => {
-      const mime = String(file.mimetype || '').toLowerCase();
+      const mime = normalizeShortsUploadMime(file) || String(file.mimetype || '').toLowerCase();
       let ext = '.mp4';
       if (mime === 'video/webm') ext = '.webm';
       else if (mime === 'video/quicktime') ext = '.mov';
@@ -349,8 +367,7 @@ const shortsVideoUpload = multer({
   }),
   limits: { fileSize: MAX_SHORTS_VIDEO_BYTES },
   fileFilter: (req, file, cb) => {
-    const mime = String(file.mimetype || '').toLowerCase();
-    if (ALLOWED_SHORTS_VIDEO_MIME.has(mime)) return cb(null, true);
+    if (normalizeShortsUploadMime(file)) return cb(null, true);
     cb(new Error('UNSUPPORTED_VIDEO'));
   }
 });
@@ -1271,17 +1288,23 @@ app.post('/api/v1/admin-v2/media/video', requireAdminV2, (req, res) => {
           message: `Video juda katta (maks ${Math.round(MAX_SHORTS_VIDEO_BYTES / (1024 * 1024))}MB)`
         });
       }
-      return res.status(400).json({ ok: false, message: 'Faqat MP4 yoki WebM video yuklang' });
+      return res.status(400).json({
+        ok: false,
+        message: 'Faqat MP4, WebM yoki MOV video yuklang'
+      });
     }
     const f = req.file;
     if (!f) return res.status(400).json({ ok: false, message: 'Video fayl kerak (maydon nomi: video)' });
     const baseName = path.basename(f.filename);
-    const mimeLower = String(f.mimetype || '').toLowerCase();
+    const mimeLower = normalizeShortsUploadMime(f) || String(f.mimetype || '').toLowerCase();
     if (!ALLOWED_SHORTS_VIDEO_MIME.has(mimeLower)) {
       try {
         fs.unlinkSync(f.path);
       } catch (_) {}
-      return res.status(400).json({ ok: false, message: 'Faqat MP4 yoki WebM video yuklang' });
+      return res.status(400).json({
+        ok: false,
+        message: 'Faqat MP4, WebM yoki MOV video yuklang'
+      });
     }
 
     if (r2Service.shouldUseR2()) {
