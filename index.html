@@ -2283,6 +2283,8 @@
         <section class="category-grid" id="categoryResults"></section>
         <p class="muted" id="catalogProductResultsTitle" style="display:none; margin-bottom:8px;"></p>
         <section class="products-grid" id="searchResults"></section>
+        <div id="catalogLoadSentinel" style="height:4px;margin:0;padding:0;" aria-hidden="true"></div>
+        <p id="catalogLoadHint" class="hint" style="display:none;text-align:center;margin:10px 0 6px;"></p>
         <div class="empty" id="searchEmpty" style="display:none;"><h3>Mahsulot topilmadi</h3><p class="muted">Boshqa nom yoki kategoriya bilan qidirib ko‘ring</p></div>
       </section>
 
@@ -2502,7 +2504,9 @@ Oq fonli foto</div>
     let selectedCategory = null;
     let selectedCategoryLabel = '';
     let catalogMode = 'categories';
-    let productsPage = 1;
+    let productsNextPage = 1;
+    let productsBackfillTimer = null;
+    const productFetchInflight = new Map();
     const productsLimit = 40;
     let productsHasMore = false;
     let productsLoading = false;
@@ -3519,6 +3523,7 @@ Oq fonli foto</div>
         imageMissing: "Rasm yo'q",
         productsNotLoaded: 'Mahsulotlar hali yuklanmagan',
         productsNotLoadedHint: 'Admin panel orqali Excel import qiling yoki DALION sinxronizatsiyasini ulang',
+        catalogLoadingMore: 'Yana mahsulotlar yuklanmoqda…',
         categoryOther: 'Boshqa',
         allCategories: 'Hammasi',
         productsCountSuffix: 'ta mahsulot',
@@ -3723,6 +3728,7 @@ Oq fonli foto</div>
         imageMissing: 'Нет изображения',
         productsNotLoaded: 'Товары еще не загружены',
         productsNotLoadedHint: 'Импортируйте Excel через админ-панель или подключите синхронизацию DALION',
+        catalogLoadingMore: 'Загрузка товаров…',
         categoryOther: 'Другое',
         allCategories: 'Все',
         productsCountSuffix: 'товаров',
@@ -4426,25 +4432,122 @@ Oq fonli foto</div>
       return data;
     }
 
+    function stopProductsBackfill() {
+      if (productsBackfillTimer) {
+        clearTimeout(productsBackfillTimer);
+        productsBackfillTimer = null;
+      }
+    }
+
+    function syncCatalogLoadHint() {
+      const hint = document.getElementById('catalogLoadHint');
+      if (!hint) return;
+      if (currentView !== 'searchView' || catalogMode !== 'category') {
+        hint.style.display = 'none';
+        return;
+      }
+      if (productsLoading && productsHasMore) {
+        hint.style.display = 'block';
+        hint.textContent = t('catalogLoadingMore');
+        return;
+      }
+      hint.style.display = 'none';
+    }
+
+    function scheduleProductsBackfill() {
+      stopProductsBackfill();
+      const step = async () => {
+        if (!productsHasMore) {
+          productsBackfillTimer = null;
+          syncCatalogLoadHint();
+          return;
+        }
+        if (productsLoading) {
+          productsBackfillTimer = setTimeout(step, 140);
+          return;
+        }
+        try {
+          await loadProducts({ reset: false });
+          renderHomeCategories();
+          renderHome();
+          if (currentView === 'searchView') renderSearch();
+          renderCart();
+          syncCatalogLoadHint();
+          if (productsHasMore) productsBackfillTimer = setTimeout(step, 50);
+          else productsBackfillTimer = null;
+        } catch (_) {
+          productsBackfillTimer = setTimeout(step, 900);
+        }
+      };
+      productsBackfillTimer = setTimeout(step, 350);
+    }
+
+    async function ensureProductInMemory(id) {
+      const sid = String(id || '').trim();
+      if (!sid) return null;
+      const existing = products.find((x) => String(x.id) === sid);
+      if (existing) return existing;
+      if (productFetchInflight.has(sid)) return await productFetchInflight.get(sid);
+      const p = (async () => {
+        try {
+          const data = await api(`/products/${encodeURIComponent(sid)}`);
+          const pr = data.product;
+          if (!pr || pr.active === false) return null;
+          if (!products.some((x) => String(x.id) === sid)) products.push(pr);
+          return products.find((x) => String(x.id) === sid);
+        } catch (_) {
+          return null;
+        }
+      })();
+      productFetchInflight.set(sid, p);
+      try {
+        return await p;
+      } finally {
+        productFetchInflight.delete(sid);
+      }
+    }
+
+    async function hydrateCartProductsIntoCatalog() {
+      const ids = [...new Set((cartItemsSnapshot || []).map((x) => x.id).filter(Boolean))];
+      if (!ids.length) return;
+      await Promise.all(ids.map((id) => ensureProductInMemory(id)));
+    }
+
     async function loadProducts({ reset = false } = {}) {
       if (productsLoading) return;
       productsLoading = true;
+      syncCatalogLoadHint();
       try {
-        if (reset) productsPage = 1;
-        const collected = [];
-        let page = productsPage;
-        while (true) {
-          const params = new URLSearchParams({ page: String(page), limit: String(productsLimit) });
-          const data = await api(`/products?${params.toString()}`);
-          const incoming = (data.items || data.products || []).filter((p) => p.active !== false);
-          collected.push(...incoming);
-          if (!data.hasMore) break;
-          page += 1;
+        if (reset) {
+          products = [];
+          productsNextPage = 1;
+          productsHasMore = true;
+          stopProductsBackfill();
         }
-        products = reset ? collected : products.concat(collected);
-        productsHasMore = false;
+        if (!productsHasMore) return;
+        const params = new URLSearchParams({
+          page: String(productsNextPage),
+          limit: String(productsLimit)
+        });
+        const data = await api(`/products?${params.toString()}`);
+        const incoming = (data.items || data.products || []).filter((p) => p.active !== false);
+        if (!incoming.length && data.hasMore) {
+          productsHasMore = false;
+          return;
+        }
+        const seen = new Set(products.map((p) => p.id));
+        for (const pr of incoming) {
+          if (!seen.has(pr.id)) {
+            products.push(pr);
+            seen.add(pr.id);
+          }
+        }
+        const pageFetched = Number(data.page || productsNextPage);
+        productsHasMore = Boolean(data.hasMore);
+        productsNextPage = pageFetched + 1;
       } finally {
         productsLoading = false;
+        syncCatalogLoadHint();
       }
     }
 
@@ -4913,7 +5016,11 @@ Oq fonli foto</div>
     }
 
     async function setQty(id, value, showAddToast = false) {
-      const p = products.find((x) => x.id === id);
+      const p = await ensureProductInMemory(id);
+      if (!p) {
+        showToast(t('notFound'));
+        return;
+      }
       const stockLimit = Number(p?.stock ?? 0);
       if (stockLimit <= 0 && Number(value) > 0) {
         showToast(t('toastOutOfStock'));
@@ -5099,6 +5206,7 @@ Oq fonli foto</div>
         catalogProductResultsTitle.textContent = query ? t('productResultsTitle') : '';
         searchResults.innerHTML = query ? byProduct.slice(0, 12).map(productCardTemplate).join('') : '';
         searchEmpty.style.display = (!categories.length && !byProduct.length) ? 'block' : 'none';
+        syncCatalogLoadHint();
         return;
       }
 
@@ -5111,6 +5219,7 @@ Oq fonli foto</div>
       catalogProductResultsTitle.textContent = selectedCategoryLabel || selectedCategory || t('catalog');
       searchResults.innerHTML = filteredProducts.map(productCardTemplate).join('');
       searchEmpty.style.display = filteredProducts.length ? 'none' : 'block';
+      syncCatalogLoadHint();
     }
 
     function renderCart() {
@@ -5294,7 +5403,7 @@ Oq fonli foto</div>
       let addedAny = false;
       let adjustedCount = 0;
       for (const item of orderItems) {
-        const product = products.find((p) => p.id === item.id);
+        const product = await ensureProductInMemory(item.id);
         if (!product) { adjustedCount += 1; continue; }
         const stock = Math.max(0, Number(product.stock || 0));
         if (stock <= 0) { adjustedCount += 1; continue; }
@@ -5527,7 +5636,12 @@ Oq fonli foto</div>
       renderProfileOrders();
     }
 
-    function openProductModal(id) {
+    async function openProductModal(id) {
+      const row = await ensureProductInMemory(id);
+      if (!row) {
+        showToast(t('notFound'));
+        return;
+      }
       activeModalProductId = id;
       renderModal();
       modalOverlay.classList.add('show');
@@ -5648,11 +5762,14 @@ Oq fonli foto</div>
         cartUpsellGrid.innerHTML = skeleton;
         await loadProfile();
         await Promise.all([loadHomePayload(), loadProducts({ reset: true }), loadCart()]);
+        await hydrateCartProductsIntoCatalog();
         manualAddress.value = currentUser?.address || '';
         customerLocation.addressText = manualAddress.value.trim();
         applyLang();
-        await loadNotifications();
+        const notificationsPromise = loadNotifications();
         renderAll();
+        scheduleProductsBackfill();
+        await notificationsPromise.catch(() => {});
         scheduleShortsRevisionPollLoop();
       } catch (error) {
         showToast(error.message || t('toastDataLoadErr'));
@@ -5708,6 +5825,7 @@ Oq fonli foto</div>
     });
 
     logoutBtn?.addEventListener('click', () => {
+      stopProductsBackfill();
       stopShortsRevisionPolling();
       localStorage.removeItem('globusUser');
       resetSmsAuthState();
@@ -5874,8 +5992,12 @@ Oq fonli foto</div>
           e.preventDefault();
           e.stopPropagation();
           const id = plus.dataset.id;
-          const p = products.find((x) => x.id === id);
-          const stock = Number(p?.stock ?? 0);
+          const p = await ensureProductInMemory(id);
+          if (!p) {
+            showToast(t('notFound'));
+            return;
+          }
+          const stock = Number(p.stock ?? 0);
           if (stock <= 0) {
             showToast(t('toastOutOfStock'));
             return;
@@ -5902,7 +6024,7 @@ Oq fonli foto</div>
 
       const card = e.target.closest('[data-open-product]');
       if (card && !e.target.closest('.qty, [data-add-one], [data-quick-add], [data-remove-cart], .fav-btn')) {
-        openProductModal(card.dataset.openProduct);
+        void openProductModal(card.dataset.openProduct);
         return;
       }
 
@@ -6108,6 +6230,8 @@ Oq fonli foto</div>
         };
 
         await Promise.all([loadProducts({ reset: true }), loadCart()]);
+        await hydrateCartProductsIntoCatalog();
+        scheduleProductsBackfill();
         if (selectedPayment === 'click') {
           const amountTiyin = Math.round(Number((checkoutTotals?.finalTotal || 0)) * 100);
           // TODO: replace redirect-only flow with Click callback/webhook confirmation.
@@ -6172,8 +6296,33 @@ Oq fonli foto</div>
       renderCheckout();
     });
     landmarkInput.addEventListener('input', renderCheckout);
+
+    function setupCatalogScrollLoader() {
+      const sentinel = document.getElementById('catalogLoadSentinel');
+      if (!sentinel || sentinel.dataset.bound === '1') return;
+      sentinel.dataset.bound = '1';
+      const io = new IntersectionObserver(
+        (entries) => {
+          const hit = entries.some((e) => e.isIntersecting);
+          if (!hit) return;
+          if (currentView !== 'searchView') return;
+          if (catalogMode !== 'category') return;
+          if (!productsHasMore || productsLoading) return;
+          void loadProducts({ reset: false }).then(() => {
+            renderSearch();
+            renderHomeCategories();
+            renderHome();
+            syncCatalogLoadHint();
+          });
+        },
+        { root: null, rootMargin: '320px', threshold: 0 }
+      );
+      io.observe(sentinel);
+    }
+
     (async () => {
       initIntroAmbientPlayer();
+      setupCatalogScrollLoader();
       await loadProfile();
       phone.classList.remove('show-app');
       authSheetOverlay.classList.remove('show');

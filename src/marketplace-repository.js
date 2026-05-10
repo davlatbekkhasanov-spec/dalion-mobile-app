@@ -218,6 +218,31 @@ async function listProductsPublic() {
   return products.map(productToPublic);
 }
 
+async function listProductsPublicPage({ page, limit }) {
+  const pg = Math.max(1, Number(page) || 1);
+  const lim = Math.max(1, Math.min(100, Number(limit) || 40));
+  const skip = (pg - 1) * lim;
+  const where = { active: true };
+  const [total, rows] = await prisma.$transaction([
+    prisma.product.count({ where }),
+    prisma.product.findMany({
+      where,
+      include: { category: true },
+      orderBy: { createdAt: 'asc' },
+      skip,
+      take: lim
+    })
+  ]);
+  const items = rows.map(productToPublic);
+  return {
+    items,
+    total,
+    page: pg,
+    limit: lim,
+    hasMore: skip + rows.length < total
+  };
+}
+
 async function listCategoriesForAdmin() {
   const categories = await prisma.category.findMany({ orderBy: { name: 'asc' } });
   const counts = await prisma.product.groupBy({
@@ -980,6 +1005,7 @@ module.exports = {
   loadOrderLegacyById,
   findProductById,
   listProductsPublic,
+  listProductsPublicPage,
   productToPublic,
   listCategoriesForAdmin,
   updateCategory,

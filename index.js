@@ -836,17 +836,33 @@ app.get('/api/v1/ambient-playlist', async (req, res) => {
 app.get('/api/v1/products', async (req, res) => {
   const page = Math.max(1, Number(req.query.page || 1));
   const limit = Math.max(1, Math.min(100, Number(req.query.limit || 40)));
-  const all = (await marketplaceRepo.listProductsPublic()).filter((p) => p.active !== false);
-  const start = (page - 1) * limit;
-  const items = all.slice(start, start + limit);
-  return res.json({
-    ok: true,
-    page,
-    limit,
-    total: all.length,
-    hasMore: start + limit < all.length,
-    items
-  });
+  try {
+    const out = await marketplaceRepo.listProductsPublicPage({ page, limit });
+    return res.json({
+      ok: true,
+      page: out.page,
+      limit: out.limit,
+      total: out.total,
+      hasMore: out.hasMore,
+      items: out.items
+    });
+  } catch (e) {
+    logStructured('error', 'products_page_failed', { message: e?.message });
+    return res.status(500).json({ ok: false, message: 'Server xatolik' });
+  }
+});
+
+app.get('/api/v1/products/:id', async (req, res) => {
+  try {
+    const row = await findProductById(req.params.id);
+    if (!row || row.active === false) {
+      return res.status(404).json({ ok: false, message: 'Mahsulot topilmadi' });
+    }
+    return res.json({ ok: true, product: publicProduct(row) });
+  } catch (e) {
+    logStructured('error', 'product_by_id_failed', { message: e?.message });
+    return res.status(500).json({ ok: false, message: 'Server xatolik' });
+  }
 });
 
 app.put('/api/v1/profile', async (req, res) => {
