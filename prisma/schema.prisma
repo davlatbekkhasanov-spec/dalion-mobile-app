@@ -141,6 +141,7 @@ model Short {
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
   sortOrder    Int      @default(0)
+  viewCount    Int      @default(0)
 }
 
 model Notification {

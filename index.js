@@ -818,6 +818,11 @@ app.get('/api/v1/shorts/meta', async (req, res) => {
   return res.json({ ok: true, shortsRevision: await marketplaceRepo.getShortsRevision() });
 });
 
+app.post('/api/v1/shorts/:id/view', async (req, res) => {
+  await marketplaceRepo.incrementShortViewCount(req.params.id);
+  return res.json({ ok: true });
+});
+
 app.get('/api/v1/ambient-playlist', async (req, res) => {
   const tracks = await getAdminAmbientTracksOrdered();
   return res.json({

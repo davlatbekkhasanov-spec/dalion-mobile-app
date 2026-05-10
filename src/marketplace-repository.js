@@ -646,8 +646,22 @@ async function listShortsApi() {
     thumbnail_url: s.thumbnailUrl,
     mime_type: inferShortMimeTypeFromMediaUrl(s.videoUrl),
     active: s.active,
-    sortOrder: s.sortOrder
+    sortOrder: s.sortOrder,
+    view_count: typeof s.viewCount === 'number' ? s.viewCount : 0
   }));
+}
+
+async function incrementShortViewCount(id) {
+  const sid = String(id || '').trim();
+  if (!sid) return null;
+  try {
+    return await prisma.short.updateMany({
+      where: { id: sid, active: true },
+      data: { viewCount: { increment: 1 } }
+    });
+  } catch {
+    return null;
+  }
 }
 
 async function createShortApi(body) {
@@ -670,7 +684,8 @@ async function createShortApi(body) {
     thumbnail_url: s.thumbnailUrl,
     mime_type: inferShortMimeTypeFromMediaUrl(s.videoUrl),
     active: s.active,
-    sortOrder: s.sortOrder
+    sortOrder: s.sortOrder,
+    view_count: typeof s.viewCount === 'number' ? s.viewCount : 0
   };
 }
 
@@ -712,7 +727,8 @@ async function updateShortApi(id, body) {
     thumbnail_url: s.thumbnailUrl,
     mime_type: inferShortMimeTypeFromMediaUrl(s.videoUrl),
     active: s.active,
-    sortOrder: s.sortOrder
+    sortOrder: s.sortOrder,
+    view_count: typeof s.viewCount === 'number' ? s.viewCount : 0
   };
 }
 
@@ -761,11 +777,12 @@ async function deleteNotification(id) {
 }
 
 async function appendShortsNotification(shortApi, revision) {
+  const st = String(shortApi.title || '').trim();
   await prisma.notification.create({
     data: {
       type: 'new_shorts',
-      title: 'Yangi shorts',
-      body: String(shortApi.title || '').trim() || 'Yangi shorts',
+      title: 'GlobusMarket',
+      body: st ? `Yangilik: yangi short — «${st}»` : 'Yangilik: yangi shortlar mavjud',
       active: true,
       meta: { shortId: shortApi.id, shortsRevision: revision }
     }
@@ -922,6 +939,7 @@ module.exports = {
   reorderShorts,
   updateShortApi,
   deleteShort,
+  incrementShortViewCount,
   listNotificationsApi,
   createNotificationApi,
   deleteNotification,

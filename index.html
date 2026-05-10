@@ -1158,6 +1158,47 @@
       max-height: 20vh;
       overflow-y: auto;
     }
+    .reels-counter {
+      position: absolute;
+      top: max(52px, calc(env(safe-area-inset-top) + 42px));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      font-size: 12px;
+      font-weight: 800;
+      color: rgba(255, 255, 255, 0.92);
+      background: rgba(0, 0, 0, 0.42);
+      padding: 5px 12px;
+      border-radius: 999px;
+      letter-spacing: 0.02em;
+      pointer-events: none;
+    }
+    .reels-swipe-hint {
+      position: absolute;
+      bottom: max(10px, env(safe-area-inset-bottom));
+      left: 10px;
+      right: 10px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.38);
+      z-index: 2;
+      pointer-events: none;
+    }
+    .reels-overlay.reels-beat #reelsVideo,
+    .reels-overlay.reels-beat #reelsStill {
+      animation: reelsSnapIn 260ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    @keyframes reelsSnapIn {
+      from {
+        opacity: 0.86;
+        transform: scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
     @media (prefers-reduced-motion: reduce) {
       .short-reel-ring {
         background: linear-gradient(135deg, #64748b, #475569);
@@ -2434,9 +2475,11 @@ Oq fonli foto</div>
     <div class="reels-overlay" id="reelsOverlay" aria-hidden="true" role="dialog" aria-modal="true">
       <button type="button" class="reels-close" id="reelsCloseBtn" aria-label="Yopish">✕</button>
       <button type="button" class="reels-mute-btn" id="reelsMuteBtn" aria-pressed="false" aria-label="Ovozni yoqish yoki o‘chirish">🔊</button>
+      <span class="reels-counter" id="reelsCounter"></span>
       <video id="reelsVideo" playsinline webkit-playsinline preload="metadata"></video>
       <img id="reelsStill" alt="" decoding="async" />
       <div class="reels-caption" id="reelsCaption"></div>
+      <div class="reels-swipe-hint" id="reelsSwipeHint">↑ keyingi · ↓ oldingi · oxirgisi tugasa yopiladi</div>
     </div>
   </main>
 
@@ -2466,6 +2509,9 @@ Oq fonli foto</div>
     let previousBadgeQty = 0;
     let cartItemsSnapshot = [];
     let homePayload = null;
+    let reelsPlaylist = [];
+    let reelsIndex = 0;
+    let reelsImageAdvanceTimer = null;
     let reelsTouchY0 = null;
     let latestOrderNumber = '';
     let activeOrderNumber = localStorage.getItem('activeOrderNumber') || '';
@@ -2953,6 +2999,8 @@ Oq fonli foto</div>
     const reelsCaption = document.getElementById('reelsCaption');
     const reelsCloseBtn = document.getElementById('reelsCloseBtn');
     const reelsMuteBtn = document.getElementById('reelsMuteBtn');
+    const reelsCounter = document.getElementById('reelsCounter');
+    const reelsSwipeHint = document.getElementById('reelsSwipeHint');
     const checkoutLocation = document.getElementById('checkoutLocation');
     const checkoutSavedAddress = document.getElementById('checkoutSavedAddress');
     const checkoutGeo = document.getElementById('checkoutGeo');
@@ -3112,11 +3160,74 @@ Oq fonli foto</div>
       reelsMuteBtn.setAttribute('aria-pressed', muted ? 'true' : 'false');
     }
 
+    function clearReelsImageTimer() {
+      if (reelsImageAdvanceTimer) {
+        clearTimeout(reelsImageAdvanceTimer);
+        reelsImageAdvanceTimer = null;
+      }
+    }
+
+    function recordShortView(shortId) {
+      const id = String(shortId || '').trim();
+      if (!id) return;
+      try {
+        fetch(`/api/v1/shorts/${encodeURIComponent(id)}/view`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+          credentials: 'same-origin'
+        }).catch(() => {});
+      } catch (_) {}
+    }
+
+    function updateReelsCounterUi() {
+      if (!reelsCounter) return;
+      const n = reelsPlaylist.length;
+      reelsCounter.textContent = n ? `${reelsIndex + 1} / ${n}` : '';
+    }
+
+    function reelsGoNextOrClose() {
+      clearReelsImageTimer();
+      if (reelsIndex + 1 < reelsPlaylist.length) {
+        reelsIndex += 1;
+        showReelsAtCurrentIndex();
+      } else {
+        closeReelsViewer();
+      }
+    }
+
     function openReelsViewer(shortItem) {
-      if (!reelsOverlay) return;
-      const rawUrl = String(shortItem?.media_url || shortItem?.video_url || shortItem?.videoUrl || '').trim();
-      if (!rawUrl) return;
+      if (!reelsOverlay || !shortItem) return;
+      const list = (homePayload?.shorts || [])
+        .filter((x) => x && x.active !== false)
+        .slice()
+        .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+      const ix = list.findIndex((x) => String(x.id) === String(shortItem.id));
+      reelsPlaylist = list;
+      reelsIndex = ix >= 0 ? ix : 0;
+      clearReelsImageTimer();
       if (typeof window.pauseAmbientForReelsOverlay === 'function') window.pauseAmbientForReelsOverlay();
+      showReelsAtCurrentIndex();
+    }
+
+    function showReelsAtCurrentIndex() {
+      const shortItem = reelsPlaylist[reelsIndex];
+      if (!shortItem || !reelsOverlay) {
+        closeReelsViewer();
+        return;
+      }
+      recordShortView(shortItem.id);
+      updateReelsCounterUi();
+      reelsOverlay.classList.remove('reels-beat');
+      void reelsOverlay.offsetWidth;
+      reelsOverlay.classList.add('reels-beat');
+
+      const rawUrl = String(shortItem?.media_url || shortItem?.video_url || shortItem?.videoUrl || '').trim();
+      if (!rawUrl) {
+        reelsGoNextOrClose();
+        return;
+      }
+
       const capParts = [
         String(shortItem?.title || '').trim(),
         String(shortItem?.caption || shortItem?.subtitle || '').trim()
@@ -3137,6 +3248,8 @@ Oq fonli foto</div>
         reelsOverlay.classList.add('open');
         reelsOverlay.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
+        clearReelsImageTimer();
+        reelsImageAdvanceTimer = setTimeout(() => reelsGoNextOrClose(), 6200);
         return;
       }
 
@@ -3147,6 +3260,7 @@ Oq fonli foto</div>
       if (reelsMuteBtn) reelsMuteBtn.style.visibility = '';
 
       if (!reelsVideo) return;
+      clearReelsImageTimer();
       const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const playUrl = rawUrl.replace(/#.*$/, '');
       reelsVideo.pause();
@@ -3177,9 +3291,14 @@ Oq fonli foto</div>
 
     function closeReelsViewer() {
       if (!reelsOverlay) return;
+      clearReelsImageTimer();
+      reelsPlaylist = [];
+      reelsIndex = 0;
+      updateReelsCounterUi();
       reelsOverlay.classList.remove('open');
       reelsOverlay.setAttribute('aria-hidden', 'true');
       reelsOverlay.classList.remove('reels-mode-still');
+      reelsOverlay.classList.remove('reels-beat');
       if (reelsMuteBtn) reelsMuteBtn.style.visibility = '';
       if (reelsVideo) {
         reelsVideo.pause();
@@ -3253,7 +3372,8 @@ Oq fonli foto</div>
         toastAmbientSourceMissing: "Musiqa fayli topilmadi, boshqa manbaga o'tildi",
         toastAmbientPlayFail: "Musiqani yoqib bo'lmadi. Internetni tekshirib qayta urinib ko'ring",
         toastAmbientNoSources: "Musiqa fayllari hali qo'shilmagan",
-        toastNewShorts: 'Yangi shorts',
+        toastNewShorts: 'GlobusMarket: yangi short!',
+        reelsSwipeHint: '↑ keyingi · ↓ oldingi · oxirgisi tugasa yopiladi',
         validationAuthFirst: "Avval ro'yxatdan o'ting",
         validationPaymentPick: "To'lov turini tanlang",
         validationAddressRequired: "Manzilni kiriting yoki lokatsiyani yoqing",
@@ -3456,7 +3576,8 @@ Oq fonli foto</div>
         toastAmbientSourceMissing: 'Музыкальный файл недоступен, переключили источник',
         toastAmbientPlayFail: 'Не удалось включить музыку. Проверьте интернет и повторите',
         toastAmbientNoSources: 'Музыкальные файлы еще не добавлены',
-        toastNewShorts: 'Новые шортсы',
+        toastNewShorts: 'GlobusMarket: новый short!',
+        reelsSwipeHint: '↑ следующий · ↓ предыдущий · в конце закроется',
         validationAuthFirst: 'Сначала зарегистрируйтесь',
         validationPaymentPick: 'Выберите способ оплаты',
         validationAddressRequired: 'Введите адрес или включите геолокацию',
@@ -3622,6 +3743,7 @@ Oq fonli foto</div>
       document.querySelector('#profileView .title').textContent = t('profile');
       document.querySelector('#checkoutView .title').textContent = t('checkout');
       document.getElementById('notificationsTitle').textContent = t('notifications');
+      if (reelsSwipeHint) reelsSwipeHint.textContent = t('reelsSwipeHint');
       document.getElementById('searchInput').placeholder = t('search');
       document.getElementById('searchClearBtn').setAttribute('aria-label', t('searchClear'));
       document.getElementById('homeAllCategoriesLink').textContent = t('homeAll');
@@ -4203,8 +4325,12 @@ Oq fonli foto</div>
         if (!audio || reelsOverlayAmbientHold) return;
         reelsOverlayAmbientHold = {
           wasAudiblyPlaying: !audio.paused && !audio.ended,
-          prefOn: localStorage.getItem(INTRO_AMBIENT_LS_PLAYING) !== '0'
+          prefOn: localStorage.getItem(INTRO_AMBIENT_LS_PLAYING) !== '0',
+          prevMuted: audio.muted
         };
+        try {
+          audio.muted = true;
+        } catch (_) {}
         audio.pause();
         syncAmbientChrome();
       };
@@ -4212,6 +4338,9 @@ Oq fonli foto</div>
         if (!audio || !reelsOverlayAmbientHold) return;
         const hold = reelsOverlayAmbientHold;
         reelsOverlayAmbientHold = null;
+        try {
+          audio.muted = hold.prevMuted;
+        } catch (_) {}
         const shouldResume = hold.wasAudiblyPlaying || hold.prefOn;
         if (!shouldResume) {
           syncAmbientChrome();
@@ -4494,6 +4623,7 @@ Oq fonli foto</div>
       if (srv > prev) {
         showToast(t('toastNewShorts'), 4200);
         localStorage.setItem(SHORTS_SEEN_REVISION_LS, String(srv));
+        loadNotifications().catch(() => {});
       }
     }
 
@@ -4527,6 +4657,7 @@ Oq fonli foto</div>
               }
               if (prev !== null && srv > prev) {
                 await loadHomePayload();
+                if (shouldPollShortsAlerts()) loadNotifications().catch(() => {});
               } else {
                 applyShortsRevisionFromServer(srv);
               }
@@ -5757,6 +5888,10 @@ Oq fonli foto</div>
       reelsVideo.muted = !reelsVideo.muted;
       syncReelsMuteButton();
     });
+    reelsVideo?.addEventListener('ended', () => {
+      if (!reelsOverlay?.classList.contains('open')) return;
+      reelsGoNextOrClose();
+    });
     reelsVideo?.addEventListener('volumechange', () => syncReelsMuteButton());
     reelsVideo?.addEventListener('click', () => {
       const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -5779,8 +5914,20 @@ Oq fonli foto</div>
       (e) => {
         if (reelsTouchY0 == null) return;
         const y = e.changedTouches[0]?.clientY ?? reelsTouchY0;
-        if (y - reelsTouchY0 > 72) closeReelsViewer();
+        const dy = y - reelsTouchY0;
         reelsTouchY0 = null;
+        const thr = 56;
+        if (Math.abs(dy) < thr) return;
+        if (dy > thr) {
+          if (reelsIndex <= 0) closeReelsViewer();
+          else {
+            clearReelsImageTimer();
+            reelsIndex -= 1;
+            showReelsAtCurrentIndex();
+          }
+        } else {
+          reelsGoNextOrClose();
+        }
       },
       { passive: true }
     );

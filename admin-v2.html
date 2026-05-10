@@ -150,7 +150,7 @@
 
     <section id="panel-shorts" class="card panel hidden" role="tabpanel">
       <h2>Shorts / reels</h2>
-      <p class="hint sh-intro-hint">Videoni tanlang — oldindan ko‘rasiz, keyin «Saqlash». Faqat admin qo‘shgan kontent do‘konda chiqadi.</p>
+      <p class="hint sh-intro-hint">Stories uslubi: vertikal video, bir marta yuklash — ko‘rinish va poster preview. «Saqlash» bilan do‘konda chiqadi (Instagram Reels tartibi).</p>
       <div id="shortList" class="short-list"></div>
 
       <div class="sh-compose">
@@ -685,7 +685,7 @@
           <div class="thumb">${thumb ? `<img src="${thumb}" alt="" />` : '▶'}</div>
           <div class="item-body">
             <strong>${escapeHtml(s.title)}</strong>
-            <small>${escapeHtml(s.subtitle || '')} · #${s.sortOrder}</small>
+            <small>${escapeHtml(s.subtitle || '')} · #${s.sortOrder} · 👁 ${Number(s.view_count || 0)}</small>
           </div>
           <div class="item-actions">
             <button type="button" class="btn btn-ghost" data-spick="${s.id}">Tanlash</button>
