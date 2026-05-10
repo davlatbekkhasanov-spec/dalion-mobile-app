@@ -1262,8 +1262,17 @@ app.post('/api/v1/admin-v2/media/image', requireAdminV2, async (req, res) => {
       const { url } = await r2Service.uploadToR2(parsed.buffer, key, mimeLower);
       return res.json({ ok: true, url });
     } catch (error) {
-      logStructured('error', 'admin_v2_media_image_r2_failed', { message: error?.message });
-      return res.status(500).json({ ok: false, message: 'Saqlab bo‘lmadi' });
+      logStructured('warn', 'admin_v2_media_image_r2_failed_fallback_local', { message: error?.message });
+      ensureDir(localDir);
+      const absolutePath = path.join(localDir, fileName);
+      try {
+        fs.writeFileSync(absolutePath, parsed.buffer);
+      } catch (writeErr) {
+        logStructured('error', 'admin_v2_banner_image_write_failed', { message: writeErr?.message });
+        return res.status(500).json({ ok: false, message: 'Saqlab bo‘lmadi' });
+      }
+      const url = `/uploads/${urlPathSegment}/${fileName}`;
+      return res.json({ ok: true, url });
     }
   }
 
