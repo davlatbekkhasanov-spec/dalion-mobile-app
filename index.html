@@ -3771,7 +3771,63 @@ Oq fonli foto</div>
       audio.setAttribute('webkit-playsinline', '');
       audio.muted = false;
       audio.defaultMuted = false;
-      audio.volume = INTRO_AMBIENT_VOLUME;
+
+      /** iOS Safari / WKWebView ignores HTMLMediaElement.volume for audible level; GainNode still attenuates. */
+      let ambientAudioContext = null;
+      let ambientGainNode = null;
+
+      function ensureAmbientGainRouting() {
+        if (ambientGainNode) return true;
+        try {
+          const Ctor = window.AudioContext || window.webkitAudioContext;
+          if (!Ctor) return false;
+          ambientAudioContext = new Ctor();
+          const src = ambientAudioContext.createMediaElementSource(audio);
+          ambientGainNode = ambientAudioContext.createGain();
+          src.connect(ambientGainNode).connect(ambientAudioContext.destination);
+          audio.volume = 1;
+          ambientGainNode.gain.value = INTRO_AMBIENT_VOLUME;
+          return true;
+        } catch {
+          ambientAudioContext = null;
+          ambientGainNode = null;
+          return false;
+        }
+      }
+
+      function setAmbientLinearVolume(linear) {
+        const v = Math.max(0, Math.min(1, Number(linear)));
+        if (!Number.isFinite(v)) return;
+        ensureAmbientGainRouting();
+        if (ambientGainNode) {
+          audio.volume = 1;
+          ambientGainNode.gain.value = v;
+        } else {
+          audio.volume = v;
+        }
+      }
+
+      function getAmbientLinearVolume() {
+        ensureAmbientGainRouting();
+        if (ambientGainNode) return ambientGainNode.gain.value;
+        const av = audio.volume;
+        return Number.isFinite(av) ? av : INTRO_AMBIENT_VOLUME;
+      }
+
+      function resumeAmbientAudioContextSync() {
+        if (ambientAudioContext?.state === 'suspended') {
+          ambientAudioContext.resume().catch(() => {});
+        }
+      }
+
+      async function resumeAmbientAudioContextAwait() {
+        if (!ambientAudioContext || ambientAudioContext.state === 'running') return;
+        try {
+          await ambientAudioContext.resume();
+        } catch (_) {}
+      }
+
+      setAmbientLinearVolume(INTRO_AMBIENT_VOLUME);
 
       function persistPlaying(on) {
         localStorage.setItem(INTRO_AMBIENT_LS_PLAYING, on ? '1' : '0');
@@ -3806,14 +3862,14 @@ Oq fonli foto</div>
 
       function fadeVolume(targetVolume, durationMs = INTRO_AMBIENT_FADE_MS, easeInQuad = false) {
         const token = ++fadeFrame;
-        const fromVolume = Number.isFinite(audio.volume) ? audio.volume : INTRO_AMBIENT_VOLUME;
+        const fromVolume = getAmbientLinearVolume();
         const startedAt = performance.now();
         return new Promise((resolve) => {
           function step(now) {
             if (token !== fadeFrame) return resolve();
             let progress = Math.min(1, (now - startedAt) / durationMs);
             if (easeInQuad && targetVolume > fromVolume) progress *= progress;
-            audio.volume = fromVolume + (targetVolume - fromVolume) * progress;
+            setAmbientLinearVolume(fromVolume + (targetVolume - fromVolume) * progress);
             if (progress < 1) {
               requestAnimationFrame(step);
             } else {
@@ -3924,8 +3980,9 @@ Oq fonli foto</div>
           return false;
         }
         if (!audio.getAttribute('src')) loadCurrentTrack();
-        audio.volume = 0;
+        setAmbientLinearVolume(0);
         try {
+          await resumeAmbientAudioContextAwait();
           await audio.play();
           consecutivePlaybackFailures = 0;
           persistPlaying(true);
@@ -3935,7 +3992,7 @@ Oq fonli foto</div>
         } catch (error) {
           if (!options.silent) showToast(classifyPlaybackError(error));
           audio.pause();
-          audio.volume = INTRO_AMBIENT_VOLUME;
+          setAmbientLinearVolume(INTRO_AMBIENT_VOLUME);
           if (String(error?.name || '') !== 'NotAllowedError') persistPlaying(false);
           if (options.autoAttempt && String(error?.name || '') === 'NotAllowedError') maybeShowAutoplayHint();
           syncAmbientChrome();
@@ -3947,7 +4004,7 @@ Oq fonli foto</div>
         if (!audio.paused) {
           await fadeVolume(0);
           audio.pause();
-          audio.volume = INTRO_AMBIENT_VOLUME;
+          setAmbientLinearVolume(INTRO_AMBIENT_VOLUME);
         }
         persistPlaying(false);
         syncAmbientChrome();
@@ -3967,7 +4024,7 @@ Oq fonli foto</div>
         if (shouldResume) {
           await playCurrentTrack();
         } else {
-          audio.volume = INTRO_AMBIENT_VOLUME;
+          setAmbientLinearVolume(INTRO_AMBIENT_VOLUME);
           syncAmbientChrome();
         }
       }
@@ -4085,7 +4142,8 @@ Oq fonli foto</div>
         persistPlaying(true);
         if (tracks.length && (audio.paused || audio.ended)) {
           if (!audio.getAttribute('src')) loadCurrentTrack();
-          audio.volume = 0;
+          resumeAmbientAudioContextSync();
+          setAmbientLinearVolume(0);
           const playPromise = audio.play();
           if (playPromise && typeof playPromise.then === 'function') {
             playPromise.then(() => {
