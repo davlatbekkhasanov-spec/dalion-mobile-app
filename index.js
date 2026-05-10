@@ -1374,15 +1374,19 @@ app.post('/api/v1/admin-v2/media/image', requireAdminV2, async (req, res) => {
       const { url } = await r2Service.uploadToR2(parsed.buffer, key, mimeLower);
       return res.json({ ok: true, url });
     } catch (error) {
+      const diag = r2Service.describeR2UploadFailure(error);
       logStructured('error', 'admin_v2_media_image_r2_failed', {
         message: error?.message,
+        code: diag.code,
+        hints: diag.hints,
         purpose
       });
       if (purpose === 'shorts') {
         return res.status(503).json({
           ok: false,
           message:
-            'R2 ga yuklash amalga oshmadi (kalitlar / tarmoq). Shorts uchun mahalliy disk ishlatilmaydi — Railway deployda fayllar yo‘qolardi. R2 ni tekshirib qayta urinib ko‘ring.'
+            'R2 ga yuklash amalga oshmadi (kalitlar / tarmoq). Shorts uchun mahalliy disk ishlatilmaydi — Railway deployda fayllar yo‘qolardi. R2 ni tekshirib qayta urinib ko‘ring.',
+          detail: `${diag.code}${diag.hints.length ? ` | ${diag.hints.join(', ')}` : ''}`
         });
       }
       logStructured('warn', 'admin_v2_media_image_r2_failed_fallback_local', { message: error?.message });
@@ -1449,14 +1453,20 @@ app.post('/api/v1/admin-v2/media/video', requireAdminV2, (req, res) => {
         } catch (_) {}
         return res.json({ ok: true, url });
       } catch (error) {
-        logStructured('error', 'admin_v2_media_video_r2_failed', { message: error?.message });
+        const diag = r2Service.describeR2UploadFailure(error);
+        logStructured('error', 'admin_v2_media_video_r2_failed', {
+          message: error?.message,
+          code: diag.code,
+          hints: diag.hints
+        });
         try {
           fs.unlinkSync(f.path);
         } catch (_) {}
         return res.status(503).json({
           ok: false,
           message:
-            'R2 ga video yuklanmadi (kalitlar / tarmoq). Mahalliy URL berilmaydi — Railway deploydan keyin yo‘qolardi. R2 ni tekshirib qayta yuklang.'
+            'R2 ga video yuklanmadi (kalitlar / tarmoq). Mahalliy URL berilmaydi — Railway deploydan keyin yo‘qolardi. R2 ni tekshirib qayta yuklang.',
+          detail: `${diag.code}${diag.hints.length ? ` | ${diag.hints.join(', ')}` : ''}`
         });
       }
     }
