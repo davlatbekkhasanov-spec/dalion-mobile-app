@@ -3528,6 +3528,8 @@ Oq fonli foto</div>
         etaShort: "Samarqand bo'ylab odatda 1-4 soat",
         payLink: "To'lov havolasi",
         paymeHint: "Payme: Buyurtmani yuborganingizdan keyin to‘lov sahifasi ochiladi.",
+        paymeUrlMissing: 'Payme havolasi serverdan kelmadi — PAYME_MERCHANT_ID tekshiring.',
+        paymeUrlErr: 'Payme havolasini olishda xato',
         activeOrderAmount: 'Jami',
         paymentLabel: "To'lov",
         paymentType: "To'lov turi",
@@ -3733,6 +3735,8 @@ Oq fonli foto</div>
         etaShort: 'По Самарканду обычно 1-4 часа',
         payLink: 'Ссылка на оплату',
         paymeHint: 'Payme: после отправки заказа откроется страница оплаты.',
+        paymeUrlMissing: 'Ссылка Payme не пришла — проверьте PAYME_MERCHANT_ID.',
+        paymeUrlErr: 'Ошибка получения ссылки Payme',
         activeOrderAmount: 'Итого',
         paymentLabel: 'Оплата',
         paymentType: 'Способ оплаты',
@@ -6280,21 +6284,32 @@ Oq fonli foto</div>
           status: order.status
         };
 
-        await Promise.all([loadHomePayload(), loadProducts({ reset: true }), loadCart()]);
-        mergeRailProductsIntoCatalog(homeCatalogRails);
-        await hydrateCartProductsIntoCatalog();
-        scheduleProductsBackfillDeferred();
         if (selectedPayment === 'payme' && order.orderNumber) {
+          latestOrderNumber = order.orderNumber || '';
+          activeOrderNumber = latestOrderNumber;
+          localStorage.setItem('activeOrderNumber', activeOrderNumber);
+          cart = {};
+          renderCart();
+          renderCartBadge();
           try {
             const langQ = currentLang === 'ru' ? 'ru' : 'uz';
             const pay = await api(
               `/payments/payme/url?orderNumber=${encodeURIComponent(order.orderNumber)}&lang=${encodeURIComponent(langQ)}`
             );
-            if (pay.url) window.open(pay.url, '_blank');
+            if (pay.url) {
+              window.location.assign(pay.url);
+              return;
+            }
+            showToast(t('paymeUrlMissing'));
           } catch (e) {
-            showToast(e.message || 'Payme havolasini olishda xato');
+            showToast(e.message || t('paymeUrlErr'));
           }
         }
+
+        await Promise.all([loadHomePayload(), loadProducts({ reset: true }), loadCart()]);
+        mergeRailProductsIntoCatalog(homeCatalogRails);
+        await hydrateCartProductsIntoCatalog();
+        scheduleProductsBackfillDeferred();
         cart = {};
         renderAll();
         latestOrderNumber = order.orderNumber || '';

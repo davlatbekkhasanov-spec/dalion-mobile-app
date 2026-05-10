@@ -623,7 +623,8 @@ async function findOrderForPayme(accountKey) {
     where: {
       OR: [{ orderNumber: key }, { id: key }],
       paymentMethod: 'payme',
-      paymentStatus: { notIn: ['paid'] }
+      paymentStatus: { notIn: ['paid'] },
+      status: { in: ['created', 'payment_pending'] }
     }
   });
 }

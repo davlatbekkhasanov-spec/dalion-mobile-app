@@ -22,6 +22,7 @@ process.on('unhandledRejection', (reason) => {
 });
 
 const app = express();
+app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS || 1));
 app.use(compression({ threshold: 2048 }));
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_IMPORT_TOKEN || '12345';
@@ -81,6 +82,17 @@ const smsThrottlePhone = new Map();
 const smsThrottleIp = new Map();
 const smsVerifyThrottleIp = new Map();
 const adminV2LoginHits = new Map();
+
+/** HTTPS origin behind Railway / proxies (Payme return URL must be absolute https). */
+function requestPublicOrigin(req) {
+  const xfProto = String(req.get('x-forwarded-proto') || '')
+    .split(',')[0]
+    .trim();
+  const proto = xfProto || req.protocol || 'https';
+  const host = String(req.get('x-forwarded-host') || req.get('host') || '').trim();
+  if (!host) return '';
+  return `${proto}://${host}`;
+}
 
 function logStructured(level, event, details = {}) {
   const payload = {
@@ -948,12 +960,17 @@ app.get('/api/v1/payments/payme/url', async (req, res) => {
       return res.status(503).json({ ok: false, message: 'Payme merchant ID sozlanmagan (PAYME_MERCHANT_ID)' });
     }
     const amountTiyin = Math.round(Number(orderRow.total || 0) * 100);
-    const hostBase = `${req.protocol}://${req.get('host')}`;
+    if (!Number.isFinite(amountTiyin) || amountTiyin <= 0) {
+      return res.status(400).json({ ok: false, message: 'To‘lov summasi noto‘g‘ri (jami 0)' });
+    }
     const publicBase = String(process.env.PUBLIC_APP_URL || process.env.PAYME_RETURN_BASE_URL || '').replace(/\/$/, '');
-    const returnUrl = String(process.env.PAYME_RETURN_URL || '').trim() || `${publicBase || hostBase}/track/${encodeURIComponent(orderRow.orderNumber)}`;
+    const origin = publicBase || requestPublicOrigin(req);
+    const returnUrl =
+      String(process.env.PAYME_RETURN_URL || '').trim() ||
+      `${origin}/track/${encodeURIComponent(orderRow.orderNumber)}`;
     const langRaw = String(req.query.lang || 'uz').toLowerCase();
     const lang = langRaw.startsWith('ru') ? 'ru' : 'uz';
-    const receipt = `m=${merchantId};ac.order_id=${orderRow.orderNumber};a=${amountTiyin};c=${encodeURIComponent(returnUrl)};l=${lang}`;
+    const receipt = `m=${merchantId};ac.order_id=${orderRow.orderNumber};a=${amountTiyin};c=${encodeURIComponent(returnUrl)};l=${lang};cr=UZS`;
     const b64 = Buffer.from(receipt, 'utf8').toString('base64');
     const url = `https://checkout.paycom.uz/${b64}`;
     return res.json({
@@ -1219,17 +1236,19 @@ app.post('/api/v1/orders', async (req, res) => {
     price: Math.round(Number(it.price || 0)),
     imageUrl: String(it.image_url || '')
   }));
+  const paymentMethod = String(req.body.paymentMethod || 'cash');
+  const orderWorkflowStatus = paymentMethod === 'payme' ? 'payment_pending' : 'created';
   const created = await marketplaceRepo.createOrderWithItems(
     {
       orderNumber,
-      status: 'created',
+      status: orderWorkflowStatus,
       customerName: profile.name || 'Mehmon',
       customerPhone: phone,
       deliveryAddress: deliveryAddr,
       subtotal,
       deliveryPrice,
       total,
-      paymentMethod: String(req.body.paymentMethod || 'cash'),
+      paymentMethod,
       paymentStatus: String(req.body.paymentStatus || 'pending'),
       deliveryStatus: 'created',
       location: String(req.body.location || '').trim(),
