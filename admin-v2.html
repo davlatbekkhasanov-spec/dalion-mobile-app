@@ -360,6 +360,12 @@
       toast._t = setTimeout(() => el.classList.add('hidden'), 2600);
     }
 
+    function formatApiError(data, fallback = 'Xato') {
+      const msg = String(data?.message || fallback);
+      const detail = String(data?.detail || '').trim();
+      return detail ? `${msg} (${detail})` : msg;
+    }
+
     function authHeaders() {
       const token = localStorage.getItem(TOKEN_KEY);
       const h = { 'Content-Type': 'application/json' };
@@ -519,7 +525,7 @@
       });
       inputEl.value = '';
       if (!res.ok || !data.url) {
-        toast(data.message || 'Yuklash xatosi');
+        toast(formatApiError(data, 'Yuklash xatosi'));
         return null;
       }
       return data.url;
@@ -556,7 +562,7 @@
             return;
           }
           if (xhr.status >= 200 && xhr.status < 300 && data.ok && data.url) resolve(data.url);
-          else reject(new Error(data.message || 'Video yuklanmadi'));
+          else reject(new Error(formatApiError(data, 'Video yuklanmadi')));
         };
         xhr.onerror = () => reject(new Error('Tarmoq xatosi'));
         const fd = new FormData();
