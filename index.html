@@ -2517,9 +2517,6 @@ Oq fonli foto</div>
     let reelsIndex = 0;
     let reelsImageAdvanceTimer = null;
     let reelsTouchY0 = null;
-    let reelsAudioCtx = null;
-    let reelsAudioGain = null;
-    let reelsMediaElementSource = null;
     let latestOrderNumber = '';
     let activeOrderNumber = localStorage.getItem('activeOrderNumber') || '';
     let ordersHistory = JSON.parse(localStorage.getItem('orders_history') || '[]');
@@ -3178,39 +3175,9 @@ Oq fonli foto</div>
       reelsMuteBtn.setAttribute('aria-pressed', muted ? 'true' : 'false');
     }
 
-    function ensureReelsFullVolumeAudio() {
-      if (!reelsVideo || reelsMediaElementSource) return;
-      try {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return;
-        reelsAudioCtx = new AC();
-        reelsMediaElementSource = reelsAudioCtx.createMediaElementSource(reelsVideo);
-        reelsAudioGain = reelsAudioCtx.createGain();
-        reelsAudioGain.gain.value = 1;
-        reelsMediaElementSource.connect(reelsAudioGain).connect(reelsAudioCtx.destination);
-      } catch (_) {
-        reelsMediaElementSource = null;
-        reelsAudioGain = null;
-        reelsAudioCtx = null;
-      }
-    }
-
-    async function resumeReelsAudioCtxIfNeeded() {
-      try {
-        if (reelsAudioCtx?.state === 'suspended') await reelsAudioCtx.resume();
-      } catch (_) {}
-    }
-
-    function suspendReelsAudioCtx() {
-      try {
-        if (reelsAudioCtx?.state === 'running') reelsAudioCtx.suspend();
-      } catch (_) {}
-    }
-
     function bumpReelsPlaybackLevels() {
       if (!reelsVideo) return;
       reelsVideo.volume = 1;
-      if (!reelsVideo.muted && reelsAudioGain) reelsAudioGain.gain.value = 1;
     }
 
     function clearReelsImageTimer() {
@@ -3331,9 +3298,7 @@ Oq fonli foto</div>
       reelsOverlay.classList.add('open');
       reelsOverlay.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
-      ensureReelsFullVolumeAudio();
       bumpReelsPlaybackLevels();
-      resumeReelsAudioCtxIfNeeded();
       const bumpOnce = () => bumpReelsPlaybackLevels();
       reelsVideo.addEventListener('loadedmetadata', bumpOnce, { once: true });
       syncReelsMuteButton();
@@ -3346,7 +3311,6 @@ Oq fonli foto</div>
 
     function closeReelsViewer() {
       if (!reelsOverlay) return;
-      suspendReelsAudioCtx();
       clearReelsImageTimer();
       reelsPlaylist = [];
       reelsIndex = 0;
