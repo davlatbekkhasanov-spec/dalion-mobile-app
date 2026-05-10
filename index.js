@@ -2,13 +2,12 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
-const { spawnSync } = require('child_process');
 const crypto = require('crypto');
 const smsService = require('./src/services/sms.service');
 const prisma = require('./src/prisma-client');
 const marketplaceRepo = require('./src/marketplace-repository');
 const r2Service = require('./src/services/r2.service');
+const dalionExcelImportService = require('./src/services/dalion-excel-import.service');
 
 process.on('uncaughtException', (error) => {
   console.error('[PROCESS] uncaughtException', { message: error?.message });
@@ -48,7 +47,6 @@ const SHORTS_VIDEO_UPLOADS_DIR = path.join(__dirname, 'uploads', 'shorts');
 const PRODUCTS_UPLOADS_DIR = path.join(__dirname, 'uploads', 'products');
 const CATEGORY_UPLOADS_DIR = path.join(__dirname, 'uploads', 'categories');
 const GENERIC_MEDIA_UPLOADS_DIR = path.join(__dirname, 'uploads', 'uploads');
-const XLSX_PARSER_SCRIPT = path.join(__dirname, 'src', 'services', 'xlsx_parser.py');
 const MAX_SHORTS_VIDEO_BYTES = Math.min(
   200 * 1024 * 1024,
   Math.max(
@@ -350,38 +348,6 @@ function parseImageDataUrl(input) {
   if (!buffer.length) return null;
   const ext = mimeType === 'image/png' ? 'png' : 'jpg';
   return { mimeType, buffer, ext };
-}
-
-function parseXlsxRowsFromBuffer(buffer) {
-  ensureDir(PRODUCTS_UPLOADS_DIR);
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dalion-xlsx-'));
-  const xlsxPath = path.join(tmpDir, 'import.xlsx');
-  fs.writeFileSync(xlsxPath, buffer);
-
-  const runParser = (bin) =>
-    spawnSync(bin, [XLSX_PARSER_SCRIPT, xlsxPath, PRODUCTS_UPLOADS_DIR], {
-      encoding: 'utf-8',
-      maxBuffer: 10 * 1024 * 1024
-    });
-
-  let py = runParser(process.env.XLSX_PYTHON_BIN || 'python3');
-  if (py.error && /ENOENT/i.test(String(py.error.message || ''))) {
-    py = runParser('python');
-  }
-
-  try {
-    if (py.error) throw new Error(`Python parser error: ${py.error.message}`);
-    if (py.status !== 0) {
-      throw new Error((py.stdout || py.stderr || 'XLSX parse failed').trim());
-    }
-    const parsed = JSON.parse(py.stdout || '{}');
-    if (!parsed.ok) throw new Error(parsed.message || 'XLSX parser failure');
-    return parsed;
-  } finally {
-    try {
-      fs.rmSync(tmpDir, { recursive: true, force: true });
-    } catch (_) {}
-  }
 }
 
 function toCategorySlug(name) {
@@ -2006,8 +1972,12 @@ app.post('/api/v1/admin/products/import', requireAdmin, (req, res) => {
     }
     const startedAt = Date.now();
     try {
-      const parsed = parseXlsxRowsFromBuffer(req.file.buffer);
-      const items = Array.isArray(parsed.items) ? parsed.items : [];
+      const parsed = await dalionExcelImportService.importProductsFromXlsxBuffer(req.file.buffer, {
+        overwriteImages: req.query.overwriteImages !== 'false',
+        processImages: req.query.processImages !== 'false',
+        updateOnlyStockPrice: req.query.updateOnlyStockPrice === 'true'
+      });
+      const items = Array.isArray(parsed.rows) ? parsed.rows : [];
       const errors = Array.isArray(parsed.errors) ? parsed.errors : [];
       const categoryCache = new Map();
       let imported = 0;
@@ -2068,17 +2038,17 @@ app.post('/api/v1/admin/products/import', requireAdmin, (req, res) => {
         productsWithoutCategoryFallback: 0,
         imageExtracted: imageProcessed,
         imageProcessed,
-        imageWarnings: imageMissing,
-        imageObjectDetected: 0,
-        imageDetectionWarnings: [],
-        imageUpscaled: 0,
-        imageSkippedExisting: 0,
+        imageWarnings: Number(parsed.imageWarnings || imageMissing || 0),
+        imageObjectDetected: Number(parsed.imageObjectDetected || 0),
+        imageDetectionWarnings: parsed.imageDetectionWarnings || [],
+        imageUpscaled: Number(parsed.imageUpscaled || 0),
+        imageSkippedExisting: Number(parsed.imageSkippedExisting || 0),
         imageMissing,
         productsWithImageUrl: allProducts.filter((p) => p.image_url).length,
         productsWithEmbeddedImages: allProducts.filter((p) => String(p.image_url || '').startsWith('/uploads/products/')).length,
         productsWithoutImages: allProducts.filter((p) => !p.image_url).length,
-        processingTimeMs: Date.now() - startedAt,
-        averageImageMs: imageProcessed ? Math.round((Date.now() - startedAt) / imageProcessed) : 0,
+        processingTimeMs: Number(parsed.processingTimeMs || (Date.now() - startedAt)),
+        averageImageMs: Number(parsed.averageImageMs || (imageProcessed ? Math.round((Date.now() - startedAt) / imageProcessed) : 0)),
         message: `Import yakunlandi. Categories=${summary.categories}, products=${summary.products}`
       });
     } catch (e) {

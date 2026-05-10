@@ -712,7 +712,8 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
     imageProcessingWarnings,
     imageWarnings: imageProcessingWarnings.length + imageMissing,
     imageMissing,
-    errors
+    errors,
+    rows: upsertRows
   };
 }
 
