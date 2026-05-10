@@ -125,6 +125,29 @@ function normalizePhone(phone) {
   return String(phone || '').trim();
 }
 
+function isEphemeralUploadUrl(url) {
+  const raw = String(url || '').trim();
+  if (!raw) return false;
+  if (raw.startsWith('/uploads/')) return true;
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const u = new URL(raw);
+      return u.pathname.startsWith('/uploads/');
+    } catch (_) {
+      return false;
+    }
+  }
+  return false;
+}
+
+function validateShortMediaDurability(mediaUrl, thumbnailUrl) {
+  if (!r2Service.shouldUseR2()) return null;
+  const m = String(mediaUrl || '').trim();
+  const t = String(thumbnailUrl || '').trim();
+  if (!isEphemeralUploadUrl(m) && !isEphemeralUploadUrl(t)) return null;
+  return 'R2 yoqilgan paytda /uploads/... URL qabul qilinmaydi. Aks holda deploydan keyin short yo‘qoladi. Videoni/eskizni qayta yuklang (R2 URL bilan).';
+}
+
 function clientIp(req) {
   const fwd = String(req.headers['x-forwarded-for'] || '')
     .split(',')[0]
@@ -789,9 +812,16 @@ app.get('/api/v1/home', async (req, res) => {
     res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
     const homeSettings = await marketplaceRepo.getHomeSettingsJson();
     const shortsAll = await marketplaceRepo.listShortsApi();
-    const activeShorts = shortsAll
+    let activeShorts = shortsAll
       .filter((item) => item && item.active !== false)
       .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+    if (r2Service.shouldUseR2()) {
+      activeShorts = activeShorts.filter((item) => {
+        const mediaUrl = String(item?.media_url || '').trim();
+        const thumbUrl = String(item?.thumbnail_url || '').trim();
+        return !isEphemeralUploadUrl(mediaUrl) && !isEphemeralUploadUrl(thumbUrl);
+      });
+    }
     const bannersRaw = await marketplaceRepo.listBannersOrdered();
     const promos = await marketplaceRepo.listPromotionsApi();
     return res.json({
@@ -1452,6 +1482,11 @@ app.post('/api/v1/admin-v2/shorts', requireAdminV2, async (req, res) => {
       message: 'Video majburiy — avval MP4/WebM/MOV faylni yuklang yoki media URL kiriting'
     });
   }
+  const durabilityError = validateShortMediaDurability(
+    req.body.media_url,
+    req.body.thumbnail_url
+  );
+  if (durabilityError) return res.status(400).json({ ok: false, message: durabilityError });
   const count = (await marketplaceRepo.listShortsApi()).length;
   const shortItem = await marketplaceRepo.createShortApi({
     title,
@@ -1477,6 +1512,10 @@ app.put('/api/v1/admin-v2/shorts/:id', requireAdminV2, async (req, res) => {
   const curList = await marketplaceRepo.listShortsApi();
   const cur = curList.find((x) => x.id === req.params.id);
   if (!cur) return res.status(404).json({ ok: false, message: 'Short topilmadi' });
+  const nextMedia = req.body.media_url !== undefined ? req.body.media_url : cur.media_url;
+  const nextThumb = req.body.thumbnail_url !== undefined ? req.body.thumbnail_url : cur.thumbnail_url;
+  const durabilityError = validateShortMediaDurability(nextMedia, nextThumb);
+  if (durabilityError) return res.status(400).json({ ok: false, message: durabilityError });
   const wasActive = cur.active !== false;
   const updated = await marketplaceRepo.updateShortApi(req.params.id, req.body || {});
   const nowActive = updated.active !== false;
@@ -1666,6 +1705,11 @@ app.get('/api/v1/admin/shorts', requireAdmin, async (req, res) => {
 app.post('/api/v1/admin/shorts', requireAdmin, async (req, res) => {
   const title = String(req.body.title || '').trim();
   if (!title) return res.status(400).json({ ok: false, message: 'Sarlavha majburiy' });
+  const durabilityError = validateShortMediaDurability(
+    req.body.media_url,
+    req.body.thumbnail_url
+  );
+  if (durabilityError) return res.status(400).json({ ok: false, message: durabilityError });
   const count = (await marketplaceRepo.listShortsApi()).length;
   const shortItem = await marketplaceRepo.createShortApi({
     title,
@@ -1682,6 +1726,10 @@ app.put('/api/v1/admin/shorts/:id', requireAdmin, async (req, res) => {
   const curList = await marketplaceRepo.listShortsApi();
   const cur = curList.find((x) => x.id === req.params.id);
   if (!cur) return res.status(404).json({ ok: false, message: 'Short topilmadi' });
+  const nextMedia = req.body.media_url !== undefined ? req.body.media_url : cur.media_url;
+  const nextThumb = req.body.thumbnail_url !== undefined ? req.body.thumbnail_url : cur.thumbnail_url;
+  const durabilityError = validateShortMediaDurability(nextMedia, nextThumb);
+  if (durabilityError) return res.status(400).json({ ok: false, message: durabilityError });
   const wasActive = cur.active !== false;
   const updated = await marketplaceRepo.updateShortApi(req.params.id, req.body || {});
   const nowActive = updated.active !== false;
