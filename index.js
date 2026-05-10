@@ -2,6 +2,8 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+const { spawnSync } = require('child_process');
 const crypto = require('crypto');
 const smsService = require('./src/services/sms.service');
 const prisma = require('./src/prisma-client');
@@ -42,6 +44,7 @@ const SHORTS_VIDEO_UPLOADS_DIR = path.join(__dirname, 'uploads', 'shorts');
 const PRODUCTS_UPLOADS_DIR = path.join(__dirname, 'uploads', 'products');
 const CATEGORY_UPLOADS_DIR = path.join(__dirname, 'uploads', 'categories');
 const GENERIC_MEDIA_UPLOADS_DIR = path.join(__dirname, 'uploads', 'uploads');
+const XLSX_PARSER_SCRIPT = path.join(__dirname, 'src', 'services', 'xlsx_parser.py');
 const MAX_SHORTS_VIDEO_BYTES = Math.min(
   200 * 1024 * 1024,
   Math.max(
@@ -345,6 +348,104 @@ function parseImageDataUrl(input) {
   return { mimeType, buffer, ext };
 }
 
+function parseXlsxRowsFromBuffer(buffer) {
+  ensureDir(PRODUCTS_UPLOADS_DIR);
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dalion-xlsx-'));
+  const xlsxPath = path.join(tmpDir, 'import.xlsx');
+  fs.writeFileSync(xlsxPath, buffer);
+
+  const runParser = (bin) =>
+    spawnSync(bin, [XLSX_PARSER_SCRIPT, xlsxPath, PRODUCTS_UPLOADS_DIR], {
+      encoding: 'utf-8',
+      maxBuffer: 10 * 1024 * 1024
+    });
+
+  let py = runParser(process.env.XLSX_PYTHON_BIN || 'python3');
+  if (py.error && /ENOENT/i.test(String(py.error.message || ''))) {
+    py = runParser('python');
+  }
+
+  try {
+    if (py.error) throw new Error(`Python parser error: ${py.error.message}`);
+    if (py.status !== 0) {
+      throw new Error((py.stdout || py.stderr || 'XLSX parse failed').trim());
+    }
+    const parsed = JSON.parse(py.stdout || '{}');
+    if (!parsed.ok) throw new Error(parsed.message || 'XLSX parser failure');
+    return parsed;
+  } finally {
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch (_) {}
+  }
+}
+
+function toCategorySlug(name) {
+  return String(name || 'boshqa')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80) || 'boshqa';
+}
+
+async function ensureCategoryByName(categoryName, cache) {
+  const normalizedName = String(categoryName || '').trim() || 'Boshqa';
+  if (cache.has(normalizedName)) return cache.get(normalizedName);
+  const slug = toCategorySlug(normalizedName);
+  let row = await prisma.category.findFirst({
+    where: {
+      OR: [{ name: normalizedName }, { slug }]
+    }
+  });
+  if (!row) {
+    try {
+      row = await prisma.category.create({
+        data: {
+          name: normalizedName,
+          displayName: normalizedName,
+          slug,
+          active: true
+        }
+      });
+    } catch {
+      row = await prisma.category.findFirst({
+        where: {
+          OR: [{ name: normalizedName }, { slug }]
+        }
+      });
+    }
+  }
+  cache.set(normalizedName, row);
+  return row;
+}
+
+function inferProductImageMime(filePath) {
+  const ext = String(path.extname(filePath || '') || '').toLowerCase();
+  if (ext === '.webp') return 'image/webp';
+  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+  return 'image/png';
+}
+
+async function mirrorProductImageToR2IfPossible(relativeUrl) {
+  const rel = String(relativeUrl || '').trim();
+  if (!rel.startsWith('/uploads/products/')) return rel;
+  if (!r2Service.shouldUseR2()) return rel;
+  const fn = path.basename(rel);
+  const diskPath = path.join(PRODUCTS_UPLOADS_DIR, fn);
+  if (!fs.existsSync(diskPath)) return rel;
+  try {
+    const buf = fs.readFileSync(diskPath);
+    const key = r2Service.buildObjectKey('products', fn);
+    const { url } = await r2Service.uploadToR2(buf, key, inferProductImageMime(diskPath));
+    try {
+      fs.unlinkSync(diskPath);
+    } catch (_) {}
+    return url;
+  } catch {
+    return rel;
+  }
+}
+
 function parseAudioDataUrl(input) {
   const raw = String(input || '').trim();
   const match = raw.match(/^data:(audio\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/i);
@@ -433,6 +534,17 @@ const shortsVideoUpload = multer({
   fileFilter: (req, file, cb) => {
     if (normalizeShortsUploadMime(file)) return cb(null, true);
     cb(new Error('UNSUPPORTED_VIDEO'));
+  }
+});
+
+const adminExcelUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const name = String(file.originalname || '').toLowerCase();
+    const mime = String(file.mimetype || '').toLowerCase();
+    if (name.endsWith('.xlsx') || mime.includes('spreadsheetml')) return cb(null, true);
+    cb(new Error('UNSUPPORTED_XLSX'));
   }
 });
 
@@ -1874,11 +1986,111 @@ app.put('/api/v1/admin/products/:id', requireAdmin, async (req, res) => {
   if (!updated) return res.status(404).json({ ok: false, message: 'Product topilmadi' });
   res.json({ ok: true, product: updated });
 });
-app.post('/api/v1/admin/products/import', requireAdmin, async (req, res) => {
-  return res.status(501).json({
-    ok: false,
-    message:
-      'Excel import hozircha productionda yoqilmagan. Bu endpoint avval mock javob qaytarayotgan edi. Mahsulotlarni admin-v2 orqali boshqaring yoki DALION sync yoqing.'
+app.post('/api/v1/admin/products/import', requireAdmin, (req, res) => {
+  adminExcelUpload.single('file')(req, res, async (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ ok: false, message: 'XLSX fayl juda katta (maks 20MB)' });
+      }
+      return res.status(400).json({ ok: false, message: 'Faqat .xlsx fayl yuklang' });
+    }
+    if (!req.file?.buffer?.length) {
+      return res.status(400).json({ ok: false, message: 'XLSX fayl topilmadi (file)' });
+    }
+    const startedAt = Date.now();
+    try {
+      const parsed = parseXlsxRowsFromBuffer(req.file.buffer);
+      const items = Array.isArray(parsed.items) ? parsed.items : [];
+      const errors = Array.isArray(parsed.errors) ? parsed.errors : [];
+      const categoryCache = new Map();
+      let imported = 0;
+      let imageProcessed = 0;
+      let imageMissing = 0;
+      for (const row of items) {
+        const id = String(row.id || row.code || row.sku || '').trim().replace(/[^\w.\-]+/g, '_');
+        const name = String(row.name || '').trim();
+        if (!id || !name) continue;
+        const categoryRow = await ensureCategoryByName(row.category || 'Boshqa', categoryCache);
+        if (!categoryRow?.id) continue;
+        let imageUrl = String(row.image_url || row.image || '').trim();
+        if (imageUrl.startsWith('/uploads/products/')) {
+          imageProcessed += 1;
+          const mirrored = await mirrorProductImageToR2IfPossible(imageUrl);
+          if (mirrored === imageUrl && r2Service.shouldUseR2()) imageMissing += 1;
+          imageUrl = mirrored;
+        }
+        const price = Math.max(0, Math.round(Number(row.price || 0)));
+        const oldPrice = Math.max(price, Math.round(Number(row.oldPrice || row.price || 0)));
+        const stock = Math.max(0, Math.round(Number(row.stock || 0)));
+        await prisma.product.upsert({
+          where: { id },
+          create: {
+            id,
+            barcode: String(row.sku || row.code || '').trim() || null,
+            name,
+            price,
+            stock,
+            categoryId: categoryRow.id,
+            imageUrl: imageUrl || '',
+            active: true,
+            oldPrice,
+            discountPercent: 0
+          },
+          update: {
+            barcode: String(row.sku || row.code || '').trim() || null,
+            name,
+            price,
+            stock,
+            categoryId: categoryRow.id,
+            imageUrl: imageUrl || '',
+            oldPrice
+          }
+        });
+        imported += 1;
+      }
+      const summary = await marketplaceRepo.storeSummary();
+      const allProducts = await marketplaceRepo.listProductsPublic();
+      return res.json({
+        ok: true,
+        imported,
+        skipped: errors.length,
+        invalidRows: errors.length,
+        categoriesDetected: categoryCache.size,
+        skippedCategoryRows: 0,
+        productsAssignedCategory: imported,
+        productsWithoutCategoryFallback: 0,
+        imageExtracted: imageProcessed,
+        imageProcessed,
+        imageWarnings: imageMissing,
+        imageObjectDetected: 0,
+        imageDetectionWarnings: [],
+        imageUpscaled: 0,
+        imageSkippedExisting: 0,
+        imageMissing,
+        productsWithImageUrl: allProducts.filter((p) => p.image_url).length,
+        productsWithEmbeddedImages: allProducts.filter((p) => String(p.image_url || '').startsWith('/uploads/products/')).length,
+        productsWithoutImages: allProducts.filter((p) => !p.image_url).length,
+        processingTimeMs: Date.now() - startedAt,
+        averageImageMs: imageProcessed ? Math.round((Date.now() - startedAt) / imageProcessed) : 0,
+        message: `Import yakunlandi. Categories=${summary.categories}, products=${summary.products}`
+      });
+    } catch (e) {
+      return res.status(500).json({
+        ok: false,
+        message: 'Excel import xatosi',
+        detail: e?.message || String(e || 'unknown')
+      });
+    }
+  });
+});
+
+app.post('/api/v1/admin/products/import/clear', requireAdmin, async (req, res) => {
+  const cartDeleted = await prisma.cartLine.deleteMany({});
+  const deletedProducts = await prisma.product.deleteMany({});
+  return res.json({
+    ok: true,
+    deletedProducts: Number(deletedProducts.count || 0),
+    deletedCartLines: Number(cartDeleted.count || 0)
   });
 });
 

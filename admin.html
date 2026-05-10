@@ -84,6 +84,7 @@
       <div class="row" style="margin-top:8px;">
         <button id="newImportBtn" class="btn">Yangi import qilish</button>
         <button id="reloadStoreBtn" class="btn">Mavjud ma'lumotni yangilash</button>
+        <button id="clearExcelBtn" class="btn action-danger">Удалить Excel (товары)</button>
       </div>
       <p class="muted" style="margin-top:8px;">Mahsulot manbai: vaqtincha Excel import, keyin DALION sinxronizatsiyasi.</p>
       <div class="card" style="margin-top:10px;padding:10px;">
@@ -535,6 +536,16 @@
         await loadStoreSummary();
       } catch (e) {
         showToast(e.message || t('reloadError'));
+      }
+    };
+    document.getElementById('clearExcelBtn').onclick = async () => {
+      if (!confirm('Excel import qilingan mahsulotlarni o‘chiraymi?')) return;
+      try {
+        const out = await api('/admin/products/import/clear', { method: 'POST' });
+        showToast(`O‘chirildi: ${out.deletedProducts || 0} ta mahsulot`);
+        await loadStoreSummary();
+      } catch (e) {
+        showToast(e.message || 'O‘chirishda xatolik');
       }
     };
 
