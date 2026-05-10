@@ -148,6 +148,39 @@ function validateShortMediaDurability(mediaUrl, thumbnailUrl) {
   return 'R2 yoqilgan paytda /uploads/... URL qabul qilinmaydi. Aks holda deploydan keyin short yo‘qoladi. Videoni/eskizni qayta yuklang (R2 URL bilan).';
 }
 
+function localUploadPathFromUrl(url) {
+  const raw = String(url || '').trim();
+  if (!raw) return null;
+  let relPath = '';
+  if (raw.startsWith('/uploads/')) {
+    relPath = raw.slice('/uploads/'.length);
+  } else if (/^https?:\/\//i.test(raw)) {
+    try {
+      const u = new URL(raw);
+      if (!u.pathname.startsWith('/uploads/')) return null;
+      relPath = u.pathname.slice('/uploads/'.length);
+    } catch (_) {
+      return null;
+    }
+  } else {
+    return null;
+  }
+  const normalized = relPath.replace(/\\/g, '/').replace(/^\/+/, '');
+  if (!normalized || normalized.includes('..')) return null;
+  return path.join(__dirname, 'uploads', normalized);
+}
+
+function inferContentTypeFromPath(filePath, fallbackPrefix) {
+  const ext = String(path.extname(filePath || '') || '').toLowerCase();
+  if (ext === '.mp4' || ext === '.m4v') return 'video/mp4';
+  if (ext === '.webm') return 'video/webm';
+  if (ext === '.mov') return 'video/quicktime';
+  if (ext === '.png') return 'image/png';
+  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+  if (ext === '.webp') return 'image/webp';
+  return fallbackPrefix === 'shorts' ? 'video/mp4' : 'image/jpeg';
+}
+
 function clientIp(req) {
   const fwd = String(req.headers['x-forwarded-for'] || '')
     .split(',')[0]
@@ -1498,6 +1531,90 @@ app.post('/api/v1/admin-v2/shorts', requireAdminV2, async (req, res) => {
   });
   await bumpShortsBroadcast(shortItem);
   return res.json({ ok: true, short: shortItem });
+});
+
+app.post('/api/v1/admin-v2/shorts/repair-storage', requireAdminV2, async (req, res) => {
+  if (!r2Service.shouldUseR2()) {
+    return res.status(400).json({
+      ok: false,
+      message: 'R2 sozlanmagan. Repair faqat R2 yoqilganda ishlaydi.'
+    });
+  }
+  const shorts = await marketplaceRepo.listShortsApi();
+  const report = {
+    scanned: shorts.length,
+    updated: 0,
+    skipped: 0,
+    missing_files: 0,
+    failed: 0,
+    details: []
+  };
+
+  for (const s of shorts) {
+    const fields = [
+      { key: 'media_url', value: String(s.media_url || '').trim(), prefix: 'shorts' },
+      { key: 'thumbnail_url', value: String(s.thumbnail_url || '').trim(), prefix: 'shorts' }
+    ];
+    const patch = {};
+
+    for (const field of fields) {
+      if (!isEphemeralUploadUrl(field.value)) continue;
+      const localPath = localUploadPathFromUrl(field.value);
+      if (!localPath || !fs.existsSync(localPath)) {
+        report.missing_files += 1;
+        report.details.push({
+          short_id: s.id,
+          field: field.key,
+          status: 'missing_local_file',
+          from: field.value
+        });
+        continue;
+      }
+      try {
+        const buf = fs.readFileSync(localPath);
+        const key = r2Service.buildObjectKey(field.prefix, path.basename(localPath));
+        const contentType = inferContentTypeFromPath(localPath, field.prefix);
+        const out = await r2Service.uploadToR2(buf, key, contentType);
+        patch[field.key] = out.url;
+      } catch (e) {
+        report.failed += 1;
+        report.details.push({
+          short_id: s.id,
+          field: field.key,
+          status: 'upload_failed',
+          from: field.value,
+          message: e?.message || 'upload failed'
+        });
+      }
+    }
+
+    const hasPatch = Object.keys(patch).length > 0;
+    if (!hasPatch) {
+      report.skipped += 1;
+      continue;
+    }
+
+    try {
+      await marketplaceRepo.updateShortApi(s.id, patch);
+      report.updated += 1;
+      report.details.push({
+        short_id: s.id,
+        status: 'updated',
+        fields: Object.keys(patch)
+      });
+    } catch (e) {
+      report.failed += 1;
+      report.details.push({
+        short_id: s.id,
+        status: 'update_failed',
+        fields: Object.keys(patch),
+        message: e?.message || 'update failed'
+      });
+    }
+  }
+
+  if (report.updated > 0) await marketplaceRepo.bumpShortsRevision();
+  return res.json({ ok: true, report });
 });
 
 app.put('/api/v1/admin-v2/shorts/reorder', requireAdminV2, async (req, res) => {

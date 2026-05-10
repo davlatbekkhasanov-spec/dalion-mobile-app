@@ -152,6 +152,9 @@
     <section id="panel-shorts" class="card panel hidden" role="tabpanel">
       <h2>Shorts / reels</h2>
       <p class="hint sh-intro-hint">Stories uslubi: vertikal video, bir marta yuklash — ko‘rinish va poster preview. «Saqlash» bilan do‘konda chiqadi (Instagram Reels tartibi).</p>
+      <div class="row" style="margin:8px 0 6px;">
+        <button type="button" class="btn btn-ghost" id="sh-repair-storage-btn">1 tugma: /uploads shortlarni R2 ga tiklash</button>
+      </div>
       <div id="shortList" class="short-list"></div>
 
       <div id="sh-viewers-wrap" class="card-inner hidden" style="margin-top:14px;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:var(--panel-radius,12px);">
@@ -712,6 +715,23 @@
       renderShortList();
     }
 
+    async function repairShortsStorage() {
+      if (!confirm('/uploads short URLlarini R2 ga tiklashni boshlaymizmi?')) return;
+      const btn = $('sh-repair-storage-btn');
+      if (btn) btn.disabled = true;
+      try {
+        const { res, data } = await api('/api/v1/admin-v2/shorts/repair-storage', { method: 'POST' });
+        if (!res.ok) return toast(data.message || 'Tiklashda xato');
+        const r = data.report || {};
+        toast(
+          `Tayyor: yangilandi ${Number(r.updated || 0)}, o'tkazildi ${Number(r.skipped || 0)}, topilmadi ${Number(r.missing_files || 0)}, xato ${Number(r.failed || 0)}`
+        );
+        await refreshShorts();
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
     async function loadShortViewers(shortId) {
       const wrap = $('sh-viewers-wrap');
       const tb = $('sh-viewers-tbody');
@@ -1031,6 +1051,7 @@
     $('sh-saveBtn').addEventListener('click', saveShort);
     $('sh-delBtn').addEventListener('click', deleteShort);
     $('sh-newBtn').addEventListener('click', newShortForm);
+    $('sh-repair-storage-btn')?.addEventListener('click', repairShortsStorage);
 
     $('pr-q').addEventListener('input', () => {
       clearTimeout(prTimer);
