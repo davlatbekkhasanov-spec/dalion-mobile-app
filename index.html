@@ -4346,12 +4346,14 @@ Oq fonli foto</div>
 
       let reelsOverlayAmbientHold = null;
       window.pauseAmbientForReelsOverlay = () => {
-        if (!audio || reelsOverlayAmbientHold) return;
-        reelsOverlayAmbientHold = {
-          wasAudiblyPlaying: !audio.paused && !audio.ended,
-          prefOn: localStorage.getItem(INTRO_AMBIENT_LS_PLAYING) !== '0',
-          prevMuted: audio.muted
-        };
+        if (!audio) return;
+        if (!reelsOverlayAmbientHold) {
+          reelsOverlayAmbientHold = {
+            wasAudiblyPlaying: !audio.paused && !audio.ended,
+            prefOn: localStorage.getItem(INTRO_AMBIENT_LS_PLAYING) !== '0',
+            prevMuted: audio.muted
+          };
+        }
         try {
           audio.muted = true;
         } catch (_) {}
