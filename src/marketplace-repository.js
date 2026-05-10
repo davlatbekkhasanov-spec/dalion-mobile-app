@@ -1,3 +1,4 @@
+const { Prisma } = require('@prisma/client');
 const prisma = require('./prisma-client');
 
 const APP_ID = 'main';
@@ -184,6 +185,21 @@ async function loadOrderLegacyById(id) {
   return orderToLegacy(order, order.items);
 }
 
+/** Lean shape for public catalog JSON (shared by pagination + home rails). */
+const PRODUCT_PUBLIC_SELECT = {
+  id: true,
+  barcode: true,
+  name: true,
+  price: true,
+  oldPrice: true,
+  stock: true,
+  imageUrl: true,
+  active: true,
+  categoryId: true,
+  discountPercent: true,
+  category: { select: { name: true, displayName: true } }
+};
+
 function productToPublic(p) {
   const c = p.category;
   return {
@@ -218,28 +234,110 @@ async function listProductsPublic() {
   return products.map(productToPublic);
 }
 
-async function listProductsPublicPage({ page, limit }) {
+async function listProductsPublicPage({ page, limit, includeTotal = false }) {
   const pg = Math.max(1, Number(page) || 1);
   const lim = Math.max(1, Math.min(100, Number(limit) || 40));
   const skip = (pg - 1) * lim;
   const where = { active: true };
-  const [total, rows] = await prisma.$transaction([
-    prisma.product.count({ where }),
-    prisma.product.findMany({
-      where,
-      include: { category: true },
-      orderBy: { createdAt: 'asc' },
-      skip,
-      take: lim
-    })
-  ]);
-  const items = rows.map(productToPublic);
+  const rows = await prisma.product.findMany({
+    where,
+    select: PRODUCT_PUBLIC_SELECT,
+    orderBy: { createdAt: 'asc' },
+    skip,
+    take: lim + 1
+  });
+  const hasMore = rows.length > lim;
+  const pageRows = hasMore ? rows.slice(0, lim) : rows;
+  const items = pageRows.map(productToPublic);
+  let total;
+  if (includeTotal) {
+    total = await prisma.product.count({ where });
+  }
   return {
     items,
     total,
     page: pg,
     limit: lim,
-    hasMore: skip + rows.length < total
+    hasMore
+  };
+}
+
+/**
+ * Home “rails” — same pattern as large marketplaces: small indexed reads on the server,
+ * no sorting thousands of rows in the browser. Rows do not repeat across sections.
+ */
+async function listHomeCatalogRails() {
+  const nFeatured = 12;
+  const nDisc = 6;
+  const nStock = 6;
+  const nNew = 6;
+
+  const featuredRows = await prisma.product.findMany({
+    where: { active: true },
+    select: PRODUCT_PUBLIC_SELECT,
+    orderBy: [{ stock: 'desc' }, { createdAt: 'asc' }],
+    take: nFeatured
+  });
+
+  const used = new Set(featuredRows.map((r) => r.id));
+
+  const excludeSql = (idsSet) => {
+    const arr = [...idsSet];
+    if (!arr.length) return Prisma.sql``;
+    return Prisma.sql`AND id NOT IN (${Prisma.join(arr.map((id) => Prisma.sql`${id}`))})`;
+  };
+
+  const discountedIdRows = await prisma.$queryRaw`
+    SELECT id FROM "Product"
+    WHERE active = true AND "oldPrice" > price
+    ${excludeSql(used)}
+    ORDER BY ("oldPrice" - price) DESC
+    LIMIT ${nDisc}
+  `;
+
+  for (const r of discountedIdRows) used.add(r.id);
+
+  const inStockRows = await prisma.product.findMany({
+    where: {
+      active: true,
+      stock: { gt: 0 },
+      ...(used.size ? { id: { notIn: [...used] } } : {})
+    },
+    select: PRODUCT_PUBLIC_SELECT,
+    orderBy: [{ stock: 'desc' }, { createdAt: 'asc' }],
+    take: nStock
+  });
+
+  for (const r of inStockRows) used.add(r.id);
+
+  const newRows = await prisma.product.findMany({
+    where: {
+      active: true,
+      ...(used.size ? { id: { notIn: [...used] } } : {})
+    },
+    select: PRODUCT_PUBLIC_SELECT,
+    orderBy: { createdAt: 'desc' },
+    take: nNew
+  });
+
+  const discIds = discountedIdRows.map((r) => r.id);
+  let discountedPublic = [];
+  if (discIds.length) {
+    const discountedRows = await prisma.product.findMany({
+      where: { id: { in: discIds }, active: true },
+      select: PRODUCT_PUBLIC_SELECT
+    });
+    const order = new Map(discIds.map((id, i) => [id, i]));
+    discountedPublic = [...discountedRows]
+      .sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999))
+      .map(productToPublic);
+  }
+
+  return {
+    featured: featuredRows.map(productToPublic),
+    discounted: discountedPublic,
+    inStock: inStockRows.map(productToPublic),
+    newArrivals: newRows.map(productToPublic)
   };
 }
 
@@ -1006,6 +1104,7 @@ module.exports = {
   findProductById,
   listProductsPublic,
   listProductsPublicPage,
+  listHomeCatalogRails,
   productToPublic,
   listCategoriesForAdmin,
   updateCategory,

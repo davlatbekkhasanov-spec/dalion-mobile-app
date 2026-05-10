@@ -924,7 +924,7 @@ app.post('/api/payme', (req, res) => {
 // Public API
 app.get('/api/v1/home', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    res.setHeader('Cache-Control', 'public, max-age=6, stale-while-revalidate=40');
     const homeSettings = await marketplaceRepo.getHomeSettingsJson();
     const shortsAll = await marketplaceRepo.listShortsApi();
     let activeShorts = shortsAll
@@ -939,6 +939,7 @@ app.get('/api/v1/home', async (req, res) => {
     }
     const bannersRaw = await marketplaceRepo.listBannersOrdered();
     const promos = await marketplaceRepo.listPromotionsApi();
+    const catalogRails = await marketplaceRepo.listHomeCatalogRails();
     return res.json({
       ok: true,
       home_settings: homeSettings,
@@ -946,6 +947,7 @@ app.get('/api/v1/home', async (req, res) => {
       promotions: promos.filter((p) => p.active !== false),
       shorts: activeShorts,
       shortsRevision: await marketplaceRepo.getShortsRevision(),
+      catalog_rails: catalogRails,
       delivery_info: {
         location: homeSettings.locationText || 'Toshkent shahri',
         time: homeSettings.deliveryTimeText || '30 daqiqa',
@@ -981,16 +983,19 @@ app.get('/api/v1/ambient-playlist', async (req, res) => {
 app.get('/api/v1/products', async (req, res) => {
   const page = Math.max(1, Number(req.query.page || 1));
   const limit = Math.max(1, Math.min(100, Number(req.query.limit || 40)));
+  const includeTotal = req.query.includeTotal === '1' || req.query.includeTotal === 'true';
   try {
-    const out = await marketplaceRepo.listProductsPublicPage({ page, limit });
-    return res.json({
+    res.setHeader('Cache-Control', 'public, max-age=8, stale-while-revalidate=45');
+    const out = await marketplaceRepo.listProductsPublicPage({ page, limit, includeTotal });
+    const payload = {
       ok: true,
       page: out.page,
       limit: out.limit,
-      total: out.total,
       hasMore: out.hasMore,
       items: out.items
-    });
+    };
+    if (out.total !== undefined) payload.total = out.total;
+    return res.json(payload);
   } catch (e) {
     logStructured('error', 'products_page_failed', { message: e?.message });
     return res.status(500).json({ ok: false, message: 'Server xatolik' });

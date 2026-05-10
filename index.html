@@ -2487,6 +2487,21 @@ Oq fonli foto</div>
 
   <script>
     let products = [];
+    /** id → row; rebuilt when catalog mutates (avoid scanning thousands of rows on checkout/cart). */
+    const productsById = new Map();
+    let cachedCategoryEntries = null;
+    let cachedCategoryEntriesAtLen = -1;
+
+    function rebuildProductsByIdIndex() {
+      productsById.clear();
+      for (const p of products) productsById.set(p.id, p);
+    }
+
+    function invalidateCategoryEntriesCache() {
+      cachedCategoryEntries = null;
+      cachedCategoryEntriesAtLen = -1;
+    }
+
     let cart = {};
     let currentView = 'homeView';
     let selectedPayment = 'payme';
@@ -2507,12 +2522,33 @@ Oq fonli foto</div>
     let productsNextPage = 1;
     let productsBackfillTimer = null;
     const productFetchInflight = new Map();
-    const productsLimit = 40;
+    const productsLimit = 52;
     let productsHasMore = false;
     let productsLoading = false;
     let previousBadgeQty = 0;
     let cartItemsSnapshot = [];
     let homePayload = null;
+    /** Server-built home sections (SQL LIMIT), not client-sorted catalog snapshots. */
+    let homeCatalogRails = { featured: [], discounted: [], inStock: [], newArrivals: [] };
+
+    function mergeRailProductsIntoCatalog(rails) {
+      if (!rails || typeof rails !== 'object') return;
+      const lists = [rails.featured, rails.discounted, rails.inStock, rails.newArrivals].filter(Array.isArray);
+      let appended = false;
+      const seen = new Set(products.map((p) => p.id));
+      for (const list of lists) {
+        for (const pr of list) {
+          if (!pr || pr.active === false || !pr.id) continue;
+          if (!seen.has(pr.id)) {
+            products.push(pr);
+            seen.add(pr.id);
+            appended = true;
+          }
+        }
+      }
+      if (appended) invalidateCategoryEntriesCache();
+      rebuildProductsByIdIndex();
+    }
     let reelsPlaylist = [];
     let reelsIndex = 0;
     let reelsImageAdvanceTimer = null;
@@ -3749,6 +3785,7 @@ Oq fonli foto</div>
     let startAmbientFromUserGesture = () => {};
 
     function applyLang() {
+      invalidateCategoryEntriesCache();
       document.documentElement.lang = currentLang;
       viewTitles.searchView = t('catalog');
       viewTitles.cartView = t('cart');
@@ -4450,8 +4487,12 @@ Oq fonli foto</div>
           const data = await api(`/products/${encodeURIComponent(sid)}`);
           const pr = data.product;
           if (!pr || pr.active === false) return null;
-          if (!products.some((x) => String(x.id) === sid)) products.push(pr);
-          return products.find((x) => String(x.id) === sid);
+          if (!products.some((x) => String(x.id) === sid)) {
+            products.push(pr);
+            invalidateCategoryEntriesCache();
+            rebuildProductsByIdIndex();
+          }
+          return productsById.get(sid) || products.find((x) => String(x.id) === sid);
         } catch (_) {
           return null;
         }
@@ -4480,6 +4521,8 @@ Oq fonli foto</div>
           productsNextPage = 1;
           productsHasMore = true;
           stopProductsBackfill();
+          invalidateCategoryEntriesCache();
+          rebuildProductsByIdIndex();
         }
         if (!productsHasMore) return;
         const params = new URLSearchParams({
@@ -4493,16 +4536,20 @@ Oq fonli foto</div>
           return;
         }
         const seen = new Set(products.map((p) => p.id));
+        let appended = false;
         for (const pr of incoming) {
           if (!seen.has(pr.id)) {
             products.push(pr);
             seen.add(pr.id);
+            appended = true;
           }
         }
         const pageFetched = Number(data.page || productsNextPage);
         productsHasMore = Boolean(data.hasMore);
         productsNextPage = pageFetched + 1;
+        if (appended) invalidateCategoryEntriesCache();
       } finally {
+        rebuildProductsByIdIndex();
         productsLoading = false;
         syncCatalogLoadHint();
       }
@@ -4510,6 +4557,12 @@ Oq fonli foto</div>
 
     async function loadHomePayload() {
       homePayload = await api('/home');
+      homeCatalogRails = homePayload.catalog_rails || {
+        featured: [],
+        discounted: [],
+        inStock: [],
+        newArrivals: []
+      };
       const settings = homePayload?.home_settings || {};
       const banners = homePayload?.banners || [];
       const promotions = homePayload?.promotions || [];
@@ -4775,6 +4828,11 @@ Oq fonli foto</div>
               }
               if (prev !== null && srv > prev) {
                 await loadHomePayload();
+                mergeRailProductsIntoCatalog(homeCatalogRails);
+                if (currentView === 'homeView') {
+                  renderHomeCategories();
+                  renderHome();
+                }
                 if (shouldPollShortsAlerts()) loadNotifications().catch(() => {});
               } else {
                 applyShortsRevisionFromServer(srv);
@@ -4994,7 +5052,7 @@ Oq fonli foto</div>
     }
 
     function makeQtyControls(id) {
-      const p = products.find((x) => x.id === id);
+      const p = productsById.get(id) || products.find((x) => x.id === id);
       const stock = Number(p?.stock ?? 0);
       const q = qtyOf(id);
       const plusDisabled = stock <= 0 || q >= stock ? 'disabled' : '';
@@ -5005,7 +5063,8 @@ Oq fonli foto</div>
       `;
     }
 
-    function productCardTemplate(p) {
+    function productCardTemplate(p, opts = {}) {
+      const eagerImage = opts.eagerImage === true;
       const stock = Number(p.stock ?? 0);
       const oldPrice = Number(p.oldPrice || p.old_price || 0);
       const price = Number(p.price || 0);
@@ -5014,8 +5073,9 @@ Oq fonli foto</div>
       const ratingValue = Number(p.rating || 4.8);
       const reviews = Number(p.reviewCount || 120);
       const priceText = price > 0 ? money(price) : t('pricePending');
+      const imgLoadAttrs = eagerImage ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"';
       const imageHtml = p.image_url
-        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.remove();this.parentElement.insertAdjacentHTML('beforeend', imageFallbackTemplate('${(p.name || '').replace(/'/g, '&#39;')}'));" />`
+        ? `<img src="${p.image_url}" alt="${p.name}" ${imgLoadAttrs} decoding="async" onerror="this.remove();this.parentElement.insertAdjacentHTML('beforeend', imageFallbackTemplate('${(p.name || '').replace(/'/g, '&#39;')}'));" />`
         : imageFallbackTemplate(p.name);
       return `
         <article class="product" data-open-product="${p.id}">
@@ -5049,33 +5109,27 @@ Oq fonli foto</div>
     }
 
     function renderHome() {
-      const popular = products
-        .slice()
-        .sort((a, b) => {
-          const byOrders = Number(b.orderCount || 0) - Number(a.orderCount || 0);
-          if (byOrders !== 0) return byOrders;
-          const byStock = Number(b.stock || 0) - Number(a.stock || 0);
-          if (byStock !== 0) return byStock;
-          const byPrice = Number(b.price || 0) - Number(a.price || 0);
-          if (byPrice !== 0) return byPrice;
-          return String(a.name || '').localeCompare(String(b.name || ''), 'uz');
-        })
-        .slice(0, 12);
-      const discounts = products.filter((p) => Number(p.oldPrice || 0) > Number(p.price || 0)).slice(0, 6);
-      const fast = products.filter((p) => Number(p.stock || 0) > 0).slice(0, 6);
-      const bestSeller = popular.slice(0, 6);
+      const rails = homeCatalogRails || {};
+      const featured = Array.isArray(rails.featured) ? rails.featured.filter((p) => p && p.active !== false) : [];
+      const discounted = Array.isArray(rails.discounted) ? rails.discounted.filter((p) => p && p.active !== false) : [];
+      const inStock = Array.isArray(rails.inStock) ? rails.inStock.filter((p) => p && p.active !== false) : [];
+      const newArrivals = Array.isArray(rails.newArrivals)
+        ? rails.newArrivals.filter((p) => p && p.active !== false)
+        : [];
       const reorder = cartItemsSnapshot.length
-        ? products.filter((p) => cartItemsSnapshot.some((c) => c.id === p.id)).slice(0, 6)
+        ? cartItemsSnapshot.map((c) => productsById.get(c.id)).filter(Boolean).slice(0, 6)
         : [];
 
-      homeProducts.innerHTML = popular.map(productCardTemplate).join('') || `<div class="empty gm-empty-state"><strong>${t('productsNotLoaded')}</strong><br/>${t('productsNotLoadedHint')}</div>`;
-      homeDiscountProducts.innerHTML = discounts.map(productCardTemplate).join('');
-      homeFastProducts.innerHTML = fast.map(productCardTemplate).join('');
-      homeBestSellerProducts.innerHTML = bestSeller.map(productCardTemplate).join('');
+      homeProducts.innerHTML =
+        featured.map((p, i) => productCardTemplate(p, { eagerImage: i < 4 })).join('') ||
+        `<div class="empty gm-empty-state"><strong>${t('productsNotLoaded')}</strong><br/>${t('productsNotLoadedHint')}</div>`;
+      homeDiscountProducts.innerHTML = discounted.map(productCardTemplate).join('');
+      homeFastProducts.innerHTML = inStock.map(productCardTemplate).join('');
+      homeBestSellerProducts.innerHTML = newArrivals.map(productCardTemplate).join('');
       homeReorderProducts.innerHTML = reorder.map(productCardTemplate).join('');
-      setSectionVisibility(homeDiscountProducts, discountSectionHead, discounts.length > 0);
-      setSectionVisibility(homeFastProducts, fastSectionHead, fast.length > 0);
-      setSectionVisibility(homeBestSellerProducts, bestSectionHead, bestSeller.length > 0);
+      setSectionVisibility(homeDiscountProducts, discountSectionHead, discounted.length > 0);
+      setSectionVisibility(homeFastProducts, fastSectionHead, inStock.length > 0);
+      setSectionVisibility(homeBestSellerProducts, bestSectionHead, newArrivals.length > 0);
       setSectionVisibility(homeReorderProducts, reorderSectionHead, reorder.length > 0);
     }
 
@@ -5110,6 +5164,9 @@ Oq fonli foto</div>
     }
 
     function getCategoryEntries() {
+      if (cachedCategoryEntries && cachedCategoryEntriesAtLen === products.length) {
+        return cachedCategoryEntries;
+      }
       const map = new Map();
       for (const p of products) {
         const rawName = normalizedCategoryName(p.categoryDisplayName || p.category);
@@ -5130,7 +5187,10 @@ Oq fonli foto</div>
         String(a.displayName || '').localeCompare(String(b.displayName || ''), currentLang === 'ru' ? 'ru' : 'uz')
       );
       const total = entries.reduce((sum, c) => sum + c.count, 0);
-      return [{ key: 'all', displayName: t('allCategories'), icon: '🛍️', count: total }, ...entries];
+      const built = [{ key: 'all', displayName: t('allCategories'), icon: '🛍️', count: total }, ...entries];
+      cachedCategoryEntries = built;
+      cachedCategoryEntriesAtLen = products.length;
+      return built;
     }
 
     function productMatchesCategory(product, categoryKey) {
@@ -5240,7 +5300,7 @@ Oq fonli foto</div>
     }
 
     function renderCheckout() {
-      const selected = products.filter((p) => qtyOf(p.id) > 0);
+      const selected = cartItemsSnapshot.map((item) => productsById.get(item.id)).filter(Boolean);
       document.getElementById('checkoutUserName').textContent = currentUser?.name || t('userFallback');
       document.getElementById('checkoutUserPhone').textContent = currentUser?.phone ? `${t('profilePhonePrefix')}: ${currentUser.phone}` : t('phoneMissing');
       checkoutItems.innerHTML = selected.map((p) => {
@@ -5531,24 +5591,43 @@ Oq fonli foto</div>
     }
 
     function getRelatedProducts(product) {
-      const sameCategory = products.filter((item) => item.id !== product.id && normalizedCategoryName(item.category) === normalizedCategoryName(product.category));
-      const fallback = products.filter((item) => item.id !== product.id);
-      const source = sameCategory.length ? sameCategory : fallback;
+      const cat = normalizedCategoryName(product.categoryDisplayName || product.category);
+      const same = [];
+      const fallback = [];
+      const MAX_SCAN = 480;
+      for (let i = 0; i < products.length && i < MAX_SCAN; i++) {
+        const item = products[i];
+        if (item.id === product.id) continue;
+        const ic = normalizedCategoryName(item.categoryDisplayName || item.category);
+        if (ic === cat) {
+          same.push(item);
+          if (same.length >= 4) break;
+        } else if (fallback.length < 12) {
+          fallback.push(item);
+        }
+      }
+      const source = same.length ? same : fallback;
       return source.slice(0, 4);
     }
 
     function getCartUpsellProducts() {
       if (!cartItemsSnapshot.length) return [];
       const inCart = new Set(cartItemsSnapshot.map((item) => item.id));
-      return products
-        .filter((p) => !inCart.has(p.id) && Number(p.stock || 0) > 0)
-        .sort((a, b) => Number(a.price || 0) - Number(b.price || 0))
-        .slice(0, 4);
+      const candidates = [];
+      const MAX_SCAN = 520;
+      for (let i = 0; i < products.length && candidates.length < 48 && i < MAX_SCAN; i++) {
+        const p = products[i];
+        if (inCart.has(p.id)) continue;
+        if (Number(p.stock || 0) <= 0) continue;
+        candidates.push(p);
+      }
+      candidates.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+      return candidates.slice(0, 4);
     }
 
     function renderModal() {
       if (!activeModalProductId) return;
-      const p = products.find((x) => x.id === activeModalProductId);
+      const p = productsById.get(activeModalProductId) || products.find((x) => x.id === activeModalProductId);
       if (!p) return;
       const stock = Number(p.stock ?? 0);
       const oldPrice = Number(p.oldPrice || 0);
@@ -5590,7 +5669,7 @@ Oq fonli foto</div>
     function renderAll() {
       renderHomeCategories();
       renderHome();
-      renderSearch();
+      if (currentView === 'searchView') renderSearch();
       renderCart();
       renderCheckout();
       renderCartBadge();
@@ -5724,7 +5803,9 @@ Oq fonli foto</div>
         searchResults.innerHTML = skeleton;
         cartUpsellGrid.innerHTML = skeleton;
         await loadProfile();
-        await Promise.all([loadHomePayload(), loadProducts({ reset: true }), loadCart()]);
+        await Promise.all([loadHomePayload(), loadCart()]);
+        await loadProducts({ reset: true });
+        mergeRailProductsIntoCatalog(homeCatalogRails);
         await hydrateCartProductsIntoCatalog();
         manualAddress.value = currentUser?.address || '';
         customerLocation.addressText = manualAddress.value.trim();
@@ -6192,7 +6273,8 @@ Oq fonli foto</div>
           status: order.status
         };
 
-        await Promise.all([loadProducts({ reset: true }), loadCart()]);
+        await Promise.all([loadHomePayload(), loadProducts({ reset: true }), loadCart()]);
+        mergeRailProductsIntoCatalog(homeCatalogRails);
         await hydrateCartProductsIntoCatalog();
         scheduleProductsBackfill();
         if (selectedPayment === 'click') {
