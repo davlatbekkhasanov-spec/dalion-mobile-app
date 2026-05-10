@@ -80,18 +80,45 @@ function getS3Client() {
   return cachedProdClient;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableR2Error(err) {
+  const code = String(err?.Code || err?.code || err?.name || '');
+  const msg = String(err?.message || '');
+  if (/Timeout|ETIMEDOUT|NetworkingError|ECONNRESET|ECONNREFUSED|EAI_AGAIN|ENOTFOUND|RequestTimeout/i.test(`${code} ${msg}`)) {
+    return true;
+  }
+  const status = Number(err?.$metadata?.httpStatusCode || 0);
+  return status >= 500 && status < 600;
+}
+
 async function uploadToR2(fileBuffer, key, contentType) {
   const client = getS3Client();
   if (!client) throw new Error('R2 is not configured');
   const bucket = String(process.env.R2_BUCKET_NAME || '').trim();
-  await client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: fileBuffer,
-      ContentType: contentType
-    })
-  );
+  const maxAttempts = Math.max(1, Math.min(5, Number(process.env.R2_UPLOAD_MAX_ATTEMPTS || 3) || 3));
+  let lastErr = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: fileBuffer,
+          ContentType: contentType
+        })
+      );
+      lastErr = null;
+      break;
+    } catch (err) {
+      lastErr = err;
+      if (attempt >= maxAttempts || !isRetryableR2Error(err)) break;
+      await sleep(200 * attempt);
+    }
+  }
+  if (lastErr) throw lastErr;
   return { key, url: getPublicUrl(key) };
 }
 
