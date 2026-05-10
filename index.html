@@ -3735,8 +3735,9 @@ Oq fonli foto</div>
     function initIntroAmbientPlayer() {
       const INTRO_AMBIENT_LS_PLAYING = 'gm_intro_ambient_playing';
       const INTRO_AMBIENT_LS_TRACK = 'gm_intro_ambient_track_ix';
-      const INTRO_AMBIENT_VOLUME = 0.38;
-      const INTRO_AMBIENT_FADE_MS = 650;
+      const INTRO_AMBIENT_VOLUME = 0.2;
+      const INTRO_AMBIENT_FADE_MS = 900;
+      const INTRO_AMBIENT_FADE_IN_MS = 2800;
       const INTRO_AMBIENT_AUTOPLAY_HINT_COOLDOWN_MS = 12000;
       /** Server playlist (`/api/v1/ambient-playlist`) empty bo‘lsa — faqat Silviana (test tone yo‘q) */
       const INTRO_AMBIENT_PLAYLIST = [
@@ -3803,14 +3804,15 @@ Oq fonli foto</div>
         return t('toastAmbientPlayFail');
       }
 
-      function fadeVolume(targetVolume, durationMs = INTRO_AMBIENT_FADE_MS) {
+      function fadeVolume(targetVolume, durationMs = INTRO_AMBIENT_FADE_MS, easeInQuad = false) {
         const token = ++fadeFrame;
         const fromVolume = Number.isFinite(audio.volume) ? audio.volume : INTRO_AMBIENT_VOLUME;
         const startedAt = performance.now();
         return new Promise((resolve) => {
           function step(now) {
             if (token !== fadeFrame) return resolve();
-            const progress = Math.min(1, (now - startedAt) / durationMs);
+            let progress = Math.min(1, (now - startedAt) / durationMs);
+            if (easeInQuad && targetVolume > fromVolume) progress *= progress;
             audio.volume = fromVolume + (targetVolume - fromVolume) * progress;
             if (progress < 1) {
               requestAnimationFrame(step);
@@ -3928,7 +3930,7 @@ Oq fonli foto</div>
           consecutivePlaybackFailures = 0;
           persistPlaying(true);
           syncAmbientChrome();
-          await fadeVolume(INTRO_AMBIENT_VOLUME);
+          await fadeVolume(INTRO_AMBIENT_VOLUME, INTRO_AMBIENT_FADE_IN_MS, true);
           return true;
         } catch (error) {
           if (!options.silent) showToast(classifyPlaybackError(error));
@@ -4083,12 +4085,13 @@ Oq fonli foto</div>
         persistPlaying(true);
         if (tracks.length && (audio.paused || audio.ended)) {
           if (!audio.getAttribute('src')) loadCurrentTrack();
-          audio.volume = INTRO_AMBIENT_VOLUME;
+          audio.volume = 0;
           const playPromise = audio.play();
           if (playPromise && typeof playPromise.then === 'function') {
             playPromise.then(() => {
               consecutivePlaybackFailures = 0;
               syncAmbientChrome();
+              fadeVolume(INTRO_AMBIENT_VOLUME, INTRO_AMBIENT_FADE_IN_MS, true);
             }).catch(() => {
               // Will be retried by handleAmbientHomeEntry after the view enters home.
             });
