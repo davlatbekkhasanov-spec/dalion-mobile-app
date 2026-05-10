@@ -2314,7 +2314,7 @@
         <div class="list-card gm-card profile-hero" id="profileUserCard">
           <div style="display:flex;gap:12px;align-items:center;">
             <div class="profile-avatar">👤</div>
-            <div><h3 style="margin-bottom:6px;color:#fff;" id="profileName">Foydalanuvchi</h3><p class="muted" id="profilePhone" style="color:rgba(255,255,255,.9)">Telefon: -</p><p class="muted" id="profileAddress" style="color:rgba(255,255,255,.9)">Manzil: Manzil qo‘shilmagan</p></div>
+            <div><h3 style="margin-bottom:6px;color:#fff;" id="profileName">Foydalanuvchi</h3><p class="muted" id="profileCustomerId" style="color:rgba(255,255,255,.9)">Mijoz ID: —</p><p class="muted" id="profilePhone" style="color:rgba(255,255,255,.9)">Telefon: -</p><p class="muted" id="profileAddress" style="color:rgba(255,255,255,.9)">Manzil: Manzil qo‘shilmagan</p></div>
           </div>
         </div>
         <div class="list-card gm-card profile-menu" id="profileMenuCard">
@@ -2513,6 +2513,9 @@ Oq fonli foto</div>
     let reelsIndex = 0;
     let reelsImageAdvanceTimer = null;
     let reelsTouchY0 = null;
+    let reelsAudioCtx = null;
+    let reelsAudioGain = null;
+    let reelsMediaElementSource = null;
     let latestOrderNumber = '';
     let activeOrderNumber = localStorage.getItem('activeOrderNumber') || '';
     let ordersHistory = JSON.parse(localStorage.getItem('orders_history') || '[]');
@@ -2718,13 +2721,23 @@ Oq fonli foto</div>
       if (!phoneOk) { authPhone?.focus(); return false; }
       setFieldError(null, smsSendError, '');
       const phoneValue = normalizedAuthPhone();
+      if (authSmsCard) {
+        authSmsCard.hidden = false;
+        authSmsCard.removeAttribute('hidden');
+      }
       setBtnLoading(sendSmsBtn, true);
       try {
         await api('/auth/sms/send', {
           method: 'POST',
           body: JSON.stringify({ phone: phoneValue })
         });
-        if (authSmsCard) authSmsCard.hidden = false;
+        if (authSmsCard) {
+          authSmsCard.hidden = false;
+          authSmsCard.removeAttribute('hidden');
+          try {
+            authSmsCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          } catch (_) {}
+        }
         if (sendSmsBtn) {
           sendSmsBtn.dataset.sent = '1';
           sendSmsBtn.textContent = t('smsResendBtn');
@@ -3030,6 +3043,7 @@ Oq fonli foto</div>
     const trackOrderBtn = document.getElementById('trackOrderBtn');
     const profileName = document.getElementById('profileName');
     const profilePhone = document.getElementById('profilePhone');
+    const profileCustomerId = document.getElementById('profileCustomerId');
     const profileOrders = document.getElementById('profileOrders');
     const profileUserCard = document.getElementById('profileUserCard');
     const profileOrdersCard = document.getElementById('profileOrdersCard');
@@ -3160,6 +3174,41 @@ Oq fonli foto</div>
       reelsMuteBtn.setAttribute('aria-pressed', muted ? 'true' : 'false');
     }
 
+    function ensureReelsFullVolumeAudio() {
+      if (!reelsVideo || reelsMediaElementSource) return;
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        reelsAudioCtx = new AC();
+        reelsMediaElementSource = reelsAudioCtx.createMediaElementSource(reelsVideo);
+        reelsAudioGain = reelsAudioCtx.createGain();
+        reelsAudioGain.gain.value = 1;
+        reelsMediaElementSource.connect(reelsAudioGain).connect(reelsAudioCtx.destination);
+      } catch (_) {
+        reelsMediaElementSource = null;
+        reelsAudioGain = null;
+        reelsAudioCtx = null;
+      }
+    }
+
+    async function resumeReelsAudioCtxIfNeeded() {
+      try {
+        if (reelsAudioCtx?.state === 'suspended') await reelsAudioCtx.resume();
+      } catch (_) {}
+    }
+
+    function suspendReelsAudioCtx() {
+      try {
+        if (reelsAudioCtx?.state === 'running') reelsAudioCtx.suspend();
+      } catch (_) {}
+    }
+
+    function bumpReelsPlaybackLevels() {
+      if (!reelsVideo) return;
+      reelsVideo.volume = 1;
+      if (!reelsVideo.muted && reelsAudioGain) reelsAudioGain.gain.value = 1;
+    }
+
     function clearReelsImageTimer() {
       if (reelsImageAdvanceTimer) {
         clearTimeout(reelsImageAdvanceTimer);
@@ -3171,9 +3220,11 @@ Oq fonli foto</div>
       const id = String(shortId || '').trim();
       if (!id) return;
       try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (currentUser?.phone) headers['x-user-phone'] = currentUser.phone;
         fetch(`/api/v1/shorts/${encodeURIComponent(id)}/view`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           cache: 'no-store',
           credentials: 'same-origin'
         }).catch(() => {});
@@ -3276,11 +3327,11 @@ Oq fonli foto</div>
       reelsOverlay.classList.add('open');
       reelsOverlay.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
-      const bumpReelsGain = () => {
-        reelsVideo.volume = 1;
-        reelsVideo.muted = false;
-      };
-      reelsVideo.addEventListener('loadedmetadata', bumpReelsGain, { once: true });
+      ensureReelsFullVolumeAudio();
+      bumpReelsPlaybackLevels();
+      resumeReelsAudioCtxIfNeeded();
+      const bumpOnce = () => bumpReelsPlaybackLevels();
+      reelsVideo.addEventListener('loadedmetadata', bumpOnce, { once: true });
       syncReelsMuteButton();
       if (!reducedMotion) {
         reelsVideo.play().catch(() => {});
@@ -3291,6 +3342,7 @@ Oq fonli foto</div>
 
     function closeReelsViewer() {
       if (!reelsOverlay) return;
+      suspendReelsAudioCtx();
       clearReelsImageTimer();
       reelsPlaylist = [];
       reelsIndex = 0;
@@ -3449,6 +3501,7 @@ Oq fonli foto</div>
         profileGuestCta: "Ro'yxatdan o'tish",
         profileAddressPrefix: 'Manzil',
         profilePhonePrefix: 'Telefon',
+        profileCustomerIdPrefix: 'Mijoz ID',
         profileOrdersLoading: 'Buyurtmalaringiz yuklanmoqda...',
         profileOrdersLoadFail: "Buyurtmalarni yuklab bo'lmadi",
         profileOrdersLoadFailBody: "Internet aloqasi yoki server bilan vaqtinchalik muammo bo'lishi mumkin.",
@@ -3653,6 +3706,7 @@ Oq fonli foto</div>
         profileGuestCta: 'Зарегистрироваться',
         profileAddressPrefix: 'Адрес',
         profilePhonePrefix: 'Телефон',
+        profileCustomerIdPrefix: 'Клиент №',
         profileOrdersLoading: 'Загружаем ваши заказы...',
         profileOrdersLoadFail: 'Не удалось загрузить заказы',
         profileOrdersLoadFailBody: 'Возможно, временная проблема с интернетом или сервером.',
@@ -4570,7 +4624,7 @@ Oq fonli foto</div>
         smsVerificationToken: smsVerificationToken || undefined
       };
       localStorage.setItem('globusUser', JSON.stringify(currentUser));
-      await api('/profile', {
+      const putRes = await api('/profile', {
         method: 'PUT',
         body: JSON.stringify({
           name: fullName,
@@ -4580,6 +4634,10 @@ Oq fonli foto</div>
           address: ''
         })
       });
+      if (putRes?.profile?.customer_no != null && putRes.profile.customer_no !== '') {
+        currentUser.customer_no = putRes.profile.customer_no;
+        localStorage.setItem('globusUser', JSON.stringify(currentUser));
+      }
       resetSmsAuthState();
       authSheetOverlay.classList.remove('show');
       showToast(t('toastRegistered'));
@@ -5318,6 +5376,13 @@ Oq fonli foto</div>
       profileUserCard.style.display = 'block';
       profileOrdersCard.style.display = 'block';
       profileName.textContent = currentUser?.name || t('userFallback');
+      const cid =
+        currentUser?.customer_no != null && currentUser.customer_no !== ''
+          ? String(currentUser.customer_no)
+          : '—';
+      if (profileCustomerId) {
+        profileCustomerId.textContent = `${t('profileCustomerIdPrefix')}: ${cid}`;
+      }
       profilePhone.textContent = `${t('profilePhonePrefix')}: ${currentUser?.phone || '-'}`;
       profileAddress.textContent = `${t('profileAddressPrefix')}: ${currentUser?.address || t('addressMissing')}`;
 
@@ -5892,7 +5957,12 @@ Oq fonli foto</div>
       if (!reelsOverlay?.classList.contains('open')) return;
       reelsGoNextOrClose();
     });
-    reelsVideo?.addEventListener('volumechange', () => syncReelsMuteButton());
+    reelsVideo?.addEventListener('playing', bumpReelsPlaybackLevels);
+    reelsVideo?.addEventListener('canplay', bumpReelsPlaybackLevels);
+    reelsVideo?.addEventListener('volumechange', () => {
+      bumpReelsPlaybackLevels();
+      syncReelsMuteButton();
+    });
     reelsVideo?.addEventListener('click', () => {
       const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (!reducedMotion || !reelsVideo) return;

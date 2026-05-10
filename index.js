@@ -819,7 +819,8 @@ app.get('/api/v1/shorts/meta', async (req, res) => {
 });
 
 app.post('/api/v1/shorts/:id/view', async (req, res) => {
-  await marketplaceRepo.incrementShortViewCount(req.params.id);
+  const phone = getUserPhone(req);
+  await marketplaceRepo.recordShortViewEvent(req.params.id, phone || null);
   return res.json({ ok: true });
 });
 
@@ -1458,6 +1459,17 @@ app.delete('/api/v1/admin-v2/shorts/:id', requireAdminV2, async (req, res) => {
   await marketplaceRepo.deleteShort(req.params.id);
   await marketplaceRepo.bumpShortsRevision();
   return res.json({ ok: true });
+});
+
+app.get('/api/v1/admin-v2/shorts/:id/viewers', requireAdminV2, async (req, res) => {
+  const limit = Math.min(200, Math.max(1, Number(req.query.limit || 100)));
+  const viewers = await marketplaceRepo.listShortViewLogs(req.params.id, limit);
+  return res.json({ ok: true, viewers });
+});
+
+app.get('/api/v1/admin-v2/customers', requireAdminV2, async (req, res) => {
+  const customers = await marketplaceRepo.listCustomersAdmin();
+  return res.json({ ok: true, customers });
 });
 
 app.get('/api/v1/admin-v2/products', requireAdminV2, async (req, res) => {

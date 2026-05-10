@@ -37,6 +37,7 @@
       <button type="button" class="tab" role="tab" data-tab="theme">Tema</button>
       <button type="button" class="tab" role="tab" data-tab="banners">Bannerlar</button>
       <button type="button" class="tab" role="tab" data-tab="shorts">Shorts</button>
+      <button type="button" class="tab" role="tab" data-tab="customers">Mijozlar</button>
       <button type="button" class="tab" role="tab" data-tab="products">Mahsulotlar</button>
     </nav>
 
@@ -153,6 +154,17 @@
       <p class="hint sh-intro-hint">Stories uslubi: vertikal video, bir marta yuklash — ko‘rinish va poster preview. «Saqlash» bilan do‘konda chiqadi (Instagram Reels tartibi).</p>
       <div id="shortList" class="short-list"></div>
 
+      <div id="sh-viewers-wrap" class="card-inner hidden" style="margin-top:14px;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:var(--panel-radius,12px);">
+        <h3 style="margin:0 0 8px;font-size:1rem;">Tanlangan short tomoshchilari</h3>
+        <p class="hint" style="margin:0 0 10px;">Ro‘yxatdan o‘tgan mijoz — telefon (agar ilova yuborgan bo‘lsa). Mehmonlar «—».</p>
+        <div style="overflow-x:auto;">
+          <table class="mini" style="width:100%">
+            <thead><tr><th>Telefon</th><th>Vaqt</th></tr></thead>
+            <tbody id="sh-viewers-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="sh-compose">
         <h3 class="sh-editor-heading">Yangi yoki tanlangan short</h3>
 
@@ -221,6 +233,28 @@
           <button type="button" class="btn btn-ghost" id="sh-newBtn">Yangi short</button>
           <button type="button" class="btn btn-danger" id="sh-delBtn">O‘chirish</button>
         </div>
+      </div>
+    </section>
+
+    <section id="panel-customers" class="card panel hidden" role="tabpanel">
+      <h2>Mijozlar</h2>
+      <p class="hint">Ro‘yxatdan o‘tgan akkauntlar: mijoz raqami, kontakt va saqlangan ma’lumotlar.</p>
+      <div style="overflow-x:auto;margin-top:12px">
+        <table class="mini" id="cust-table">
+          <thead>
+            <tr>
+              <th>№</th>
+              <th>Telefon</th>
+              <th>Profil nomi</th>
+              <th>Ism</th>
+              <th>Familiya</th>
+              <th>Manzil</th>
+              <th>Biometriya</th>
+              <th>Ro‘yxatdan</th>
+            </tr>
+          </thead>
+          <tbody id="cust-table-body"></tbody>
+        </table>
       </div>
     </section>
 
@@ -397,7 +431,10 @@
       document.querySelectorAll('.panel').forEach((p) => p.classList.add('hidden'));
       const panel = $('panel-' + name);
       if (panel) panel.classList.remove('hidden');
-      if (name === 'shorts') refreshShortCompose();
+      if (name === 'shorts') {
+        refreshShortCompose();
+        if (selectedShortId) loadShortViewers(selectedShortId);
+      }
     }
 
     async function loadThemeControls() {
@@ -675,6 +712,67 @@
       renderShortList();
     }
 
+    async function loadShortViewers(shortId) {
+      const wrap = $('sh-viewers-wrap');
+      const tb = $('sh-viewers-tbody');
+      if (!wrap || !tb) return;
+      if (!shortId) {
+        wrap.classList.add('hidden');
+        tb.innerHTML = '';
+        return;
+      }
+      wrap.classList.remove('hidden');
+      tb.innerHTML = '<tr><td colspan="2">Yuklanmoqda…</td></tr>';
+      const { res, data } = await api(
+        '/api/v1/admin-v2/shorts/' + encodeURIComponent(shortId) + '/viewers?limit=120'
+      );
+      if (!res.ok) {
+        tb.innerHTML = `<tr><td colspan="2">${escapeHtml(data.message || 'Xato')}</td></tr>`;
+        return;
+      }
+      const rows = data.viewers || [];
+      tb.innerHTML = rows.length
+        ? rows
+            .map((v) => {
+              const ph = (v.viewer_phone || '').trim();
+              const label = ph || '— (mehmon)';
+              const dt = v.at ? new Date(v.at).toLocaleString() : '—';
+              return `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(dt)}</td></tr>`;
+            })
+            .join('')
+        : '<tr><td colspan="2">Hali yozuvlar yo‘q</td></tr>';
+    }
+
+    async function refreshCustomers() {
+      const tb = $('cust-table-body');
+      if (!tb) return;
+      tb.innerHTML = '<tr><td colspan="8">Yuklanmoqda…</td></tr>';
+      const { res, data } = await api('/api/v1/admin-v2/customers');
+      if (!res.ok) {
+        tb.innerHTML = `<tr><td colspan="8">${escapeHtml(data.message || 'Xato')}</td></tr>`;
+        return;
+      }
+      const list = data.customers || [];
+      tb.innerHTML = list.length
+        ? list
+            .map((c) => {
+              const no = c.customer_no != null ? String(c.customer_no) : '—';
+              const dt = c.created_at ? new Date(c.created_at).toLocaleString() : '—';
+              return `<tr>
+            <td>${escapeHtml(no)}</td>
+            <td>${escapeHtml(c.phone || '')}</td>
+            <td>${escapeHtml(c.name || '')}</td>
+            <td>${escapeHtml(c.first_name || '')}</td>
+            <td>${escapeHtml(c.last_name || '')}</td>
+            <td>${escapeHtml(c.address || '')}</td>
+            <td>${c.has_biometric ? 'Ha' : 'Yo‘q'}</td>
+            <td>${escapeHtml(dt)}</td>
+          </tr>`;
+            })
+            .join('')
+        : '<tr><td colspan="8">Mijozlar yo‘q</td></tr>';
+    }
+
     function renderShortList() {
       const root = $('shortList');
       root.innerHTML = shorts
@@ -726,7 +824,7 @@
       });
     }
 
-    function pickShort(id) {
+    async function pickShort(id) {
       selectedShortId = id;
       const s = shorts.find((x) => x.id === id);
       if (!s) return;
@@ -743,6 +841,7 @@
       $('sh-active').checked = s.active !== false;
       $('sh-thumb-file').value = '';
       refreshShortCompose();
+      await loadShortViewers(id);
     }
 
     async function saveShort() {
@@ -822,6 +921,7 @@
       $('sh-thumb-url').value = '';
       $('sh-order').value = '';
       $('sh-video-file').value = '';
+      await loadShortViewers(null);
       await refreshShorts();
       toast('O‘chirildi');
       refreshShortCompose();
@@ -841,6 +941,7 @@
         URL.revokeObjectURL(shDraftObjectUrl);
         shDraftObjectUrl = null;
       }
+      loadShortViewers(null);
       refreshShortCompose();
     }
 
@@ -897,6 +998,7 @@
         const name = t.dataset.tab;
         selectTab(name);
         if (name === 'products') loadProducts();
+        if (name === 'customers') refreshCustomers();
       });
     });
 

@@ -342,18 +342,7 @@ async function getUserProfile(phone) {
 }
 
 async function upsertUserProfile(phone, data) {
-  const createData = {
-    phone,
-    name: data.name,
-    role: 'customer',
-    firstName: data.firstName ?? null,
-    lastName: data.lastName ?? null,
-    address: data.address ?? null,
-    updatedAt: new Date()
-  };
-  if (data.biometric !== undefined) createData.biometric = data.biometric;
-  if (data.notificationsRead !== undefined) createData.notificationsRead = data.notificationsRead;
-
+  const existing = await prisma.user.findUnique({ where: { phone } });
   const updateData = {
     name: data.name,
     updatedAt: new Date()
@@ -364,11 +353,36 @@ async function upsertUserProfile(phone, data) {
   if (data.biometric !== undefined) updateData.biometric = data.biometric;
   if (data.notificationsRead !== undefined) updateData.notificationsRead = data.notificationsRead;
 
-  return prisma.user.upsert({
-    where: { phone },
-    create: createData,
-    update: updateData
-  });
+  if (existing) {
+    return prisma.user.update({ where: { phone }, data: updateData });
+  }
+
+  const createBase = {
+    phone,
+    name: data.name,
+    role: 'customer',
+    firstName: data.firstName ?? null,
+    lastName: data.lastName ?? null,
+    address: data.address ?? null,
+    updatedAt: new Date()
+  };
+  if (data.biometric !== undefined) createBase.biometric = data.biometric;
+  if (data.notificationsRead !== undefined) createBase.notificationsRead = data.notificationsRead;
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const agg = await tx.user.aggregate({ _max: { customerNo: true } });
+        const nextNo = (agg._max.customerNo ?? 0) + 1;
+        return tx.user.create({
+          data: { ...createBase, customerNo: nextNo }
+        });
+      });
+    } catch (e) {
+      if (e?.code === 'P2002' && attempt < 5) continue;
+      throw e;
+    }
+  }
 }
 
 async function readSmsChallenge(phone) {
@@ -651,17 +665,80 @@ async function listShortsApi() {
   }));
 }
 
-async function incrementShortViewCount(id) {
-  const sid = String(id || '').trim();
+async function recordShortViewEvent(shortId, viewerPhone) {
+  const sid = String(shortId || '').trim();
   if (!sid) return null;
+  const phoneNorm =
+    viewerPhone !== undefined && viewerPhone !== null && String(viewerPhone).trim()
+      ? String(viewerPhone).trim()
+      : null;
   try {
-    return await prisma.short.updateMany({
-      where: { id: sid, active: true },
-      data: { viewCount: { increment: 1 } }
+    const row = await prisma.short.findUnique({
+      where: { id: sid },
+      select: { active: true }
     });
+    if (!row || row.active === false) return null;
+    await prisma.$transaction([
+      prisma.short.update({
+        where: { id: sid },
+        data: { viewCount: { increment: 1 } }
+      }),
+      prisma.shortViewLog.create({
+        data: { shortId: sid, viewerPhone: phoneNorm }
+      })
+    ]);
+    return true;
   } catch {
     return null;
   }
+}
+
+async function listShortViewLogs(shortId, limit) {
+  const sid = String(shortId || '').trim();
+  const lim = Math.min(200, Math.max(1, Number(limit) || 80));
+  const rows = await prisma.shortViewLog.findMany({
+    where: { shortId: sid },
+    orderBy: { createdAt: 'desc' },
+    take: lim,
+    select: { viewerPhone: true, createdAt: true }
+  });
+  return rows.map((r) => ({
+    viewer_phone: r.viewerPhone || '',
+    at: r.createdAt.toISOString()
+  }));
+}
+
+async function listCustomersAdmin() {
+  const users = await prisma.user.findMany({
+    orderBy: [{ createdAt: 'desc' }],
+    select: {
+      customerNo: true,
+      phone: true,
+      name: true,
+      firstName: true,
+      lastName: true,
+      address: true,
+      role: true,
+      createdAt: true,
+      updatedAt: true,
+      biometric: true
+    }
+  });
+  return users.map((u) => {
+    const bio = u.biometric && typeof u.biometric === 'object' ? u.biometric : null;
+    return {
+      customer_no: u.customerNo,
+      phone: u.phone,
+      name: u.name,
+      first_name: u.firstName || '',
+      last_name: u.lastName || '',
+      address: u.address || '',
+      role: u.role,
+      created_at: u.createdAt.toISOString(),
+      updated_at: u.updatedAt ? u.updatedAt.toISOString() : null,
+      has_biometric: Boolean(bio?.consentGiven && bio?.imageUrl)
+    };
+  });
 }
 
 async function createShortApi(body) {
@@ -878,6 +955,7 @@ async function profileToApi(u) {
       : {};
   return {
     phone: u.phone,
+    customer_no: typeof u.customerNo === 'number' ? u.customerNo : null,
     name: u.name,
     firstName: u.firstName || '',
     lastName: u.lastName || '',
@@ -939,7 +1017,9 @@ module.exports = {
   reorderShorts,
   updateShortApi,
   deleteShort,
-  incrementShortViewCount,
+  recordShortViewEvent,
+  listShortViewLogs,
+  listCustomersAdmin,
   listNotificationsApi,
   createNotificationApi,
   deleteNotification,

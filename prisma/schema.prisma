@@ -9,6 +9,7 @@ datasource db {
 
 model User {
   id                  String    @id @default(cuid())
+  customerNo          Int?      @unique
   name                String
   phone               String    @unique
   role                String    @default("customer")
@@ -142,6 +143,16 @@ model Short {
   createdAt    DateTime @default(now())
   sortOrder    Int      @default(0)
   viewCount    Int      @default(0)
+}
+
+model ShortViewLog {
+  id          String   @id @default(cuid())
+  shortId     String
+  viewerPhone String?
+  createdAt   DateTime @default(now())
+
+  @@index([shortId])
+  @@index([viewerPhone])
 }
 
 model Notification {
