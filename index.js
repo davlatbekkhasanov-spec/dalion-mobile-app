@@ -1875,31 +1875,10 @@ app.put('/api/v1/admin/products/:id', requireAdmin, async (req, res) => {
   res.json({ ok: true, product: updated });
 });
 app.post('/api/v1/admin/products/import', requireAdmin, async (req, res) => {
-  const summary = await marketplaceRepo.storeSummary();
-  const products = await marketplaceRepo.listProductsPublic();
-  return res.json({
-    ok: true,
-    imported: 0,
-    skipped: 0,
-    invalidRows: 0,
-    categoriesDetected: summary.categories,
-    skippedCategoryRows: 0,
-    productsAssignedCategory: summary.products,
-    productsWithoutCategoryFallback: 0,
-    imageExtracted: 0,
-    imageProcessed: 0,
-    imageWarnings: 0,
-    imageObjectDetected: 0,
-    imageDetectionWarnings: [],
-    imageUpscaled: 0,
-    imageSkippedExisting: 0,
-    imageMissing: 0,
-    productsWithImageUrl: products.filter((p) => p.image_url).length,
-    productsWithEmbeddedImages: 0,
-    productsWithoutImages: products.filter((p) => !p.image_url).length,
-    processingTimeMs: 0,
-    averageImageMs: 0,
-    message: 'Excel import hozircha mock: admin CRUD orqali boshqarish mumkin'
+  return res.status(501).json({
+    ok: false,
+    message:
+      'Excel import hozircha productionda yoqilmagan. Bu endpoint avval mock javob qaytarayotgan edi. Mahsulotlarni admin-v2 orqali boshqaring yoki DALION sync yoqing.'
   });
 });
 
