@@ -1317,11 +1317,12 @@ app.post('/api/v1/admin-v2/media/video', requireAdminV2, (req, res) => {
         } catch (_) {}
         return res.json({ ok: true, url });
       } catch (error) {
-        try {
-          fs.unlinkSync(f.path);
-        } catch (_) {}
-        logStructured('error', 'admin_v2_media_video_r2_failed', { message: error?.message });
-        return res.status(500).json({ ok: false, message: 'Video saqlab bo‘lmadi' });
+        // Multer already wrote under uploads/shorts — keep file if R2 (credentials/network) fails.
+        logStructured('warn', 'admin_v2_media_video_r2_failed_fallback_local', {
+          message: error?.message
+        });
+        const url = `/uploads/shorts/${baseName}`;
+        return res.json({ ok: true, url });
       }
     }
 
