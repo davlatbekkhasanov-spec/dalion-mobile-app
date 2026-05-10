@@ -371,7 +371,11 @@
       const token = getToken();
       const res = await fetch('/api/v1'+path,{headers:{'Content-Type':'application/json','x-admin-token':token},...options});
       const data = await res.json().catch(()=>({}));
-      if(!res.ok) throw new Error(data.message||t('apiError'));
+      if(!res.ok){
+        const msg = data.message || t('apiError');
+        const detail = typeof data.detail === 'string' && data.detail.trim() ? data.detail.trim() : '';
+        throw new Error(detail ? `${msg} (${detail})` : msg);
+      }
       return data;
     }
 
@@ -513,7 +517,11 @@
             let parsed = {};
             try { parsed = JSON.parse(xhr.responseText || '{}'); } catch (err) {}
             if (xhr.status >= 200 && xhr.status < 300) resolve(parsed);
-            else reject(new Error(parsed.message || t('importError')));
+            else {
+              const msg = parsed.message || t('importError');
+              const detail = typeof parsed.detail === 'string' && parsed.detail.trim() ? parsed.detail.trim() : '';
+              reject(new Error(detail ? `${msg} (${detail})` : msg));
+            }
           };
           xhr.onerror = () => reject(new Error(t('networkError')));
           xhr.send(fd);
