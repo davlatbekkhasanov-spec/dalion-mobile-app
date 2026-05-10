@@ -239,10 +239,14 @@ async function listCategoriesForAdmin() {
 async function updateCategory(id, patch) {
   const existing = await prisma.category.findUnique({ where: { id } });
   if (!existing) return null;
+  const p = { ...(patch || {}) };
+  if (p.image_url !== undefined && p.imageUrl === undefined) {
+    p.imageUrl = p.image_url;
+  }
   const allowed = ['displayName', 'icon', 'imageUrl', 'active', 'name'];
   const data = {};
   for (const k of allowed) {
-    if (patch[k] !== undefined) data[k] = patch[k];
+    if (p[k] !== undefined) data[k] = p[k];
   }
   if (!Object.keys(data).length) {
     return {

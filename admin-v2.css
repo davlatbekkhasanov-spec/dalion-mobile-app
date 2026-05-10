@@ -469,3 +469,27 @@ table.mini th {
   margin-top: 12px;
   justify-content: space-between;
 }
+
+.pr-thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--gm-line);
+  vertical-align: middle;
+}
+
+.pr-thumb-cell {
+  white-space: nowrap;
+}
+
+.input-compact {
+  min-width: 120px;
+  max-width: 200px;
+  font-size: 12px;
+}
+
+.btn-compact {
+  padding: 6px 10px;
+  font-size: 13px;
+}

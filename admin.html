@@ -785,7 +785,9 @@
       products.forEach(p=>{const opts=categories.map(c=>`<option value="${c.id}" ${c.id===p.categoryId?'selected':''}>${c.name}</option>`).join('');
         const d=document.createElement('div');d.className='item';d.innerHTML=`
           <b>${p.name}</b>
-          <div class="muted">${t('imageUrl')}: ${p.image_url || '-'}</div>
+          <div class="row" style="margin-top:8px;flex-wrap:wrap">
+            <input data-role="image_url" value="${p.image_url || ''}" placeholder="${t('imageUrl')}" style="min-width:220px;flex:1" />
+          </div>
           <div class="row">
             <label>${t('active')} <input type="checkbox" data-role="active" ${p.active?'checked':''}></label>
             <input data-role="price" type="number" value="${p.price}" placeholder="price">
@@ -803,7 +805,7 @@
       const p=b.closest('.item');
       try{
         setBtnLoading(b, true, t('save'));
-        await api('/admin/products/'+b.dataset.id,{method:'PUT',body:JSON.stringify({active:p.querySelector('[data-role=active]').checked,price:Number(p.querySelector('[data-role=price]').value),stock:Number(p.querySelector('[data-role=stock]').value),categoryId:p.querySelector('[data-role=categoryId]').value,discount_percent:Number(p.querySelector('[data-role=discount_percent]').value||0)})});
+        await api('/admin/products/'+b.dataset.id,{method:'PUT',body:JSON.stringify({active:p.querySelector('[data-role=active]').checked,price:Number(p.querySelector('[data-role=price]').value),stock:Number(p.querySelector('[data-role=stock]').value),categoryId:p.querySelector('[data-role=categoryId]').value,discount_percent:Number(p.querySelector('[data-role=discount_percent]').value||0),image_url:p.querySelector('[data-role=image_url]').value.trim()})});
         showToast(t('saveOk'));
         await loadProducts();
       }catch(err){showToast(err.message||t('loadError'))}

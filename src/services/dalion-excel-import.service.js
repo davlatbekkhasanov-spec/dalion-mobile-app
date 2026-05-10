@@ -4,8 +4,28 @@ const sharp = require('sharp');
 const { unzipBuffer } = require('./xlsx-zip-reader.js');
 const store = require('../data/store.js');
 const productRepository = require('../repositories/product.repository.js');
+const r2Service = require('./r2.service.js');
 
 const PRODUCTS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'products');
+
+async function mirrorProductFileToR2IfPossible(relativeUrl) {
+  if (!relativeUrl || !String(relativeUrl).startsWith('/uploads/products/')) return relativeUrl;
+  if (!r2Service.shouldUseR2()) return relativeUrl;
+  const fn = path.basename(relativeUrl);
+  const diskPath = path.join(PRODUCTS_UPLOAD_DIR, fn);
+  if (!fs.existsSync(diskPath)) return relativeUrl;
+  try {
+    const buf = fs.readFileSync(diskPath);
+    const mime = fn.endsWith('.webp') ? 'image/webp' : 'image/png';
+    const { url } = await r2Service.uploadToR2(buf, r2Service.buildObjectKey('products', fn), mime);
+    try {
+      fs.unlinkSync(diskPath);
+    } catch (_) {}
+    return url;
+  } catch (_) {
+    return relativeUrl;
+  }
+}
 
 function sanitizeCode(code = '') {
   return String(code || '').trim().replace(/[^a-zA-Z0-9_.-]/g, '_');
@@ -623,6 +643,7 @@ async function importProductsFromXlsxBuffer(buffer, { overwriteImages = true, pr
             });
           }
           imageUrl = `/uploads/products/${item.safeCode}.${processingResult.ext === 'png' ? 'png' : 'webp'}`;
+          imageUrl = await mirrorProductFileToR2IfPossible(imageUrl);
         }
         imageExtracted += 1;
       } catch (e) {

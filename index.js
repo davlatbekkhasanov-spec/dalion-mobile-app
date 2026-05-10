@@ -30,11 +30,17 @@ const ADMIN_V2_JWT_TTL_SEC = Math.min(
 );
 const BANNER_UPLOADS_DIR = path.join(__dirname, 'uploads', 'banners');
 const MAX_BANNER_IMAGE_BYTES = 2 * 1024 * 1024;
+const MAX_PRODUCT_IMAGE_BYTES = Math.min(
+  12 * 1024 * 1024,
+  Math.max(MAX_BANNER_IMAGE_BYTES, Number(process.env.MAX_PRODUCT_IMAGE_BYTES || 6 * 1024 * 1024) || 6 * 1024 * 1024)
+);
 const BIOMETRIC_UPLOADS_DIR = path.join(__dirname, 'uploads', 'biometric');
 const ADMIN_AMBIENT_UPLOADS_DIR = path.join(__dirname, 'uploads', 'audio', 'admin-ambient');
 const MAX_BIOMETRIC_BYTES = 1.5 * 1024 * 1024;
 const MAX_ADMIN_AMBIENT_BYTES = 12 * 1024 * 1024;
 const SHORTS_VIDEO_UPLOADS_DIR = path.join(__dirname, 'uploads', 'shorts');
+const PRODUCTS_UPLOADS_DIR = path.join(__dirname, 'uploads', 'products');
+const CATEGORY_UPLOADS_DIR = path.join(__dirname, 'uploads', 'categories');
 const GENERIC_MEDIA_UPLOADS_DIR = path.join(__dirname, 'uploads', 'uploads');
 const MAX_SHORTS_VIDEO_BYTES = Math.min(
   200 * 1024 * 1024,
@@ -303,7 +309,7 @@ function sanitizeFileName(name) {
     .slice(0, 120);
 }
 
-const ALLOWED_ADMIN_V2_IMAGE_PURPOSES = new Set(['banner', 'shorts', 'generic']);
+const ALLOWED_ADMIN_V2_IMAGE_PURPOSES = new Set(['banner', 'shorts', 'generic', 'products']);
 const ALLOWED_ADMIN_V2_IMAGE_MIME = new Set(['image/png', 'image/jpeg']);
 const ALLOWED_SHORTS_VIDEO_MIME = new Set([
   'video/mp4',
@@ -345,6 +351,8 @@ function resolveAdminV2ImageStorage(purpose) {
       return { localDir: SHORTS_VIDEO_UPLOADS_DIR, urlPathSegment: 'shorts', r2Prefix: 'shorts' };
     case 'generic':
       return { localDir: GENERIC_MEDIA_UPLOADS_DIR, urlPathSegment: 'uploads', r2Prefix: 'uploads' };
+    case 'products':
+      return { localDir: PRODUCTS_UPLOADS_DIR, urlPathSegment: 'products', r2Prefix: 'products' };
     default:
       return { localDir: BANNER_UPLOADS_DIR, urlPathSegment: 'banners', r2Prefix: 'banners' };
   }
@@ -369,6 +377,16 @@ const shortsVideoUpload = multer({
   fileFilter: (req, file, cb) => {
     if (normalizeShortsUploadMime(file)) return cb(null, true);
     cb(new Error('UNSUPPORTED_VIDEO'));
+  }
+});
+
+const categoryImageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_BANNER_IMAGE_BYTES },
+  fileFilter: (req, file, cb) => {
+    const m = String(file.mimetype || '').toLowerCase();
+    if (ALLOWED_ADMIN_V2_IMAGE_MIME.has(m)) return cb(null, true);
+    cb(new Error('UNSUPPORTED_CATEGORY_IMAGE'));
   }
 });
 
@@ -1240,6 +1258,8 @@ app.put('/api/v1/admin-v2/home-settings', requireAdminV2, async (req, res) => {
 });
 
 app.post('/api/v1/admin-v2/media/image', requireAdminV2, async (req, res) => {
+  const purpose = normalizeAdminV2ImagePurpose(req.body?.purpose);
+  const maxImageBytes = purpose === 'products' ? MAX_PRODUCT_IMAGE_BYTES : MAX_BANNER_IMAGE_BYTES;
   const parsed = parseImageDataUrl(req.body?.imageDataUrl);
   if (!parsed) {
     return res.status(400).json({ ok: false, message: 'PNG/JPG data URL kiriting' });
@@ -1248,12 +1268,19 @@ app.post('/api/v1/admin-v2/media/image', requireAdminV2, async (req, res) => {
   if (!ALLOWED_ADMIN_V2_IMAGE_MIME.has(mimeLower)) {
     return res.status(400).json({ ok: false, message: 'Faqat PNG yoki JPG ruxsat etiladi' });
   }
-  if (parsed.buffer.length > MAX_BANNER_IMAGE_BYTES) {
-    return res.status(400).json({ ok: false, message: 'Rasm hajmi juda katta (maks ~2MB)' });
+  if (parsed.buffer.length > maxImageBytes) {
+    const mb = Math.round(maxImageBytes / (1024 * 1024));
+    return res.status(400).json({
+      ok: false,
+      message:
+        purpose === 'products'
+          ? `Mahsulot rasmi juda katta (maks ~${mb}MB)`
+          : 'Rasm hajmi juda katta (maks ~2MB)'
+    });
   }
-  const purpose = normalizeAdminV2ImagePurpose(req.body?.purpose);
   const { localDir, urlPathSegment, r2Prefix } = resolveAdminV2ImageStorage(purpose);
-  const stem = purpose === 'shorts' ? 'short_thumb' : 'cms';
+  const stem =
+    purpose === 'shorts' ? 'short_thumb' : purpose === 'products' ? 'product' : 'cms';
   const fileName = `${stem}_${Date.now()}_${randomId('img')}.${parsed.ext}`;
 
   if (r2Service.shouldUseR2()) {
@@ -1434,6 +1461,12 @@ app.get('/api/v1/admin-v2/products', requireAdminV2, async (req, res) => {
   return res.json({ ok: true, products, note: 'products-lite: faqat ko‘rish / qidiruv' });
 });
 
+app.put('/api/v1/admin-v2/products/:id', requireAdminV2, async (req, res) => {
+  const updated = await marketplaceRepo.updateProduct(req.params.id, req.body || {});
+  if (!updated) return res.status(404).json({ ok: false, message: 'Mahsulot topilmadi' });
+  return res.json({ ok: true, product: updated });
+});
+
 // Admin API
 app.get('/api/v1/admin/banners', requireAdmin, async (req, res) => {
   const rows = await marketplaceRepo.listBannersOrdered();
@@ -1500,10 +1533,60 @@ app.put('/api/v1/admin/categories/:id', requireAdmin, async (req, res) => {
   const withCount = (await marketplaceRepo.listCategoriesForAdmin()).find((c) => c.id === updated.id);
   res.json({ ok: true, category: withCount || updated });
 });
-app.post('/api/v1/admin/categories/:id/image', requireAdmin, async (req, res) => {
-  const updated = await marketplaceRepo.updateCategory(req.params.id, {});
-  if (!updated) return res.status(404).json({ ok: false, message: 'Category topilmadi' });
-  return res.json({ ok: true, category: updated, warning: 'Multipart upload hozircha mock rejimda' });
+app.post('/api/v1/admin/categories/:id/image', requireAdmin, (req, res) => {
+  categoryImageUpload.single('file')(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({
+        ok: false,
+        message: 'Faqat PNG/JPG, maks ~2MB'
+      });
+    }
+    const id = req.params.id;
+    const buf = req.file?.buffer;
+    const mimeLower = String(req.file?.mimetype || '').toLowerCase();
+    if (!buf?.length || !ALLOWED_ADMIN_V2_IMAGE_MIME.has(mimeLower)) {
+      return res.status(400).json({ ok: false, message: 'PNG yoki JPG fayl yuklang' });
+    }
+    const existing = await prisma.category.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ ok: false, message: 'Category topilmadi' });
+
+    const ext = mimeLower === 'image/png' ? 'png' : 'jpg';
+    const fileName = `cat_${sanitizeFileName(id)}_${Date.now()}.${ext}`;
+
+    let publicUrl;
+    if (r2Service.shouldUseR2()) {
+      try {
+        const key = r2Service.buildObjectKey('categories', fileName);
+        publicUrl = (await r2Service.uploadToR2(buf, key, mimeLower)).url;
+      } catch (error) {
+        logStructured('warn', 'admin_category_image_r2_failed_fallback_local', { message: error?.message });
+        ensureDir(CATEGORY_UPLOADS_DIR);
+        const diskPath = path.join(CATEGORY_UPLOADS_DIR, fileName);
+        try {
+          fs.writeFileSync(diskPath, buf);
+        } catch (writeErr) {
+          logStructured('error', 'admin_category_image_write_failed', { message: writeErr?.message });
+          return res.status(500).json({ ok: false, message: 'Rasm saqlab bo‘lmadi' });
+        }
+        publicUrl = `/uploads/categories/${fileName}`;
+      }
+    } else {
+      ensureDir(CATEGORY_UPLOADS_DIR);
+      const diskPath = path.join(CATEGORY_UPLOADS_DIR, fileName);
+      try {
+        fs.writeFileSync(diskPath, buf);
+      } catch (writeErr) {
+        logStructured('error', 'admin_category_image_write_failed', { message: writeErr?.message });
+        return res.status(500).json({ ok: false, message: 'Rasm saqlab bo‘lmadi' });
+      }
+      publicUrl = `/uploads/categories/${fileName}`;
+    }
+
+    const updated = await marketplaceRepo.updateCategory(id, { imageUrl: publicUrl });
+    if (!updated) return res.status(404).json({ ok: false, message: 'Category topilmadi' });
+    const withCount = (await marketplaceRepo.listCategoriesForAdmin()).find((c) => c.id === updated.id);
+    return res.json({ ok: true, category: withCount || updated });
+  });
 });
 
 app.get('/api/v1/admin/products', requireAdmin, async (req, res) => {
@@ -1915,6 +1998,12 @@ async function main() {
   await prisma.$connect();
   console.log('PostgreSQL connected');
   await marketplaceRepo.ensureAppState();
+  if (r2Service.shouldUseR2()) {
+    const diag = r2Service.diagnoseR2PublicUrl();
+    console.info('[R2] configured — CDN uploads:', diag.ok ? 'PUBLIC_URL OK' : diag.message);
+  } else {
+    console.info('[R2] not configured — using local disk under /uploads');
+  }
   app.listen(PORT, () => {
     console.info(`[SERVER] started on port ${PORT}`);
   });

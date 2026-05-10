@@ -225,8 +225,8 @@
     </section>
 
     <section id="panel-products" class="card panel hidden" role="tabpanel">
-      <h2>Mahsulotlar (lite)</h2>
-      <p class="hint">Tez orada to‘liq tahrir — hozircha qidiruv va ko‘rish.</p>
+      <h2>Mahsulotlar</h2>
+      <p class="hint">Rasmni yuklang (R2) yoki tayyor URL kiriting, keyin saqlang.</p>
       <div class="field" style="max-width:320px">
         <label for="pr-q">Qidiruv</label>
         <input id="pr-q" type="text" placeholder="nom, kod..." />
@@ -237,8 +237,12 @@
             <tr>
               <th>Kod</th>
               <th>Nom</th>
+              <th>Rasm</th>
+              <th>URL</th>
+              <th>Fayl</th>
               <th>Narx</th>
               <th>Ombor</th>
+              <th></th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -851,10 +855,22 @@
         return;
       }
       tb.innerHTML = (data.products || [])
-        .map(
-          (p) =>
-            `<tr><td>${escapeHtml(p.code)}</td><td>${escapeHtml(p.name)}</td><td>${p.price}</td><td>${p.stock}</td></tr>`
-        )
+        .map((p) => {
+          const iu = String(p.image_url || '').trim();
+          const thumb = iu
+            ? `<img class="pr-thumb" src="${escapeHtml(iu)}" alt="" loading="lazy" />`
+            : '—';
+          return `<tr data-product-id="${escapeHtml(p.id)}">
+            <td>${escapeHtml(p.code)}</td>
+            <td>${escapeHtml(p.name)}</td>
+            <td class="pr-thumb-cell">${thumb}</td>
+            <td><input type="text" class="pr-img-url input-compact" value="${escapeHtml(iu)}" placeholder="https://..." /></td>
+            <td><input type="file" accept="image/png,image/jpeg" class="pr-img-file" /></td>
+            <td>${p.price}</td>
+            <td>${p.stock}</td>
+            <td><button type="button" class="btn btn-primary btn-compact pr-save">Saqlash</button></td>
+          </tr>`;
+        })
         .join('');
     }
 
@@ -917,6 +933,41 @@
     $('pr-q').addEventListener('input', () => {
       clearTimeout(prTimer);
       prTimer = setTimeout(loadProducts, 320);
+    });
+
+    $('pr-table').addEventListener('click', async (e) => {
+      const btn = e.target.closest('.pr-save');
+      if (!btn) return;
+      const tr = btn.closest('tr');
+      const id = tr?.dataset?.productId;
+      if (!id) return;
+      btn.disabled = true;
+      try {
+        const urlIn = tr.querySelector('.pr-img-url');
+        const fileIn = tr.querySelector('.pr-img-file');
+        let image_url = (urlIn?.value || '').trim();
+        if (fileIn?.files?.[0]) {
+          const up = await uploadImageFile(fileIn, 'products');
+          if (!up) {
+            btn.disabled = false;
+            return;
+          }
+          image_url = up;
+          urlIn.value = up;
+        }
+        const { res, data } = await api('/api/v1/admin-v2/products/' + encodeURIComponent(id), {
+          method: 'PUT',
+          body: JSON.stringify({ image_url })
+        });
+        if (!res.ok) {
+          toast(data.message || 'Xatolik');
+          return;
+        }
+        toast('Rasm saqlandi');
+        await loadProducts();
+      } finally {
+        btn.disabled = false;
+      }
     });
 
     if (localStorage.getItem(TOKEN_KEY)) {
