@@ -3057,14 +3057,6 @@ Oq fonli foto</div>
     const bestSectionHead = document.getElementById('bestSectionHead');
     const reorderSectionHead = document.getElementById('reorderSectionHead');
 
-    const CURATED_CATEGORIES = [
-      { key: 'Kanselyariya', displayName: 'Kanselyariya', icon: '✏️', match: ['kanselyariya'] },
-      { key: 'Ofis jihozlari', displayName: 'Ofis jihozlari', icon: '🪑', match: ['ofis jihozlari'] },
-      { key: 'Kompyuter aksessuarlari', displayName: 'Kompyuter aksessuarlari', icon: '🖱️', match: ['kompyuter aksessuarlari'] },
-      { key: 'USB va kabellar', displayName: 'USB va kabellar', icon: '🔌', match: ['usb va kabellar'] },
-      { key: 'Ichimliklar', displayName: 'Ichimliklar', icon: '🥤', match: ['ichimliklar'] }
-    ];
-
     const modalOverlay = document.getElementById('productModalOverlay');
     const modalUpsellTitle = document.getElementById('modalUpsellTitle');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -5090,21 +5082,13 @@ Oq fonli foto</div>
     function normalizedCategoryName(categoryName) {
       return String(categoryName || '').trim() || t('categoryOther');
     }
-    function localizeCuratedCategory(name) {
-      const map = {
-        'Kanselyariya': t('catStationery'),
-        'Ofis jihozlari': t('catOffice'),
-        'Kompyuter aksessuarlari': t('catComputer'),
-        'USB va kabellar': t('catUsb'),
-        'Ichimliklar': t('catDrinks'),
-        'Boshqa': t('categoryOther')
-      };
-      return map[name] || name || t('categoryOther');
-    }
-    function normalizeCategoryKey(rawCategory, productName = '') {
-      const text = `${normalizedCategoryName(rawCategory)} ${productName}`.toLowerCase();
-      const byRule = CURATED_CATEGORIES.find((c) => c.key !== 'Boshqa' && c.match.some((m) => text.includes(m.toLowerCase())));
-      return byRule ? byRule.key : 'Boshqa';
+    function normalizeCategoryKey(rawCategory) {
+      const name = normalizedCategoryName(rawCategory);
+      const normalized = String(name || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\u0400-\u04ff]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      return normalized || 'boshqa';
     }
 
     function getCategoryIcon(name) {
@@ -5126,18 +5110,32 @@ Oq fonli foto</div>
     }
 
     function getCategoryEntries() {
-      const curated = CURATED_CATEGORIES.map((c) => ({
-        ...c,
-        displayName: localizeCuratedCategory(c.displayName),
-        count: products.filter((p) => productMatchesCategory(p, c.key)).length
-      }));
-      const total = curated.reduce((sum, c) => sum + c.count, 0);
-      return [{ key: 'all', displayName: t('allCategories'), icon: '🛍️', count: total }, ...curated];
+      const map = new Map();
+      for (const p of products) {
+        const rawName = normalizedCategoryName(p.categoryDisplayName || p.category);
+        const key = normalizeCategoryKey(rawName);
+        const cur = map.get(key);
+        if (cur) {
+          cur.count += 1;
+        } else {
+          map.set(key, {
+            key,
+            displayName: rawName,
+            icon: getCategoryIcon(rawName),
+            count: 1
+          });
+        }
+      }
+      const entries = Array.from(map.values()).sort((a, b) =>
+        String(a.displayName || '').localeCompare(String(b.displayName || ''), currentLang === 'ru' ? 'ru' : 'uz')
+      );
+      const total = entries.reduce((sum, c) => sum + c.count, 0);
+      return [{ key: 'all', displayName: t('allCategories'), icon: '🛍️', count: total }, ...entries];
     }
 
     function productMatchesCategory(product, categoryKey) {
       if (!categoryKey || categoryKey === 'all') return true;
-      return normalizeCategoryKey(product.categoryDisplayName || product.category, product.name) === categoryKey;
+      return normalizeCategoryKey(product.categoryDisplayName || product.category) === categoryKey;
     }
 
     function renderHomeCategories() {
