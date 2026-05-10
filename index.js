@@ -40,6 +40,10 @@ const BIOMETRIC_UPLOADS_DIR = path.join(__dirname, 'uploads', 'biometric');
 const ADMIN_AMBIENT_UPLOADS_DIR = path.join(__dirname, 'uploads', 'audio', 'admin-ambient');
 const MAX_BIOMETRIC_BYTES = 1.5 * 1024 * 1024;
 const MAX_ADMIN_AMBIENT_BYTES = 12 * 1024 * 1024;
+const MAX_XLSX_IMPORT_BYTES = Math.min(
+  200 * 1024 * 1024,
+  Math.max(5 * 1024 * 1024, Number(process.env.MAX_XLSX_IMPORT_BYTES || 80 * 1024 * 1024) || 80 * 1024 * 1024)
+);
 const SHORTS_VIDEO_UPLOADS_DIR = path.join(__dirname, 'uploads', 'shorts');
 const PRODUCTS_UPLOADS_DIR = path.join(__dirname, 'uploads', 'products');
 const CATEGORY_UPLOADS_DIR = path.join(__dirname, 'uploads', 'categories');
@@ -539,7 +543,7 @@ const shortsVideoUpload = multer({
 
 const adminExcelUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 },
+  limits: { fileSize: MAX_XLSX_IMPORT_BYTES },
   fileFilter: (req, file, cb) => {
     const name = String(file.originalname || '').toLowerCase();
     const mime = String(file.mimetype || '').toLowerCase();
@@ -1990,7 +1994,10 @@ app.post('/api/v1/admin/products/import', requireAdmin, (req, res) => {
   adminExcelUpload.single('file')(req, res, async (err) => {
     if (err) {
       if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(413).json({ ok: false, message: 'XLSX fayl juda katta (maks 20MB)' });
+        return res.status(413).json({
+          ok: false,
+          message: `XLSX fayl juda katta (maks ${Math.round(MAX_XLSX_IMPORT_BYTES / (1024 * 1024))}MB)`
+        });
       }
       return res.status(400).json({ ok: false, message: 'Faqat .xlsx fayl yuklang' });
     }
