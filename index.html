@@ -4434,18 +4434,17 @@ Oq fonli foto</div>
         }
         try {
           await loadProducts({ reset: false });
-          renderHomeCategories();
-          renderHome();
-          if (currentView === 'searchView') renderSearch();
-          renderCart();
+          if (currentView === 'searchView' && catalogMode === 'category') {
+            renderSearch();
+          }
           syncCatalogLoadHint();
-          if (productsHasMore) productsBackfillTimer = setTimeout(step, 50);
+          if (productsHasMore) productsBackfillTimer = setTimeout(step, 180);
           else productsBackfillTimer = null;
         } catch (_) {
           productsBackfillTimer = setTimeout(step, 900);
         }
       };
-      productsBackfillTimer = setTimeout(step, 350);
+      productsBackfillTimer = setTimeout(step, 600);
     }
 
     async function ensureProductInMemory(id) {
@@ -6276,8 +6275,6 @@ Oq fonli foto</div>
           if (!productsHasMore || productsLoading) return;
           void loadProducts({ reset: false }).then(() => {
             renderSearch();
-            renderHomeCategories();
-            renderHome();
             syncCatalogLoadHint();
           });
         },
