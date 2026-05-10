@@ -3738,11 +3738,12 @@ Oq fonli foto</div>
       const INTRO_AMBIENT_VOLUME = 0.72;
       const INTRO_AMBIENT_FADE_MS = 650;
       const INTRO_AMBIENT_AUTOPLAY_HINT_COOLDOWN_MS = 12000;
+      /** Server playlist (`/api/v1/ambient-playlist`) empty bo‘lsa — faqat Silviana (test tone yo‘q) */
       const INTRO_AMBIENT_PLAYLIST = [
-        { src: '/uploads/audio/ambient-jazz/calm-jazz-01.wav', title: 'Calm Jazz 01' },
-        { src: '/uploads/audio/ambient-jazz/calm-jazz-02.wav', title: 'Calm Jazz 02' },
-        { src: '/uploads/audio/ambient-jazz/calm-jazz-03.wav', title: 'Calm Jazz 03' },
-        { src: '/uploads/audio/ambient-jazz/calm-jazz-04.wav', title: 'Calm Jazz 04' }
+        {
+          src: '/uploads/audio/admin-ambient/slot-1-silviana-ho-capito-che-ti-amo.mp3',
+          title: 'Silviana — ho capito che ti amo'
+        }
       ];
 
       const audio = document.getElementById('introAmbientAudio');
