@@ -1311,6 +1311,17 @@ app.post('/api/v1/admin-v2/media/image', requireAdminV2, async (req, res) => {
       const { url } = await r2Service.uploadToR2(parsed.buffer, key, mimeLower);
       return res.json({ ok: true, url });
     } catch (error) {
+      logStructured('error', 'admin_v2_media_image_r2_failed', {
+        message: error?.message,
+        purpose
+      });
+      if (purpose === 'shorts') {
+        return res.status(503).json({
+          ok: false,
+          message:
+            'R2 ga yuklash amalga oshmadi (kalitlar / tarmoq). Shorts uchun mahalliy disk ishlatilmaydi — Railway deployda fayllar yo‘qolardi. R2 ni tekshirib qayta urinib ko‘ring.'
+        });
+      }
       logStructured('warn', 'admin_v2_media_image_r2_failed_fallback_local', { message: error?.message });
       ensureDir(localDir);
       const absolutePath = path.join(localDir, fileName);
@@ -1375,12 +1386,15 @@ app.post('/api/v1/admin-v2/media/video', requireAdminV2, (req, res) => {
         } catch (_) {}
         return res.json({ ok: true, url });
       } catch (error) {
-        // Multer already wrote under uploads/shorts — keep file if R2 (credentials/network) fails.
-        logStructured('warn', 'admin_v2_media_video_r2_failed_fallback_local', {
-          message: error?.message
+        logStructured('error', 'admin_v2_media_video_r2_failed', { message: error?.message });
+        try {
+          fs.unlinkSync(f.path);
+        } catch (_) {}
+        return res.status(503).json({
+          ok: false,
+          message:
+            'R2 ga video yuklanmadi (kalitlar / tarmoq). Mahalliy URL berilmaydi — Railway deploydan keyin yo‘qolardi. R2 ni tekshirib qayta yuklang.'
         });
-        const url = `/uploads/shorts/${baseName}`;
-        return res.json({ ok: true, url });
       }
     }
 
