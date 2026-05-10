@@ -3735,7 +3735,7 @@ Oq fonli foto</div>
     function initIntroAmbientPlayer() {
       const INTRO_AMBIENT_LS_PLAYING = 'gm_intro_ambient_playing';
       const INTRO_AMBIENT_LS_TRACK = 'gm_intro_ambient_track_ix';
-      const INTRO_AMBIENT_VOLUME = 0.2;
+      const INTRO_AMBIENT_VOLUME = 0.14;
       const INTRO_AMBIENT_FADE_MS = 900;
       const INTRO_AMBIENT_FADE_IN_MS = 2800;
       const INTRO_AMBIENT_AUTOPLAY_HINT_COOLDOWN_MS = 12000;
@@ -3772,7 +3772,7 @@ Oq fonli foto</div>
       audio.muted = false;
       audio.defaultMuted = false;
 
-      /** iOS Safari / WKWebView ignores HTMLMediaElement.volume for audible level; GainNode still attenuates. */
+      /** iOS Safari / WKWebView largely ignores HTMLMediaElement.volume; attenuate via GainNode + AudioParam. */
       let ambientAudioContext = null;
       let ambientGainNode = null;
 
@@ -3786,7 +3786,9 @@ Oq fonli foto</div>
           ambientGainNode = ambientAudioContext.createGain();
           src.connect(ambientGainNode).connect(ambientAudioContext.destination);
           audio.volume = 1;
-          ambientGainNode.gain.value = INTRO_AMBIENT_VOLUME;
+          const t = ambientAudioContext.currentTime;
+          ambientGainNode.gain.cancelScheduledValues(t);
+          ambientGainNode.gain.setValueAtTime(INTRO_AMBIENT_VOLUME, t);
           return true;
         } catch {
           ambientAudioContext = null;
@@ -3795,13 +3797,20 @@ Oq fonli foto</div>
         }
       }
 
+      function primeAmbientGraphFromUserGesture() {
+        ensureAmbientGainRouting();
+        resumeAmbientAudioContextSync();
+      }
+
       function setAmbientLinearVolume(linear) {
         const v = Math.max(0, Math.min(1, Number(linear)));
         if (!Number.isFinite(v)) return;
         ensureAmbientGainRouting();
-        if (ambientGainNode) {
+        if (ambientGainNode && ambientAudioContext) {
           audio.volume = 1;
-          ambientGainNode.gain.value = v;
+          const t = ambientAudioContext.currentTime;
+          ambientGainNode.gain.cancelScheduledValues(t);
+          ambientGainNode.gain.setValueAtTime(v, t);
         } else {
           audio.volume = v;
         }
@@ -3827,7 +3836,7 @@ Oq fonli foto</div>
         } catch (_) {}
       }
 
-      setAmbientLinearVolume(INTRO_AMBIENT_VOLUME);
+      audio.volume = INTRO_AMBIENT_VOLUME;
 
       function persistPlaying(on) {
         localStorage.setItem(INTRO_AMBIENT_LS_PLAYING, on ? '1' : '0');
@@ -4041,6 +4050,7 @@ Oq fonli foto</div>
         if (!btn || btn.dataset.ambientBound === '1') return;
         btn.dataset.ambientBound = '1';
         btn.addEventListener('pointerdown', () => {
+          primeAmbientGraphFromUserGesture();
           longPressHold = false;
           longPressTimer = window.setTimeout(() => {
             longPressHold = true;
@@ -4140,9 +4150,9 @@ Oq fonli foto</div>
         // Captures gesture by starting playback immediately when tracks are ready.
         pendingAutoplayRequest = true;
         persistPlaying(true);
+        primeAmbientGraphFromUserGesture();
         if (tracks.length && (audio.paused || audio.ended)) {
           if (!audio.getAttribute('src')) loadCurrentTrack();
-          resumeAmbientAudioContextSync();
           setAmbientLinearVolume(0);
           const playPromise = audio.play();
           if (playPromise && typeof playPromise.then === 'function') {
