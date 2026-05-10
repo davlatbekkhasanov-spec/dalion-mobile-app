@@ -1,4 +1,5 @@
 const express = require('express');
+const compression = require('compression');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -20,6 +21,7 @@ process.on('unhandledRejection', (reason) => {
 });
 
 const app = express();
+app.use(compression({ threshold: 2048 }));
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_IMPORT_TOKEN || '12345';
 const ADMIN_V2_PASSWORD = process.env.ADMIN_V2_PASSWORD ?? '8080';

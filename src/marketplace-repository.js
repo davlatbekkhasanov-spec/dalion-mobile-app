@@ -218,6 +218,25 @@ function productToPublic(p) {
   };
 }
 
+/** Smaller JSON for home rails embedded in /home (mobile bandwidth). */
+function productToPublicHomeRail(p) {
+  const c = p.category;
+  return {
+    id: p.id,
+    code: '',
+    name: p.name,
+    price: p.price,
+    oldPrice: p.oldPrice,
+    stock: p.stock,
+    image_url: p.imageUrl || '',
+    active: p.active,
+    categoryId: p.categoryId,
+    category: c?.name || '',
+    categoryDisplayName: c?.displayName || c?.name || '',
+    discount_percent: p.discountPercent
+  };
+}
+
 async function findProductById(id) {
   return prisma.product.findFirst({
     where: { id: String(id) },
@@ -330,14 +349,14 @@ async function listHomeCatalogRails() {
     const order = new Map(discIds.map((id, i) => [id, i]));
     discountedPublic = [...discountedRows]
       .sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999))
-      .map(productToPublic);
+      .map(productToPublicHomeRail);
   }
 
   return {
-    featured: featuredRows.map(productToPublic),
+    featured: featuredRows.map(productToPublicHomeRail),
     discounted: discountedPublic,
-    inStock: inStockRows.map(productToPublic),
-    newArrivals: newRows.map(productToPublic)
+    inStock: inStockRows.map(productToPublicHomeRail),
+    newArrivals: newRows.map(productToPublicHomeRail)
   };
 }
 
