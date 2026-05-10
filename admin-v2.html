@@ -170,7 +170,7 @@
         </div>
         <div class="field">
           <label for="sh-video-file">Video fayl (MP4 / WebM)</label>
-          <input id="sh-video-file" type="file" accept="video/mp4,video/webm,.mp4,.webm" />
+          <input id="sh-video-file" type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" />
         </div>
       </div>
       <progress id="sh-video-progress" value="0" max="1" style="display:none;width:100%;max-width:420px;height:10px;margin-top:8px;border-radius:6px"></progress>
@@ -415,7 +415,14 @@
           return;
         }
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/api/v1/admin-v2/media/video');
+        const origin =
+          window.location.origin && window.location.protocol !== 'file:'
+            ? window.location.origin
+            : '';
+        xhr.open(
+          'POST',
+          origin ? `${origin}/api/v1/admin-v2/media/video` : '/api/v1/admin-v2/media/video'
+        );
         xhr.setRequestHeader('Authorization', 'Bearer ' + token);
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable && typeof onProgress === 'function') onProgress(e.loaded / e.total);
@@ -704,6 +711,9 @@
         const up = await uploadImageFile($('sh-thumb-file'), 'shorts');
         if (up) body.thumbnail_url = up;
         if (!body.title) return toast('Sarlavha kiriting');
+        if (!mediaUrl.trim() && !selectedShortId) {
+          return toast('Video fayl yuklang yoki media URL kiriting');
+        }
         if (selectedShortId) {
           const { res, data } = await api('/api/v1/admin-v2/shorts/' + encodeURIComponent(selectedShortId), {
             method: 'PUT',

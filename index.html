@@ -3050,13 +3050,7 @@ Oq fonli foto</div>
       if (/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(u)) return true;
       if (u.includes('/uploads/shorts/')) return true;
       if (u.includes('/shorts/')) return true;
-      try {
-        const host = new URL(u).hostname.toLowerCase();
-        if (host.endsWith('.r2.dev')) return true;
-        if (host.includes('r2.cloudflarestorage.com')) return true;
-      } catch (_) {
-        /* ignore */
-      }
+      if (/\.r2\.dev/i.test(u)) return true;
       return false;
     }
 
@@ -3080,6 +3074,7 @@ Oq fonli foto</div>
       if (mime.startsWith('image/')) return 'image';
       if (shortMediaLooksLikeImage(media)) return 'image';
       if (shortMediaLooksLikeVideo(media)) return 'video';
+      if (media && /^https?:\/\//i.test(media) && !shortMediaLooksLikeImage(media)) return 'video';
       return 'unknown';
     }
 

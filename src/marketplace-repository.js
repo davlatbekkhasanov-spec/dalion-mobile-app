@@ -613,6 +613,7 @@ async function deletePromotion(id) {
 function inferShortMimeTypeFromMediaUrl(url) {
   const u = String(url || '').trim().toLowerCase();
   if (!u) return '';
+  if (/\.(jpe?g|png|gif|webp)(\?|#|$)/.test(u)) return 'image/jpeg';
   if (/\.webm(\?|#|$)/.test(u)) return 'video/webm';
   if (/\.mov(\?|#|$)/.test(u)) return 'video/quicktime';
   if (/\.(mp4|m4v)(\?|#|$)/.test(u)) return 'video/mp4';
@@ -624,6 +625,8 @@ function inferShortMimeTypeFromMediaUrl(url) {
   } catch (_) {
     /* ignore */
   }
+  // Remote URL without extension (custom R2 domain / CDN): assume video reel
+  if (u.startsWith('http://') || u.startsWith('https://')) return 'video/mp4';
   return '';
 }
 
