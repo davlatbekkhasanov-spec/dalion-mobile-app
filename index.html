@@ -4221,6 +4221,7 @@ Oq fonli foto</div>
       if (!isFormData && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
       if (currentUser?.phone) headers['x-user-phone'] = currentUser.phone;
       const res = await fetch(`/api/v1${path}`, {
+        cache: 'no-store',
         headers,
         ...options
       });
@@ -4507,7 +4508,22 @@ Oq fonli foto</div>
         if (!document.hidden) {
           try {
             const data = await api('/shorts/meta');
-            applyShortsRevisionFromServer(data?.shortsRevision);
+            const srv = Number(data?.shortsRevision);
+            if (!Number.isFinite(srv)) {
+              /* skip */
+            } else {
+              const raw = localStorage.getItem(SHORTS_SEEN_REVISION_LS);
+              let prev = null;
+              if (raw !== null && raw !== '') {
+                const n = parseInt(raw, 10);
+                if (Number.isFinite(n)) prev = n;
+              }
+              if (prev !== null && srv > prev) {
+                await loadHomePayload();
+              } else {
+                applyShortsRevisionFromServer(srv);
+              }
+            }
           } catch (_) {}
         }
         const delay = 12000 + Math.floor(Math.random() * 9000);

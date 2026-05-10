@@ -751,6 +751,7 @@ app.post('/api/payme', (req, res) => {
 // Public API
 app.get('/api/v1/home', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
     const homeSettings = await marketplaceRepo.getHomeSettingsJson();
     const shortsAll = await marketplaceRepo.listShortsApi();
     const activeShorts = shortsAll
@@ -778,6 +779,7 @@ app.get('/api/v1/home', async (req, res) => {
 });
 
 app.get('/api/v1/shorts/meta', async (req, res) => {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
   return res.json({ ok: true, shortsRevision: await marketplaceRepo.getShortsRevision() });
 });
 
@@ -1371,6 +1373,7 @@ app.put('/api/v1/admin-v2/shorts/reorder', requireAdminV2, async (req, res) => {
   const order = Array.isArray(req.body?.order) ? req.body.order : [];
   if (!order.length) return res.status(400).json({ ok: false, message: 'order massivi kerak' });
   const shorts = await marketplaceRepo.reorderShorts(order);
+  await marketplaceRepo.bumpShortsRevision();
   return res.json({ ok: true, shorts });
 });
 
@@ -1382,11 +1385,13 @@ app.put('/api/v1/admin-v2/shorts/:id', requireAdminV2, async (req, res) => {
   const updated = await marketplaceRepo.updateShortApi(req.params.id, req.body || {});
   const nowActive = updated.active !== false;
   if (!wasActive && nowActive) await bumpShortsBroadcast(updated);
+  else await marketplaceRepo.bumpShortsRevision();
   return res.json({ ok: true, short: updated });
 });
 
 app.delete('/api/v1/admin-v2/shorts/:id', requireAdminV2, async (req, res) => {
   await marketplaceRepo.deleteShort(req.params.id);
+  await marketplaceRepo.bumpShortsRevision();
   return res.json({ ok: true });
 });
 
@@ -1518,10 +1523,12 @@ app.put('/api/v1/admin/shorts/:id', requireAdmin, async (req, res) => {
   const updated = await marketplaceRepo.updateShortApi(req.params.id, req.body || {});
   const nowActive = updated.active !== false;
   if (!wasActive && nowActive) await bumpShortsBroadcast(updated);
+  else await marketplaceRepo.bumpShortsRevision();
   return res.json({ ok: true, short: updated });
 });
 app.delete('/api/v1/admin/shorts/:id', requireAdmin, async (req, res) => {
   await marketplaceRepo.deleteShort(req.params.id);
+  await marketplaceRepo.bumpShortsRevision();
   return res.json({ ok: true });
 });
 app.put('/api/v1/admin/products/:id', requireAdmin, async (req, res) => {
