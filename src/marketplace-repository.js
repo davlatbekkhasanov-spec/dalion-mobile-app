@@ -613,6 +613,36 @@ async function patchOrderScalars(orderId, data) {
   return orderToLegacy(updated, updated.items);
 }
 
+/** Payme Merchant API: resolve order by `orderNumber` or internal id (Payme account.order_id). */
+async function findOrderForPayme(accountKey) {
+  const key = String(accountKey || '')
+    .trim()
+    .replace(/^"+|"+$/g, '');
+  if (!key || !String(process.env.DATABASE_URL || '').trim()) return null;
+  return prisma.order.findFirst({
+    where: {
+      OR: [{ orderNumber: key }, { id: key }],
+      paymentMethod: 'payme',
+      paymentStatus: { notIn: ['paid'] }
+    }
+  });
+}
+
+async function paymeMarkOrderPaid(orderId) {
+  await prisma.order.updateMany({
+    where: { id: String(orderId) },
+    data: { paymentStatus: 'paid', status: 'payment_confirmed' }
+  });
+}
+
+/** Called when Payme cancels before settlement — keeps checkout payable again. */
+async function paymeMarkOrderPaymentPending(orderId) {
+  await prisma.order.updateMany({
+    where: { id: String(orderId), paymentStatus: { not: 'paid' } },
+    data: { paymentStatus: 'pending' }
+  });
+}
+
 async function replaceOrderLines(orderId, items) {
   const creates = (items || []).map((it) => ({
     productId: String(it.id || it.productId),
@@ -1145,6 +1175,9 @@ module.exports = {
   listOrdersForFeed,
   findOrderWithItems,
   patchOrderScalars,
+  findOrderForPayme,
+  paymeMarkOrderPaid,
+  paymeMarkOrderPaymentPending,
   replaceOrderLines,
   listBannersOrdered,
   bannerToApi,

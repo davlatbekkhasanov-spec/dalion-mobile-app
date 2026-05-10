@@ -5,21 +5,21 @@
 ## Payme Merchant API endpoint
 
 - `GET /api/payme` returns health JSON for browser checks.
-- `POST /api/payme` accepts Payme JSON-RPC (Merchant API) with `account.order_id`.
-- Implemented methods:
-  - `CheckPerformTransaction`
-  - `CreateTransaction`
-  - `PerformTransaction`
-  - `CancelTransaction`
-  - `CheckTransaction`
+- `POST /api/payme` — Payme **JSON-RPC 2.0** (Merchant API). Auth: HTTP Basic, username **`Paycom`**, password **`PAYME_SECRET_KEY`** (production).
+- Register this URL in Payme Business / Merchant API settings as your checkout endpoint (use your public HTTPS origin).
+- `account.order_id` must equal the customer **`orderNumber`** from GlobusMarket (same string as on `/track/:orderNumber`).
+- Implemented methods: `CheckPerformTransaction`, `CreateTransaction`, `PerformTransaction`, `CancelTransaction`, `CheckTransaction`, `GetStatement`.
 
-### Railway variables for Payme auth
+Customer checkout link is generated server-side:
 
-Add these variables in Railway **Variables** section:
+- `GET /api/v1/payments/payme/url?orderNumber=...&lang=uz|ru` — requires `x-user-phone` (same as app); returns `{ ok, url }` for `https://checkout.paycom.uz/...`.
 
-- `PAYME_MERCHANT_ID`
-- `PAYME_TEST_KEY`
-- `PAYME_SECRET_KEY`
+### Railway variables for Payme
+
+- **`PAYME_MERCHANT_ID`** — merchant id from Payme (used in checkout receipt and dashboard).
+- **`PAYME_SECRET_KEY`** — production key; used as Basic **password** (login is always `Paycom`).
+- **`PAYME_TEST_MODE`** — optional `true` together with **`PAYME_TEST_KEY`** for Payme test callbacks / sandbox parity.
+- **`PAYME_RETURN_URL`** or **`PUBLIC_APP_URL`** — where the customer returns after Payme (`PUBLIC_APP_URL` is optional fallback base).
 
 ### Railway variables for SMS (DevSMS)
 
@@ -31,8 +31,7 @@ Add these variables in Railway **Variables** section:
 - `DEVSMS_CALLBACK_URL`: optional delivery-status webhook URL (only if you consume callbacks).
 - Optional: `DEVSMS_API_URL` (default `https://devsms.uz/api/send_sms.php`), `DEVSMS_OTP_MESSAGE_TEMPLATE` / `SMS_MESSAGE_TEMPLATE` with `{{code}}` (if unset, defaults to GlobusMarket Uzbek registration OTP body), `DEVSMS_SMS_TYPE` (e.g. `universal_otp`), `DEVSMS_SERVICE_NAME`, `DEVSMS_OTP_TEMPLATE_TYPE` (1–4, for universal OTP), `SMS_LOG_OTP_CODE=true` to log plaintext OTP (avoid in production).
 
-`POST /api/payme` now requires Basic authorization in test mode using `PAYME_MERCHANT_ID:PAYME_TEST_KEY`.
-If credentials are missing, the endpoint returns configuration error until variables are set.
+If Payme keys are missing, `POST /api/payme` answers with a JSON-RPC configuration error until variables are set.
 
 Endpoint:
 

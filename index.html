@@ -1951,7 +1951,7 @@
     .cart-item-thumb { width:72px; height:72px; }
     .cart-item-card { border-radius:18px; }
     .checkout-delivery-card { background:#fff; border:1px solid #eceff5; }
-    .payment-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+    .payment-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
     .pay-btn { background:#fff; color:#344054; border:1px solid #d0d5dd; min-height:44px; }
     .pay-btn.active { background:#f5f3ff; border-color:#7f56d9; color:#5b21b6; box-shadow:0 0 0 2px rgba(127,86,217,.14); }
     .bottom { background:#fff; border-top:1px solid #e8ebf2; }
@@ -2363,8 +2363,7 @@
         <div class="list-card gm-card">
           <h4 style="margin-bottom:8px;" id="paymentTitle">To‘lov usuli</h4>
           <div class="payment-grid">
-            <button class="pay-btn" data-payment="payme">🟩 Payme<br><span class="payment-hint">Tezkor onlayn to‘lov</span><br><small>Rasmiy to‘lov havolasi</small></button>
-            <button class="pay-btn" data-payment="click">🟦 Click<br><span class="payment-hint">Click orqali to‘lov</span><br><small>Rasmiy to‘lov havolasi</small></button>
+            <button class="pay-btn" data-payment="payme">🟩 Payme<br><span class="payment-hint">Tezkor onlayn to‘lov</span><br><small>Buyurtmadan keyin havola ochiladi</small></button>
             <button class="pay-btn" data-payment="cash">💵 Naqd<br><span class="payment-hint">Yetkazilganda to‘lov</span><br><small>Kuryerga naqd</small></button>
           </div>
           <div id="paymentLinks" class="muted" style="margin-top:8px;"></div>
@@ -3528,7 +3527,7 @@ Oq fonli foto</div>
         etaLong: "Samarqand bo'ylab odatda 1-4 soat (tirbandlik va yuklamaga qarab)",
         etaShort: "Samarqand bo'ylab odatda 1-4 soat",
         payLink: "To'lov havolasi",
-        paymeHint: "Payme: To'lovni Payme ilovasi orqali yakunlang",
+        paymeHint: "Payme: Buyurtmani yuborganingizdan keyin to‘lov sahifasi ochiladi.",
         activeOrderAmount: 'Jami',
         paymentLabel: "To'lov",
         paymentType: "To'lov turi",
@@ -3733,7 +3732,7 @@ Oq fonli foto</div>
         etaLong: 'По Самарканду обычно 1-4 часа (в зависимости от пробок и загрузки)',
         etaShort: 'По Самарканду обычно 1-4 часа',
         payLink: 'Ссылка на оплату',
-        paymeHint: 'Payme: Завершите оплату в приложении Payme',
+        paymeHint: 'Payme: после отправки заказа откроется страница оплаты.',
         activeOrderAmount: 'Итого',
         paymentLabel: 'Оплата',
         paymentType: 'Способ оплаты',
@@ -4923,7 +4922,7 @@ Oq fonli foto</div>
     function paymentMethodLabel(method) {
       const normalized = String(method || '').toLowerCase();
       if (normalized === 'payme') return 'Payme';
-      if (normalized === 'click') return 'Click';
+      if (normalized === 'click') return 'Click (esk)';
       if (normalized === 'cash') return t('paymentMethodCash');
       return method || '-';
     }
@@ -5355,11 +5354,9 @@ Oq fonli foto</div>
           ? t('checkoutHintManual')
           : t('checkoutHintOptional');
       }
-      const clickAmountTiyin = Math.round(Number(orderTotal || 0) * 100);
-      if (selectedPayment === 'click') paymentLinks.innerHTML = `Click: <a href="https://indoor.click.uz/pay?id=081328&t=${clickAmountTiyin}" target="_blank">${t('payLink')}</a>`;
-      else if (selectedPayment === 'payme') paymentLinks.innerHTML = t('paymeHint');
+      if (selectedPayment === 'payme') paymentLinks.innerHTML = t('paymeHint');
       else paymentLinks.innerHTML = '';
-      const isOnline = selectedPayment === 'click' || selectedPayment === 'payme';
+      const isOnline = selectedPayment === 'payme';
       paymentProofInput.style.display = 'none';
       cashAgreementDetails.style.display = selectedPayment === 'cash' ? 'block' : 'none';
       cashAgreementLabel.style.display = selectedPayment === 'cash' ? 'block' : 'none';
@@ -6287,10 +6284,16 @@ Oq fonli foto</div>
         mergeRailProductsIntoCatalog(homeCatalogRails);
         await hydrateCartProductsIntoCatalog();
         scheduleProductsBackfillDeferred();
-        if (selectedPayment === 'click') {
-          const amountTiyin = Math.round(Number((checkoutTotals?.finalTotal || 0)) * 100);
-          // TODO: replace redirect-only flow with Click callback/webhook confirmation.
-          window.open(`https://indoor.click.uz/pay?id=081328&t=${amountTiyin}`, '_blank');
+        if (selectedPayment === 'payme' && order.orderNumber) {
+          try {
+            const langQ = currentLang === 'ru' ? 'ru' : 'uz';
+            const pay = await api(
+              `/payments/payme/url?orderNumber=${encodeURIComponent(order.orderNumber)}&lang=${encodeURIComponent(langQ)}`
+            );
+            if (pay.url) window.open(pay.url, '_blank');
+          } catch (e) {
+            showToast(e.message || 'Payme havolasini olishda xato');
+          }
         }
         cart = {};
         renderAll();

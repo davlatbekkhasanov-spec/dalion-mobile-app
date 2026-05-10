@@ -1,61 +1,125 @@
-const db = require('../db/index.js');
+const prisma = require('../prisma-client');
 
 const mem = new Map();
+
+function usePrisma() {
+  return Boolean(String(process.env.DATABASE_URL || '').trim());
+}
+
+function toLegacy(row) {
+  if (!row) return null;
+  return {
+    payme_transaction_id: row.paymeTransactionId,
+    order_id: row.orderId,
+    amount: row.amount,
+    state: row.state,
+    reason: row.reason,
+    create_time: Number(row.createTime),
+    perform_time: Number(row.performTime),
+    cancel_time: Number(row.cancelTime),
+    sandbox: row.sandbox
+  };
+}
 
 async function getById(id) {
   const key = String(id || '').trim();
   if (!key) return null;
-  if (!db.isDbEnabled()) return mem.get(key) || null;
-  const out = await db.query('select * from payme_transactions where payme_transaction_id = $1 limit 1', [key]);
-  return out.rows[0] || null;
+  if (!usePrisma()) return mem.get(key) || null;
+  const row = await prisma.paymeTransaction.findUnique({ where: { paymeTransactionId: key } });
+  return toLegacy(row);
 }
 
 async function getActiveByOrderId(orderId, ignoreTxId = '') {
   const oid = String(orderId || '').trim();
   if (!oid) return null;
-  if (!db.isDbEnabled()) {
+  const ign = String(ignoreTxId || '');
+  if (!usePrisma()) {
     for (const tx of mem.values()) {
-      if (tx.order_id === oid && tx.payme_transaction_id !== ignoreTxId && Number(tx.state) === 1) return tx;
+      if (tx.order_id === oid && tx.payme_transaction_id !== ign && Number(tx.state) === 1) return tx;
     }
     return null;
   }
-  const out = await db.query(
-    'select * from payme_transactions where order_id = $1 and state = 1 and payme_transaction_id <> $2 order by created_at desc limit 1',
-    [oid, String(ignoreTxId || '')]
-  );
-  return out.rows[0] || null;
+  const row = await prisma.paymeTransaction.findFirst({
+    where: {
+      orderId: oid,
+      state: 1,
+      ...(ign ? { paymeTransactionId: { not: ign } } : {})
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+  return toLegacy(row);
 }
 
 async function upsert(tx) {
   const key = String(tx.payme_transaction_id || '').trim();
-  if (!db.isDbEnabled()) {
-    mem.set(key, { ...tx, payme_transaction_id: key });
-    return mem.get(key);
+  if (!key) throw new Error('missing payme_transaction_id');
+  const legacy = {
+    payme_transaction_id: key,
+    order_id: String(tx.order_id || ''),
+    amount: Math.round(Number(tx.amount || 0)),
+    state: Number(tx.state ?? 1),
+    reason: tx.reason != null ? Number(tx.reason) : null,
+    create_time: Number(tx.create_time || 0),
+    perform_time: Number(tx.perform_time || 0),
+    cancel_time: Number(tx.cancel_time || 0),
+    sandbox: Boolean(tx.sandbox)
+  };
+  if (!usePrisma()) {
+    mem.set(key, legacy);
+    return legacy;
   }
-  await db.query(
-    `insert into payme_transactions
-    (payme_transaction_id, order_id, amount, state, reason, create_time, perform_time, cancel_time, created_at, updated_at, raw_data)
-    values ($1,$2,$3,$4,$5,$6,$7,$8, now(), now(), $9)
-    on conflict (payme_transaction_id) do update
-    set order_id=excluded.order_id, amount=excluded.amount, state=excluded.state, reason=excluded.reason,
-        create_time=excluded.create_time, perform_time=excluded.perform_time, cancel_time=excluded.cancel_time,
-        updated_at=now(), raw_data=excluded.raw_data`,
-    [key, tx.order_id, tx.amount, tx.state, tx.reason ?? null, tx.create_time || 0, tx.perform_time || 0, tx.cancel_time || 0, tx]
-  );
-  return getById(key);
+  const payload = {
+    paymeTransactionId: key,
+    orderId: legacy.order_id,
+    amount: legacy.amount,
+    state: legacy.state,
+    reason: legacy.reason,
+    createTime: BigInt(legacy.create_time || 0),
+    performTime: BigInt(legacy.perform_time || 0),
+    cancelTime: BigInt(legacy.cancel_time || 0),
+    sandbox: legacy.sandbox,
+    rawData: {
+      payme_transaction_id: key,
+      order_id: legacy.order_id,
+      amount: legacy.amount,
+      state: legacy.state
+    }
+  };
+  const row = await prisma.paymeTransaction.upsert({
+    where: { paymeTransactionId: key },
+    create: payload,
+    update: {
+      orderId: payload.orderId,
+      amount: payload.amount,
+      state: payload.state,
+      reason: payload.reason,
+      createTime: payload.createTime,
+      performTime: payload.performTime,
+      cancelTime: payload.cancelTime,
+      sandbox: payload.sandbox,
+      rawData: payload.rawData
+    }
+  });
+  return toLegacy(row);
 }
 
 async function listByPeriod(from, to) {
-  const fromMs = Number(from || 0);
-  const toMs = Number(to || Date.now());
-  if (!db.isDbEnabled()) {
-    return [...mem.values()].filter((tx) => Number(tx.create_time || 0) >= fromMs && Number(tx.create_time || 0) <= toMs);
+  const fromMs = Math.max(0, Number(from || 0));
+  const toMs = Math.max(0, Number(to || Date.now()));
+  if (!usePrisma()) {
+    return [...mem.values()].filter(
+      (tx) => Number(tx.create_time || 0) >= fromMs && Number(tx.create_time || 0) <= toMs
+    );
   }
-  const out = await db.query(
-    'select * from payme_transactions where create_time >= $1 and create_time <= $2 order by create_time asc',
-    [fromMs, toMs]
-  );
-  return out.rows;
+  const fromB = BigInt(fromMs);
+  const toB = BigInt(toMs);
+  const rows = await prisma.paymeTransaction.findMany({
+    where: {
+      createTime: { gte: fromB, lte: toB }
+    },
+    orderBy: { createTime: 'asc' }
+  });
+  return rows.map(toLegacy);
 }
 
 module.exports = { getById, getActiveByOrderId, upsert, listByPeriod };

@@ -9,6 +9,7 @@ const prisma = require('./src/prisma-client');
 const marketplaceRepo = require('./src/marketplace-repository');
 const r2Service = require('./src/services/r2.service');
 const dalionExcelImportService = require('./src/services/dalion-excel-import.service');
+const { paymeRpc } = require('./src/controllers/payme.controller');
 
 process.on('uncaughtException', (error) => {
   console.error('[PROCESS] uncaughtException', { message: error?.message });
@@ -916,11 +917,55 @@ app.get('/track/:orderNumber', (req, res) => {
 });
 
 app.get('/api/payme', (req, res) => {
-  res.status(200).json({ ok: true, message: 'Payme endpoint expects POST JSON-RPC' });
+  res.status(200).json({ ok: true, message: 'Payme Merchant API: POST JSON-RPC 2.0' });
 });
 
-app.post('/api/payme', (req, res) => {
-  res.status(200).json({ ok: true, message: 'Payme mock endpoint' });
+app.post('/api/payme', (req, res) => paymeRpc(req, res));
+
+/**
+ * Customer opens Payme checkout for their Payme order (Basic-style receipt GET encoded URL).
+ * Requires `x-user-phone` matching the order owner.
+ */
+app.get('/api/v1/payments/payme/url', async (req, res) => {
+  try {
+    const phone = getUserPhone(req);
+    if (!phone) return res.status(401).json({ ok: false, message: 'Avtorizatsiya kerak' });
+    const orderNumber = String(req.query.orderNumber || '').trim();
+    if (!orderNumber) return res.status(400).json({ ok: false, message: 'orderNumber kerak' });
+    const orderRow = await marketplaceRepo.findOrderWithItems({
+      orderNumber,
+      customerPhone: phone
+    });
+    if (!orderRow) return res.status(404).json({ ok: false, message: 'Buyurtma topilmadi' });
+    if (String(orderRow.paymentMethod || '').toLowerCase() !== 'payme') {
+      return res.status(400).json({ ok: false, message: 'Bu buyurtma Payme uchun emas' });
+    }
+    if (String(orderRow.paymentStatus || '').toLowerCase() === 'paid') {
+      return res.status(400).json({ ok: false, message: 'To‘lov allaqachon qabul qilingan' });
+    }
+    const merchantId = String(process.env.PAYME_MERCHANT_ID || '').trim();
+    if (!merchantId) {
+      return res.status(503).json({ ok: false, message: 'Payme merchant ID sozlanmagan (PAYME_MERCHANT_ID)' });
+    }
+    const amountTiyin = Math.round(Number(orderRow.total || 0) * 100);
+    const hostBase = `${req.protocol}://${req.get('host')}`;
+    const publicBase = String(process.env.PUBLIC_APP_URL || process.env.PAYME_RETURN_BASE_URL || '').replace(/\/$/, '');
+    const returnUrl = String(process.env.PAYME_RETURN_URL || '').trim() || `${publicBase || hostBase}/track/${encodeURIComponent(orderRow.orderNumber)}`;
+    const langRaw = String(req.query.lang || 'uz').toLowerCase();
+    const lang = langRaw.startsWith('ru') ? 'ru' : 'uz';
+    const receipt = `m=${merchantId};ac.order_id=${orderRow.orderNumber};a=${amountTiyin};c=${encodeURIComponent(returnUrl)};l=${lang}`;
+    const b64 = Buffer.from(receipt, 'utf8').toString('base64');
+    const url = `https://checkout.paycom.uz/${b64}`;
+    return res.json({
+      ok: true,
+      url,
+      amountTiyin,
+      orderNumber: orderRow.orderNumber
+    });
+  } catch (e) {
+    logStructured('error', 'payme_checkout_url_failed', { message: e?.message });
+    return res.status(500).json({ ok: false, message: 'Server xatolik' });
+  }
 });
 
 // Public API

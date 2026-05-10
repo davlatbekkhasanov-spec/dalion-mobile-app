@@ -178,6 +178,23 @@ model AmbientTrack {
   updatedAt DateTime
 }
 
+model PaymeTransaction {
+  paymeTransactionId String   @id @map("payme_transaction_id")
+  orderId            String   @map("order_id")
+  amount             Int      @default(0)
+  state              Int      @default(1)
+  reason             Int?
+  createTime         BigInt   @default(0) @map("create_time")
+  performTime        BigInt   @default(0) @map("perform_time")
+  cancelTime         BigInt   @default(0) @map("cancel_time")
+  sandbox            Boolean  @default(false)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  rawData            Json?    @map("raw_data")
+
+  @@map("payme_transactions")
+}
+
 model AppState {
   id             String @id
   homeSettings   Json
