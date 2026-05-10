@@ -295,3 +295,177 @@ table.mini th {
   color: var(--gm-muted);
   font-weight: 500;
 }
+
+/* Shorts compose — mobile-first, tap-sized upload */
+.sh-compose {
+  position: relative;
+  margin-top: 14px;
+}
+
+.sh-intro-hint {
+  margin-top: 8px;
+}
+
+.sh-editor-heading {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--gm-muted);
+  font-weight: 600;
+}
+
+.sh-file-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sh-upload-zone {
+  border-radius: calc(var(--gm-radius) * 1.05);
+  border: 2px dashed rgba(132, 162, 220, 0.45);
+  background: rgba(6, 14, 28, 0.65);
+  min-height: min(52vw, 220px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.sh-upload-zone:active {
+  border-color: rgba(79, 125, 255, 0.65);
+  background: rgba(14, 26, 48, 0.75);
+}
+
+.sh-upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: inherit;
+  padding: 28px 16px;
+  cursor: pointer;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sh-upload-plus {
+  font-size: 42px;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--gm-accent);
+  opacity: 0.92;
+}
+
+.sh-upload-title {
+  font-size: 17px;
+  letter-spacing: 0.02em;
+}
+
+.sh-upload-sub {
+  margin: 0;
+  max-width: 260px;
+}
+
+.sh-preview-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.sh-preview-frame {
+  margin: 0 auto;
+  width: 100%;
+  max-width: min(100%, 280px);
+  aspect-ratio: 9 / 16;
+  max-height: min(72vh, 420px);
+  border-radius: calc(var(--gm-radius) * 0.9);
+  overflow: hidden;
+  background: #050810;
+  border: 1px solid var(--gm-line);
+}
+
+.sh-preview-frame video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.sh-change-video-btn {
+  align-self: center;
+}
+
+.sh-video-progress {
+  display: none;
+  width: 100%;
+  height: 10px;
+  margin-top: 12px;
+  border-radius: 6px;
+}
+
+.sh-video-progress-label {
+  display: none;
+  margin-top: 6px;
+}
+
+.sh-fields-row {
+  margin-top: 14px;
+}
+
+.sh-more-details {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: calc(var(--gm-radius) * 0.75);
+  border: 1px solid rgba(132, 162, 220, 0.22);
+  background: rgba(4, 10, 22, 0.35);
+}
+
+.sh-more-details summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gm-muted);
+}
+
+.sh-toggle-row {
+  margin-top: 12px;
+}
+
+.sh-poster-hint {
+  margin: 14px 0 6px;
+}
+
+.sh-poster-thumb {
+  width: 100%;
+  max-width: 200px;
+  height: 120px;
+}
+
+.btn-full {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 16px;
+  box-sizing: border-box;
+}
+
+.sh-save-primary {
+  padding-top: 14px;
+  padding-bottom: 14px;
+  font-size: 15px;
+}
+
+.sh-actions-secondary {
+  margin-top: 12px;
+  justify-content: space-between;
+}

@@ -150,55 +150,77 @@
 
     <section id="panel-shorts" class="card panel hidden" role="tabpanel">
       <h2>Shorts / reels</h2>
-      <p class="hint">Video — URL yoki MP4/WebM fayl yuklash; eskiz — rasm URL yoki yuklash (poster).</p>
+      <p class="hint sh-intro-hint">Videoni tanlang — oldindan ko‘rasiz, keyin «Saqlash». Faqat admin qo‘shgan kontent do‘konda chiqadi.</p>
       <div id="shortList" class="short-list"></div>
-      <h3 style="margin:16px 0 8px;font-size:14px;color:var(--gm-muted)">Tahrirlash / yangi</h3>
-      <div class="row">
-        <div class="field">
-          <label for="sh-title">Sarlavha</label>
-          <input id="sh-title" type="text" />
+
+      <div class="sh-compose">
+        <h3 class="sh-editor-heading">Yangi yoki tanlangan short</h3>
+
+        <input id="sh-video-file" type="file" class="sh-file-hidden" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" />
+
+        <div id="sh-upload-zone" class="sh-upload-zone">
+          <label for="sh-video-file" class="sh-upload-label">
+            <span class="sh-upload-plus" aria-hidden="true">＋</span>
+            <strong class="sh-upload-title">Video yuklash</strong>
+            <span class="hint sh-upload-sub">Butun zonani bosing · MP4, WebM, MOV</span>
+          </label>
         </div>
-        <div class="field">
-          <label for="sh-cap">Taglavha (caption)</label>
-          <input id="sh-cap" type="text" />
+
+        <div id="sh-preview-stage" class="sh-preview-stage hidden">
+          <div class="sh-preview-frame">
+            <video id="sh-draft-video" playsinline controls muted preload="metadata"></video>
+          </div>
+          <button type="button" class="btn btn-ghost sh-change-video-btn" id="sh-change-video-btn">Boshqa video</button>
         </div>
-      </div>
-      <div class="row">
-        <div class="field">
-          <label for="sh-media">Video URL</label>
-          <input id="sh-media" type="url" placeholder="https://... yoki yuklashdan keyin to‘ldiriladi" />
+
+        <progress id="sh-video-progress" value="0" max="1" class="sh-video-progress"></progress>
+        <p id="sh-video-progress-label" class="hint sh-video-progress-label">Yuklanmoqda…</p>
+
+        <div class="row sh-fields-row">
+          <div class="field">
+            <label for="sh-title">Sarlavha</label>
+            <input id="sh-title" type="text" />
+          </div>
+          <div class="field">
+            <label for="sh-cap">Taglavha (caption)</label>
+            <input id="sh-cap" type="text" />
+          </div>
         </div>
-        <div class="field">
-          <label for="sh-video-file">Video fayl (MP4 / WebM)</label>
-          <input id="sh-video-file" type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" />
+
+        <details class="sh-more-details">
+          <summary>Video havola va eskiz</summary>
+          <div class="field" style="margin-top:10px">
+            <label for="sh-media">Video URL</label>
+            <input id="sh-media" type="url" placeholder="/uploads/... yoki tashqi havola" />
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="sh-thumb-url">Eskiz URL</label>
+              <input id="sh-thumb-url" type="url" />
+            </div>
+            <div class="field">
+              <label for="sh-thumb-file">Eskiz fayl</label>
+              <input id="sh-thumb-file" type="file" accept="image/png,image/jpeg" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="sh-order">Tartib raqami</label>
+            <input id="sh-order" type="number" min="0" step="1" />
+          </div>
+        </details>
+
+        <div class="row sh-toggle-row">
+          <label class="pill"><input type="checkbox" id="sh-active" checked /> Faol</label>
         </div>
-      </div>
-      <progress id="sh-video-progress" value="0" max="1" style="display:none;width:100%;max-width:420px;height:10px;margin-top:8px;border-radius:6px"></progress>
-      <p id="sh-video-progress-label" class="hint" style="display:none;margin-top:4px">Yuklanmoqda…</p>
-      <div class="row">
-        <div class="field">
-          <label for="sh-thumb-url">Eskiz URL</label>
-          <input id="sh-thumb-url" type="url" />
+
+        <p class="hint sh-poster-hint">Poster (ixtiyoriy)</p>
+        <div class="thumb sh-poster-thumb" id="sh-preview">Poster ko‘rinishi</div>
+
+        <button type="button" class="btn btn-full sh-save-primary" id="sh-saveBtn">Saqlash</button>
+        <div class="row sh-actions-secondary">
+          <button type="button" class="btn btn-ghost" id="sh-newBtn">Yangi short</button>
+          <button type="button" class="btn btn-danger" id="sh-delBtn">O‘chirish</button>
         </div>
-      </div>
-      <div class="row">
-        <div class="field">
-          <label for="sh-thumb-file">Eskiz fayl</label>
-          <input id="sh-thumb-file" type="file" accept="image/png,image/jpeg" />
-        </div>
-        <div class="field">
-          <label for="sh-order">Tartib raqami</label>
-          <input id="sh-order" type="number" min="0" step="1" />
-        </div>
-      </div>
-      <div class="row" style="align-items:center;margin-top:8px">
-        <label class="pill"><input type="checkbox" id="sh-active" checked /> Faol</label>
-      </div>
-      <div class="thumb" id="sh-preview" style="width:100%;max-width:200px;height:140px;margin-top:10px">Eskiz</div>
-      <div class="row" style="margin-top:12px">
-        <button type="button" class="btn" id="sh-newBtn">Yangi short</button>
-        <button type="button" class="btn btn-ghost" id="sh-saveBtn">Saqlash</button>
-        <button type="button" class="btn btn-danger" id="sh-delBtn">O‘chirish</button>
       </div>
     </section>
 
@@ -235,8 +257,59 @@
     let selectedShortId = null;
     let dragBannerId = null;
     let dragShortId = null;
+    let shDraftObjectUrl = null;
 
     const $ = (id) => document.getElementById(id);
+
+    function looksLikeVideoUrl(url) {
+      return /\.(mp4|webm|mov)(\?|$)/i.test(String(url || '').trim());
+    }
+
+    function refreshShortCompose() {
+      const zone = $('sh-upload-zone');
+      const stage = $('sh-preview-stage');
+      const vidEl = $('sh-draft-video');
+      const vf = $('sh-video-file').files && $('sh-video-file').files[0];
+      const mediaUrl = ($('sh-media').value || '').trim();
+
+      if (vf) {
+        if (shDraftObjectUrl) {
+          URL.revokeObjectURL(shDraftObjectUrl);
+          shDraftObjectUrl = null;
+        }
+        shDraftObjectUrl = URL.createObjectURL(vf);
+        vidEl.src = shDraftObjectUrl;
+        zone.classList.add('hidden');
+        stage.classList.remove('hidden');
+      } else if (looksLikeVideoUrl(mediaUrl)) {
+        if (shDraftObjectUrl) {
+          URL.revokeObjectURL(shDraftObjectUrl);
+          shDraftObjectUrl = null;
+        }
+        vidEl.src = mediaUrl;
+        zone.classList.add('hidden');
+        stage.classList.remove('hidden');
+      } else {
+        if (shDraftObjectUrl) {
+          URL.revokeObjectURL(shDraftObjectUrl);
+          shDraftObjectUrl = null;
+        }
+        vidEl.removeAttribute('src');
+        vidEl.load();
+        zone.classList.remove('hidden');
+        stage.classList.add('hidden');
+      }
+      updateShPreview();
+    }
+
+    function updateShPreview() {
+      const thumb = ($('sh-thumb-url').value || '').trim();
+      const media = ($('sh-media').value || '').trim();
+      const el = $('sh-preview');
+      const url = thumb || (media && !looksLikeVideoUrl(media) ? media : '');
+      if (url) el.innerHTML = `<img src="${url}" alt="" />`;
+      else el.textContent = 'Poster ko‘rinishi';
+    }
 
     function toast(msg) {
       const el = $('toast');
@@ -320,6 +393,7 @@
       document.querySelectorAll('.panel').forEach((p) => p.classList.add('hidden'));
       const panel = $('panel-' + name);
       if (panel) panel.classList.remove('hidden');
+      if (name === 'shorts') refreshShortCompose();
     }
 
     async function loadThemeControls() {
@@ -652,6 +726,11 @@
       selectedShortId = id;
       const s = shorts.find((x) => x.id === id);
       if (!s) return;
+      $('sh-video-file').value = '';
+      if (shDraftObjectUrl) {
+        URL.revokeObjectURL(shDraftObjectUrl);
+        shDraftObjectUrl = null;
+      }
       $('sh-title').value = s.title || '';
       $('sh-cap').value = s.subtitle || s.caption || '';
       $('sh-media').value = s.media_url || '';
@@ -659,17 +738,7 @@
       $('sh-order').value = String(s.sortOrder ?? '');
       $('sh-active').checked = s.active !== false;
       $('sh-thumb-file').value = '';
-      $('sh-video-file').value = '';
-      updateShPreview();
-    }
-
-    function updateShPreview() {
-      const url = ($('sh-thumb-url').value || '').trim() || ($('sh-media').value || '').trim();
-      const el = $('sh-preview');
-      if (url && !/\.(mp4|webm|mov)(\?|$)/i.test(url))
-        el.innerHTML = `<img src="${url}" alt="" />`;
-      else if (url) el.textContent = 'Video';
-      else el.textContent = 'Eskiz';
+      refreshShortCompose();
     }
 
     async function saveShort() {
@@ -730,6 +799,7 @@
         }
         await refreshShorts();
         toast('Short saqlandi');
+        refreshShortCompose();
       } finally {
         $('sh-saveBtn').disabled = false;
       }
@@ -750,6 +820,7 @@
       $('sh-video-file').value = '';
       await refreshShorts();
       toast('O‘chirildi');
+      refreshShortCompose();
     }
 
     function newShortForm() {
@@ -762,7 +833,11 @@
       $('sh-active').checked = true;
       $('sh-thumb-file').value = '';
       $('sh-video-file').value = '';
-      updateShPreview();
+      if (shDraftObjectUrl) {
+        URL.revokeObjectURL(shDraftObjectUrl);
+        shDraftObjectUrl = null;
+      }
+      refreshShortCompose();
     }
 
     let prTimer;
@@ -822,7 +897,19 @@
     $('bn-newBtn').addEventListener('click', newBannerForm);
 
     $('sh-thumb-url').addEventListener('input', updateShPreview);
-    $('sh-media').addEventListener('input', updateShPreview);
+    $('sh-media').addEventListener('input', refreshShortCompose);
+    $('sh-video-file').addEventListener('change', refreshShortCompose);
+    $('sh-change-video-btn').addEventListener('click', () => {
+      const hadFile = $('sh-video-file').files && $('sh-video-file').files[0];
+      $('sh-video-file').value = '';
+      if (!hadFile) $('sh-media').value = '';
+      if (shDraftObjectUrl) {
+        URL.revokeObjectURL(shDraftObjectUrl);
+        shDraftObjectUrl = null;
+      }
+      refreshShortCompose();
+      $('sh-video-file').click();
+    });
     $('sh-saveBtn').addEventListener('click', saveShort);
     $('sh-delBtn').addEventListener('click', deleteShort);
     $('sh-newBtn').addEventListener('click', newShortForm);

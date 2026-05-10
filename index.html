@@ -2433,7 +2433,7 @@ Oq fonli foto</div>
 
     <div class="reels-overlay" id="reelsOverlay" aria-hidden="true" role="dialog" aria-modal="true">
       <button type="button" class="reels-close" id="reelsCloseBtn" aria-label="Yopish">✕</button>
-      <button type="button" class="reels-mute-btn" id="reelsMuteBtn" aria-pressed="true" aria-label="Ovozni yoqish yoki o‘chirish">🔇</button>
+      <button type="button" class="reels-mute-btn" id="reelsMuteBtn" aria-pressed="false" aria-label="Ovozni yoqish yoki o‘chirish">🔊</button>
       <video id="reelsVideo" playsinline webkit-playsinline preload="metadata"></video>
       <img id="reelsStill" alt="" decoding="async" />
       <div class="reels-caption" id="reelsCaption"></div>
@@ -3156,11 +3156,17 @@ Oq fonli foto</div>
       const poster = String(shortItem?.thumbnail_url || '').trim();
       if (poster) reelsVideo.setAttribute('poster', poster);
       else reelsVideo.removeAttribute('poster');
-      reelsVideo.muted = true;
+      reelsVideo.volume = 1;
+      reelsVideo.muted = false;
       reelsVideo.playsInline = true;
       reelsOverlay.classList.add('open');
       reelsOverlay.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
+      const bumpReelsGain = () => {
+        reelsVideo.volume = 1;
+        reelsVideo.muted = false;
+      };
+      reelsVideo.addEventListener('loadedmetadata', bumpReelsGain, { once: true });
       syncReelsMuteButton();
       if (!reducedMotion) {
         reelsVideo.play().catch(() => {});
@@ -3179,6 +3185,7 @@ Oq fonli foto</div>
         reelsVideo.pause();
         reelsVideo.removeAttribute('src');
         reelsVideo.removeAttribute('poster');
+        reelsVideo.volume = 1;
         reelsVideo.load();
       }
       if (reelsStill) reelsStill.removeAttribute('src');
