@@ -4,63 +4,391 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Orders Display</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
   <style>
-    :root { --bg:#030915; --card:#0d1b31; --line:#2b4b73; --txt:#e6f3ff; --muted:#9db9dd; --acc:#30f2a5; }
-    *{box-sizing:border-box;font-family:Inter,Segoe UI,Arial,sans-serif}
-    body{margin:0;background:radial-gradient(circle at 0% 0%,#13335f 0,transparent 40%),var(--bg);color:var(--txt)}
-    .wrap{padding:14px;height:100vh;display:flex;flex-direction:column}
-    .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
-    input,button{background:#0c1931;border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:12px}
-    button{cursor:pointer}
-    .primary{background:linear-gradient(90deg,#2aff9b,#28d8ff);border:none;color:#05241f;font-weight:700}
-    .muted{color:var(--muted);font-size:13px}
-    .grid{display:grid;grid-template-columns:repeat(6,minmax(220px,1fr));gap:10px;flex:1;min-height:0;overflow:auto;scrollbar-width:none;-ms-overflow-style:none}
-    .grid::-webkit-scrollbar{display:none}
-    .col{background:linear-gradient(180deg,#10213a,#091628);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;min-height:0}
-    .col h3{margin:0 0 8px}
-    .list{display:grid;gap:8px;overflow:auto;scrollbar-width:none}
-    .list::-webkit-scrollbar{display:none}
-    .card{border:1px solid var(--line);background:#0a162b;border-radius:14px;padding:12px;cursor:pointer}
-    .card b{font-size:18px}
-    .row{display:flex;justify-content:space-between;gap:8px;margin-top:4px}
-    .token-required{border:1px dashed #c17a8b;background:#2b1119;color:#ffcad5;padding:14px;border-radius:12px}
-    .badge{padding:4px 9px;border-radius:999px;border:1px solid #2d7f5f;color:#9cffcf;background:#0f2a22;font-size:12px}
-    .offline{border-color:#8a4352;background:#2a1118;color:#ffc8d3}
-    .overlay{position:fixed;inset:0;background:rgba(2,8,18,.8);display:none;align-items:center;justify-content:center;padding:14px}
-    .overlay.show{display:flex}
-    .modal{width:min(920px,100%);max-height:95vh;overflow:auto;background:linear-gradient(180deg,#11233e,#081425);border:1px solid var(--line);border-radius:16px;padding:14px}
-    .items{display:grid;gap:8px}
-    .item{display:grid;grid-template-columns:56px 1fr auto;gap:8px;align-items:center;border:1px solid var(--line);background:#0a162b;border-radius:12px;padding:8px}
-    .item img{width:56px;height:56px;object-fit:cover;border-radius:10px;background:#fff}
-    .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-    .actions button{min-height:56px;font-size:17px;font-weight:700}
-    .full{grid-column:1/-1}
-    .toast{position:fixed;right:14px;bottom:14px;max-width:360px;background:#0b1a2f;color:#d4ecff;border:1px solid var(--line);padding:10px 12px;border-radius:12px;display:none;z-index:20}
-    .toast.show{display:block}
-    .toast.err{border-color:#a0485b;color:#ffd7e0;background:#2a1119}
-    .card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;position:relative;z-index:2}
-    .card-actions button{padding:8px 10px;border-radius:10px;min-height:40px}
+    :root {
+      --bg: #050b14;
+      --bg2: #0a1628;
+      --card: #0d1b31;
+      --line: rgba(90, 140, 210, 0.35);
+      --txt: #eef6ff;
+      --muted: #8aa3c8;
+      --muted2: #b6c9e6;
+      --acc: #2ef0a8;
+      --acc2: #38cfff;
+      --warn: #ffc14a;
+      --danger: #ff6b7a;
+      --st-new: #38cfff;
+      --st-work: #9b7dff;
+      --st-ready: #ffc14a;
+      --st-out: #2ef0a8;
+      --st-done: #6b8cff;
+      --st-cancel: #ff6b7a;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+      --radius: 16px;
+      --radius-sm: 12px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: "DM Sans", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      font-feature-settings: "tnum" 1;
+      color: var(--txt);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(56, 207, 255, 0.12), transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, rgba(158, 120, 255, 0.1), transparent 50%),
+        linear-gradient(180deg, #070f1c 0%, var(--bg) 45%);
+    }
+    .wrap { padding: 12px 14px 14px; height: 100vh; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+    .ops-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 12px;
+      padding: 12px 14px;
+      background: linear-gradient(180deg, rgba(16, 32, 58, 0.92), rgba(8, 18, 34, 0.88));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .ops-brand { display: flex; flex-direction: column; gap: 2px; min-width: 140px; }
+    .ops-brand strong { font-size: 15px; letter-spacing: 0.02em; }
+    .ops-brand small { color: var(--muted); font-size: 12px; }
+    .ops-clock {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: 0.04em;
+      padding: 6px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(6, 14, 28, 0.65);
+      color: var(--muted2);
+    }
+    .ops-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; flex: 1; justify-content: flex-end; }
+    input, button {
+      background: rgba(10, 22, 42, 0.9);
+      border: 1px solid var(--line);
+      color: var(--txt);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font: inherit;
+    }
+    button { cursor: pointer; }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-ghost { background: transparent; }
+    .primary {
+      background: linear-gradient(100deg, var(--acc), var(--acc2));
+      border: none;
+      color: #031018;
+      font-weight: 700;
+    }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; width: 100%; }
+    .chip {
+      border: 1px solid var(--line);
+      background: rgba(8, 18, 34, 0.75);
+      color: var(--muted2);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 12px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .chip.on {
+      border-color: rgba(46, 240, 168, 0.55);
+      color: #e8fff6;
+      background: rgba(15, 48, 38, 0.55);
+      box-shadow: 0 0 0 1px rgba(46, 240, 168, 0.15);
+    }
+    .muted { color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .sync-pill {
+      font-size: 12px;
+      color: var(--muted2);
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(5, 12, 24, 0.55);
+      max-width: min(420px, 100%);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #2d7f5f;
+      color: #9cffcf;
+      background: rgba(15, 42, 34, 0.75);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .badge.offline { border-color: #8a4352; color: #ffc8d3; background: rgba(42, 17, 24, 0.75); }
+    .token-required {
+      border: 1px dashed rgba(193, 122, 139, 0.65);
+      background: rgba(43, 17, 25, 0.75);
+      color: #ffcad5;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x proximity;
+      padding-bottom: 4px;
+      scrollbar-color: rgba(120, 160, 220, 0.35) transparent;
+    }
+    .grid.is-loading { opacity: 0.55; pointer-events: none; }
+    .col {
+      scroll-snap-align: start;
+      background: linear-gradient(180deg, rgba(18, 34, 58, 0.95), rgba(8, 18, 34, 0.92));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px 10px 12px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 268px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+    }
+    .col-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .col-head h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--muted2);
+    }
+    .count-pill {
+      font-size: 12px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(5, 12, 24, 0.65);
+      color: var(--txt);
+    }
+    .col-bar {
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .col-bar > i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--acc), var(--acc2));
+      width: 0%;
+      transition: width 0.35s ease;
+    }
+    .list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; min-height: 0; padding-right: 2px; }
+    .ops-card {
+      position: relative;
+      border: 1px solid var(--line);
+      background: linear-gradient(165deg, rgba(14, 28, 52, 0.98), rgba(8, 16, 32, 0.98));
+      border-radius: 14px;
+      padding: 12px 12px 12px 14px;
+      cursor: pointer;
+      overflow: hidden;
+      animation: cardIn 0.28s ease both;
+    }
+    .ops-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      border-radius: 4px 0 0 4px;
+      background: var(--accent, var(--st-new));
+    }
+    .ops-card.accent-new::before { background: var(--st-new); }
+    .ops-card.accent-work::before { background: var(--st-work); }
+    .ops-card.accent-ready::before { background: var(--st-ready); }
+    .ops-card.accent-out::before { background: var(--st-out); }
+    .ops-card.accent-done::before { background: var(--st-done); }
+    .ops-card.accent-cancel::before { background: var(--st-cancel); }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .ops-card__top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .ops-card__no { font-size: 17px; font-weight: 800; letter-spacing: 0.02em; }
+    .ops-card__rel { font-size: 12px; font-weight: 600; color: var(--muted2); white-space: nowrap; }
+    .ops-card__sum { font-size: 18px; font-weight: 800; color: #fff; white-space: nowrap; }
+    .ops-card__who {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 6px 10px;
+      margin-bottom: 6px;
+    }
+    .ops-card__who b { font-size: 14px; }
+    .ops-card__who a { color: var(--acc2); text-decoration: none; font-weight: 700; font-size: 13px; }
+    .ops-card__who a:hover { text-decoration: underline; }
+    .ops-card__addr {
+      color: var(--muted2);
+      font-size: 12px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .ops-card__thumbs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .thumb {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      object-fit: cover;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .thumb-more {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 0 8px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 10px;
+      border: 1px dashed var(--line);
+      color: var(--muted2);
+    }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
+    .pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(5, 12, 24, 0.55);
+      color: var(--muted2);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .pill.payme { border-color: rgba(46, 240, 168, 0.45); color: #cfffec; }
+    .pill.cash { border-color: rgba(255, 193, 74, 0.45); color: #ffecc2; }
+    .pill.paid { border-color: rgba(46, 240, 168, 0.55); background: rgba(12, 48, 32, 0.45); color: #d8ffef; }
+    .pill.unpaid { border-color: rgba(255, 107, 122, 0.45); color: #ffd7dc; }
+    .ops-card__foot { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+    .row { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 8, 18, 0.82);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      z-index: 50;
+    }
+    .overlay.show { display: flex; }
+    .modal {
+      width: min(920px, 100%);
+      max-height: 95vh;
+      overflow: auto;
+      background: linear-gradient(180deg, #122642, #081425);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .modal h2 { margin: 0; font-size: 20px; }
+    .items { display: grid; gap: 10px; margin-top: 12px; }
+    .item {
+      display: grid;
+      grid-template-columns: 56px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid var(--line);
+      background: rgba(10, 22, 42, 0.85);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .item img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; background: #fff; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+    .actions button { min-height: 52px; font-size: 16px; font-weight: 700; }
+    .full { grid-column: 1 / -1; }
+    .toast {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      max-width: 360px;
+      background: rgba(11, 26, 47, 0.95);
+      color: #d4ecff;
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      border-radius: 12px;
+      display: none;
+      z-index: 60;
+      box-shadow: var(--shadow);
+    }
+    .toast.show { display: block; }
+    .toast.err { border-color: #a0485b; color: #ffd7e0; background: rgba(42, 17, 25, 0.95); }
+    .card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; position: relative; z-index: 2; }
+    .card-actions .primary { padding: 8px 12px; font-size: 13px; border-radius: 10px; min-height: 40px; }
+    @media (max-width: 1100px) {
+      .grid { grid-auto-flow: column; grid-template-columns: repeat(6, minmax(280px, 1fr)); }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="top">
-      <button id="langUzBtn">UZ</button>
-      <button id="langRuBtn">RU</button>
-      <button id="fullscreenBtn" class="primary">To‘liq ekran</button>
-      <input id="tokenInput" placeholder="ADMIN_IMPORT_TOKEN" style="min-width:260px" />
-      <button id="saveTokenBtn">Token saqlash</button>
-      <span id="online" class="badge">Online</span>
-      <span id="lastUpdated" class="muted">Yangilanmagan</span>
-      <span id="network" class="muted"></span>
-    </div>
+    <header class="ops-bar">
+      <div class="ops-brand">
+        <strong id="opsTitle">GlobusMarket · Ops</strong>
+        <small id="opsSubtitle">Buyurtmalar paneli</small>
+      </div>
+      <div class="ops-clock" id="clock" aria-live="polite">--:--:--</div>
+      <div class="ops-tools">
+        <button type="button" id="langUzBtn" class="btn-ghost">UZ</button>
+        <button type="button" id="langRuBtn" class="btn-ghost">RU</button>
+        <button type="button" id="fullscreenBtn" class="primary">To‘liq ekran</button>
+        <input id="tokenInput" placeholder="ADMIN_IMPORT_TOKEN" style="min-width:200px;max-width:260px" autocomplete="off" />
+        <button type="button" id="saveTokenBtn">Token saqlash</button>
+        <span id="online" class="badge">Online</span>
+        <span id="lastUpdated" class="sync-pill">Yangilanmagan</span>
+        <span id="network" class="muted" style="max-width:220px"></span>
+      </div>
+      <div class="chip-row" id="filterChips" aria-label="Filters"></div>
+    </header>
     <div id="tokenRequired" class="token-required" style="display:none;">Token kiriting</div>
     <div class="grid" id="columns"></div>
   </div>
 
   <div id="modalOverlay" class="overlay">
     <div class="modal">
-      <div class="row"><h2 id="mOrderTitle" style="margin:0;">Order</h2><button id="closeModal">Yopish</button></div>
+      <div class="row"><h2 id="mOrderTitle" style="margin:0;">Order</h2><button type="button" id="closeModal">Yopish</button></div>
       <p id="mMeta" class="muted"></p>
       <div id="mItems" class="items"></div>
       <div id="mActions" class="actions"></div>
@@ -102,35 +430,79 @@
     let currentLang = localStorage.getItem(langKey) || 'uz';
     const i18n = {
       uz: {
+        opsTitle: 'GlobusMarket · Ops',
+        opsSubtitle: 'Buyurtmalar paneli',
+        filterToday: 'Bugun',
+        filterPayme: 'Payme',
+        filterCash: 'Naqd',
+        filterActive: 'Faqat faol',
+        colNew: 'Yangi',
+        colPreparing: 'Terilmoqda',
+        colReady: 'Kuryer',
+        colOut: 'Yo‘lda',
+        colDone: 'Yetkazildi',
+        colCancelled: 'Bekor',
+        paidShort: 'To‘langan',
+        unpaidShort: 'Kutilmoqda',
+        guest: 'Mehmon',
+        relNow: 'hozir',
+        relMin: '{n} daq',
+        relHour: '{n} soat',
+        relDay: '{n} kun',
         fullscreen: "To'liq ekran",
-        saveToken: "Token saqlash",
-        online: "Online",
-        offline: "Offline",
-        notUpdated: "Yangilanmagan",
-        tokenRequired: "Token kiriting",
-        close: "Yopish",
-        order: "Buyurtma",
-        loading: "Yuklanmoqda...",
-        refreshError: "Yangilashda xatolik",
-        statusUpdated: "Holat yangilandi",
-        statusChangeError: "Holatni o'zgartirib bo'lmadi"
+        saveToken: 'Token saqlash',
+        online: 'Online',
+        offline: 'Offline',
+        notUpdated: 'Yangilanmagan',
+        tokenRequired: 'Token kiriting',
+        close: 'Yopish',
+        order: 'Buyurtma',
+        loading: 'Yuklanmoqda...',
+        refreshError: 'Yangilashda xatolik',
+        statusUpdated: 'Holat yangilandi',
+        statusChangeError: "Holatni o'zgartirib bo'lmadi",
+        syncPrefix: 'Oxirgi yangilanish:',
+        intervalSuffix: 'interval'
       },
       ru: {
-        fullscreen: "Полный экран",
-        saveToken: "Сохранить токен",
-        online: "Онлайн",
-        offline: "Офлайн",
-        notUpdated: "Не обновлялось",
-        tokenRequired: "Введите токен",
-        close: "Закрыть",
-        order: "Заказ",
-        loading: "Загрузка...",
-        refreshError: "Ошибка обновления",
-        statusUpdated: "Статус обновлен",
-        statusChangeError: "Не удалось изменить статус"
+        opsTitle: 'GlobusMarket · Ops',
+        opsSubtitle: 'Панель заказов',
+        filterToday: 'Сегодня',
+        filterPayme: 'Payme',
+        filterCash: 'Наличные',
+        filterActive: 'Только активные',
+        colNew: 'Новые',
+        colPreparing: 'Сборка',
+        colReady: 'Курьер',
+        colOut: 'В пути',
+        colDone: 'Доставлено',
+        colCancelled: 'Отмена',
+        paidShort: 'Оплачено',
+        unpaidShort: 'Ожидает',
+        guest: 'Гость',
+        relNow: 'сейчас',
+        relMin: '{n} мин',
+        relHour: '{n} ч',
+        relDay: '{n} дн',
+        fullscreen: 'Полный экран',
+        saveToken: 'Сохранить токен',
+        online: 'Онлайн',
+        offline: 'Офлайн',
+        notUpdated: 'Не обновлялось',
+        tokenRequired: 'Введите токен',
+        close: 'Закрыть',
+        order: 'Заказ',
+        loading: 'Загрузка...',
+        refreshError: 'Ошибка обновления',
+        statusUpdated: 'Статус обновлен',
+        statusChangeError: 'Не удалось изменить статус',
+        syncPrefix: 'Последнее обновление:',
+        intervalSuffix: 'интервал'
       }
     };
-    function t(key){ return (i18n[currentLang] || i18n.uz)[key] || key; }
+    function t(key) {
+      return (i18n[currentLang] || i18n.uz)[key] || key;
+    }
     const STORE_LOCATION = {
       lat: 39.654572,
       lng: 66.958871,
@@ -138,18 +510,19 @@
       mapsUrl: 'https://maps.google.com/maps?q=39.654572,66.958871&ll=39.654572,66.958871&z=16'
     };
     const statusGroups = [
-      { key: 'new', label: 'Yangi', statuses: ['created', 'payment_pending', 'payment_confirmed'] },
-      { key: 'preparing', label: 'Tovar terilmoqda', statuses: ['preparing'] },
-      { key: 'ready', label: 'Kurier kutilmoqda', statuses: ['ready_for_courier', 'courier_assigned'] },
-      { key: 'out_for_delivery', label: 'Kurierda', statuses: ['out_for_delivery'] },
-      { key: 'delivered', label: 'Yetkazildi', statuses: ['delivered'] },
-      { key: 'cancelled', label: 'Bekor qilingan', statuses: ['cancelled'] }
+      { key: 'new', labelKey: 'colNew', statuses: ['created', 'payment_pending', 'payment_confirmed'] },
+      { key: 'preparing', labelKey: 'colPreparing', statuses: ['preparing'] },
+      { key: 'ready', labelKey: 'colReady', statuses: ['ready_for_courier', 'courier_assigned'] },
+      { key: 'out_for_delivery', labelKey: 'colOut', statuses: ['out_for_delivery'] },
+      { key: 'delivered', labelKey: 'colDone', statuses: ['delivered'] },
+      { key: 'cancelled', labelKey: 'colCancelled', statuses: ['cancelled'] }
     ];
     let orders = [];
     let activeOrder = null;
     let pollDelay = 2500;
     let pollTimer = null;
     let isRefreshing = false;
+    const viewFilters = { today: false, payme: false, cash: false, active: false };
 
     const allowedTransitions = {
       created: ['payment_pending', 'payment_confirmed', 'preparing', 'cancelled'],
@@ -164,14 +537,119 @@
     function normalizeStatus(status) {
       return String(status || '').trim().toLowerCase();
     }
+
+    function escapeHtml(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function moneyFmt(n) {
+      return `${Number(n || 0).toLocaleString('ru-RU')} so'm`;
+    }
+
+    function relTime(iso) {
+      if (!iso) return '—';
+      const ts = new Date(iso).getTime();
+      if (!Number.isFinite(ts)) return '—';
+      const sec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+      if (sec < 45) return t('relNow');
+      if (sec < 3600) return t('relMin').replace('{n}', String(Math.max(1, Math.floor(sec / 60))));
+      if (sec < 86400) return t('relHour').replace('{n}', String(Math.max(1, Math.floor(sec / 3600))));
+      return t('relDay').replace('{n}', String(Math.max(1, Math.floor(sec / 86400))));
+    }
+
+    function getFilteredOrders() {
+      let list = orders.slice();
+      if (viewFilters.today) {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        list = list.filter((o) => {
+          const raw = o.created_at || o.updated_at;
+          if (!raw) return false;
+          return new Date(raw) >= start;
+        });
+      }
+      if (viewFilters.payme) list = list.filter((o) => String(o.paymentMethod || '').toLowerCase() === 'payme');
+      if (viewFilters.cash) list = list.filter((o) => String(o.paymentMethod || '').toLowerCase() === 'cash');
+      if (viewFilters.active) {
+        const done = new Set(['delivered', 'cancelled']);
+        list = list.filter((o) => !done.has(normalizeStatus(o.status)));
+      }
+      return list;
+    }
+
+    function renderFilterChips() {
+      const el = document.getElementById('filterChips');
+      if (!el) return;
+      const specs = [
+        { k: 'today', label: t('filterToday') },
+        { k: 'payme', label: t('filterPayme') },
+        { k: 'cash', label: t('filterCash') },
+        { k: 'active', label: t('filterActive') }
+      ];
+      el.innerHTML = specs
+        .map(
+          (s) =>
+            `<button type="button" class="chip ${viewFilters[s.k] ? 'on' : ''}" data-filter="${s.k}">${escapeHtml(
+              s.label
+            )}</button>`
+        )
+        .join('');
+    }
+
+    function cardAccentClass(status) {
+      const s = normalizeStatus(status);
+      if (s === 'cancelled') return 'accent-cancel';
+      if (s === 'delivered') return 'accent-done';
+      if (s === 'out_for_delivery') return 'accent-out';
+      if (s === 'ready_for_courier' || s === 'courier_assigned') return 'accent-ready';
+      if (s === 'preparing') return 'accent-work';
+      return 'accent-new';
+    }
+
+    function paymentPillsHtml(o) {
+      const rawM = String(o.paymentMethod || '').trim() || '—';
+      const m = rawM.toLowerCase();
+      const ps = String(o.paymentStatus || '').trim().toLowerCase();
+      const paid = ps === 'paid';
+      const mCls = m === 'payme' ? 'pill payme' : m === 'cash' ? 'pill cash' : 'pill';
+      const pCls = paid ? 'pill paid' : 'pill unpaid';
+      const pText = paid ? t('paidShort') : t('unpaidShort');
+      return `<div class="pill-row"><span class="${mCls}">${escapeHtml(rawM)}</span><span class="${pCls}">${escapeHtml(
+        pText
+      )}</span></div>`;
+    }
+
+    function thumbsHtml(items) {
+      const arr = Array.isArray(items) ? items : [];
+      if (!arr.length) return '';
+      const bits = [];
+      for (let i = 0; i < Math.min(2, arr.length); i += 1) {
+        const u = String(arr[i].image_url || '').trim();
+        if (u) bits.push(`<img class="thumb" src="${escapeHtml(u)}" alt="" />`);
+        else bits.push('<span class="thumb" style="display:inline-grid;place-items:center;font-size:14px;">📦</span>');
+      }
+      const more = arr.length > 2 ? `<span class="thumb-more">+${arr.length - 2}</span>` : '';
+      return `<div class="ops-card__thumbs">${bits.join('')}${more}</div>`;
+    }
+
     function applyLang() {
       document.documentElement.lang = currentLang;
+      const title = document.getElementById('opsTitle');
+      const sub = document.getElementById('opsSubtitle');
+      if (title) title.textContent = t('opsTitle');
+      if (sub) sub.textContent = t('opsSubtitle');
       document.getElementById('fullscreenBtn').textContent = t('fullscreen');
       document.getElementById('saveTokenBtn').textContent = t('saveToken');
       document.getElementById('online').textContent = t('online');
-      document.getElementById('lastUpdated').textContent = t('notUpdated');
+      const lu = document.getElementById('lastUpdated');
+      if (lu && !lu.dataset.ticking) lu.textContent = t('notUpdated');
       document.getElementById('tokenRequired').textContent = t('tokenRequired');
       document.getElementById('closeModal').textContent = t('close');
+      renderFilterChips();
       if (!activeOrder) renderColumns();
       if (activeOrder) renderModal(activeOrder);
     }
@@ -227,37 +705,75 @@
     }
 
     function renderColumns() {
+      const base = getFilteredOrders();
       const grouped = statusGroups.map((group) => ({
         ...group,
-        items: orders.filter((o) => group.statuses.includes(normalizeStatus(o.status)))
+        items: base.filter((o) => group.statuses.includes(normalizeStatus(o.status)))
       }));
-      document.getElementById('columns').innerHTML = grouped.map((group) => `
-        <section class="col">
-          <h3>${group.label} (${group.items.length})</h3>
-          <div class="list">
-            ${group.items.map((o)=>`
-              <article class="card" data-order-id="${o.id}">
-                <b>#${o.orderNumber || o.id}</b>
-                <div class="muted">${o.customerName || 'Mehmon'}</div>
-                <div class="muted">${o.customerPhone || '-'}</div>
-                <div class="muted">${o.customerAddress || o.addressText || o.location || '-'}</div>
-                <div class="muted">Orientir: ${o.landmarkText || '-'}</div>
-                <div class="row"><span>${(o.items||[]).length} item</span><strong>${Number(o.total||0).toLocaleString('ru-RU')} so'm</strong></div>
-                <div class="muted">Status: ${o.statusLabel || orderStatusLabel(o.status)} | To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatusLabel || o.paymentStatus || '-'}</div>
-                <div class="muted">${o.paymentProofUrl ? `<a href="${o.paymentProofUrl}" target="_blank">Payment proof</a>` : 'Payment proof: -'}</div>
-                <div class="muted">${o.courierLocationUpdatedAt ? `Kurier joylashuvi: yangilangan ${fmt(o.courierLocationUpdatedAt)}` : ''}</div>
-                <div class="muted">${fmt(o.created_at)} · Yangilandi: ${fmt(o.updated_at)}</div>
-                <div class="card-actions">
-                  ${(() => {
-                    const next = getNextTransition(o);
-                    return next ? `<button type="button" data-quick-next="${next.to}" data-order-id="${o.id}" class="primary">${next.label}</button>` : '';
-                  })()}
-                </div>
-              </article>
-            `).join('')}
+      const maxCount = Math.max(1, ...grouped.map((g) => g.items.length));
+      document.getElementById('columns').innerHTML = grouped
+        .map((group) => {
+          const pct = Math.round((group.items.length / maxCount) * 100);
+          return `
+        <section class="col" data-col="${escapeHtml(group.key)}">
+          <div class="col-head">
+            <h3>${escapeHtml(t(group.labelKey))}</h3>
+            <span class="count-pill">${group.items.length}</span>
           </div>
-        </section>
-      `).join('');
+          <div class="col-bar" aria-hidden="true"><i style="width:${pct}%"></i></div>
+          <div class="list">
+            ${group.items
+              .map((o) => {
+                const id = escapeHtml(String(o.id));
+                const num = escapeHtml(String(o.orderNumber || o.id));
+                const name = escapeHtml(String(o.customerName || '').trim() || t('guest'));
+                const phoneRaw = String(o.customerPhone || '').trim();
+                const phoneHref = phoneRaw ? `tel:${escapeHtml(phoneRaw.replace(/\s+/g, ''))}` : '';
+                const phoneTxt = escapeHtml(phoneRaw || '—');
+                const addrRaw = [o.customerAddress, o.addressText, o.location]
+                  .map((x) => String(x || '').trim())
+                  .find(Boolean);
+                const addr = escapeHtml(addrRaw || '—');
+                const lm = escapeHtml(String(o.landmarkText || '').trim());
+                const landmarkLine = lm
+                  ? `<div class="muted" style="margin-bottom:4px;">Orientir: ${lm}</div>`
+                  : '';
+                const next = getNextTransition(o);
+                const nextBtn = next
+                  ? `<button type="button" data-quick-next="${escapeHtml(
+                      next.to
+                    )}" data-order-id="${id}" class="primary">${escapeHtml(next.label)}</button>`
+                  : '';
+                return `
+              <article class="ops-card ${cardAccentClass(o.status)}" data-order-id="${id}">
+                <div class="ops-card__top">
+                  <span class="ops-card__no">#${num}</span>
+                  <span class="ops-card__rel">${escapeHtml(relTime(o.created_at))}</span>
+                  <span class="ops-card__sum">${escapeHtml(moneyFmt(o.total))}</span>
+                </div>
+                <div class="ops-card__who">
+                  <b>${name}</b>
+                  ${
+                    phoneHref
+                      ? `<a href="${phoneHref}">${phoneTxt}</a>`
+                      : `<span class="muted">${phoneTxt}</span>`
+                  }
+                </div>
+                <div class="ops-card__addr">${addr}</div>
+                ${landmarkLine}
+                ${thumbsHtml(o.items)}
+                ${paymentPillsHtml(o)}
+                <div class="ops-card__foot">${escapeHtml(
+                  `${fmt(o.created_at)} · ↑ ${fmt(o.updated_at)}`
+                )}</div>
+                <div class="card-actions">${nextBtn}</div>
+              </article>`;
+              })
+              .join('')}
+          </div>
+        </section>`;
+        })
+        .join('');
     }
 
     function renderModal(order) {
@@ -268,13 +784,37 @@
         ? `https://maps.google.com/?q=${order.locationLat},${order.locationLng}` : '';
       const courierMapLink = (Number.isFinite(Number(order.courierLocationLat)) && Number.isFinite(Number(order.courierLocationLng)))
         ? `https://maps.google.com/?q=${order.courierLocationLat},${order.courierLocationLng}` : '';
-      document.getElementById('mMeta').innerHTML = `${order.customerName || 'Mehmon'} | ${order.customerPhone || '-'} | ${order.customerAddress || order.addressText || order.location || '-'}<br>Orientir: ${order.landmarkText || '-'}${mapLink ? ` | <a href="${mapLink}" target="_blank">Map</a>` : ''}<br>Do‘kon manzili: <a href="${STORE_LOCATION.mapsUrl}" target="_blank">${STORE_LOCATION.name}</a><br>Status: ${order.statusLabel || orderStatusLabel(order.status)}<br>To‘lov: ${order.paymentMethod || '-'} / ${order.paymentStatusLabel || order.paymentStatus || '-'}<br>Cash agreement: ${order.cashAgreementAccepted ? 'ha' : 'yo‘q'}<br>${order.paymentProofUrl ? `<a href=\"${order.paymentProofUrl}\" target=\"_blank\">Payment proof</a>` : 'Payment proof: -'}<br>${order.courierLocationUpdatedAt ? `Kurier joylashuvi: yangilangan ${fmt(order.courierLocationUpdatedAt)}` : 'Kurier joylashuvi: -'}${courierMapLink ? ` | <a href="${courierMapLink}" target="_blank">Xaritada ko‘rish</a>` : ''}`;
+      document.getElementById('mMeta').innerHTML = `${escapeHtml(String(order.customerName || '').trim() || t('guest'))} | ${escapeHtml(
+        String(order.customerPhone || '-').trim()
+      )} | ${escapeHtml(
+        String(order.customerAddress || order.addressText || order.location || '-').trim()
+      )}<br>Orientir: ${escapeHtml(String(order.landmarkText || '-').trim())}${
+        mapLink ? ` | <a href="${escapeHtml(mapLink)}" target="_blank" rel="noopener">Map</a>` : ''
+      }<br>Do‘kon manzili: <a href="${escapeHtml(STORE_LOCATION.mapsUrl)}" target="_blank" rel="noopener">${escapeHtml(
+        STORE_LOCATION.name
+      )}</a><br>Status: ${escapeHtml(String(order.statusLabel || orderStatusLabel(order.status)))}<br>To‘lov: ${escapeHtml(
+        String(order.paymentMethod || '-')
+      )} / ${escapeHtml(String(order.paymentStatusLabel || order.paymentStatus || '-'))}<br>Cash agreement: ${
+        order.cashAgreementAccepted ? 'ha' : 'yo‘q'
+      }<br>${
+        order.paymentProofUrl
+          ? `<a href="${escapeHtml(String(order.paymentProofUrl))}" target="_blank" rel="noopener">Payment proof</a>`
+          : 'Payment proof: -'
+      }<br>${
+        order.courierLocationUpdatedAt
+          ? `Kurier joylashuvi: yangilangan ${escapeHtml(fmt(order.courierLocationUpdatedAt))}`
+          : 'Kurier joylashuvi: -'
+      }${
+        courierMapLink
+          ? ` | <a href="${escapeHtml(courierMapLink)}" target="_blank" rel="noopener">Xaritada ko‘rish</a>`
+          : ''
+      }`;
       document.getElementById('mItems').innerHTML = (order.items || []).map((it) => `
         <div class="item">
-          ${it.image_url ? `<img src="${it.image_url}" alt="${it.name}" />` : `<img alt="" />`}
+          ${it.image_url ? `<img src="${escapeHtml(String(it.image_url))}" alt="${escapeHtml(String(it.name || ''))}" />` : `<img alt="" />`}
           <div>
-            <div><b>${it.name || '-'}</b></div>
-            <div class="muted">qty: ${it.quantity || 0} · narx: ${Number(it.price||0).toLocaleString('ru-RU')} so'm</div>
+            <div><b>${escapeHtml(String(it.name || '-'))}</b></div>
+            <div class="muted">qty: ${escapeHtml(String(it.quantity || 0))} · narx: ${Number(it.price||0).toLocaleString('ru-RU')} so'm</div>
             <div class="muted">stock: ${Number(it.stock || 0)}</div>
           </div>
           <div><strong>${Number(it.subtotal || 0).toLocaleString('ru-RU')} so'm</strong></div>
@@ -283,15 +823,25 @@
 
       const actions = [];
       const next = getNextTransition(order);
-      if (next) actions.push(`<button class="primary" data-next="${next.to}">${next.label}</button>`);
+      if (next) {
+        actions.push(
+          `<button type="button" class="primary" data-next="${escapeHtml(String(next.to))}">${escapeHtml(
+            String(next.label)
+          )}</button>`
+        );
+      }
       if (status !== 'delivered' && status !== 'cancelled') {
-        actions.push('<button class="full" data-cancel="1">Bekor qilish</button>');
+        actions.push('<button type="button" class="full" data-cancel="1">Bekor qilish</button>');
       }
       if (status === 'out_for_delivery') {
-        actions.push(`<button disabled class="full">Kurierda: ${order.courierName || '-'} ${order.courierPhone || ''}</button>`);
+        actions.push(
+          `<button type="button" disabled class="full">Kurierda: ${escapeHtml(
+            String(order.courierName || '-').trim()
+          )} ${escapeHtml(String(order.courierPhone || '').trim())}</button>`
+        );
       }
       if (status === 'delivered') {
-        actions.push('<button disabled class="full">Yetkazildi</button>');
+        actions.push('<button type="button" disabled class="full">Yetkazildi</button>');
       }
       document.getElementById('mActions').innerHTML = actions.join('');
       document.getElementById('modalOverlay').classList.add('show');
@@ -378,6 +928,8 @@
     async function refresh({ silent = false } = {}) {
       if (isRefreshing) return;
       isRefreshing = true;
+      const gridEl = document.getElementById('columns');
+      if (gridEl && !silent) gridEl.classList.add('is-loading');
       const token = getToken();
       document.getElementById('tokenRequired').style.display = 'none';
       try {
@@ -400,7 +952,15 @@
         if (!silent) showToast(e.message || t('refreshError'), true);
         pollDelay = Math.min(12000, Math.round(pollDelay * 1.5));
       } finally {
-        document.getElementById('lastUpdated').textContent = `Oxirgi yangilanish: ${new Date().toLocaleTimeString('ru-RU')} · interval ${Math.round(pollDelay / 1000)}s`;
+        if (gridEl) gridEl.classList.remove('is-loading');
+        const lu = document.getElementById('lastUpdated');
+        const loc = currentLang === 'ru' ? 'ru-RU' : 'uz-UZ';
+        if (lu) {
+          lu.dataset.ticking = '1';
+          lu.textContent = `${t('syncPrefix')} ${new Date().toLocaleTimeString(loc)} · ${t('intervalSuffix')} ${Math.round(
+            pollDelay / 1000
+          )}s`;
+        }
         isRefreshing = false;
         clearTimeout(pollTimer);
         pollTimer = setTimeout(() => refresh({ silent: true }), pollDelay);
@@ -472,6 +1032,34 @@
         btn.textContent = original;
       }
     };
+
+    (function startOpsClock() {
+      const tick = () => {
+        const el = document.getElementById('clock');
+        if (!el) return;
+        const loc = currentLang === 'ru' ? 'ru-RU' : 'uz-UZ';
+        el.textContent = new Date().toLocaleTimeString(loc, {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        });
+      };
+      tick();
+      setInterval(tick, 1000);
+    })();
+
+    document.getElementById('filterChips').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-filter]');
+      if (!b) return;
+      const k = b.dataset.filter;
+      if (!Object.prototype.hasOwnProperty.call(viewFilters, k)) return;
+      viewFilters[k] = !viewFilters[k];
+      if (k === 'payme' && viewFilters.payme) viewFilters.cash = false;
+      if (k === 'cash' && viewFilters.cash) viewFilters.payme = false;
+      renderFilterChips();
+      renderColumns();
+    });
 
     document.getElementById('langUzBtn').onclick = () => { currentLang = 'uz'; localStorage.setItem(langKey, currentLang); applyLang(); };
     document.getElementById('langRuBtn').onclick = () => { currentLang = 'ru'; localStorage.setItem(langKey, currentLang); applyLang(); };
