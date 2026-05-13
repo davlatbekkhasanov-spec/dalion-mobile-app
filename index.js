@@ -1048,9 +1048,17 @@ app.get('/api/v1/products', async (req, res) => {
   const page = Math.max(1, Number(req.query.page || 1));
   const limit = Math.max(1, Math.min(100, Number(req.query.limit || 40)));
   const includeTotal = req.query.includeTotal === '1' || req.query.includeTotal === 'true';
+  const sort = req.query.sort;
+  const categoryId = req.query.categoryId;
   try {
     res.setHeader('Cache-Control', 'public, max-age=8, stale-while-revalidate=45');
-    const out = await marketplaceRepo.listProductsPublicPage({ page, limit, includeTotal });
+    const out = await marketplaceRepo.listProductsPublicPage({
+      page,
+      limit,
+      includeTotal,
+      sort,
+      categoryId
+    });
     const payload = {
       ok: true,
       page: out.page,

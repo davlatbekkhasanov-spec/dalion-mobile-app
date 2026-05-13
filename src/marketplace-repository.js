@@ -253,15 +253,53 @@ async function listProductsPublic() {
   return products.map(productToPublic);
 }
 
-async function listProductsPublicPage({ page, limit, includeTotal = false }) {
+function normalizePublicProductSort(sortRaw) {
+  const s = String(sortRaw || '')
+    .trim()
+    .toLowerCase();
+  if (s === 'price_asc' || s === 'cheap' || s === 'arzon') return 'price_asc';
+  if (s === 'price_desc' || s === 'expensive' || s === 'qimmat') return 'price_desc';
+  if (s === 'popular' || s === 'pop' || s === 'ommabop') return 'popular';
+  return 'default';
+}
+
+function orderByForPublicProductSort(sortKey) {
+  switch (sortKey) {
+    case 'price_asc':
+      return { price: 'asc' };
+    case 'price_desc':
+      return { price: 'desc' };
+    case 'popular':
+      return [{ discountPercent: 'desc' }, { stock: 'desc' }, { createdAt: 'desc' }];
+    default:
+      return { createdAt: 'asc' };
+  }
+}
+
+async function listProductsPublicPage({
+  page,
+  limit,
+  includeTotal = false,
+  sort: sortRaw,
+  categoryId: categoryIdRaw
+} = {}) {
   const pg = Math.max(1, Number(page) || 1);
   const lim = Math.max(1, Math.min(100, Number(limit) || 40));
   const skip = (pg - 1) * lim;
+  const sortKey = normalizePublicProductSort(sortRaw);
+  const cid = String(categoryIdRaw || '').trim();
+  const categoryId =
+    cid.length >= 12 && /^[a-z0-9_-]+$/i.test(cid) ? cid : null;
+
   const where = { active: true };
+  if (categoryId) {
+    where.categoryId = categoryId;
+  }
+
   const rows = await prisma.product.findMany({
     where,
     select: PRODUCT_PUBLIC_SELECT,
-    orderBy: { createdAt: 'asc' },
+    orderBy: orderByForPublicProductSort(sortKey),
     skip,
     take: lim + 1
   });

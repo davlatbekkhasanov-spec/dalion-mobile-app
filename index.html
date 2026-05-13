@@ -868,6 +868,41 @@
       box-shadow: 0 0 0 2px rgba(127, 86, 255, 0.18), 0 10px 22px rgba(127, 86, 255, 0.12);
     }
 
+    .catalog-sort-bar {
+      display: none;
+      flex-wrap: nowrap;
+      gap: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      margin: 0 0 12px;
+      padding: 2px 0 4px;
+    }
+    .catalog-sort-bar::-webkit-scrollbar { display: none; }
+    .catalog-sort-chip {
+      flex: 0 0 auto;
+      appearance: none;
+      border: 1px solid rgba(128, 157, 209, 0.35);
+      background: rgba(12, 22, 42, 0.55);
+      color: #dbe7ff;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+      line-height: 1.2;
+    }
+    .catalog-sort-chip.active {
+      border-color: #7f56ff;
+      background: linear-gradient(135deg, rgba(127, 86, 255, 0.35), rgba(39, 213, 255, 0.12));
+      color: #fff;
+      box-shadow: 0 0 0 1px rgba(127, 86, 255, 0.25);
+    }
+    .catalog-sort-chip:active {
+      transform: scale(0.98);
+    }
+
     .product h5 { font-size: 13px; margin-bottom: 4px; color: #1d2939; line-height: 1.3; min-height: 34px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .meta { font-size: 11px; color: #8fb0d8; margin-bottom: 5px; }
     .price { font-size: 16px; color: #69ffbd; font-weight: 800; }
@@ -2280,6 +2315,7 @@
           </div>
         </div>
         <button class="btn gm-btn gm-btn-secondary btn-secondary" id="categoryBackBtn" style="display:none;">← Katalog</button>
+        <div id="catalogSortBar" class="catalog-sort-bar" role="tablist" aria-label=""></div>
         <section class="category-grid" id="categoryResults"></section>
         <p class="muted" id="catalogProductResultsTitle" style="display:none; margin-bottom:8px;"></p>
         <section class="products-grid" id="searchResults"></section>
@@ -2517,7 +2553,15 @@ Oq fonli foto</div>
     let activeModalProductId = null;
     let selectedCategory = null;
     let selectedCategoryLabel = '';
+    let selectedCategoryId = null;
+    /** @type {'popular'|'price_asc'|'price_desc'} */
+    let catalogSort = 'popular';
     let catalogMode = 'categories';
+    /** Server-paginated list for current category + sort (does not replace global `products`). */
+    let categoryListingProducts = [];
+    let categoryProductsNextPage = 1;
+    let categoryProductsHasMore = true;
+    let categoryProductsLoading = false;
     let productsNextPage = 1;
     let productsBackfillTimer = null;
     const productFetchInflight = new Map();
@@ -3515,6 +3559,10 @@ Oq fonli foto</div>
         productsNotLoaded: 'Mahsulotlar hali yuklanmagan',
         productsNotLoadedHint: 'Admin panel orqali Excel import qiling yoki DALION sinxronizatsiyasini ulang',
         catalogLoadingMore: 'Yana mahsulotlar yuklanmoqda…',
+        catalogSortAria: 'Saralash',
+        sortPopular: 'Ommabop',
+        sortPriceAsc: 'Arzondan qimmatga',
+        sortPriceDesc: 'Qimmatdan arzonga',
         categoryOther: 'Boshqa',
         allCategories: 'Hammasi',
         productsCountSuffix: 'ta mahsulot',
@@ -3722,6 +3770,10 @@ Oq fonli foto</div>
         productsNotLoaded: 'Товары еще не загружены',
         productsNotLoadedHint: 'Импортируйте Excel через админ-панель или подключите синхронизацию DALION',
         catalogLoadingMore: 'Загрузка товаров…',
+        catalogSortAria: 'Сортировка',
+        sortPopular: 'Популярные',
+        sortPriceAsc: 'Дешевле',
+        sortPriceDesc: 'Дороже',
         categoryOther: 'Другое',
         allCategories: 'Все',
         productsCountSuffix: 'товаров',
@@ -4449,6 +4501,11 @@ Oq fonli foto</div>
         hint.textContent = t('catalogLoadingMore');
         return;
       }
+      if (categoryProductsLoading && categoryProductsHasMore) {
+        hint.style.display = 'block';
+        hint.textContent = t('catalogLoadingMore');
+        return;
+      }
       hint.style.display = 'none';
     }
 
@@ -4476,7 +4533,15 @@ Oq fonli foto</div>
           return;
         }
         try {
-          await loadProducts({ reset: false });
+          const useCat =
+            currentView === 'searchView' &&
+            catalogMode === 'category' &&
+            resolveSelectedCategoryId();
+          if (useCat) {
+            await loadCategoryProducts({ reset: false });
+          } else {
+            await loadProducts({ reset: false });
+          }
           if (currentView === 'searchView' && catalogMode === 'category') {
             renderSearch();
           }
@@ -4565,6 +4630,64 @@ Oq fonli foto</div>
       } finally {
         rebuildProductsByIdIndex();
         productsLoading = false;
+        syncCatalogLoadHint();
+      }
+    }
+
+    async function loadCategoryProducts({ reset = false } = {}) {
+      const cid = String(selectedCategoryId || '').trim() || resolveSelectedCategoryId();
+      if (!cid) {
+        if (reset) {
+          categoryListingProducts = [];
+          categoryProductsNextPage = 1;
+          categoryProductsHasMore = false;
+        }
+        categoryProductsLoading = false;
+        syncCatalogLoadHint();
+        return;
+      }
+      if (categoryProductsLoading) return;
+      categoryProductsLoading = true;
+      syncCatalogLoadHint();
+      try {
+        if (reset) {
+          categoryListingProducts = [];
+          categoryProductsNextPage = 1;
+          categoryProductsHasMore = true;
+        }
+        if (!categoryProductsHasMore) return;
+        const params = new URLSearchParams({
+          page: String(categoryProductsNextPage),
+          limit: String(productsLimit),
+          sort: catalogSort,
+          categoryId: cid
+        });
+        const data = await api(`/products?${params.toString()}`);
+        const incoming = (data.items || data.products || []).filter((p) => p.active !== false);
+        if (!incoming.length && data.hasMore) {
+          categoryProductsHasMore = false;
+          return;
+        }
+        const seen = new Set(categoryListingProducts.map((p) => p.id));
+        let appended = false;
+        for (const pr of incoming) {
+          if (!seen.has(pr.id)) {
+            categoryListingProducts.push(pr);
+            seen.add(pr.id);
+            appended = true;
+          }
+          if (!products.some((x) => x.id === pr.id)) {
+            products.push(pr);
+            appended = true;
+          }
+        }
+        if (appended) invalidateCategoryEntriesCache();
+        rebuildProductsByIdIndex();
+        const pageFetched = Number(data.page || categoryProductsNextPage);
+        categoryProductsHasMore = Boolean(data.hasMore);
+        categoryProductsNextPage = pageFetched + 1;
+      } finally {
+        categoryProductsLoading = false;
         syncCatalogLoadHint();
       }
     }
@@ -5188,12 +5311,14 @@ Oq fonli foto</div>
         const cur = map.get(key);
         if (cur) {
           cur.count += 1;
+          if (!cur.categoryId && p.categoryId) cur.categoryId = p.categoryId;
         } else {
           map.set(key, {
             key,
             displayName: rawName,
             icon: getCategoryIcon(rawName),
-            count: 1
+            count: 1,
+            categoryId: p.categoryId || ''
           });
         }
       }
@@ -5212,10 +5337,73 @@ Oq fonli foto</div>
       return normalizeCategoryKey(product.categoryDisplayName || product.category) === categoryKey;
     }
 
+    function resolveSelectedCategoryId() {
+      if (!selectedCategory || selectedCategory === 'all') return null;
+      const sid = String(selectedCategoryId || '').trim();
+      if (sid) return sid;
+      const ent = getCategoryEntries().find((c) => c.key === selectedCategory);
+      const fromEnt = String(ent?.categoryId || '').trim();
+      return fromEnt || null;
+    }
+
+    function sortCategoryProductsClient(arr) {
+      const list = [...arr];
+      if (catalogSort === 'price_asc') {
+        list.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+      } else if (catalogSort === 'price_desc') {
+        list.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+      } else {
+        list.sort((a, b) => {
+          const da = Number(a.discount_percent ?? a.discountPercent) || 0;
+          const db = Number(b.discount_percent ?? b.discountPercent) || 0;
+          if (db !== da) return db - da;
+          const sa = Number(a.stock) || 0;
+          const sb = Number(b.stock) || 0;
+          if (sb !== sa) return sb - sa;
+          return String(b.id).localeCompare(String(a.id));
+        });
+      }
+      return list;
+    }
+
+    function getCategoryProductSource() {
+      const cid = resolveSelectedCategoryId();
+      if (cid) return categoryListingProducts;
+      const byCat = products.filter((p) => productMatchesCategory(p, selectedCategory));
+      return sortCategoryProductsClient(byCat);
+    }
+
+    function renderCatalogSortBar() {
+      const bar = document.getElementById('catalogSortBar');
+      if (!bar) return;
+      if (catalogMode !== 'category' || !selectedCategory) {
+        bar.style.display = 'none';
+        bar.innerHTML = '';
+        return;
+      }
+      bar.setAttribute('aria-label', t('catalogSortAria'));
+      bar.style.display = 'flex';
+      const chips = [
+        { id: 'popular', label: t('sortPopular') },
+        { id: 'price_asc', label: t('sortPriceAsc') },
+        { id: 'price_desc', label: t('sortPriceDesc') }
+      ];
+      bar.innerHTML = chips
+        .map(
+          (c) =>
+            `<button type="button" role="tab" class="catalog-sort-chip ${
+              catalogSort === c.id ? 'active' : ''
+            }" data-catalog-sort="${c.id}" aria-selected="${catalogSort === c.id ? 'true' : 'false'}">${escapeHtml(
+              c.label
+            )}</button>`
+        )
+        .join('');
+    }
+
     function renderHomeCategories() {
       const entries = getCategoryEntries().filter((c) => c.key === 'all' || c.count > 0);
       homeCategories.innerHTML = entries.map((c) => `
-        <article class="cat gm-card ${selectedCategory===c.key?'active':''}" data-home-category="${c.key}" data-home-category-label="${c.displayName}">
+        <article class="cat gm-card ${selectedCategory===c.key?'active':''}" data-home-category="${c.key}" data-home-category-label="${c.displayName}" data-home-category-id="${c.key === 'all' ? '' : escapeHtml(String(c.categoryId || ''))}">
           <i>${c.image_url ? `<img src="${c.image_url}" alt="${c.displayName}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />` : c.icon}</i>
           <span class="cat-label gm-chip">${c.displayName}</span>
         </article>
@@ -5230,7 +5418,7 @@ Oq fonli foto</div>
           .filter((c) => c.key === 'all' || c.count > 0)
           .filter((c) => c.displayName.toLowerCase().includes(query));
         categoryResults.innerHTML = categories.map((c) => `
-          <article class="category-card gm-card ${selectedCategory===c.key?'active':''}" data-category="${c.key}" data-category-label="${c.displayName}">
+          <article class="category-card gm-card ${selectedCategory===c.key?'active':''}" data-category="${c.key}" data-category-label="${c.displayName}" data-category-id="${c.key === 'all' ? '' : escapeHtml(String(c.categoryId || ''))}">
             <span class="icon">${c.image_url ? `<img src="${c.image_url}" alt="${c.displayName}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />` : c.icon}</span>
             <div><b>${c.displayName}</b><small>${c.count} ${t('productsCountSuffix')}</small></div>
             <span>›</span>
@@ -5243,12 +5431,14 @@ Oq fonli foto</div>
         catalogProductResultsTitle.textContent = query ? t('productResultsTitle') : '';
         searchResults.innerHTML = query ? byProduct.slice(0, 12).map(productCardTemplate).join('') : '';
         searchEmpty.style.display = (!categories.length && !byProduct.length) ? 'block' : 'none';
+        renderCatalogSortBar();
         syncCatalogLoadHint();
         return;
       }
 
-      const byCategory = products.filter((p) => productMatchesCategory(p, selectedCategory));
-      const filteredProducts = byCategory.filter((p) => p.name.toLowerCase().includes(query));
+      renderCatalogSortBar();
+      const base = getCategoryProductSource();
+      const filteredProducts = base.filter((p) => p.name.toLowerCase().includes(query));
       categoryResults.style.display = 'none';
       categoryResults.innerHTML = '';
       categoryBackBtn.style.display = 'inline-flex';
@@ -5916,6 +6106,11 @@ Oq fonli foto</div>
       setView('searchView', { push: true });
       selectedCategory = null;
       selectedCategoryLabel = '';
+      selectedCategoryId = null;
+      catalogSort = 'popular';
+      categoryListingProducts = [];
+      categoryProductsNextPage = 1;
+      categoryProductsHasMore = true;
       catalogMode = 'categories';
       searchInput.value = '';
       renderSearch();
@@ -5954,7 +6149,12 @@ Oq fonli foto</div>
     categoryBackBtn.addEventListener('click', () => {
       selectedCategory = null;
       selectedCategoryLabel = '';
+      selectedCategoryId = null;
+      catalogSort = 'popular';
       catalogMode = 'categories';
+      categoryListingProducts = [];
+      categoryProductsNextPage = 1;
+      categoryProductsHasMore = true;
       searchInput.value = '';
       renderSearch();
     });
@@ -5967,6 +6167,11 @@ Oq fonli foto</div>
       if (tab.dataset.view === 'searchView') {
         selectedCategory = null;
         selectedCategoryLabel = '';
+        selectedCategoryId = null;
+        catalogSort = 'popular';
+        categoryListingProducts = [];
+        categoryProductsNextPage = 1;
+        categoryProductsHasMore = true;
         catalogMode = 'categories';
         searchInput.value = '';
         renderSearch();
@@ -5980,6 +6185,11 @@ Oq fonli foto</div>
       catalogMode = 'categories';
       selectedCategory = null;
       selectedCategoryLabel = '';
+      selectedCategoryId = null;
+      catalogSort = 'popular';
+      categoryListingProducts = [];
+      categoryProductsNextPage = 1;
+      categoryProductsHasMore = true;
       searchInput.value = '';
       renderSearch();
     });
@@ -5988,6 +6198,11 @@ Oq fonli foto</div>
       catalogMode = 'categories';
       selectedCategory = null;
       selectedCategoryLabel = '';
+      selectedCategoryId = null;
+      catalogSort = 'popular';
+      categoryListingProducts = [];
+      categoryProductsNextPage = 1;
+      categoryProductsHasMore = true;
       searchInput.value = '';
       renderSearch();
     });
@@ -5998,6 +6213,11 @@ Oq fonli foto</div>
       catalogMode = 'categories';
       selectedCategory = null;
       selectedCategoryLabel = '';
+      selectedCategoryId = null;
+      catalogSort = 'popular';
+      categoryListingProducts = [];
+      categoryProductsNextPage = 1;
+      categoryProductsHasMore = true;
       searchInput.value = '';
       renderSearch();
     });
@@ -6083,31 +6303,73 @@ Oq fonli foto</div>
         return;
       }
 
+      const sortChip = e.target.closest('[data-catalog-sort]');
+      if (sortChip && catalogMode === 'category') {
+        e.preventDefault();
+        const next = String(sortChip.dataset.catalogSort || '');
+        if (!next || next === catalogSort) return;
+        catalogSort = next;
+        if (resolveSelectedCategoryId()) {
+          await loadCategoryProducts({ reset: true });
+        }
+        renderSearch();
+        return;
+      }
+
       const categoryCard = e.target.closest('[data-category]');
       if (categoryCard) {
         const key = categoryCard.dataset.category;
         if (key === 'all') {
           selectedCategory = null;
           selectedCategoryLabel = '';
+          selectedCategoryId = null;
+          catalogSort = 'popular';
           catalogMode = 'categories';
+          categoryListingProducts = [];
+          categoryProductsNextPage = 1;
+          categoryProductsHasMore = true;
         } else {
           selectedCategory = key;
           selectedCategoryLabel = categoryCard.dataset.categoryLabel || categoryCard.dataset.category;
+          selectedCategoryId = String(categoryCard.dataset.categoryId || '').trim() || null;
           catalogMode = 'category';
         }
         searchInput.value = '';
         renderSearch();
+        if (catalogMode === 'category' && key !== 'all') {
+          await loadCategoryProducts({ reset: true });
+          renderSearch();
+        }
         return;
       }
 
       const homeCategoryCard = e.target.closest('[data-home-category]');
       if (homeCategoryCard) {
-        selectedCategory = homeCategoryCard.dataset.homeCategory;
-        selectedCategoryLabel = homeCategoryCard.dataset.homeCategoryLabel || homeCategoryCard.dataset.homeCategory;
-        catalogMode = 'category';
+        const hkey = homeCategoryCard.dataset.homeCategory;
+        if (hkey === 'all') {
+          selectedCategory = null;
+          selectedCategoryLabel = '';
+          selectedCategoryId = null;
+          catalogSort = 'popular';
+          catalogMode = 'categories';
+          categoryListingProducts = [];
+          categoryProductsNextPage = 1;
+          categoryProductsHasMore = true;
+        } else {
+          selectedCategory = hkey;
+          selectedCategoryLabel =
+            homeCategoryCard.dataset.homeCategoryLabel || homeCategoryCard.dataset.homeCategory;
+          selectedCategoryId = String(homeCategoryCard.dataset.homeCategoryId || '').trim() || null;
+          catalogMode = 'category';
+        }
         setView('searchView', { push: true });
         searchInput.value = '';
         renderSearch();
+        if (catalogMode === 'category' && hkey !== 'all') {
+          await loadCategoryProducts({ reset: true });
+          renderSearch();
+        }
+        return;
       }
     });
 
@@ -6380,6 +6642,15 @@ Oq fonli foto</div>
           if (!hit) return;
           if (currentView !== 'searchView') return;
           if (catalogMode !== 'category') return;
+          const hasServerCat = Boolean(resolveSelectedCategoryId());
+          if (hasServerCat) {
+            if (!categoryProductsHasMore || categoryProductsLoading) return;
+            void loadCategoryProducts({ reset: false }).then(() => {
+              renderSearch();
+              syncCatalogLoadHint();
+            });
+            return;
+          }
           if (!productsHasMore || productsLoading) return;
           void loadProducts({ reset: false }).then(() => {
             renderSearch();
