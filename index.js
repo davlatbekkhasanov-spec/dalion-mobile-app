@@ -872,6 +872,15 @@ function paymentStatusLabel(status) {
   return PAYMENT_STATUS_LABELS[normalized] || normalized || '-';
 }
 
+function shouldShowOnOpsBoards(order) {
+  const normalizedStatus = String(order?.status || '').trim().toLowerCase();
+  if (normalizedStatus === 'payment_pending') return false;
+  const method = String(order?.paymentMethod || '').trim().toLowerCase();
+  const payment = String(order?.paymentStatus || '').trim().toLowerCase();
+  if (method === 'payme' && payment !== 'paid') return false;
+  return true;
+}
+
 app.use((req, res, next) => {
   const startedAt = Date.now();
   res.on('finish', () => {
@@ -1425,6 +1434,7 @@ app.get('/api/v1/orders-display/feed', async (req, res) => {
       delivery_status: normalizeOrderStatus(order.delivery_status || order.status),
       deliveryStatusLabel: orderStatusLabel(order.delivery_status || order.status)
     }))
+    .filter((order) => shouldShowOnOpsBoards(order))
     .filter((order) => activeStatuses.has(String(order.status || '').trim()))
     .sort((a, b) => {
       const bt = new Date(b.updated_at || b.created_at || 0).getTime();
@@ -2247,6 +2257,7 @@ app.get('/api/v1/admin/orders', requireAdmin, async (req, res) => {
       delivery_status: normalizeOrderStatus(order.delivery_status || order.status),
       deliveryStatusLabel: orderStatusLabel(order.delivery_status || order.status)
     }))
+    .filter((order) => shouldShowOnOpsBoards(order))
     .sort((a, b) => {
       const bt = new Date(b.updated_at || b.created_at || 0).getTime();
       const at = new Date(a.updated_at || a.created_at || 0).getTime();
