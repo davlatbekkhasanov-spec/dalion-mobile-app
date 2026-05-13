@@ -206,7 +206,6 @@
       padding: 12px 12px 12px 14px;
       cursor: pointer;
       overflow: hidden;
-      animation: cardIn 0.28s ease both;
     }
     .ops-card::before {
       content: "";
@@ -224,10 +223,6 @@
     .ops-card.accent-out::before { background: var(--st-out); }
     .ops-card.accent-done::before { background: var(--st-done); }
     .ops-card.accent-cancel::before { background: var(--st-cancel); }
-    @keyframes cardIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
     .ops-card__top {
       display: flex;
       align-items: baseline;
