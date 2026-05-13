@@ -1537,6 +1537,19 @@ app.get('/api/v1/courier-portal/feed', async (req, res) => {
   return res.json({ ok: true, orders: orders.map(orderPublic) });
 });
 
+app.get('/api/v1/courier-portal/my-route', async (req, res) => {
+  const tok = getCourierPortalToken(req);
+  if (!tok) return res.status(401).json({ ok: false, message: 'token kerak' });
+  const row = await marketplaceRepo.getCourierApplicationByAccessToken(tok);
+  if (!row) return res.status(401).json({ ok: false, message: 'Havola yaroqsiz' });
+  if (String(row.status || '') !== 'approved') {
+    return res.status(403).json({ ok: false, message: 'Ariza tasdiqlanmagan' });
+  }
+  const route = await marketplaceRepo.listCourierRouteOrders({ accessToken: tok });
+  if (route === null) return res.status(401).json({ ok: false, message: 'Havola yaroqsiz' });
+  return res.json({ ok: true, orders: route.map(orderPublic) });
+});
+
 app.post('/api/v1/courier-portal/orders/:id/claim', async (req, res) => {
   const tok = getCourierPortalToken(req);
   if (!tok) return res.status(401).json({ ok: false, message: 'token kerak' });
@@ -1550,8 +1563,10 @@ app.post('/api/v1/courier-portal/orders/:id/claim', async (req, res) => {
     accessToken: tok
   });
   if (!result.ok) {
-    const status = result.code === 'TOKEN' ? 401 : 409;
-    return res.status(status).json({ ok: false, message: result.message || 'Xato', code: result.code });
+    const code = result.code || 'BUSY';
+    const status =
+      code === 'TOKEN' ? 401 : code === 'NOT_FOUND' ? 404 : 409;
+    return res.status(status).json({ ok: false, message: result.message || 'Xato', code });
   }
   return res.json({ ok: true, order: orderPublic(result.order) });
 });

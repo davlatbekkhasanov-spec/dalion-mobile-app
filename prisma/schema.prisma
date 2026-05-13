@@ -100,7 +100,14 @@ model Order {
   feedbackComment          String?
   feedbackAt               DateTime?
   trackingUpdatedAt        DateTime?
+  /// Bir kuryerning bir vaqtidagi "marshrut" guruhi (bir nechta buyurtma)
+  courierRunId             String?
+  /// `courierRunId` ichidagi yetkazish tartibi (1, 2, 3…)
+  courierStopSeq           Int?
   items                    OrderItem[]
+
+  @@index([courierRunId])
+  @@index([courierPhone, status])
 }
 
 model OrderItem {

@@ -243,7 +243,10 @@
       <div class="grab"></div>
       <div class="row1">
         <b id="dTitle">#</b>
-        <span class="pill" id="dStatus">—</span>
+        <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+          <span class="pill" id="dRouteStop" style="display:none;"></span>
+          <span class="pill" id="dStatus">—</span>
+        </span>
       </div>
     </div>
     <div class="sheet-body">
@@ -283,7 +286,8 @@
         brand: 'GlobusMarket',
         brandSub: 'Kuryer · taksi uslubi',
         feedTitle: 'Faol buyurtmalar',
-        feedHint: '«Kuryer kutilmoqda» holatidagi buyurtmani bosing va qabul qiling. Keyin kuryer sahifasidan yo‘lga chiqasiz.',
+        feedHint: '«Kuryer kutilmoqda» holatidagi buyurtmani bosing va qabul qiling. Bir nechtasini ketma-ket olishingiz mumkin (navbat raqami). Keyin kuryer sahifasidan yo‘lga chiqasiz.',
+        routePill: 'Navbat',
         logout: 'Chiqish',
         gate: 'Havola yaroqsiz. Marketplace profilidan qayta ariza yuboring.',
         shop: 'Bosh sahifa',
@@ -301,7 +305,8 @@
         brand: 'GlobusMarket',
         brandSub: 'Курьер · такси-стиль',
         feedTitle: 'Активные заказы',
-        feedHint: 'Нажмите заказ в статусе «курьер ожидается» и примите. Затем откройте страницу курьера для выезда.',
+        feedHint: 'Нажмите заказ в статусе «курьер ожидается» и примите. Можно взять несколько по очереди (номер в маршруте). Затем откройте страницу курьера для выезда.',
+        routePill: 'Очередь',
         logout: 'Выйти',
         gate: 'Ссылка недействительна. Подайте заявку снова из профиля.',
         shop: 'На главную',
@@ -336,6 +341,13 @@
         out_for_delivery: lang === 'ru' ? 'В пути' : 'Yo‘lda'
       };
       return m[st] || st;
+    }
+    function mineByPhone(o) {
+      return Boolean(
+        profile &&
+          String(o.courierPhone || '').trim() &&
+          String(o.courierPhone).trim() === String(profile.phone || '').trim()
+      );
     }
     function applyLang() {
       document.documentElement.lang = lang;
@@ -383,18 +395,36 @@
         el.innerHTML = `<p class="muted">${esc(tr('emptyFeed'))}</p>`;
         return;
       }
-      el.innerHTML = orders
+      const sorted = [...orders].sort((a, b) => {
+        const ma = mineByPhone(a);
+        const mb = mineByPhone(b);
+        if (ma && !mb) return -1;
+        if (!ma && mb) return 1;
+        if (ma && mb) {
+          const sa = Number(a.courierStopSeq);
+          const sb = Number(b.courierStopSeq);
+          if (Number.isFinite(sa) && Number.isFinite(sb) && sa !== sb) return sa - sb;
+          if (Number.isFinite(sa) && !Number.isFinite(sb)) return -1;
+          if (!Number.isFinite(sa) && Number.isFinite(sb)) return 1;
+        }
+        return String(b.updated_at || '').localeCompare(String(a.updated_at || ''));
+      });
+      el.innerHTML = sorted
         .map((o) => {
           const addr = [o.addressText, o.customerAddress, o.location].map((x) => String(x || '').trim()).find(Boolean) || '—';
-          const mine =
-            String(o.courierName || '').trim() &&
-            profile &&
-            String(o.courierName).trim() === String(profile.fullName || '').trim();
+          const mine = mineByPhone(o);
+          const stopPill =
+            mine && o.courierStopSeq != null && Number(o.courierStopSeq) > 0
+              ? `<span class="pill" title="${esc(tr('routePill'))}">${esc(String(o.courierStopSeq))}</span>`
+              : '';
           return `
             <article class="card" data-id="${esc(o.id)}">
               <div class="row1">
                 <b>#${esc(o.orderNumber || o.id)}</b>
-                <span class="pill">${esc(statusLabel(o.status))}</span>
+                <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+                  ${stopPill}
+                  <span class="pill">${esc(statusLabel(o.status))}</span>
+                </span>
               </div>
               <div class="addr">${esc(addr)}</div>
               <div class="sum">${esc(money(o.total))}</div>
@@ -516,6 +546,14 @@
       selected = o;
       document.getElementById('dTitle').textContent = `#${o.orderNumber || o.id}`;
       document.getElementById('dStatus').textContent = statusLabel(o.status);
+      const routeEl = document.getElementById('dRouteStop');
+      if (mineByPhone(o) && o.courierStopSeq != null && Number(o.courierStopSeq) > 0) {
+        routeEl.textContent = `${tr('routePill')} ${o.courierStopSeq}`;
+        routeEl.style.display = 'inline-block';
+      } else {
+        routeEl.textContent = '';
+        routeEl.style.display = 'none';
+      }
       const addr = [o.addressText, o.customerAddress, o.location].map((x) => String(x || '').trim()).find(Boolean) || '—';
       document.getElementById('dAddr').textContent = addr;
       const items = Array.isArray(o.items) ? o.items : [];
@@ -526,10 +564,7 @@
       document.getElementById('dDist').textContent = '…';
       document.getElementById('dEta').textContent = '…';
 
-      const mine =
-        String(o.courierName || '').trim() &&
-        profile &&
-        String(o.courierName).trim() === String(profile.fullName || '').trim();
+      const mine = mineByPhone(o);
       const canClaim = o.status === 'ready_for_courier' && !String(o.courierName || '').trim();
       const claimBtn = document.getElementById('claimBtn');
       const openBtn = document.getElementById('openCourierBtn');

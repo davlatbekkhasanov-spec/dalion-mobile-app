@@ -162,7 +162,9 @@ function orderToLegacy(order, items) {
     feedbackRating: order.feedbackRating,
     feedbackComment: order.feedbackComment,
     feedbackAt: order.feedbackAt ? order.feedbackAt.toISOString() : undefined,
-    trackingUpdatedAt: order.trackingUpdatedAt ? order.trackingUpdatedAt.toISOString() : undefined
+    trackingUpdatedAt: order.trackingUpdatedAt ? order.trackingUpdatedAt.toISOString() : undefined,
+    courierRunId: order.courierRunId || null,
+    courierStopSeq: order.courierStopSeq != null ? Number(order.courierStopSeq) : null
   };
 }
 
@@ -1246,31 +1248,124 @@ async function listCourierPortalOrders() {
 }
 
 async function claimOrderByCourierPortalToken({ orderId, accessToken }) {
+  const crypto = require('crypto');
   const app = await getCourierApplicationByAccessToken(accessToken);
   if (!app) return { ok: false, code: 'TOKEN', message: 'Token noto‘g‘ri' };
   const id = String(orderId || '').trim();
   if (!id) return { ok: false, code: 'ID', message: 'Buyurtma topilmadi' };
-  const n = await prisma.order.updateMany({
-    where: {
-      id,
-      status: 'ready_for_courier',
-      courierName: ''
-    },
-    data: {
-      courierName: app.fullName,
-      courierPhone: app.phone,
-      status: 'courier_assigned',
-      deliveryStatus: 'courier_assigned',
-      updatedAt: new Date()
+  const phone = String(app.phone || '').trim();
+  if (!phone) return { ok: false, code: 'ID', message: 'Telefon topilmadi' };
+  const maxBatch = Math.min(20, Math.max(1, Number(process.env.COURIER_MAX_ACTIVE_DELIVERIES || 5) || 5));
+
+  try {
+    const done = await prisma.$transaction(async (tx) => {
+      const target = await tx.order.findFirst({
+        where: { id, status: 'ready_for_courier', courierName: '' },
+        include: { items: true }
+      });
+      if (!target) {
+        const cur = await tx.order.findUnique({ where: { id }, include: { items: true } });
+        if (!cur) return { err: 'NOT_FOUND' };
+        return { err: 'BUSY' };
+      }
+
+      const active = await tx.order.findMany({
+        where: {
+          courierPhone: phone,
+          status: { in: ['courier_assigned', 'out_for_delivery'] }
+        },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, courierRunId: true, courierStopSeq: true, createdAt: true }
+      });
+
+      if (active.length >= maxBatch) return { err: 'BATCH_FULL' };
+
+      const withRun = active.filter((o) => o.courierRunId);
+      let runId;
+      if (withRun.length) {
+        const freq = new Map();
+        for (const o of withRun) {
+          const k = String(o.courierRunId);
+          freq.set(k, (freq.get(k) || 0) + 1);
+        }
+        runId = [...freq.entries()].sort((a, b) => b[1] - a[1])[0][0];
+      } else {
+        runId = crypto.randomUUID();
+      }
+
+      const nullRun = active.filter((o) => !o.courierRunId);
+      let seqBase = 0;
+      if (withRun.length) {
+        const inRun = withRun.filter((o) => String(o.courierRunId) === runId);
+        seqBase = Math.max(0, ...inRun.map((o) => Number(o.courierStopSeq) || 0));
+      }
+      let s = seqBase;
+      for (const o of nullRun) {
+        s += 1;
+        await tx.order.update({
+          where: { id: o.id },
+          data: { courierRunId: runId, courierStopSeq: s, updatedAt: new Date() }
+        });
+      }
+
+      const maxAgg = await tx.order.aggregate({
+        where: {
+          courierPhone: phone,
+          courierRunId: runId,
+          status: { in: ['courier_assigned', 'out_for_delivery'] }
+        },
+        _max: { courierStopSeq: true }
+      });
+      const nextSeq = (maxAgg._max.courierStopSeq || 0) + 1;
+
+      const updated = await tx.order.update({
+        where: { id, status: 'ready_for_courier', courierName: '' },
+        data: {
+          courierName: app.fullName,
+          courierPhone: phone,
+          status: 'courier_assigned',
+          deliveryStatus: 'courier_assigned',
+          courierRunId: runId,
+          courierStopSeq: nextSeq,
+          updatedAt: new Date()
+        },
+        include: { items: true }
+      });
+
+      return { ok: true, order: orderToLegacy(updated, updated.items) };
+    });
+
+    if (done.err === 'NOT_FOUND') return { ok: false, code: 'NOT_FOUND', message: 'Buyurtma topilmadi' };
+    if (done.err === 'BUSY') {
+      return { ok: false, code: 'BUSY', message: 'Buyurtma boshqa kuryerga biriktirilgan yoki status mos emas' };
     }
-  });
-  if (!n.count) {
-    const cur = await prisma.order.findUnique({ where: { id }, include: { items: true } });
-    if (!cur) return { ok: false, code: 'NOT_FOUND', message: 'Buyurtma topilmadi' };
-    return { ok: false, code: 'BUSY', message: 'Buyurtma boshqa kuryerga biriktirilgan yoki status mos emas' };
+    if (done.err === 'BATCH_FULL') {
+      return {
+        ok: false,
+        code: 'BATCH_FULL',
+        message: `Bir vaqtda ko‘pi bilan ${maxBatch} ta yetkazish. Avvalgilarini yakunlang yoki boshqasiga qoldiring.`
+      };
+    }
+    return done;
+  } catch (e) {
+    return { ok: false, code: 'BUSY', message: e?.message || 'Buyurtma biriktirilmadi' };
   }
-  const updated = await prisma.order.findUnique({ where: { id }, include: { items: true } });
-  return { ok: true, order: orderToLegacy(updated, updated.items) };
+}
+
+async function listCourierRouteOrders({ accessToken }) {
+  const app = await getCourierApplicationByAccessToken(accessToken);
+  if (!app) return null;
+  const phone = String(app.phone || '').trim();
+  if (!phone) return [];
+  const rows = await prisma.order.findMany({
+    where: {
+      courierPhone: phone,
+      status: { in: ['courier_assigned', 'out_for_delivery'] }
+    },
+    orderBy: [{ courierStopSeq: 'asc' }, { updatedAt: 'desc' }],
+    include: { items: true }
+  });
+  return rows.map((o) => orderToLegacy(o, o.items));
 }
 
 async function listCourierApplicationsAdmin() {
@@ -1312,6 +1407,7 @@ module.exports = {
   getCourierApplicationByAccessToken,
   listCourierPortalOrders,
   claimOrderByCourierPortalToken,
+  listCourierRouteOrders,
   listCourierApplicationsAdmin,
   readSmsChallenge,
   writeSmsChallenge,
