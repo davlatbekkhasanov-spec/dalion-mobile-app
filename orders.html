@@ -103,6 +103,65 @@
       background: rgba(15, 48, 38, 0.55);
       box-shadow: 0 0 0 1px rgba(46, 240, 168, 0.15);
     }
+    .stats-bar {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(8, 18, 34, 0.72);
+      padding: 10px 12px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+    }
+    .stats-bar[hidden] { display: none !important; }
+    .stats-inner {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: center;
+    }
+    .stat-chip {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(5, 12, 24, 0.55);
+      font-size: 12px;
+      color: var(--muted2);
+    }
+    .stat-chip b {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-money b { font-size: 13px; }
+    .sla {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      width: fit-content;
+      margin-bottom: 6px;
+    }
+    .sla-ok {
+      color: #c6ffe8;
+      border-color: rgba(46, 240, 168, 0.35);
+      background: rgba(12, 42, 30, 0.55);
+    }
+    .sla-warn {
+      color: #1a1204;
+      border-color: rgba(255, 193, 74, 0.55);
+      background: linear-gradient(90deg, rgba(255, 193, 74, 0.95), rgba(255, 214, 120, 0.9));
+    }
+    .sla-hot {
+      color: #fff;
+      border-color: rgba(255, 107, 122, 0.65);
+      background: linear-gradient(90deg, rgba(200, 48, 72, 0.95), rgba(255, 107, 122, 0.85));
+      box-shadow: 0 0 16px rgba(255, 80, 100, 0.25);
+    }
     .muted { color: var(--muted); font-size: 12px; line-height: 1.35; }
     .sync-pill {
       font-size: 12px;
@@ -368,6 +427,7 @@
       <div class="ops-tools">
         <button type="button" id="langUzBtn" class="btn-ghost">UZ</button>
         <button type="button" id="langRuBtn" class="btn-ghost">RU</button>
+        <button type="button" id="soundToggle" class="chip" aria-pressed="true">🔔</button>
         <button type="button" id="fullscreenBtn" class="primary">To‘liq ekran</button>
         <input id="tokenInput" placeholder="ADMIN_IMPORT_TOKEN" style="min-width:200px;max-width:260px" autocomplete="off" />
         <button type="button" id="saveTokenBtn">Token saqlash</button>
@@ -377,6 +437,7 @@
       </div>
       <div class="chip-row" id="filterChips" aria-label="Filters"></div>
     </header>
+    <div id="statsBar" class="stats-bar" hidden></div>
     <div id="tokenRequired" class="token-required" style="display:none;">Token kiriting</div>
     <div class="grid" id="columns"></div>
   </div>
@@ -457,7 +518,15 @@
         statusUpdated: 'Holat yangilandi',
         statusChangeError: "Holatni o'zgartirib bo'lmadi",
         syncPrefix: 'Oxirgi yangilanish:',
-        intervalSuffix: 'interval'
+        intervalSuffix: 'interval',
+        soundOnLabel: 'Ovoz: yoqilgan',
+        soundOffLabel: 'Ovoz: o‘chiq',
+        statsAll: 'jami',
+        statsToday: 'bugun',
+        statsActive: 'faol',
+        statsSum: 'jami summa',
+        statsTodaySum: 'bugun summa',
+        slaMins: 'SLA {n} daq'
       },
       ru: {
         opsTitle: 'GlobusMarket · Ops',
@@ -492,7 +561,15 @@
         statusUpdated: 'Статус обновлен',
         statusChangeError: 'Не удалось изменить статус',
         syncPrefix: 'Последнее обновление:',
-        intervalSuffix: 'интервал'
+        intervalSuffix: 'интервал',
+        soundOnLabel: 'Звук: вкл',
+        soundOffLabel: 'Звук: выкл',
+        statsAll: 'всего',
+        statsToday: 'сегодня',
+        statsActive: 'активные',
+        statsSum: 'сумма',
+        statsTodaySum: 'сумма сегодня',
+        slaMins: 'SLA {n} мин'
       }
     };
     function t(key) {
@@ -533,6 +610,75 @@
       return String(status || '').trim().toLowerCase();
     }
 
+    const SOUND_LS = 'gm_orders_sound_on';
+    let webAudioCtx = null;
+
+    function getSoundOn() {
+      return localStorage.getItem(SOUND_LS) !== '0';
+    }
+    function setSoundOn(on) {
+      localStorage.setItem(SOUND_LS, on ? '1' : '0');
+    }
+    function syncSoundToggle() {
+      const btn = document.getElementById('soundToggle');
+      if (!btn) return;
+      const on = getSoundOn();
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.classList.toggle('on', on);
+      btn.textContent = on ? `🔔 ${t('soundOnLabel')}` : `🔕 ${t('soundOffLabel')}`;
+    }
+    function getAudioContext() {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      if (!webAudioCtx) webAudioCtx = new AC();
+      return webAudioCtx;
+    }
+    function playBeep(kind) {
+      if (!getSoundOn()) return;
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      try {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.value = kind === 'route' ? 540 : 880;
+        g.gain.setValueAtTime(0.0001, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.085, ctx.currentTime + 0.02);
+        o.connect(g);
+        g.connect(ctx.destination);
+        const t0 = ctx.currentTime;
+        o.start(t0);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.11);
+        o.stop(t0 + 0.12);
+      } catch (_) {}
+    }
+    function snapshotFeed(list) {
+      const arr = Array.isArray(list) ? list : [];
+      return {
+        ids: new Set(arr.map((o) => String(o.id))),
+        status: new Map(arr.map((o) => [String(o.id), normalizeStatus(o.status)]))
+      };
+    }
+    function notifyFeedChanges(prev, next) {
+      if (!getSoundOn()) return;
+      if (!prev || !prev.ids || prev.ids.size === 0) return;
+      const nextArr = Array.isArray(next) ? next : [];
+      const newOnes = nextArr.filter((o) => !prev.ids.has(String(o.id)));
+      if (newOnes.length) {
+        playBeep('new');
+        return;
+      }
+      let route = false;
+      for (const o of nextArr) {
+        const id = String(o.id);
+        const nowS = normalizeStatus(o.status);
+        const was = prev.status.get(id);
+        if (was !== undefined && was !== nowS && nowS === 'out_for_delivery') route = true;
+      }
+      if (route) playBeep('route');
+    }
+
     function escapeHtml(s) {
       return String(s ?? '')
         .replace(/&/g, '&amp;')
@@ -554,6 +700,58 @@
       if (sec < 3600) return t('relMin').replace('{n}', String(Math.max(1, Math.floor(sec / 60))));
       if (sec < 86400) return t('relHour').replace('{n}', String(Math.max(1, Math.floor(sec / 3600))));
       return t('relDay').replace('{n}', String(Math.max(1, Math.floor(sec / 86400))));
+    }
+
+    function slaTierFromCreated(ts) {
+      if (!Number.isFinite(ts)) return { mins: 0, tier: 'sla-ok' };
+      const mins = Math.floor((Date.now() - ts) / 60000);
+      let tier = 'sla-ok';
+      if (mins >= 45) tier = 'sla-hot';
+      else if (mins >= 15) tier = 'sla-warn';
+      return { mins, tier };
+    }
+    function slaBlockHtml(o) {
+      const st = normalizeStatus(o.status);
+      if (st === 'delivered' || st === 'cancelled') return '';
+      const raw = o.created_at;
+      if (!raw) return '';
+      const ts = new Date(raw).getTime();
+      if (!Number.isFinite(ts)) return '';
+      const { mins, tier } = slaTierFromCreated(ts);
+      const label = t('slaMins').replace('{n}', String(mins));
+      return `<div class="sla-live sla ${tier}" data-created-ts="${ts}">${escapeHtml(label)}</div>`;
+    }
+    function tickSlaLabels() {
+      document.querySelectorAll('.sla-live[data-created-ts]').forEach((el) => {
+        const ts = Number(el.dataset.createdTs);
+        const { mins, tier } = slaTierFromCreated(ts);
+        el.textContent = t('slaMins').replace('{n}', String(mins));
+        el.className = `sla-live sla ${tier}`;
+      });
+    }
+    function renderStatsBar() {
+      const el = document.getElementById('statsBar');
+      if (!el) return;
+      const list = Array.isArray(orders) ? orders : [];
+      if (!list.length) {
+        el.hidden = true;
+        el.innerHTML = '';
+        return;
+      }
+      el.hidden = false;
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const today = list.filter((o) => new Date(o.created_at || 0) >= start);
+      const active = list.filter((o) => !['delivered', 'cancelled'].includes(normalizeStatus(o.status)));
+      const sum = (arr) => arr.reduce((s, o) => s + Number(o.total || 0), 0);
+      const parts = [
+        `<span class="stat-chip"><b>${list.length}</b> ${escapeHtml(t('statsAll'))}</span>`,
+        `<span class="stat-chip"><b>${today.length}</b> ${escapeHtml(t('statsToday'))}</span>`,
+        `<span class="stat-chip"><b>${active.length}</b> ${escapeHtml(t('statsActive'))}</span>`,
+        `<span class="stat-chip stat-money"><b>${escapeHtml(moneyFmt(sum(list)))}</b> ${escapeHtml(t('statsSum'))}</span>`,
+        `<span class="stat-chip stat-money"><b>${escapeHtml(moneyFmt(sum(today)))}</b> ${escapeHtml(t('statsTodaySum'))}</span>`
+      ];
+      el.innerHTML = `<div class="stats-inner">${parts.join('')}</div>`;
     }
 
     function getFilteredOrders() {
@@ -644,6 +842,8 @@
       if (lu && !lu.dataset.ticking) lu.textContent = t('notUpdated');
       document.getElementById('tokenRequired').textContent = t('tokenRequired');
       document.getElementById('closeModal').textContent = t('close');
+      syncSoundToggle();
+      renderStatsBar();
       renderFilterChips();
       if (!activeOrder) renderColumns();
       if (activeOrder) renderModal(activeOrder);
@@ -758,6 +958,7 @@
                 ${landmarkLine}
                 ${thumbsHtml(o.items)}
                 ${paymentPillsHtml(o)}
+                ${slaBlockHtml(o)}
                 <div class="ops-card__foot">${escapeHtml(
                   `${fmt(o.created_at)} · ↑ ${fmt(o.updated_at)}`
                 )}</div>
@@ -852,6 +1053,7 @@
       const previous = orders.map((o) => ({ ...o }));
       const now = new Date().toISOString();
       orders = orders.map((o) => String(o.id) === String(orderId) ? { ...o, status: targetStatus, updated_at: now } : o);
+      renderStatsBar();
       renderColumns();
       try {
         await api(`/admin/orders/${orderId}/status`, { method: 'PUT', body: JSON.stringify({ status: targetStatus }) });
@@ -859,6 +1061,7 @@
         await refresh({ silent: true });
       } catch (err) {
         orders = previous;
+        renderStatsBar();
         renderColumns();
         await refresh({ silent: true });
         throw err;
@@ -928,8 +1131,11 @@
       const token = getToken();
       document.getElementById('tokenRequired').style.display = 'none';
       try {
+        const prev = snapshotFeed(orders);
         const { orders: list, source } = await loadDisplayOrders();
         orders = list || [];
+        notifyFeedChanges(prev, orders);
+        renderStatsBar();
         renderColumns();
         if (activeOrder) {
           const upd = orders.find((o) => o.id === activeOrder.id);
@@ -971,6 +1177,16 @@
     document.getElementById('fullscreenBtn').onclick = async () => {
       if (!document.fullscreenElement) await document.documentElement.requestFullscreen().catch(()=>{});
       else await document.exitFullscreen().catch(()=>{});
+    };
+
+    document.getElementById('soundToggle').onclick = () => {
+      setSoundOn(!getSoundOn());
+      syncSoundToggle();
+      if (getSoundOn()) {
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+        playBeep('route');
+      }
     };
 
     document.getElementById('columns').onclick = (e) => {
@@ -1043,6 +1259,8 @@
       tick();
       setInterval(tick, 1000);
     })();
+
+    setInterval(tickSlaLabels, 30000);
 
     document.getElementById('filterChips').addEventListener('click', (e) => {
       const b = e.target.closest('[data-filter]');
