@@ -2340,7 +2340,6 @@
         </div>
         <div class="list-card gm-card gm-sticky-cta cart-summary-grid" id="cartSummary" style="display:none;">
           <div class="list-row"><span class="muted">Subtotal:</span><strong id="cartSubtotal">0 so'm</strong></div>
-          <div class="list-row"><span class="muted">Yetkazib berish:</span><span id="cartDelivery">Manzil aniqlangach hisoblanadi</span></div>
           <div class="list-row"><span class="muted">Promo kod:</span><span class="muted">—</span></div>
           <div class="list-row"><span class="muted">Jami:</span><strong id="cartTotalPrice">0 so'm</strong></div>
           <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="orderBtn">Buyurtma berish</button>
@@ -3068,7 +3067,6 @@ Oq fonli foto</div>
     const cartSummary = document.getElementById('cartSummary');
     const cartTotalPrice = document.getElementById('cartTotalPrice');
     const cartSubtotal = document.getElementById('cartSubtotal');
-    const cartDelivery = document.getElementById('cartDelivery');
     const cartEmptyCta = document.getElementById('cartEmptyCta');
     const cartBadge = document.getElementById('cartBadge');
     const cartUpsellWrap = document.getElementById('cartUpsellWrap');
@@ -3930,9 +3928,8 @@ Oq fonli foto</div>
       document.getElementById('checkoutValidationHint').textContent = t('checkoutValidationHint');
       const cartSummaryLabels = document.querySelectorAll('#cartSummary .list-row .muted');
       if (cartSummaryLabels[0]) cartSummaryLabels[0].textContent = t('cartItemsLabel');
-      if (cartSummaryLabels[1]) cartSummaryLabels[1].textContent = t('cartDeliveryLabel');
-      if (cartSummaryLabels[2]) cartSummaryLabels[2].textContent = t('cartPromoLabel');
-      if (cartSummaryLabels[3]) cartSummaryLabels[3].textContent = t('cartTotalLabel');
+      if (cartSummaryLabels[1]) cartSummaryLabels[1].textContent = t('cartPromoLabel');
+      if (cartSummaryLabels[2]) cartSummaryLabels[2].textContent = t('cartTotalLabel');
       document.getElementById('profileOrdersTitle').textContent = t('profileOrders');
       document.getElementById('profileGuestTitle').textContent = t('profileGuestTitle');
       document.getElementById('profileGuestBody').textContent = t('profileGuestBody');
@@ -5487,11 +5484,8 @@ Oq fonli foto</div>
       }).join('');
 
       const subtotal = totalPrice();
-      const deliveryState = getDeliveryComputationState();
-      const hasDelivery = deliveryState.state === 'ready';
       cartSubtotal.textContent = money(subtotal);
-      cartDelivery.textContent = deliveryState.cartDeliveryText;
-      cartTotalPrice.textContent = money(subtotal + (hasDelivery ? Number(deliveryState.deliveryPrice) : 0));
+      cartTotalPrice.textContent = money(subtotal);
 
       const cartUpsell = getCartUpsellProducts();
       if (cartUpsell.length) {
