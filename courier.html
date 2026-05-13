@@ -109,8 +109,52 @@
       border: none;
       color: #031018;
     }
-    .nav-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .nav-block {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 214, 10, 0.06);
+    }
+    .nav-head {
+      margin: 0 0 4px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--acc);
+    }
+    .nav-hint { margin: 0 0 10px; font-size: 12px; line-height: 1.35; }
+    .nav-primary {
+      display: block;
+      width: 100%;
+      text-align: center;
+      text-decoration: none;
+      padding: 14px 14px;
+      border-radius: 12px;
+      border: none;
+      margin-bottom: 10px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      background: linear-gradient(100deg, var(--acc), var(--acc2));
+      color: var(--bg);
+    }
+    .nav-primary:disabled,
+    .nav-primary[aria-disabled='true'] {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .nav-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0; }
     .nav-row button { margin-top: 0; }
+    .nav-fallback {
+      display: inline-block;
+      margin-top: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--acc2);
+    }
     .route-kpi { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
     #courierMap {
       height: min(42vh, 320px);
@@ -158,9 +202,15 @@
         <div class="muted" id="routeEta">—</div>
       </div>
       <div class="muted" id="routeHint" style="margin-top:8px;">—</div>
-      <div class="nav-row">
-        <button id="openGoogleNav" type="button">Google Maps</button>
-        <button id="openYandexNav" type="button">Yandex Maps</button>
+      <div class="nav-block" id="navBlock">
+        <h4 class="nav-head" id="navHead">Marshrut</h4>
+        <p class="muted nav-hint" id="navHint"></p>
+        <button type="button" class="nav-primary" id="openYandexNavi">Yandex Navigator</button>
+        <div class="nav-row">
+          <button id="openGoogleNav" type="button">Google Maps</button>
+          <button id="openYandexNav" type="button">Yandex Maps</button>
+        </div>
+        <a id="navWebFallback" class="nav-fallback" href="#" target="_blank" rel="noopener" hidden>Brauzerda marshrut</a>
       </div>
       <div id="courierMap"></div>
     </section>
@@ -207,7 +257,13 @@
         right: 'o‘ngga',
         min: 'daq',
         km: 'km',
-        status: 'Holat'
+        status: 'Holat',
+        navSection: 'Marshrut',
+        navHint: 'Ovozli yo‘l-yo‘riq uchun Yandex Navigator yoki xarita ilovasini oching.',
+        navYandexNavi: 'Yandex Navigator',
+        navGoogle: 'Google Maps',
+        navYandexMaps: 'Yandex Xarita',
+        navWebFallback: 'Brauzerda marshrut (zaxira)'
       },
       ru: {
         brandTitle: 'GlobusMarket · Курьер',
@@ -238,7 +294,13 @@
         right: 'направо',
         min: 'мин',
         km: 'км',
-        status: 'Статус'
+        status: 'Статус',
+        navSection: 'Маршрут',
+        navHint: 'Для голосовой навигации откройте Яндекс Навигатор или карты.',
+        navYandexNavi: 'Яндекс Навигатор',
+        navGoogle: 'Google Maps',
+        navYandexMaps: 'Яндекс Карты',
+        navWebFallback: 'Маршрут в браузере (запасной вариант)'
       }
     };
     function t(key) {
@@ -286,6 +348,13 @@
       document.getElementById('wakeWarn').textContent = t('wakeWarn');
       document.getElementById('gpsWarn').textContent = t('gpsWarn');
       document.getElementById('signalWarn').textContent = t('signalWarn');
+      document.getElementById('navHead').textContent = t('navSection');
+      document.getElementById('navHint').textContent = t('navHint');
+      document.getElementById('openYandexNavi').textContent = t('navYandexNavi');
+      document.getElementById('openGoogleNav').textContent = t('navGoogle');
+      document.getElementById('openYandexNav').textContent = t('navYandexMaps');
+      const fb = document.getElementById('navWebFallback');
+      if (fb) fb.textContent = t('navWebFallback');
       if (order) render();
     }
 
@@ -436,6 +505,7 @@
               lastLocationSuccessAt = Date.now();
               renderGpsStatus();
               maybeUpdateRoute();
+              updateNavButtons();
             } catch (_) {}
             resolve();
           },
@@ -537,11 +607,36 @@
       return t('straight');
     }
 
+    function navAddressText(o) {
+      const x = o || order;
+      if (!x) return '';
+      return String(x.addressText || x.customerAddress || x.deliveryAddress || x.location || '').trim();
+    }
+
     function updateNavButtons() {
       const hasDestinationCoords = hasValidCoords(order?.locationLat, order?.locationLng);
-      const hasAddressFallback = String(order?.addressText || order?.customerAddress || '').trim().length > 0;
-      document.getElementById('openGoogleNav').disabled = !(hasDestinationCoords || hasAddressFallback);
-      document.getElementById('openYandexNav').disabled = !(hasDestinationCoords || hasAddressFallback);
+      const hasAddressFallback = navAddressText().length > 0;
+      const ok = hasDestinationCoords || hasAddressFallback;
+      ['openGoogleNav', 'openYandexNav', 'openYandexNavi'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !ok;
+      });
+      const fb = document.getElementById('navWebFallback');
+      if (!fb) return;
+      if (order && ok) {
+        const from = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
+          ? { lat: Number(lastKnownPosition.lat), lng: Number(lastKnownPosition.lng) }
+          : { lat: STORE_LOCATION.lat, lng: STORE_LOCATION.lng };
+        if (hasDestinationCoords) {
+          fb.href = `https://yandex.ru/maps/?rtext=${from.lat},${from.lng}~${Number(order.locationLat)},${Number(order.locationLng)}`;
+        } else {
+          fb.href = `https://yandex.ru/maps/?text=${encodeURIComponent(navAddressText())}`;
+        }
+        fb.hidden = false;
+      } else {
+        fb.hidden = true;
+        fb.href = '#';
+      }
     }
 
     async function maybeUpdateRoute(force = false) {
@@ -722,7 +817,8 @@
     };
 
     document.getElementById('openGoogleNav').addEventListener('click', () => {
-      if (hasValidCoords(order?.locationLat, order?.locationLng)) {
+      if (!order) return;
+      if (hasValidCoords(order.locationLat, order.locationLng)) {
         const origin = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
           ? `${Number(lastKnownPosition.lat)},${Number(lastKnownPosition.lng)}`
           : `${STORE_LOCATION.lat},${STORE_LOCATION.lng}`;
@@ -732,7 +828,7 @@
         );
         return;
       }
-      const addr = encodeURIComponent(String(order?.addressText || order?.customerAddress || '').trim());
+      const addr = encodeURIComponent(navAddressText());
       if (!addr) return;
       const origin = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
         ? `${Number(lastKnownPosition.lat)},${Number(lastKnownPosition.lng)}`
@@ -740,16 +836,37 @@
       window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${addr}`, '_blank');
     });
     document.getElementById('openYandexNav').addEventListener('click', () => {
+      if (!order) return;
       const origin = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
         ? `${Number(lastKnownPosition.lat)},${Number(lastKnownPosition.lng)}`
         : `${STORE_LOCATION.lat},${STORE_LOCATION.lng}`;
-      if (hasValidCoords(order?.locationLat, order?.locationLng)) {
-        window.open(`https://yandex.com/maps/?rtext=${origin}~${Number(order.locationLat)},${Number(order.locationLng)}`, '_blank');
+      if (hasValidCoords(order.locationLat, order.locationLng)) {
+        window.open(
+          `https://yandex.ru/maps/?rtext=${origin}~${Number(order.locationLat)},${Number(order.locationLng)}`,
+          '_blank'
+        );
         return;
       }
-      const addr = encodeURIComponent(String(order?.addressText || order?.customerAddress || '').trim());
+      const addr = encodeURIComponent(navAddressText());
       if (!addr) return;
-      window.open(`https://yandex.com/maps/?rtext=${origin}~${addr}`, '_blank');
+      window.open(`https://yandex.ru/maps/?rtext=${origin}~${addr}`, '_blank');
+    });
+
+    document.getElementById('openYandexNavi').addEventListener('click', () => {
+      if (!order || document.getElementById('openYandexNavi').disabled) return;
+      const from = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
+        ? { lat: Number(lastKnownPosition.lat), lng: Number(lastKnownPosition.lng) }
+        : { lat: STORE_LOCATION.lat, lng: STORE_LOCATION.lng };
+      if (hasValidCoords(order.locationLat, order.locationLng)) {
+        const tLat = Number(order.locationLat);
+        const tLng = Number(order.locationLng);
+        const appUrl = `yandexnavi://build_route_on_map?lat_from=${from.lat}&lon_from=${from.lng}&lat_to=${tLat}&lon_to=${tLng}`;
+        window.location.href = appUrl;
+        return;
+      }
+      const text = navAddressText();
+      if (!text) return;
+      window.open(`https://yandex.ru/maps/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
     });
 
     document.addEventListener('visibilitychange', () => {
