@@ -259,7 +259,7 @@
         km: 'km',
         status: 'Holat',
         navSection: 'Marshrut',
-        navHint: 'Tugmani bosing: avval «Yo‘lga chiqamiz!» ovozi, keyin navigator ochiladi.',
+        navHint: 'Bosganingizda ovoz va marshrut bir vaqtda ochiladi (Safari talabi).',
         navYandexNavi: 'Yandex Navigator',
         navGoogle: 'Google Maps',
         navYandexMaps: 'Yandex Xarita',
@@ -297,7 +297,7 @@
         km: 'км',
         status: 'Статус',
         navSection: 'Маршрут',
-        navHint: 'Нажмите кнопку: сначала голос «Поехали!», затем откроется навигатор.',
+        navHint: 'При нажатии голос и маршрут открываются сразу (требование Safari).',
         navYandexNavi: 'Яндекс Навигатор',
         navGoogle: 'Google Maps',
         navYandexMaps: 'Яндекс Карты',
@@ -615,40 +615,25 @@
       return String(x.addressText || x.customerAddress || x.deliveryAddress || x.location || '').trim();
     }
 
-    /** Brauzer ovozi («Поехали» / «Yo'lga chiqamiz») + navigatsiya tez orada (ustma-ust). */
-    function speakNavStartThen(done) {
-      if (typeof done !== 'function') return;
+    function navCoordForUrl(n) {
+      const x = Number(n);
+      if (!Number.isFinite(x)) return '0';
+      return x.toFixed(6);
+    }
+
+    /** Ovoz va marshrut ochish bir xil «tap» ichida — iOS Safari uchun shart. */
+    function playNavVoiceImmediate() {
       const phrase = t('navVoiceStart');
       try {
-        if (!phrase || !window.speechSynthesis) {
-          done();
-          return;
-        }
+        if (!phrase || !window.speechSynthesis) return;
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(phrase);
         u.lang = currentLang === 'ru' ? 'ru-RU' : 'uz-UZ';
         u.rate = 1.08;
         u.pitch = 1;
         u.volume = 1;
-        let fired = false;
-        const fire = () => {
-          if (fired) return;
-          fired = true;
-          clearTimeout(tQuick);
-          clearTimeout(tMax);
-          try {
-            window.speechSynthesis.cancel();
-          } catch (_) {}
-          done();
-        };
-        const tQuick = setTimeout(fire, 700);
-        const tMax = setTimeout(fire, 3500);
-        u.onend = fire;
-        u.onerror = fire;
         window.speechSynthesis.speak(u);
-      } catch (_) {
-        done();
-      }
+      } catch (_) {}
     }
 
     function updateNavButtons() {
@@ -856,42 +841,40 @@
 
     document.getElementById('openGoogleNav').addEventListener('click', () => {
       if (!order) return;
-      speakNavStartThen(() => {
-        if (hasValidCoords(order.locationLat, order.locationLng)) {
-          const origin = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
-            ? `${Number(lastKnownPosition.lat)},${Number(lastKnownPosition.lng)}`
-            : `${STORE_LOCATION.lat},${STORE_LOCATION.lng}`;
-          window.open(
-            `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${Number(order.locationLat)},${Number(order.locationLng)}`,
-            '_blank'
-          );
-          return;
-        }
-        const addr = encodeURIComponent(navAddressText());
-        if (!addr) return;
+      playNavVoiceImmediate();
+      if (hasValidCoords(order.locationLat, order.locationLng)) {
         const origin = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
           ? `${Number(lastKnownPosition.lat)},${Number(lastKnownPosition.lng)}`
           : `${STORE_LOCATION.lat},${STORE_LOCATION.lng}`;
-        window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${addr}`, '_blank');
-      });
+        window.open(
+          `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${Number(order.locationLat)},${Number(order.locationLng)}`,
+          '_blank'
+        );
+        return;
+      }
+      const addr = encodeURIComponent(navAddressText());
+      if (!addr) return;
+      const origin = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
+        ? `${Number(lastKnownPosition.lat)},${Number(lastKnownPosition.lng)}`
+        : `${STORE_LOCATION.lat},${STORE_LOCATION.lng}`;
+      window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${addr}`, '_blank');
     });
     document.getElementById('openYandexNav').addEventListener('click', () => {
       if (!order) return;
-      speakNavStartThen(() => {
-        const origin = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
-          ? `${Number(lastKnownPosition.lat)},${Number(lastKnownPosition.lng)}`
-          : `${STORE_LOCATION.lat},${STORE_LOCATION.lng}`;
-        if (hasValidCoords(order.locationLat, order.locationLng)) {
-          window.open(
-            `https://yandex.ru/maps/?rtext=${origin}~${Number(order.locationLat)},${Number(order.locationLng)}`,
-            '_blank'
-          );
-          return;
-        }
-        const addr = encodeURIComponent(navAddressText());
-        if (!addr) return;
-        window.open(`https://yandex.ru/maps/?rtext=${origin}~${addr}`, '_blank');
-      });
+      playNavVoiceImmediate();
+      const origin = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
+        ? `${Number(lastKnownPosition.lat)},${Number(lastKnownPosition.lng)}`
+        : `${STORE_LOCATION.lat},${STORE_LOCATION.lng}`;
+      if (hasValidCoords(order.locationLat, order.locationLng)) {
+        window.open(
+          `https://yandex.ru/maps/?rtext=${origin}~${Number(order.locationLat)},${Number(order.locationLng)}`,
+          '_blank'
+        );
+        return;
+      }
+      const addr = encodeURIComponent(navAddressText());
+      if (!addr) return;
+      window.open(`https://yandex.ru/maps/?rtext=${origin}~${addr}`, '_blank');
     });
 
     document.getElementById('openYandexNavi').addEventListener('click', () => {
@@ -902,17 +885,15 @@
       if (hasValidCoords(order.locationLat, order.locationLng)) {
         const tLat = Number(order.locationLat);
         const tLng = Number(order.locationLng);
-        const appUrl = `yandexnavi://build_route_on_map?lat_from=${from.lat}&lon_from=${from.lng}&lat_to=${tLat}&lon_to=${tLng}`;
-        speakNavStartThen(() => {
-          window.location.href = appUrl;
-        });
+        const appUrl = `yandexnavi://build_route_on_map?lat_from=${navCoordForUrl(from.lat)}&lon_from=${navCoordForUrl(from.lng)}&lat_to=${navCoordForUrl(tLat)}&lon_to=${navCoordForUrl(tLng)}`;
+        playNavVoiceImmediate();
+        window.location.assign(appUrl);
         return;
       }
       const text = navAddressText();
       if (!text) return;
-      speakNavStartThen(() => {
-        window.open(`https://yandex.ru/maps/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-      });
+      playNavVoiceImmediate();
+      window.open(`https://yandex.ru/maps/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
     });
 
     document.addEventListener('visibilitychange', () => {
