@@ -25,6 +25,7 @@ const app = express();
 app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS || 1));
 app.use(compression({ threshold: 2048 }));
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 const ADMIN_TOKEN = process.env.ADMIN_IMPORT_TOKEN || '12345';
 const ADMIN_V2_PASSWORD = process.env.ADMIN_V2_PASSWORD ?? '8080';
 const ADMIN_V2_SECRET =
@@ -2484,8 +2485,8 @@ async function main() {
   } else {
     console.info('[R2] not configured — using local disk under /uploads');
   }
-  app.listen(PORT, () => {
-    console.info(`[SERVER] started on port ${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.info(`[SERVER] started on ${HOST}:${PORT}`);
   });
 }
 
