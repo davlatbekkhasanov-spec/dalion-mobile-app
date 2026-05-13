@@ -31,9 +31,8 @@
       --radius-sm: 12px;
     }
     * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    html, body { height: 100%; margin: 0; }
     body {
-      margin: 0;
       font-family: "DM Sans", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
       font-feature-settings: "tnum" 1;
       color: var(--txt);
@@ -42,7 +41,18 @@
         radial-gradient(900px 500px at 100% 0%, rgba(158, 120, 255, 0.1), transparent 50%),
         linear-gradient(180deg, #070f1c 0%, var(--bg) 45%);
     }
-    .wrap { padding: 12px 14px 14px; height: 100vh; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+    .wrap {
+      padding: 12px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+      box-sizing: border-box;
+      height: 100vh;
+      max-height: 100vh;
+      height: 100dvh;
+      max-height: 100dvh;
+    }
     .ops-bar {
       display: flex;
       flex-wrap: wrap;
@@ -195,6 +205,7 @@
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
+      grid-template-rows: minmax(0, 1fr);
       gap: 12px;
       flex: 1;
       min-height: 0;
@@ -214,8 +225,38 @@
       display: flex;
       flex-direction: column;
       min-height: 0;
+      max-height: 100%;
       min-width: 268px;
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+    }
+    .token-input-wrap {
+      display: inline-flex;
+      align-items: stretch;
+      gap: 0;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: rgba(10, 22, 42, 0.9);
+      overflow: hidden;
+    }
+    .token-input-wrap input {
+      border: none;
+      border-radius: 0;
+      min-width: 140px;
+      max-width: 200px;
+      background: transparent;
+    }
+    .token-input-wrap input:focus {
+      outline: none;
+    }
+    #tokenRevealBtn {
+      border: none;
+      border-left: 1px solid var(--line);
+      border-radius: 0;
+      padding: 8px 10px;
+      font-size: 14px;
+      line-height: 1;
+      flex-shrink: 0;
+      background: rgba(6, 14, 28, 0.55);
     }
     .col-head {
       display: flex;
@@ -256,7 +297,17 @@
       width: 0%;
       transition: width 0.35s ease;
     }
-    .list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; min-height: 0; padding-right: 2px; }
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 2px;
+      -webkit-overflow-scrolling: touch;
+    }
     .ops-card {
       position: relative;
       border: 1px solid var(--line);
@@ -411,6 +462,23 @@
     .toast.err { border-color: #a0485b; color: #ffd7e0; background: rgba(42, 17, 25, 0.95); }
     .card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; position: relative; z-index: 2; }
     .card-actions .primary { padding: 8px 12px; font-size: 13px; border-radius: 10px; min-height: 40px; }
+    .sound-tools {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .sound-tools input[type="range"]#soundVolume {
+      width: 88px;
+      max-width: 22vw;
+      height: 6px;
+      accent-color: var(--acc);
+      cursor: pointer;
+    }
+    .sound-tools input[type="range"]#soundVolume:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
     @media (max-width: 1100px) {
       .grid { grid-auto-flow: column; grid-template-columns: repeat(6, minmax(280px, 1fr)); }
     }
@@ -427,9 +495,15 @@
       <div class="ops-tools">
         <button type="button" id="langUzBtn" class="btn-ghost">UZ</button>
         <button type="button" id="langRuBtn" class="btn-ghost">RU</button>
-        <button type="button" id="soundToggle" class="chip" aria-pressed="true">🔔</button>
+        <span class="sound-tools" title="">
+          <button type="button" id="soundToggle" class="chip" aria-pressed="true">🔔</button>
+          <input type="range" id="soundVolume" min="0" max="100" step="1" value="80" aria-label="" />
+        </span>
         <button type="button" id="fullscreenBtn" class="primary">To‘liq ekran</button>
-        <input id="tokenInput" placeholder="ADMIN_IMPORT_TOKEN" style="min-width:200px;max-width:260px" autocomplete="off" />
+        <div class="token-input-wrap">
+          <input id="tokenInput" type="password" placeholder="ADMIN_IMPORT_TOKEN" autocomplete="off" spellcheck="false" autocapitalize="off" />
+          <button type="button" id="tokenRevealBtn" class="btn-ghost" aria-pressed="false" aria-label="">👁</button>
+        </div>
         <button type="button" id="saveTokenBtn">Token saqlash</button>
         <span id="online" class="badge">Online</span>
         <span id="lastUpdated" class="sync-pill">Yangilanmagan</span>
@@ -507,6 +581,8 @@
         relDay: '{n} kun',
         fullscreen: "To'liq ekran",
         saveToken: 'Token saqlash',
+        tokenShow: 'Tokenni ko‘rsatish',
+        tokenHide: 'Tokenni yashirish',
         online: 'Online',
         offline: 'Offline',
         notUpdated: 'Yangilanmagan',
@@ -521,6 +597,7 @@
         intervalSuffix: 'interval',
         soundOnLabel: 'Ovoz: yoqilgan',
         soundOffLabel: 'Ovoz: o‘chiq',
+        soundVol: 'Signal balandligi',
         statsAll: 'jami',
         statsToday: 'bugun',
         statsActive: 'faol',
@@ -550,6 +627,8 @@
         relDay: '{n} дн',
         fullscreen: 'Полный экран',
         saveToken: 'Сохранить токен',
+        tokenShow: 'Показать токен',
+        tokenHide: 'Скрыть токен',
         online: 'Онлайн',
         offline: 'Офлайн',
         notUpdated: 'Не обновлялось',
@@ -564,6 +643,7 @@
         intervalSuffix: 'интервал',
         soundOnLabel: 'Звук: вкл',
         soundOffLabel: 'Звук: выкл',
+        soundVol: 'Громкость сигнала',
         statsAll: 'всего',
         statsToday: 'сегодня',
         statsActive: 'активные',
@@ -611,6 +691,7 @@
     }
 
     const SOUND_LS = 'gm_orders_sound_on';
+    const SOUND_VOL_LS = 'gm_orders_sound_vol';
     let webAudioCtx = null;
 
     function getSoundOn() {
@@ -619,6 +700,27 @@
     function setSoundOn(on) {
       localStorage.setItem(SOUND_LS, on ? '1' : '0');
     }
+    function getSoundVolume() {
+      const raw = localStorage.getItem(SOUND_VOL_LS);
+      if (raw === null || raw === '') return 80;
+      const n = Number(raw);
+      if (!Number.isFinite(n)) return 80;
+      return Math.max(0, Math.min(100, Math.round(n)));
+    }
+    function setSoundVolume(v) {
+      const n = Math.max(0, Math.min(100, Math.round(Number(v))));
+      localStorage.setItem(SOUND_VOL_LS, String(n));
+    }
+    function syncSoundVolumeUi() {
+      const range = document.getElementById('soundVolume');
+      const wrap = document.querySelector('.sound-tools');
+      if (range) {
+        range.value = String(getSoundVolume());
+        range.disabled = !getSoundOn();
+        range.setAttribute('aria-label', t('soundVol'));
+      }
+      if (wrap) wrap.title = t('soundVol');
+    }
     function syncSoundToggle() {
       const btn = document.getElementById('soundToggle');
       if (!btn) return;
@@ -626,6 +728,7 @@
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       btn.classList.toggle('on', on);
       btn.textContent = on ? `🔔 ${t('soundOnLabel')}` : `🔕 ${t('soundOffLabel')}`;
+      syncSoundVolumeUi();
     }
     function getAudioContext() {
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -633,24 +736,53 @@
       if (!webAudioCtx) webAudioCtx = new AC();
       return webAudioCtx;
     }
+    /** kind 'new' = yangi buyurtma (zangdor chim); 'route' = yo'lda (muloyimroq) */
     function playBeep(kind) {
       if (!getSoundOn()) return;
       const ctx = getAudioContext();
       if (!ctx) return;
       if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      const vol = getSoundVolume() / 100;
+      if (vol <= 0) return;
       try {
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.type = 'sine';
-        o.frequency.value = kind === 'route' ? 540 : 880;
-        g.gain.setValueAtTime(0.0001, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.085, ctx.currentTime + 0.02);
-        o.connect(g);
-        g.connect(ctx.destination);
         const t0 = ctx.currentTime;
-        o.start(t0);
-        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.11);
-        o.stop(t0 + 0.12);
+        const master = ctx.createGain();
+        master.gain.value = vol * 0.98;
+        master.connect(ctx.destination);
+
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.setValueAtTime(5200, t0);
+        lp.Q.setValueAtTime(0.7, t0);
+        lp.connect(master);
+
+        function bellPartial(start, freq, dur, peak, type) {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, t0 + start);
+          const a = t0 + start;
+          const b = a + dur;
+          const p = Math.max(0.0008, peak);
+          g.gain.setValueAtTime(0.0001, a);
+          g.gain.exponentialRampToValueAtTime(p, a + 0.018);
+          g.gain.exponentialRampToValueAtTime(0.0001, b);
+          osc.connect(g);
+          g.connect(lp);
+          osc.start(a);
+          osc.stop(b + 0.03);
+        }
+
+        if (kind === 'route') {
+          bellPartial(0, 392, 0.28, 0.44, 'triangle');
+          bellPartial(0.06, 523.25, 0.24, 0.34, 'sine');
+          bellPartial(0.12, 659.25, 0.2, 0.24, 'sine');
+        } else {
+          bellPartial(0, 783.99, 0.42, 0.58, 'triangle');
+          bellPartial(0.1, 987.77, 0.36, 0.46, 'triangle');
+          bellPartial(0.2, 1174.66, 0.3, 0.32, 'sine');
+          bellPartial(0.32, 1318.51, 0.22, 0.18, 'sine');
+        }
       } catch (_) {}
     }
     function snapshotFeed(list) {
@@ -829,6 +961,17 @@
       return `<div class="ops-card__thumbs">${bits.join('')}${more}</div>`;
     }
 
+    function syncTokenRevealUi() {
+      const inp = document.getElementById('tokenInput');
+      const btn = document.getElementById('tokenRevealBtn');
+      if (!inp || !btn) return;
+      const visible = inp.type === 'text';
+      btn.setAttribute('aria-pressed', visible ? 'true' : 'false');
+      const lab = visible ? t('tokenHide') : t('tokenShow');
+      btn.setAttribute('aria-label', lab);
+      btn.title = lab;
+    }
+
     function applyLang() {
       document.documentElement.lang = currentLang;
       const title = document.getElementById('opsTitle');
@@ -837,6 +980,7 @@
       if (sub) sub.textContent = t('opsSubtitle');
       document.getElementById('fullscreenBtn').textContent = t('fullscreen');
       document.getElementById('saveTokenBtn').textContent = t('saveToken');
+      syncTokenRevealUi();
       document.getElementById('online').textContent = t('online');
       const lu = document.getElementById('lastUpdated');
       if (lu && !lu.dataset.ticking) lu.textContent = t('notUpdated');
@@ -1169,8 +1313,15 @@
     }
 
     document.getElementById('tokenInput').value = getToken();
+    document.getElementById('tokenRevealBtn').onclick = () => {
+      const inp = document.getElementById('tokenInput');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      syncTokenRevealUi();
+    };
     document.getElementById('saveTokenBtn').onclick = () => {
       localStorage.setItem(tokenKey, document.getElementById('tokenInput').value.trim());
+      document.getElementById('tokenInput').type = 'password';
+      syncTokenRevealUi();
       refresh();
     };
 
@@ -1185,9 +1336,20 @@
       if (getSoundOn()) {
         const ctx = getAudioContext();
         if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
-        playBeep('route');
+        playBeep('new');
       }
     };
+
+    (function bindSoundVolume() {
+      const el = document.getElementById('soundVolume');
+      if (!el) return;
+      el.addEventListener('input', (e) => {
+        setSoundVolume(e.target.value);
+      });
+      el.addEventListener('change', () => {
+        if (getSoundOn()) playBeep('new');
+      });
+    })();
 
     document.getElementById('columns').onclick = (e) => {
       const quickBtn = e.target.closest('[data-quick-next]');
