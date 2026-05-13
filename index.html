@@ -1041,6 +1041,52 @@
       outline: none;
     }
 
+    .manual-address-wrap {
+      position: relative;
+      margin-top: 10px;
+    }
+    .manual-address-wrap .checkout-input {
+      margin-top: 0;
+    }
+    .address-suggest-box {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 6px);
+      z-index: 90;
+      max-height: 260px;
+      overflow-y: auto;
+      background: rgba(10, 22, 42, 0.98);
+      border: 1px solid rgba(126, 165, 226, 0.45);
+      border-radius: 12px;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+    }
+    .address-suggest-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 11px 14px;
+      margin: 0;
+      border: none;
+      border-bottom: 1px solid rgba(126, 165, 226, 0.2);
+      background: transparent;
+      color: #e7f2ff;
+      font-size: 14px;
+      line-height: 1.35;
+      cursor: pointer;
+    }
+    .address-suggest-item:last-child {
+      border-bottom: none;
+    }
+    .address-suggest-item:hover {
+      background: rgba(46, 240, 168, 0.1);
+    }
+    .address-suggest-muted {
+      font-size: 12px;
+      color: #9bb7df;
+      margin-top: 3px;
+    }
+
     #shortsFeed.short-strip {
       gap: 14px;
       padding: 2px 4px 6px;
@@ -2400,7 +2446,10 @@
           <p class="muted" id="checkoutLocation">Manzil: Samarqand</p>
           <p class="muted" id="checkoutGeo" style="display:none;">Geo: olinmagan</p>
           <p class="muted" id="checkoutLandmark">Orientir: -</p>
-          <input id="manualAddress" class="checkout-input" placeholder="Manzil (qo'lda)" />
+          <div class="manual-address-wrap">
+            <input id="manualAddress" class="checkout-input" placeholder="Manzil (qo'lda)" autocomplete="street-address" />
+            <div id="addressSuggestBox" class="address-suggest-box" hidden></div>
+          </div>
           <input id="landmarkInput" class="checkout-input" placeholder="Orientir" />
           <input id="promoCodeInput" class="checkout-input" placeholder="Promo kod (ixtiyoriy)" />
           <button class="btn btn-secondary location-premium-btn" id="captureLocationBtn">GPS orqali manzilni olish (ixtiyoriy)</button>
@@ -3113,6 +3162,7 @@ Oq fonli foto</div>
     const checkoutLandmark = document.getElementById('checkoutLandmark');
     const checkoutDistance = document.getElementById('checkoutDistance');
     const manualAddress = document.getElementById('manualAddress');
+    const addressSuggestBox = document.getElementById('addressSuggestBox');
     const landmarkInput = document.getElementById('landmarkInput');
     const paymentLinks = document.getElementById('paymentLinks');
     const paymentProofInput = document.getElementById('paymentProofInput');
@@ -6742,12 +6792,131 @@ Oq fonli foto</div>
       if (e.target === locationDeniedOverlay) closeLocationDeniedModal();
     });
 
+    let addressSuggestTimer = null;
+    let addressSuggestSeq = 0;
+    let addressSuggestAbort = null;
+    let addressSuggestBlurTimer = null;
+
+    function closeAddressSuggest() {
+      if (!addressSuggestBox) return;
+      addressSuggestBox.hidden = true;
+      addressSuggestBox.innerHTML = '';
+    }
+
+    function geoSuggestLang() {
+      return currentLang === 'ru' ? 'ru_RU' : 'uz_UZ';
+    }
+
+    function scheduleAddressSuggest() {
+      if (!addressSuggestBox || !manualAddress) return;
+      const q = manualAddress.value.trim();
+      clearTimeout(addressSuggestTimer);
+      if (addressSuggestAbort) {
+        addressSuggestAbort.abort();
+        addressSuggestAbort = null;
+      }
+      if (q.length < 2) {
+        closeAddressSuggest();
+        return;
+      }
+      addressSuggestTimer = setTimeout(() => {
+        void runAddressSuggest(q);
+      }, 280);
+    }
+
+    async function runAddressSuggest(q) {
+      if (!addressSuggestBox || !manualAddress) return;
+      const seq = ++addressSuggestSeq;
+      if (addressSuggestAbort) addressSuggestAbort.abort();
+      addressSuggestAbort = new AbortController();
+      const signal = addressSuggestAbort.signal;
+      try {
+        const u = new URL('/api/v1/geo/suggest', window.location.origin);
+        u.searchParams.set('q', q);
+        u.searchParams.set('lang', geoSuggestLang());
+        u.searchParams.set('results', '7');
+        const r = await fetch(u.toString(), { signal });
+        const j = await r.json().catch(() => ({}));
+        if (seq !== addressSuggestSeq) return;
+        if (!r.ok || j.ok === false) {
+          closeAddressSuggest();
+          return;
+        }
+        const list = Array.isArray(j.suggestions) ? j.suggestions : [];
+        if (!list.length) {
+          if (j.disabled) closeAddressSuggest();
+          else {
+            const empty = document.createElement('div');
+            empty.className = 'address-suggest-item';
+            empty.style.cursor = 'default';
+            empty.style.color = '#9bb7df';
+            empty.textContent = currentLang === 'ru' ? 'Адрес не найден' : 'Manzil topilmadi';
+            addressSuggestBox.innerHTML = '';
+            addressSuggestBox.appendChild(empty);
+            addressSuggestBox.hidden = false;
+          }
+          return;
+        }
+        addressSuggestBox.innerHTML = '';
+        list.forEach((s) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'address-suggest-item';
+          const main = document.createElement('div');
+          main.textContent = String(s.label || s.value || '').trim() || '—';
+          btn.appendChild(main);
+          const valStr = String(s.value || s.label || '').trim();
+          const labStr = String(s.label || '').trim();
+          if (labStr && valStr && labStr !== valStr) {
+            const sub = document.createElement('div');
+            sub.className = 'address-suggest-muted';
+            sub.textContent = valStr;
+            btn.appendChild(sub);
+          }
+          btn.addEventListener('mousedown', (ev) => {
+            ev.preventDefault();
+          });
+          btn.addEventListener('click', () => {
+            const val = valStr || labStr;
+            manualAddress.value = val;
+            customerLocation.addressText = val;
+            if (currentUser?.phone) {
+              currentUser.address = val || currentUser.address || DEFAULT_LOCATION_ADDRESS;
+              localStorage.setItem('globusUser', JSON.stringify(currentUser));
+            }
+            closeAddressSuggest();
+            renderCheckout();
+          });
+          addressSuggestBox.appendChild(btn);
+        });
+        addressSuggestBox.hidden = false;
+      } catch (e) {
+        if (e?.name === 'AbortError') return;
+        closeAddressSuggest();
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!addressSuggestBox || addressSuggestBox.hidden) return;
+      if (e.target.closest && e.target.closest('.manual-address-wrap')) return;
+      closeAddressSuggest();
+    });
+
+    manualAddress.addEventListener('focus', () => {
+      clearTimeout(addressSuggestBlurTimer);
+      scheduleAddressSuggest();
+    });
+    manualAddress.addEventListener('blur', () => {
+      addressSuggestBlurTimer = setTimeout(() => closeAddressSuggest(), 200);
+    });
+
     manualAddress.addEventListener('input', () => {
       customerLocation.addressText = manualAddress.value.trim();
       if (currentUser?.phone) {
         currentUser.address = customerLocation.addressText || currentUser.address || DEFAULT_LOCATION_ADDRESS;
         localStorage.setItem('globusUser', JSON.stringify(currentUser));
       }
+      scheduleAddressSuggest();
       renderCheckout();
     });
     landmarkInput.addEventListener('input', renderCheckout);

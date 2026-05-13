@@ -78,6 +78,8 @@ const SMS_OTP_TTL_MS = Math.min(
   30 * 60 * 1000,
   Math.max(60 * 1000, Number(process.env.SMS_OTP_TTL_MS || 600000) || 600000)
 );
+/** Yandex Geosuggest (manzil tavsiyasi). MapKit kaliti veb serverda ishlatilmaydi — faqat mobil loyihada. */
+const GEO_SUGGEST_API_KEY = String(process.env.GEO_SUGGEST_API_KEY || '').trim();
 
 const smsThrottlePhone = new Map();
 const smsThrottleIp = new Map();
@@ -1043,6 +1045,54 @@ app.get('/api/v1/home', async (req, res) => {
   } catch (e) {
     logStructured('error', 'home_api_failed', { message: e?.message });
     return res.status(500).json({ ok: false, message: 'Server xatolik' });
+  }
+});
+
+app.get('/api/v1/geo/suggest', async (req, res) => {
+  const q = String(req.query.q || req.query.text || '').trim();
+  if (q.length < 2) {
+    return res.json({ ok: true, suggestions: [] });
+  }
+  if (!GEO_SUGGEST_API_KEY) {
+    return res.json({ ok: true, suggestions: [], disabled: true });
+  }
+  const lang = String(req.query.lang || 'uz_UZ').replace(/[^a-zA-Z_]/g, '').slice(0, 8) || 'uz_UZ';
+  const lim = Math.min(10, Math.max(1, Number(req.query.results) || 7));
+  try {
+    const url = new URL('https://suggest-maps.yandex.ru/v1/suggest');
+    url.searchParams.set('apikey', GEO_SUGGEST_API_KEY);
+    url.searchParams.set('text', q);
+    url.searchParams.set('lang', lang);
+    url.searchParams.set('results', String(lim));
+    url.searchParams.set('print_address', '1');
+    url.searchParams.set('attrs', 'uri');
+    const r = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      logStructured('warn', 'geosuggest_upstream', { status: r.status });
+      return res.status(502).json({ ok: false, message: 'Geosuggest xizmati javob bermadi' });
+    }
+    const raw = Array.isArray(data.results)
+      ? data.results
+      : Array.isArray(data.suggest)
+        ? data.suggest
+        : [];
+    const suggestions = raw
+      .map((it) => {
+        const title = String(it?.title?.text || '').trim();
+        const sub = String(it?.subtitle?.text || '').trim();
+        const formatted =
+          String(it?.address?.formatted_address || it?.address?.formatted || it?.display_name || '').trim();
+        const label = formatted || [title, sub].filter(Boolean).join(' · ') || title;
+        const value = formatted || [title, sub].filter(Boolean).join(', ') || title;
+        if (!value) return null;
+        return { label: label || value, value, uri: typeof it?.uri === 'string' ? it.uri : null };
+      })
+      .filter(Boolean);
+    return res.json({ ok: true, suggestions });
+  } catch (e) {
+    logStructured('error', 'geosuggest_error', { message: e?.message });
+    return res.status(500).json({ ok: false, message: 'Geosuggest xatosi' });
   }
 });
 
