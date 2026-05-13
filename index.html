@@ -2364,6 +2364,21 @@
           <div class="menu-item"><span>Yordam / Biz bilan bog‘lanish</span><small>24/7</small></div>
           <button class="btn gm-btn gm-btn-secondary btn-secondary" id="logoutBtn" style="margin-top:12px;">Chiqish</button>
         </div>
+        <div class="list-card gm-card" id="courierApplyCard" style="display:none;">
+          <h3 style="margin-bottom:6px;" id="profileCourierCardTitle">Kuryer bo‘lish</h3>
+          <p class="muted" id="profileCourierCardBody" style="margin-top:0;">Ariza yuboring — hozircha darhol onlayn kuryer portali ochiladi.</p>
+          <div id="courierApplyExistingWrap" style="display:none;margin-top:10px;">
+            <p class="muted" id="profileCourierAlready"></p>
+            <a class="btn gm-btn gm-btn-primary btn-primary" id="courierPortalLink" href="#" target="_blank" rel="noopener" style="margin-top:8px;text-align:center;">Kuryer portali</a>
+          </div>
+          <div id="courierApplyFormWrap">
+            <label class="muted" style="display:block;margin-top:8px;" id="profileCourierNameLabel" for="courierApplyFullName">Ism</label>
+            <input id="courierApplyFullName" class="checkout-input" type="text" autocomplete="name" />
+            <label class="muted" style="display:block;margin-top:10px;" id="profileCourierNoteLabel" for="courierApplyNote">Izoh (ixtiyoriy)</label>
+            <textarea id="courierApplyNote" class="checkout-input" rows="3" style="resize:vertical;min-height:72px;"></textarea>
+            <button type="button" class="btn gm-btn gm-btn-primary btn-primary" id="courierApplyBtn" style="margin-top:12px;">Ariza yuborish</button>
+          </div>
+        </div>
         <div class="list-card gm-card" id="profileOrdersCard">
           <h3 style="margin-bottom:6px;" id="profileOrdersTitle">Buyurtmalarim</h3>
           <div id="profileOrders"></div>
@@ -3531,6 +3546,19 @@ Oq fonli foto</div>
         profileAlerts: 'Xabarnomalar',
         profileSettings: 'Sozlamalar',
         profileHelp: "Yordam / Biz bilan bog'lanish",
+        profileCourierCardTitle: 'Kuryer bo‘lish',
+        profileCourierCardBody:
+          'Ariza qoldiring. Hozircha tasdiq avtomatik: yuborganingizdan keyin kuryer portali ochiladi. Keyinroq arizalar Telegram orqali keladi va login/parol beriladi.',
+        profileCourierNameLabel: 'Ism va familiya',
+        profileCourierNamePlaceholder: 'Masalan: Ali Valiyev',
+        profileCourierNoteLabel: 'Izoh (ixtiyoriy)',
+        profileCourierNotePlaceholder: 'Avto, tajriba, hudud…',
+        profileCourierSubmit: 'Ariza yuborish',
+        profileCourierSubmitting: 'Yuborilmoqda…',
+        profileCourierOpenPortal: 'Kuryer portali',
+        profileCourierAlready: 'Sizning arizangiz qabul qilingan. Portaldan foydalaning.',
+        profileCourierToastOk: 'Kuryer portali ochildi',
+        profileCourierToastErr: 'Ariza yuborilmadi',
         profileSoon: 'Tez orada',
         profileLogout: 'Chiqish',
         profileGuestTitle: 'Mehmon foydalanuvchi',
@@ -3743,6 +3771,19 @@ Oq fonli foto</div>
         profileAlerts: 'Уведомления',
         profileSettings: 'Настройки',
         profileHelp: 'Помощь / Связаться с нами',
+        profileCourierCardTitle: 'Стать курьером',
+        profileCourierCardBody:
+          'Оставьте заявку. Сейчас подтверждение автоматическое: после отправки откроется портал курьера. Позже заявки пойдут в Telegram и выдадут логин/пароль.',
+        profileCourierNameLabel: 'Имя и фамилия',
+        profileCourierNamePlaceholder: 'Например: Иван Иванов',
+        profileCourierNoteLabel: 'Комментарий (необязательно)',
+        profileCourierNotePlaceholder: 'Авто, опыт, район…',
+        profileCourierSubmit: 'Отправить заявку',
+        profileCourierSubmitting: 'Отправка…',
+        profileCourierOpenPortal: 'Портал курьера',
+        profileCourierAlready: 'Заявка принята. Откройте портал.',
+        profileCourierToastOk: 'Открыт портал курьера',
+        profileCourierToastErr: 'Не удалось отправить заявку',
         profileSoon: 'Скоро',
         profileLogout: 'Выйти',
         profileGuestTitle: 'Гостевой пользователь',
@@ -3935,6 +3976,24 @@ Oq fonli foto</div>
       document.getElementById('profileGuestBody').textContent = t('profileGuestBody');
       document.getElementById('profileRegisterBtn').textContent = t('profileGuestCta');
       document.getElementById('logoutBtn').textContent = t('profileLogout');
+      const elCourierTitle = document.getElementById('profileCourierCardTitle');
+      if (elCourierTitle) elCourierTitle.textContent = t('profileCourierCardTitle');
+      const elCourierBody = document.getElementById('profileCourierCardBody');
+      if (elCourierBody) elCourierBody.textContent = t('profileCourierCardBody');
+      const elCourierNameL = document.getElementById('profileCourierNameLabel');
+      if (elCourierNameL) elCourierNameL.textContent = t('profileCourierNameLabel');
+      const elCourierNoteL = document.getElementById('profileCourierNoteLabel');
+      if (elCourierNoteL) elCourierNoteL.textContent = t('profileCourierNoteLabel');
+      const caName = document.getElementById('courierApplyFullName');
+      if (caName) caName.placeholder = t('profileCourierNamePlaceholder');
+      const caNote = document.getElementById('courierApplyNote');
+      if (caNote) caNote.placeholder = t('profileCourierNotePlaceholder');
+      const caBtn = document.getElementById('courierApplyBtn');
+      if (caBtn && !caBtn.dataset.submitting) caBtn.textContent = t('profileCourierSubmit');
+      const elCourierAlready = document.getElementById('profileCourierAlready');
+      if (elCourierAlready) elCourierAlready.textContent = t('profileCourierAlready');
+      const elPortalLink = document.getElementById('courierPortalLink');
+      if (elPortalLink) elPortalLink.textContent = t('profileCourierOpenPortal');
       document.getElementById('successTitle').textContent = t('successTitle');
       document.getElementById('successBody').textContent = t('successBody');
       document.getElementById('successPaymentPending').textContent = t('successPaymentPending');
@@ -5691,11 +5750,43 @@ Oq fonli foto</div>
       } catch (_) {}
     }
 
+    async function refreshCourierApplicationPanel() {
+      const card = document.getElementById('courierApplyCard');
+      const ex = document.getElementById('courierApplyExistingWrap');
+      const fw = document.getElementById('courierApplyFormWrap');
+      const link = document.getElementById('courierPortalLink');
+      const nameInp = document.getElementById('courierApplyFullName');
+      if (!card || !ex || !fw || !link) return;
+      if (!isAuthed() || !currentUser?.phone) {
+        card.style.display = 'none';
+        return;
+      }
+      card.style.display = 'block';
+      try {
+        const out = await api('/courier-applications/me');
+        const app = out && out.application;
+        if (app && app.portalUrl) {
+          ex.style.display = 'block';
+          fw.style.display = 'none';
+          link.href = app.portalUrl;
+        } else {
+          ex.style.display = 'none';
+          fw.style.display = 'block';
+          if (nameInp && !nameInp.value.trim() && currentUser?.name) nameInp.value = currentUser.name;
+        }
+      } catch (_) {
+        ex.style.display = 'none';
+        fw.style.display = 'block';
+      }
+    }
+
     async function renderProfileOrders() {
+      const courierApplyCard = document.getElementById('courierApplyCard');
       if (!isAuthed()) {
         profileUserCard.style.display = 'none';
         profileOrdersCard.style.display = 'none';
         profileMenuCard.style.display = 'none';
+        if (courierApplyCard) courierApplyCard.style.display = 'none';
         profileGuestCard.style.display = 'block';
         return;
       }
@@ -5703,6 +5794,8 @@ Oq fonli foto</div>
       profileMenuCard.style.display = 'block';
       profileUserCard.style.display = 'block';
       profileOrdersCard.style.display = 'block';
+      if (courierApplyCard) courierApplyCard.style.display = 'block';
+      await refreshCourierApplicationPanel();
       profileName.textContent = currentUser?.name || t('userFallback');
       const cid =
         currentUser?.customer_no != null && currentUser.customer_no !== ''
@@ -6084,6 +6177,39 @@ Oq fonli foto</div>
       resetSmsAuthState();
       authSheetOverlay.classList.add('show');
       authFirstName?.focus();
+    });
+
+    document.getElementById('courierApplyBtn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('courierApplyBtn');
+      const fullName = document.getElementById('courierApplyFullName')?.value?.trim() || '';
+      const note = document.getElementById('courierApplyNote')?.value?.trim() || '';
+      if (!fullName) {
+        showToast(t('authNameError'), 1800);
+        return;
+      }
+      if (!btn) return;
+      btn.dataset.submitting = '1';
+      btn.disabled = true;
+      btn.textContent = t('profileCourierSubmitting');
+      try {
+        const out = await api('/courier-applications', {
+          method: 'POST',
+          body: JSON.stringify({ fullName, note })
+        });
+        if (out && out.portalUrl) {
+          window.location.href = out.portalUrl;
+          return;
+        }
+        showToast(t('profileCourierToastErr'), 2000);
+      } catch (err) {
+        showToast(err.message || t('profileCourierToastErr'), 2200);
+      } finally {
+        if (btn) {
+          btn.dataset.submitting = '';
+          btn.disabled = false;
+        }
+        applyLang();
+      }
     });
 
     profileOrders?.addEventListener('click', async (e) => {

@@ -178,6 +178,22 @@ model AmbientTrack {
   updatedAt DateTime
 }
 
+/// GlobusMarket: mijozdan kuryer bo‘lish arizasi (keyin Telegram / tasdiq jarayoni)
+model CourierApplication {
+  id          String   @id @default(cuid())
+  phone       String
+  fullName    String
+  note        String   @default("")
+  /// hozircha: approved; keyin pending + admin tasdiq
+  status      String   @default("approved")
+  accessToken String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([phone])
+  @@map("courier_applications")
+}
+
 model PaymeTransaction {
   paymeTransactionId String   @id @map("payme_transaction_id")
   orderId            String   @map("order_id")

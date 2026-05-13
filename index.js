@@ -934,6 +934,12 @@ app.get('/courier/:token', (req, res) => {
   return res.redirect('/track/' + encodeURIComponent(req.params.token));
 });
 
+app.get('/courier-portal', (req, res) => {
+  const filePath = path.join(__dirname, 'courier-portal.html');
+  if (fs.existsSync(filePath)) return res.sendFile(filePath);
+  return res.status(404).send('Courier portal');
+});
+
 app.get('/track/:orderNumber', (req, res) => {
   res.sendFile(path.join(__dirname, 'track.html'));
 });
@@ -1411,6 +1417,56 @@ app.get('/api/v1/customer/orders', async (req, res) => {
   const all = await marketplaceRepo.listOrdersLegacySorted();
   const orders = all.filter((o) => String(o.customerPhone) === phone).map(orderPublic);
   return res.json({ ok: true, orders });
+});
+
+app.get('/api/v1/courier-applications/me', async (req, res) => {
+  const phone = normalizePhone(getUserPhone(req));
+  if (!phone) return res.status(401).json({ ok: false, message: 'Telefon orqali kiring' });
+  const row = await marketplaceRepo.getCourierApplicationByPhone(phone);
+  if (!row) return res.json({ ok: true, application: null });
+  const portalUrl = `${req.protocol}://${req.get('host')}/courier-portal?t=${encodeURIComponent(row.accessToken)}`;
+  return res.json({
+    ok: true,
+    application: {
+      fullName: row.fullName,
+      phone: row.phone,
+      status: row.status,
+      portalUrl,
+      createdAt: row.createdAt ? row.createdAt.toISOString() : null
+    }
+  });
+});
+
+app.post('/api/v1/courier-applications', async (req, res) => {
+  const phone = normalizePhone(getUserPhone(req));
+  if (!phone) return res.status(401).json({ ok: false, message: 'Telefon orqali kiring' });
+  const fullName = String(req.body?.fullName || '').trim();
+  const note = String(req.body?.note || '').trim();
+  if (!fullName) return res.status(400).json({ ok: false, message: 'Ism-sharif kiriting' });
+  try {
+    const row = await marketplaceRepo.upsertApprovedCourierApplication({ phone, fullName, note });
+    const portalUrl = `${req.protocol}://${req.get('host')}/courier-portal?t=${encodeURIComponent(row.accessToken)}`;
+    return res.json({ ok: true, portalUrl, application: { fullName: row.fullName, phone: row.phone, status: row.status } });
+  } catch (err) {
+    const msg = err && err.message === 'fullName_required' ? 'Ism-sharif kiriting' : err?.message || 'Ariza saqlanmadi';
+    return res.status(400).json({ ok: false, message: msg });
+  }
+});
+
+app.get('/api/v1/courier-portal/session', async (req, res) => {
+  const tok = String(req.query.token || req.headers['x-courier-portal-token'] || '').trim();
+  if (!tok) return res.status(400).json({ ok: false, message: 'token kerak' });
+  const row = await marketplaceRepo.getCourierApplicationByAccessToken(tok);
+  if (!row) return res.status(404).json({ ok: false, message: 'Havola yaroqsiz' });
+  return res.json({
+    ok: true,
+    application: {
+      fullName: row.fullName,
+      phone: row.phone,
+      status: row.status,
+      createdAt: row.createdAt ? row.createdAt.toISOString() : null
+    }
+  });
 });
 
 app.get('/api/v1/orders-display/feed', async (req, res) => {

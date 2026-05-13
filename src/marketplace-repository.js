@@ -1177,6 +1177,62 @@ async function profileToApi(u) {
   };
 }
 
+const COURIER_TOKEN_LEN = 64;
+
+function normalizeCourierPortalToken(raw) {
+  const t = String(raw || '').trim();
+  if (!/^[a-f0-9]+$/i.test(t) || t.length < 32) return '';
+  return t.slice(0, COURIER_TOKEN_LEN);
+}
+
+async function upsertApprovedCourierApplication({ phone, fullName, note }) {
+  const p = String(phone || '').trim();
+  if (!p) throw new Error('phone_required');
+  const fn = String(fullName || '').trim().slice(0, 160);
+  if (!fn) throw new Error('fullName_required');
+  const nt = String(note || '').trim().slice(0, 800);
+  const crypto = require('crypto');
+  const existing = await prisma.courierApplication.findFirst({
+    where: { phone: p },
+    orderBy: { createdAt: 'desc' }
+  });
+  if (existing) {
+    return prisma.courierApplication.update({
+      where: { id: existing.id },
+      data: {
+        fullName: fn,
+        note: nt,
+        status: 'approved'
+      }
+    });
+  }
+  const accessToken = crypto.randomBytes(32).toString('hex');
+  return prisma.courierApplication.create({
+    data: {
+      phone: p,
+      fullName: fn,
+      note: nt,
+      status: 'approved',
+      accessToken
+    }
+  });
+}
+
+async function getCourierApplicationByPhone(phone) {
+  const p = String(phone || '').trim();
+  if (!p) return null;
+  return prisma.courierApplication.findFirst({
+    where: { phone: p },
+    orderBy: { createdAt: 'desc' }
+  });
+}
+
+async function getCourierApplicationByAccessToken(token) {
+  const t = normalizeCourierPortalToken(token);
+  if (!t) return null;
+  return prisma.courierApplication.findUnique({ where: { accessToken: t } });
+}
+
 module.exports = {
   APP_ID,
   ensureAppState,
@@ -1204,6 +1260,9 @@ module.exports = {
   getUserProfile,
   upsertUserProfile,
   profileToApi,
+  upsertApprovedCourierApplication,
+  getCourierApplicationByPhone,
+  getCourierApplicationByAccessToken,
   readSmsChallenge,
   writeSmsChallenge,
   deleteSmsChallenge,

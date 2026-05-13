@@ -463,6 +463,7 @@
     .item img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; background: #fff; }
     .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
     .actions button { min-height: 52px; font-size: 16px; font-weight: 700; }
+    .actions a.primary { min-height: 52px; font-size: 16px; grid-column: 1 / -1; }
     .full { grid-column: 1 / -1; }
     .toast {
       position: fixed;
@@ -618,6 +619,7 @@
         soundOnLabel: 'Ovoz: yoqilgan',
         soundOffLabel: 'Ovoz: o‘chiq',
         soundVol: 'Signal (0–200%)',
+        courierAppLink: 'Kuryer sahifasi (QR)',
         statsAll: 'jami',
         statsToday: 'bugun',
         statsActive: 'faol',
@@ -664,6 +666,7 @@
         soundOnLabel: 'Звук: вкл',
         soundOffLabel: 'Звук: выкл',
         soundVol: 'Громкость (0–200%)',
+        courierAppLink: 'Страница курьера (QR)',
         statsAll: 'всего',
         statsToday: 'сегодня',
         statsActive: 'активные',
@@ -767,7 +770,7 @@
       try {
         const t0 = ctx.currentTime;
         const makeup = ctx.createGain();
-        makeup.gain.value = drive * 4.1;
+        makeup.gain.value = drive * 4.75;
         makeup.connect(ctx.destination);
 
         const lp = ctx.createBiquadFilter();
@@ -794,15 +797,24 @@
         }
 
         if (kind === 'route') {
-          bellPartial(0, 392, 0.3, 0.72, 'triangle');
-          bellPartial(0.06, 523.25, 0.26, 0.58, 'sine');
-          bellPartial(0.12, 659.25, 0.22, 0.46, 'sine');
+          bellPartial(0, 196, 0.14, 0.42, 'sine');
+          bellPartial(0, 392, 0.3, 0.78, 'triangle');
+          bellPartial(0.06, 523.25, 0.26, 0.62, 'sine');
+          bellPartial(0.12, 659.25, 0.22, 0.5, 'sine');
         } else {
-          bellPartial(0, 783.99, 0.44, 0.95, 'triangle');
-          bellPartial(0.1, 987.77, 0.38, 0.78, 'triangle');
-          bellPartial(0.2, 1174.66, 0.32, 0.58, 'sine');
-          bellPartial(0.32, 1318.51, 0.24, 0.4, 'sine');
+          bellPartial(0, 392, 0.16, 0.52, 'sine');
+          bellPartial(0, 783.99, 0.44, 1, 'triangle');
+          bellPartial(0.1, 987.77, 0.38, 0.82, 'triangle');
+          bellPartial(0.2, 1174.66, 0.32, 0.62, 'sine');
+          bellPartial(0.32, 1318.51, 0.24, 0.44, 'sine');
         }
+      } catch (_) {}
+    }
+    function hapticPing(kind) {
+      try {
+        if (typeof navigator === 'undefined' || !navigator.vibrate) return;
+        if (kind === 'route') navigator.vibrate([65, 40, 95]);
+        else navigator.vibrate([95, 55, 95, 55, 180]);
       } catch (_) {}
     }
     function snapshotFeed(list) {
@@ -813,12 +825,14 @@
       };
     }
     function notifyFeedChanges(prev, next) {
-      if (!getSoundOn()) return;
       if (!prev || !prev.ids || prev.ids.size === 0) return;
       const nextArr = Array.isArray(next) ? next : [];
       const newOnes = nextArr.filter((o) => !prev.ids.has(String(o.id)));
       if (newOnes.length) {
-        playBeep('new');
+        if (getSoundOn()) {
+          playBeep('new');
+          hapticPing('new');
+        }
         return;
       }
       let route = false;
@@ -828,7 +842,10 @@
         const was = prev.status.get(id);
         if (was !== undefined && was !== nowS && nowS === 'out_for_delivery') route = true;
       }
-      if (route) playBeep('route');
+      if (route && getSoundOn()) {
+        playBeep('route');
+        hapticPing('route');
+      }
     }
 
     function escapeHtml(s) {
@@ -1182,6 +1199,15 @@
       `).join('');
 
       const actions = [];
+      const courierTok = String(order.courierToken || '').trim();
+      if (courierTok && !['delivered', 'cancelled'].includes(status)) {
+        const href = `${window.location.origin}/courier/${encodeURIComponent(courierTok)}`;
+        actions.push(
+          `<a class="primary" href="${escapeHtml(href)}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;align-items:center;justify-content:center;min-height:52px;border-radius:12px;font-weight:700;">${escapeHtml(
+            t('courierAppLink')
+          )}</a>`
+        );
+      }
       const next = getNextTransition(order);
       if (next) {
         actions.push(
@@ -1357,6 +1383,7 @@
         const ctx = getAudioContext();
         if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
         playBeep('new');
+        hapticPing('new');
       }
     };
 
@@ -1367,7 +1394,10 @@
         setSoundVolume(e.target.value);
       });
       el.addEventListener('change', () => {
-        if (getSoundOn()) playBeep('new');
+        if (getSoundOn()) {
+          playBeep('new');
+          hapticPing('new');
+        }
       });
     })();
 

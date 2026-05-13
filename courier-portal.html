@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>GlobusMarket · Kuryer portali</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #050b14;
+      --line: rgba(90, 140, 210, 0.35);
+      --txt: #eef6ff;
+      --muted: #8aa3c8;
+      --acc: #2ef0a8;
+      --acc2: #38cfff;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: "DM Sans", system-ui, sans-serif;
+      color: var(--txt);
+      background: linear-gradient(180deg, #070f1c, var(--bg));
+    }
+    .wrap { max-width: 560px; margin: 0 auto; padding: 16px 14px 32px; }
+    .hero {
+      padding: 20px 18px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: linear-gradient(135deg, rgba(46, 240, 168, 0.12), rgba(56, 207, 255, 0.08));
+      margin-bottom: 14px;
+    }
+    .hero h1 { margin: 0 0 8px; font-size: 22px; }
+    .muted { color: var(--muted); font-size: 14px; line-height: 1.45; }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      background: rgba(13, 27, 49, 0.92);
+      margin-bottom: 12px;
+    }
+    .panel h2 { margin: 0 0 10px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: #b6c9e6; }
+    button, .btn {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(10, 22, 42, 0.9);
+      color: var(--txt);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      text-align: center;
+      text-decoration: none;
+      display: block;
+    }
+    .btn-primary {
+      background: linear-gradient(100deg, var(--acc), var(--acc2));
+      border: none;
+      color: #031018;
+    }
+    .err { color: #ffb4c0; font-size: 14px; margin-top: 8px; }
+    .lang { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 10px; }
+    .lang button { width: auto; padding: 8px 12px; margin: 0; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="lang">
+      <button type="button" id="langUz">UZ</button>
+      <button type="button" id="langRu">RU</button>
+    </div>
+    <div class="hero">
+      <h1 id="hTitle">GlobusMarket</h1>
+      <p class="muted" id="hSub">Kuryer portali</p>
+    </div>
+    <div id="gate" class="panel" style="display:none;">
+      <p class="err" id="gateMsg"></p>
+      <a class="btn btn-primary" id="backShop" href="/">Do‘konga qaytish</a>
+    </div>
+    <div id="app" style="display:none;">
+      <div class="panel">
+        <h2 id="whoTitle">Siz</h2>
+        <p class="muted" id="whoLine"></p>
+      </div>
+      <div class="panel">
+        <h2 id="nextTitle">Keyingi qadam</h2>
+        <p class="muted" id="nextBody"></p>
+      </div>
+      <button type="button" class="btn" id="logoutBtn"></button>
+      <a class="btn btn-primary" id="shopBtn" href="/" style="margin-top:10px;"></a>
+    </div>
+  </div>
+  <script>
+    const LS = 'gm_courier_portal_token';
+    const langKey = 'gm_courier_portal_lang';
+    let lang = localStorage.getItem(langKey) || 'uz';
+    const T = {
+      uz: {
+        hTitle: 'GlobusMarket',
+        hSub: 'Kuryer hamkor portali',
+        whoTitle: 'Profil',
+        nextTitle: 'Buyurtmalar',
+        nextBody:
+          'Hozircha buyurtmalar ro‘yxati operator orqali biriktiriladi. Tez orada bu yerda faol yetkazishlar paydo bo‘ladi. Savollar uchun Telegram orqali bog‘lanamiz (keyingi bosqich).',
+        logout: 'Portaldan chiqish',
+        shop: 'Do‘konga qaytish',
+        gateInvalid: 'Havola yaroqsiz yoki muddati tugagan. Iltimos, marketplace profilidan qayta ariza yuboring.',
+        backShop: 'Bosh sahifa'
+      },
+      ru: {
+        hTitle: 'GlobusMarket',
+        hSub: 'Портал партнёра-курьера',
+        whoTitle: 'Профиль',
+        nextTitle: 'Заказы',
+        nextBody:
+          'Список заказов пока назначается оператором. Скорее всего здесь появятся активные доставки. Связь через Telegram — на следующем этапе.',
+        logout: 'Выйти из портала',
+        shop: 'В магазин',
+        gateInvalid: 'Ссылка недействительна. Отправьте заявку снова из профиля маркетплейса.',
+        backShop: 'На главную'
+      }
+    };
+    function t(k) {
+      return (T[lang] || T.uz)[k] || k;
+    }
+    function applyLang() {
+      document.documentElement.lang = lang;
+      document.getElementById('hTitle').textContent = t('hTitle');
+      document.getElementById('hSub').textContent = t('hSub');
+      document.getElementById('whoTitle').textContent = t('whoTitle');
+      document.getElementById('nextTitle').textContent = t('nextTitle');
+      document.getElementById('nextBody').textContent = t('nextBody');
+      document.getElementById('logoutBtn').textContent = t('logout');
+      document.getElementById('shopBtn').textContent = t('shop');
+      document.getElementById('backShop').textContent = t('backShop');
+      document.getElementById('gateMsg').textContent = t('gateInvalid');
+    }
+    function readToken() {
+      const q = new URLSearchParams(location.search).get('t');
+      if (q) {
+        localStorage.setItem(LS, q);
+        history.replaceState({}, '', '/courier-portal');
+      }
+      return localStorage.getItem(LS) || '';
+    }
+    async function boot() {
+      applyLang();
+      const token = readToken();
+      if (!token) {
+        document.getElementById('gate').style.display = 'block';
+        return;
+      }
+      try {
+        const res = await fetch('/api/v1/courier-portal/session?token=' + encodeURIComponent(token), { cache: 'no-store' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok || !data.application) {
+          localStorage.removeItem(LS);
+          document.getElementById('gate').style.display = 'block';
+          return;
+        }
+        const a = data.application;
+        document.getElementById('whoLine').textContent = `${a.fullName || '—'} · ${a.phone || '—'}`;
+        document.getElementById('app').style.display = 'block';
+      } catch (_) {
+        document.getElementById('gate').style.display = 'block';
+      }
+    }
+    document.getElementById('logoutBtn').onclick = () => {
+      localStorage.removeItem(LS);
+      location.href = '/';
+    };
+    document.getElementById('langUz').onclick = () => {
+      lang = 'uz';
+      localStorage.setItem(langKey, lang);
+      applyLang();
+    };
+    document.getElementById('langRu').onclick = () => {
+      lang = 'ru';
+      localStorage.setItem(langKey, lang);
+      applyLang();
+    };
+    boot();
+  </script>
+</body>
+</html>

@@ -988,6 +988,7 @@
                 <div class="action-group">
                   ${orderNext[o.status] ? `<button class="action-primary" data-id="${o.id}" data-next="${orderNext[o.status][1]}">${orderNext[o.status][0]}</button>` : ''}
                   ${o.status === 'ready_for_courier' ? `<button class="action-secondary" data-id="${o.id}" data-assign="1">Kurier ma'lumotini kiritish</button>` : ''}
+                  ${o.courierToken && ['preparing','ready_for_courier','courier_assigned','out_for_delivery'].includes(o.status) ? `<a class="action-secondary" href="/courier/${encodeURIComponent(o.courierToken)}" target="_blank" rel="noopener" style="text-decoration:none;text-align:center;">Kuryer sahifasi</a>` : ''}
                   ${o.status !== 'cancelled' && o.status !== 'delivered' ? `<button class="action-danger" data-id="${o.id}" data-cancel="1">Buyurtmani bekor qilish</button>` : ''}
                 </div>
               </div>
