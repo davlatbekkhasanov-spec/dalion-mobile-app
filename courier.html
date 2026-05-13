@@ -155,6 +155,19 @@
       font-weight: 700;
       color: var(--acc2);
     }
+    .nav-app-link {
+      display: block;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted2);
+      margin: 0 0 10px;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .nav-app-link[hidden] {
+      display: none !important;
+    }
     .route-kpi { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
     #courierMap {
       height: min(42vh, 320px);
@@ -205,7 +218,8 @@
       <div class="nav-block" id="navBlock">
         <h4 class="nav-head" id="navHead">Marshrut</h4>
         <p class="muted nav-hint" id="navHint"></p>
-        <button type="button" class="nav-primary" id="openYandexNavi">Yandex Navigator</button>
+        <button type="button" class="nav-primary" id="openYandexNavi"></button>
+        <a id="openYandexNaviAppLink" class="nav-app-link" href="#" rel="noopener" hidden></a>
         <div class="nav-row">
           <button id="openGoogleNav" type="button">Google Maps</button>
           <button id="openYandexNav" type="button">Yandex Maps</button>
@@ -259,8 +273,9 @@
         km: 'km',
         status: 'Holat',
         navSection: 'Marshrut',
-        navHint: 'Bosganingizda ovoz va marshrut bir vaqtda ochiladi (Safari talabi).',
-        navYandexNavi: 'Yandex Navigator',
+        navHint: 'Marshrut pastdagi xaritada (Yandex Maps API). Katta tugma — HTTPS marshrut. Navigator havolasi — faqat ilova o‘rnatilgan bo‘lsa.',
+        navYandexPrimary: 'Marshrut: Yandex Xarita (HTTPS)',
+        navYandexNaviApp: 'Navigator ilovasi',
         navGoogle: 'Google Maps',
         navYandexMaps: 'Yandex Xarita',
         navWebFallback: 'Brauzerda marshrut (zaxira)',
@@ -297,8 +312,9 @@
         km: 'км',
         status: 'Статус',
         navSection: 'Маршрут',
-        navHint: 'При нажатии голос и маршрут открываются сразу (требование Safari).',
-        navYandexNavi: 'Яндекс Навигатор',
+        navHint: 'Маршрут на карте ниже (API Яндекс Карт). Большая кнопка — HTTPS-маршрут. Ссылка «Навигатор» — если приложение установлено.',
+        navYandexPrimary: 'Маршрут: Яндекс Карты (HTTPS)',
+        navYandexNaviApp: 'Приложение Навигатор',
         navGoogle: 'Google Maps',
         navYandexMaps: 'Яндекс Карты',
         navWebFallback: 'Маршрут в браузере (запасной вариант)',
@@ -352,7 +368,9 @@
       document.getElementById('signalWarn').textContent = t('signalWarn');
       document.getElementById('navHead').textContent = t('navSection');
       document.getElementById('navHint').textContent = t('navHint');
-      document.getElementById('openYandexNavi').textContent = t('navYandexNavi');
+      document.getElementById('openYandexNavi').textContent = t('navYandexPrimary');
+      const appL = document.getElementById('openYandexNaviAppLink');
+      if (appL) appL.textContent = t('navYandexNaviApp');
       document.getElementById('openGoogleNav').textContent = t('navGoogle');
       document.getElementById('openYandexNav').textContent = t('navYandexMaps');
       const fb = document.getElementById('navWebFallback');
@@ -636,6 +654,37 @@
       } catch (_) {}
     }
 
+    function routeOriginPoint() {
+      return hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
+        ? { lat: Number(lastKnownPosition.lat), lng: Number(lastKnownPosition.lng) }
+        : { lat: STORE_LOCATION.lat, lng: STORE_LOCATION.lng };
+    }
+
+    function yandexMapsRouteHttpsUrl() {
+      if (!order) return null;
+      const from = routeOriginPoint();
+      if (hasValidCoords(order.locationLat, order.locationLng)) {
+        return `https://yandex.ru/maps/?rtext=${from.lat},${from.lng}~${Number(order.locationLat)},${Number(order.locationLng)}`;
+      }
+      const t = navAddressText();
+      if (!t) return null;
+      return `https://yandex.ru/maps/?text=${encodeURIComponent(t)}`;
+    }
+
+    function yandexNaviDeepUrl() {
+      if (!order || !hasValidCoords(order.locationLat, order.locationLng)) return null;
+      const from = routeOriginPoint();
+      const tLat = Number(order.locationLat);
+      const tLng = Number(order.locationLng);
+      return `yandexnavi://build_route_on_map?lat_from=${navCoordForUrl(from.lat)}&lon_from=${navCoordForUrl(from.lng)}&lat_to=${navCoordForUrl(tLat)}&lon_to=${navCoordForUrl(tLng)}`;
+    }
+
+    function openYandexRouteHttpsNewTab() {
+      const u = yandexMapsRouteHttpsUrl();
+      if (!u) return;
+      window.open(u, '_blank', 'noopener,noreferrer');
+    }
+
     function updateNavButtons() {
       const hasDestinationCoords = hasValidCoords(order?.locationLat, order?.locationLng);
       const hasAddressFallback = navAddressText().length > 0;
@@ -645,13 +694,21 @@
         if (el) el.disabled = !ok;
       });
       const fb = document.getElementById('navWebFallback');
+      const appL = document.getElementById('openYandexNaviAppLink');
+      if (appL) {
+        const deep = yandexNaviDeepUrl();
+        if (order && ok && deep) {
+          appL.href = deep;
+          appL.hidden = false;
+        } else {
+          appL.hidden = true;
+          appL.href = '#';
+        }
+      }
       if (!fb) return;
       if (order && ok) {
-        const from = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
-          ? { lat: Number(lastKnownPosition.lat), lng: Number(lastKnownPosition.lng) }
-          : { lat: STORE_LOCATION.lat, lng: STORE_LOCATION.lng };
         if (hasDestinationCoords) {
-          fb.href = `https://yandex.ru/maps/?rtext=${from.lat},${from.lng}~${Number(order.locationLat)},${Number(order.locationLng)}`;
+          fb.href = yandexMapsRouteHttpsUrl() || '#';
         } else {
           fb.href = `https://yandex.ru/maps/?text=${encodeURIComponent(navAddressText())}`;
         }
@@ -799,6 +856,11 @@
         order = data.order;
         render();
         ensureTracking();
+        void maybeUpdateRoute(true);
+        const mapEl = document.getElementById('courierMap');
+        if (mapEl && order.status === 'out_for_delivery') {
+          mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
       } catch (e) {
         document.getElementById('msg').textContent = e.message || t('error');
       } finally {
@@ -862,38 +924,13 @@
     document.getElementById('openYandexNav').addEventListener('click', () => {
       if (!order) return;
       playNavVoiceImmediate();
-      const origin = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
-        ? `${Number(lastKnownPosition.lat)},${Number(lastKnownPosition.lng)}`
-        : `${STORE_LOCATION.lat},${STORE_LOCATION.lng}`;
-      if (hasValidCoords(order.locationLat, order.locationLng)) {
-        window.open(
-          `https://yandex.ru/maps/?rtext=${origin}~${Number(order.locationLat)},${Number(order.locationLng)}`,
-          '_blank'
-        );
-        return;
-      }
-      const addr = encodeURIComponent(navAddressText());
-      if (!addr) return;
-      window.open(`https://yandex.ru/maps/?rtext=${origin}~${addr}`, '_blank');
+      openYandexRouteHttpsNewTab();
     });
 
     document.getElementById('openYandexNavi').addEventListener('click', () => {
       if (!order || document.getElementById('openYandexNavi').disabled) return;
-      const from = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
-        ? { lat: Number(lastKnownPosition.lat), lng: Number(lastKnownPosition.lng) }
-        : { lat: STORE_LOCATION.lat, lng: STORE_LOCATION.lng };
-      if (hasValidCoords(order.locationLat, order.locationLng)) {
-        const tLat = Number(order.locationLat);
-        const tLng = Number(order.locationLng);
-        const appUrl = `yandexnavi://build_route_on_map?lat_from=${navCoordForUrl(from.lat)}&lon_from=${navCoordForUrl(from.lng)}&lat_to=${navCoordForUrl(tLat)}&lon_to=${navCoordForUrl(tLng)}`;
-        playNavVoiceImmediate();
-        window.location.assign(appUrl);
-        return;
-      }
-      const text = navAddressText();
-      if (!text) return;
       playNavVoiceImmediate();
-      window.open(`https://yandex.ru/maps/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+      openYandexRouteHttpsNewTab();
     });
 
     document.addEventListener('visibilitychange', () => {
