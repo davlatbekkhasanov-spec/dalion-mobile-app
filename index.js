@@ -614,7 +614,7 @@ function computeDeliveryPriceByDistance(distanceKm) {
   const normalizedKm = normalizeDistanceKm(distanceKm);
   if (normalizedKm === null) return 18000;
   if (normalizedKm <= 3) return 18000;
-  return Math.min(MAX_DELIVERY_FEE, toMoney(18000 + (normalizedKm - 3) * 4000));
+  return Math.min(MAX_DELIVERY_FEE, toMoney(18000 + (normalizedKm - 3) * 5000));
 }
 
 function normalizeStoredOrder(order) {

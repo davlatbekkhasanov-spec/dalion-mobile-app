@@ -5208,7 +5208,7 @@ Oq fonli foto</div>
       const safeDistance = normalizeDistanceKm(distanceKm);
       if (safeDistance === null) return null;
       if (safeDistance <= 3) return 18000;
-      return normalizeDeliveryPrice(18000 + ((safeDistance - 3) * 4000));
+      return normalizeDeliveryPrice(18000 + ((safeDistance - 3) * 5000));
     }
 
     function hasResolvedCustomerLocation() {
