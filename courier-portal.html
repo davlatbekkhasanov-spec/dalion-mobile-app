@@ -229,6 +229,7 @@
     <div class="hero">
       <h1 id="whoName">—</h1>
       <p class="muted" id="whoPhone">—</p>
+      <p class="muted" id="routeActiveHint" style="margin-top:6px;display:none;font-size:13px;"></p>
     </div>
     <div class="feed-title" id="feedTitle">Buyurtmalar</div>
     <div id="feed"></div>
@@ -288,6 +289,7 @@
         feedTitle: 'Faol buyurtmalar',
         feedHint: '«Kuryer kutilmoqda» holatidagi buyurtmani bosing va qabul qiling. Bir nechtasini ketma-ket olishingiz mumkin (navbat raqami). Keyin kuryer sahifasidan yo‘lga chiqasiz.',
         routePill: 'Navbat',
+        activeStops: 'Faol yetkazishingiz',
         logout: 'Chiqish',
         gate: 'Havola yaroqsiz. Marketplace profilidan qayta ariza yuboring.',
         shop: 'Bosh sahifa',
@@ -307,6 +309,7 @@
         feedTitle: 'Активные заказы',
         feedHint: 'Нажмите заказ в статусе «курьер ожидается» и примите. Можно взять несколько по очереди (номер в маршруте). Затем откройте страницу курьера для выезда.',
         routePill: 'Очередь',
+        activeStops: 'Активных доставок',
         logout: 'Выйти',
         gate: 'Ссылка недействительна. Подайте заявку снова из профиля.',
         shop: 'На главную',
@@ -349,6 +352,23 @@
           String(o.courierPhone).trim() === String(profile.phone || '').trim()
       );
     }
+
+    async function loadRouteHint() {
+      const el = document.getElementById('routeActiveHint');
+      if (!el || !profile) return;
+      try {
+        const d = await api('/courier-portal/my-route');
+        const n = Array.isArray(d.orders) ? d.orders.length : 0;
+        if (n > 0) {
+          el.style.display = 'block';
+          el.textContent = `${tr('activeStops')}: ${n}`;
+        } else {
+          el.style.display = 'none';
+        }
+      } catch (_) {
+        el.style.display = 'none';
+      }
+    }
     function applyLang() {
       document.documentElement.lang = lang;
       document.getElementById('brand').textContent = tr('brand');
@@ -363,6 +383,7 @@
       document.getElementById('lblDist').textContent = tr('dist');
       document.getElementById('lblEta').textContent = tr('eta');
       renderFeed();
+      void loadRouteHint();
       if (selected) openSheet(selected);
     }
 
@@ -591,6 +612,7 @@
       const data = await api('/courier-portal/feed');
       orders = Array.isArray(data.orders) ? data.orders : [];
       renderFeed();
+      void loadRouteHint();
     }
 
     async function boot() {

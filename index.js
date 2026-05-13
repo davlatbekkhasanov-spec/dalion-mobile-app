@@ -2541,7 +2541,8 @@ app.get('/api/v1/courier/:token', async (req, res) => {
   if (order.courierTokenUsed && !['out_for_delivery', 'courier_assigned'].includes(normalizeOrderStatus(order.status))) {
     return res.status(410).json({ ok: false, message: 'Bu QR kod yaroqsiz yoki ishlatilgan' });
   }
-  return res.json({ ok: true, order: orderPublic(order) });
+  const routeOrders = await marketplaceRepo.listCourierRouteSliceByCourierToken(token);
+  return res.json({ ok: true, order: orderPublic(order), routeOrders });
 });
 
 app.post('/api/v1/courier/:token/accept', async (req, res) => {
@@ -2611,6 +2612,7 @@ app.post('/api/v1/courier/:token/deliver', async (req, res) => {
     trackingUpdatedAt: new Date(order.trackingUpdatedAt || order.updated_at),
     updatedAt: new Date(order.updated_at)
   });
+  await marketplaceRepo.repackCourierRunStopsAfterDelivery(order.id);
   return res.json({ ok: true, order: orderPublic(next) });
 });
 

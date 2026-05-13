@@ -209,6 +209,7 @@
     <section class="panel">
       <h3 id="addrHeading">Manzil</h3>
       <div id="destinationMeta" class="muted"></div>
+      <p class="muted" id="routeBatchLine" style="display:none;margin-top:8px;font-size:13px;line-height:1.4;"></p>
       <div id="routeStatus" class="warn" style="display:none;"></div>
       <div class="route-kpi">
         <div class="muted" id="routeDistance">—</div>
@@ -279,7 +280,8 @@
         navGoogle: 'Google Maps',
         navYandexMaps: 'Yandex Xarita',
         navWebFallback: 'Brauzerda marshrut (zaxira)',
-        navVoiceStart: 'Yo‘lga chiqamiz!'
+        navVoiceStart: 'Yo‘lga chiqamiz!',
+        routeMulti: 'Marshrut: %1 ta nuqta · navbatingiz %2'
       },
       ru: {
         brandTitle: 'GlobusMarket · Курьер',
@@ -318,13 +320,15 @@
         navGoogle: 'Google Maps',
         navYandexMaps: 'Яндекс Карты',
         navWebFallback: 'Маршрут в браузере (запасной вариант)',
-        navVoiceStart: 'Поехали!'
+        navVoiceStart: 'Поехали!',
+        routeMulti: 'Маршрут: %1 остановок · ваша очередь %2'
       }
     };
     function t(key) {
       return (i18n[currentLang] || i18n.uz)[key] || key;
     }
     let order = null;
+    let routeOrders = [];
     let trackingInterval = null;
     let gpsEnabled = false;
     let gpsRequested = false;
@@ -399,6 +403,18 @@
       badge.textContent = String(order.status || '');
       document.getElementById('orderInfo').innerHTML = `#${order.orderNumber} · ${(order.items || []).length} ta · ${Number(order.total || 0).toLocaleString('ru-RU')} so'm<br>${escapeHtml(String(order.customerAddress || order.location || '-'))}`;
       document.getElementById('destinationMeta').innerHTML = `#${order.orderNumber || '-'}<br>${escapeHtml(String(order.addressText || order.customerAddress || order.location || '-'))}<br>${t('orient')}: ${escapeHtml(String(order.landmarkText || '-'))}<br>Jami: ${Number(order.total || 0).toLocaleString('ru-RU')} so'm`;
+      const rb = document.getElementById('routeBatchLine');
+      if (rb) {
+        const n = Array.isArray(routeOrders) ? routeOrders.length : 0;
+        const seq = order.courierStopSeq != null ? Number(order.courierStopSeq) : null;
+        if (n > 1 && seq) {
+          rb.style.display = 'block';
+          rb.textContent = t('routeMulti').replace('%1', String(n)).replace('%2', String(seq));
+        } else {
+          rb.style.display = 'none';
+          rb.textContent = '';
+        }
+      }
       document.getElementById('msg').textContent = `${t('status')}: ${order.status}`;
       const acceptBtn = document.getElementById('acceptBtn');
       const deliverBtn = document.getElementById('deliverBtn');
@@ -663,12 +679,60 @@
     function yandexMapsRouteHttpsUrl() {
       if (!order) return null;
       const from = routeOriginPoint();
+      const parts = [];
+      const pushPt = (lat, lng) => {
+        const la = Number(lat);
+        const ln = Number(lng);
+        if (!hasValidCoords(la, ln)) return;
+        const seg = `${navCoordForUrl(la)},${navCoordForUrl(ln)}`;
+        if (parts.length && parts[parts.length - 1] === seg) return;
+        parts.push(seg);
+      };
+      pushPt(from.lat, from.lng);
+      const sorted = [...(routeOrders || [])].sort(
+        (a, b) => (Number(a.courierStopSeq) || 0) - (Number(b.courierStopSeq) || 0)
+      );
+      for (const ro of sorted) {
+        if (hasValidCoords(ro.locationLat, ro.locationLng)) pushPt(ro.locationLat, ro.locationLng);
+      }
+      if (parts.length >= 2) {
+        return `https://yandex.ru/maps/?rtext=${parts.join('~')}`;
+      }
       if (hasValidCoords(order.locationLat, order.locationLng)) {
         return `https://yandex.ru/maps/?rtext=${from.lat},${from.lng}~${Number(order.locationLat)},${Number(order.locationLng)}`;
       }
       const t = navAddressText();
       if (!t) return null;
       return `https://yandex.ru/maps/?text=${encodeURIComponent(t)}`;
+    }
+
+    function googleMapsDirUrl() {
+      if (!order) return null;
+      const from = routeOriginPoint();
+      const pts = [];
+      const pushUnique = (lat, lng) => {
+        if (!hasValidCoords(lat, lng)) return;
+        const s = `${Number(lat)},${Number(lng)}`;
+        if (pts.length && pts[pts.length - 1] === s) return;
+        pts.push(s);
+      };
+      pushUnique(from.lat, from.lng);
+      const sorted = [...(routeOrders || [])].sort(
+        (a, b) => (Number(a.courierStopSeq) || 0) - (Number(b.courierStopSeq) || 0)
+      );
+      for (const ro of sorted) {
+        if (hasValidCoords(ro.locationLat, ro.locationLng)) pushUnique(ro.locationLat, ro.locationLng);
+      }
+      if (pts.length < 2 && hasValidCoords(order.locationLat, order.locationLng)) {
+        pushUnique(order.locationLat, order.locationLng);
+      }
+      if (pts.length < 2) return null;
+      const origin = pts[0];
+      const destination = pts[pts.length - 1];
+      const mid = pts.slice(1, -1);
+      let u = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+      if (mid.length) u += `&waypoints=${mid.join('|')}`;
+      return u;
     }
 
     function yandexNaviDeepUrl() {
@@ -688,7 +752,10 @@
     function updateNavButtons() {
       const hasDestinationCoords = hasValidCoords(order?.locationLat, order?.locationLng);
       const hasAddressFallback = navAddressText().length > 0;
-      const ok = hasDestinationCoords || hasAddressFallback;
+      const hasRouteMulti =
+        Array.isArray(routeOrders) &&
+        routeOrders.some((ro) => hasValidCoords(ro.locationLat, ro.locationLng));
+      const ok = hasDestinationCoords || hasAddressFallback || hasRouteMulti;
       ['openGoogleNav', 'openYandexNav', 'openYandexNavi'].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.disabled = !ok;
@@ -829,6 +896,7 @@
       try {
         const data = await api('/courier/' + token);
         order = data.order;
+        routeOrders = Array.isArray(data.routeOrders) ? data.routeOrders : [];
         render();
       } catch (e) {
         document.getElementById('msg').textContent = e.message || t('error');
@@ -904,6 +972,11 @@
     document.getElementById('openGoogleNav').addEventListener('click', () => {
       if (!order) return;
       playNavVoiceImmediate();
+      const multi = googleMapsDirUrl();
+      if (multi) {
+        window.open(multi, '_blank');
+        return;
+      }
       if (hasValidCoords(order.locationLat, order.locationLng)) {
         const origin = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
           ? `${Number(lastKnownPosition.lat)},${Number(lastKnownPosition.lng)}`

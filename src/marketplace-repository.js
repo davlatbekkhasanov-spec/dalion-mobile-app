@@ -1368,6 +1368,72 @@ async function listCourierRouteOrders({ accessToken }) {
   return rows.map((o) => orderToLegacy(o, o.items));
 }
 
+/** Faol yetkazishlar (coords + token) — bir xarita marshruti uchun yengil ro‘yxat */
+async function listCourierRouteSliceByCourierToken(courierToken) {
+  const t = String(courierToken || '').trim();
+  if (!t) return [];
+  const central = await prisma.order.findFirst({
+    where: { courierToken: t },
+    select: { courierRunId: true }
+  });
+  if (!central?.courierRunId) return [];
+  const rows = await prisma.order.findMany({
+    where: {
+      courierRunId: central.courierRunId,
+      status: { in: ['courier_assigned', 'out_for_delivery'] }
+    },
+    orderBy: [{ courierStopSeq: 'asc' }, { createdAt: 'asc' }],
+    select: {
+      id: true,
+      orderNumber: true,
+      status: true,
+      courierStopSeq: true,
+      courierToken: true,
+      locationLat: true,
+      locationLng: true,
+      addressText: true,
+      deliveryAddress: true
+    }
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    orderNumber: r.orderNumber,
+    status: r.status,
+    courierStopSeq: r.courierStopSeq != null ? Number(r.courierStopSeq) : null,
+    courierToken: r.courierToken,
+    locationLat: r.locationLat,
+    locationLng: r.locationLng,
+    addressText: String(r.addressText || r.deliveryAddress || '').trim()
+  }));
+}
+
+/** Bitta buyurtma yopilgach, shu `courierRunId` dagi faol stoplarni 1..n qilib qayta raqamlash */
+async function repackCourierRunStopsAfterDelivery(deliveredOrderId) {
+  const id = String(deliveredOrderId || '').trim();
+  if (!id) return;
+  const row = await prisma.order.findUnique({
+    where: { id },
+    select: { courierRunId: true }
+  });
+  const runId = row?.courierRunId;
+  if (!runId) return;
+  const active = await prisma.order.findMany({
+    where: {
+      courierRunId: runId,
+      status: { in: ['courier_assigned', 'out_for_delivery'] }
+    },
+    orderBy: [{ courierStopSeq: 'asc' }, { createdAt: 'asc' }],
+    select: { id: true }
+  });
+  let seq = 1;
+  for (const o of active) {
+    await prisma.order.update({
+      where: { id: o.id },
+      data: { courierStopSeq: seq++, updatedAt: new Date() }
+    });
+  }
+}
+
 async function listCourierApplicationsAdmin() {
   return prisma.courierApplication.findMany({
     orderBy: { createdAt: 'desc' },
@@ -1408,6 +1474,8 @@ module.exports = {
   listCourierPortalOrders,
   claimOrderByCourierPortalToken,
   listCourierRouteOrders,
+  listCourierRouteSliceByCourierToken,
+  repackCourierRunStopsAfterDelivery,
   listCourierApplicationsAdmin,
   readSmsChallenge,
   writeSmsChallenge,
