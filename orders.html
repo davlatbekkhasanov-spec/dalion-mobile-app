@@ -136,6 +136,43 @@
       box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
     }
     .stats-bar[hidden] { display: none !important; }
+    .courier-staff-bar {
+      flex-shrink: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(90deg, rgba(255, 193, 7, 0.1), rgba(8, 18, 34, 0.75));
+      padding: 8px 10px;
+      max-height: 120px;
+      overflow: auto;
+    }
+    .courier-staff-bar[hidden] { display: none !important; }
+    .cstaff-inner {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .cstaff-label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--warn);
+      width: 100%;
+    }
+    .cstaff-chip {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(5, 12, 24, 0.55);
+      color: var(--muted2);
+    }
+    .cstaff-chip small {
+      color: var(--muted);
+      margin-left: 6px;
+      font-weight: 600;
+    }
     .stats-inner {
       display: flex;
       flex-wrap: wrap;
@@ -533,6 +570,7 @@
       <div class="chip-row" id="filterChips" aria-label="Filters"></div>
     </header>
     <div id="statsBar" class="stats-bar" hidden></div>
+    <div id="courierStaffBar" class="courier-staff-bar" hidden></div>
     <div id="tokenRequired" class="token-required" style="display:none;">Token kiriting</div>
     <div class="grid" id="columns"></div>
   </div>
@@ -625,7 +663,8 @@
         statsActive: 'faol',
         statsSum: 'jami summa',
         statsTodaySum: 'bugun summa',
-        slaMins: 'SLA {n} daq'
+        slaMins: 'SLA {n} daq',
+        courierStaffTitle: 'Ro‘yxatdan kuryerlar (portallar)'
       },
       ru: {
         opsTitle: 'GlobusMarket · Ops',
@@ -672,7 +711,8 @@
         statsActive: 'активные',
         statsSum: 'сумма',
         statsTodaySum: 'сумма сегодня',
-        slaMins: 'SLA {n} мин'
+        slaMins: 'SLA {n} мин',
+        courierStaffTitle: 'Курьеры (регистрация / портал)'
       }
     };
     function t(key) {
@@ -693,6 +733,7 @@
       { key: 'cancelled', labelKey: 'colCancelled', statuses: ['cancelled'] }
     ];
     let orders = [];
+    let courierApplications = [];
     let activeOrder = null;
     let pollDelay = 2500;
     let pollTimer = null;
@@ -923,6 +964,46 @@
       el.innerHTML = `<div class="stats-inner">${parts.join('')}</div>`;
     }
 
+    function renderCourierStaffBar() {
+      const el = document.getElementById('courierStaffBar');
+      if (!el) return;
+      const tok = getToken();
+      if (!tok) {
+        el.hidden = true;
+        el.innerHTML = '';
+        return;
+      }
+      const list = Array.isArray(courierApplications) ? courierApplications : [];
+      el.hidden = false;
+      const chips = list
+        .map(
+          (a) =>
+            `<span class="cstaff-chip" title="${escapeHtml(String(a.note || '').trim())}">${escapeHtml(
+              String(a.fullName || '—')
+            )}<small>${escapeHtml(String(a.phone || '—'))}</small></span>`
+        )
+        .join('');
+      el.innerHTML = `<div class="cstaff-inner"><span class="cstaff-label">${escapeHtml(
+        t('courierStaffTitle')
+      )}</span>${chips || `<span class="muted">—</span>`}</div>`;
+    }
+
+    async function loadCourierStaff() {
+      const tok = getToken();
+      if (!tok) {
+        courierApplications = [];
+        renderCourierStaffBar();
+        return;
+      }
+      try {
+        const d = await api('/admin/courier-applications');
+        courierApplications = Array.isArray(d.applications) ? d.applications : [];
+      } catch (_) {
+        courierApplications = [];
+      }
+      renderCourierStaffBar();
+    }
+
     function getFilteredOrders() {
       let list = orders.slice();
       if (viewFilters.today) {
@@ -1025,6 +1106,7 @@
       document.getElementById('closeModal').textContent = t('close');
       syncSoundToggle();
       renderStatsBar();
+      renderCourierStaffBar();
       renderFilterChips();
       if (!activeOrder) renderColumns();
       if (activeOrder) renderModal(activeOrder);
@@ -1326,6 +1408,7 @@
         orders = list || [];
         notifyFeedChanges(prev, orders);
         renderStatsBar();
+        await loadCourierStaff();
         renderColumns();
         if (activeOrder) {
           const upd = orders.find((o) => o.id === activeOrder.id);

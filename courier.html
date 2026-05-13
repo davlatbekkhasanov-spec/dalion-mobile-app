@@ -7,28 +7,27 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root {
-      --bg: #050b14;
-      --card: #0d1b31;
-      --line: rgba(90, 140, 210, 0.35);
-      --txt: #eef6ff;
-      --muted: #8aa3c8;
-      --muted2: #b6c9e6;
-      --acc: #2ef0a8;
-      --acc2: #38cfff;
-      --warn: #ffc14a;
+      --bg: #0a0a0a;
+      --card: #111111;
+      --line: rgba(255, 214, 10, 0.32);
+      --txt: #fafafa;
+      --muted: #a3a3a3;
+      --muted2: #e5e5e5;
+      --acc: #ffd60a;
+      --acc2: #f5b800;
+      --warn: #ffb020;
       --danger: #ff6b7a;
       --radius: 16px;
-      --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
     }
     * { box-sizing: border-box; }
     html, body {
       margin: 0;
       min-height: 100%;
       height: 100%;
-      background: linear-gradient(180deg, #070f1c 0%, var(--bg) 45%);
+      background: linear-gradient(180deg, #141414 0%, var(--bg) 50%);
       color: var(--txt);
       font-family: "DM Sans", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
     }
@@ -46,7 +45,7 @@
       gap: 10px;
       padding: 12px 14px;
       border-bottom: 1px solid var(--line);
-      background: rgba(8, 18, 34, 0.92);
+      background: rgba(10, 10, 10, 0.96);
       backdrop-filter: blur(10px);
     }
     .brand { display: flex; flex-direction: column; gap: 2px; }
@@ -57,7 +56,7 @@
       padding: 8px 12px;
       border-radius: 10px;
       border: 1px solid var(--line);
-      background: rgba(10, 22, 42, 0.85);
+      background: rgba(20, 20, 20, 0.85);
       color: var(--muted2);
       font-weight: 600;
       cursor: pointer;
@@ -71,7 +70,7 @@
       margin: 0 auto;
     }
     .panel {
-      background: linear-gradient(165deg, rgba(14, 28, 52, 0.98), rgba(8, 16, 32, 0.98));
+      background: linear-gradient(165deg, rgba(24, 24, 24, 0.98), rgba(8, 8, 8, 0.98));
       border: 1px solid var(--line);
       border-radius: var(--radius);
       padding: 14px 16px;
@@ -81,7 +80,7 @@
     .panel h2 { margin: 0 0 8px; font-size: 17px; }
     .panel h3 { margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted2); }
     .muted { color: var(--muted); font-size: 13px; line-height: 1.45; }
-    .ok { color: #9dffcc; font-size: 13px; margin-top: 6px; }
+    .ok { color: #ffe566; font-size: 13px; margin-top: 6px; }
     .warn { color: #ffd4a8; font-size: 12px; margin-top: 6px; line-height: 1.35; }
     .badge {
       display: inline-block;
@@ -98,7 +97,7 @@
       padding: 12px 14px;
       border-radius: 12px;
       border: 1px solid var(--line);
-      background: rgba(10, 22, 42, 0.9);
+      background: rgba(18, 18, 18, 0.95);
       color: var(--txt);
       font: inherit;
       margin-top: 8px;
@@ -169,11 +168,11 @@
       <input id="courierName" type="text" autocomplete="name" inputmode="text" placeholder="" />
       <input id="courierPhone" type="tel" autocomplete="tel" inputmode="tel" placeholder="" />
       <button id="acceptBtn" class="primary" type="button"></button>
-      <button id="deliverBtn" type="button" style="display:none;background:rgba(46,240,168,0.15);border-color:rgba(46,240,168,0.45);color:#c6ffe8;"></button>
+      <button id="deliverBtn" type="button" style="display:none;background:rgba(255,214,10,0.18);border-color:rgba(255,214,10,0.55);color:#fff8d6;"></button>
       <div id="successMsg" class="ok" style="display:none;margin-top:10px;"></div>
     </section>
   </main>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://api-maps.yandex.ru/2.1/?apikey=98fbccfc-0ccc-46cc-923a-cfc8b9267d3e&lang=uz_UZ" async></script>
   <script>
     const token = location.pathname.split('/').filter(Boolean).pop();
     const langKey = 'courier_lang';
@@ -254,10 +253,11 @@
     const wakeLockSupported = 'wakeLock' in navigator;
     let lastLocationSuccessAt = 0;
     let lastKnownPosition = null;
-    let courierMap = null;
-    let courierMarker = null;
-    let destinationMarker = null;
-    let routePolyline = null;
+    let yMap = null;
+    let yCourierMark = null;
+    let yDestMark = null;
+    let yMultiRoute = null;
+    let ymapsReadyPromise = null;
     let lastRouteFetchAt = 0;
     let lastRouteStart = null;
     let lastRouteEnd = null;
@@ -469,22 +469,53 @@
       return true;
     }
 
-    function ensureMap(centerLat = 41.3111, centerLng = 69.2797) {
-      if (courierMap || !window.L) return;
-      courierMap = L.map('courierMap', { zoomControl: true }).setView([centerLat, centerLng], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
-      }).addTo(courierMap);
+    function ensureYmaps() {
+      if (window.__yandexMapsFailed) return Promise.reject(new Error('maps'));
+      if (!window.ymaps || typeof window.ymaps.ready !== 'function') {
+        return Promise.reject(new Error('maps'));
+      }
+      if (!ymapsReadyPromise) {
+        ymapsReadyPromise = new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('timeout')), 9000);
+          try {
+            window.ymaps.ready(() => {
+              clearTimeout(timer);
+              if (window.ymaps && window.ymaps.Map) resolve(window.ymaps);
+              else reject(new Error('no map'));
+            });
+          } catch (e) {
+            clearTimeout(timer);
+            reject(e);
+          }
+        });
+      }
+      return ymapsReadyPromise;
+    }
+
+    function ensureYandexMap(centerLat, centerLng) {
+      return ensureYmaps().then((ymaps) => {
+        const el = document.getElementById('courierMap');
+        if (!el || !ymaps) return ymaps;
+        if (!yMap) {
+          yMap = new ymaps.Map(
+            el,
+            { center: [centerLat, centerLng], zoom: 13, controls: ['zoomControl'] },
+            { suppressMapOpenBlock: true }
+          );
+        }
+        return ymaps;
+      });
     }
 
     function setRouteFallback(message) {
       const routeStatus = document.getElementById('routeStatus');
       routeStatus.style.display = 'block';
       routeStatus.textContent = message;
-      if (routePolyline && courierMap) {
-        courierMap.removeLayer(routePolyline);
-        routePolyline = null;
+      if (yMultiRoute && yMap) {
+        try {
+          yMap.geoObjects.remove(yMultiRoute);
+        } catch (_) {}
+        yMultiRoute = null;
       }
     }
 
@@ -534,30 +565,74 @@
       lastRouteStart = start;
       lastRouteEnd = end;
 
-      ensureMap(start.lat, start.lng);
       const routeStatus = document.getElementById('routeStatus');
       routeStatus.style.display = 'none';
       routeStatus.textContent = '';
-      if (!courierMap) return;
-      if (!courierMarker) courierMarker = L.marker([start.lat, start.lng]).addTo(courierMap).bindPopup('Kurier');
-      else courierMarker.setLatLng([start.lat, start.lng]);
-      if (!destinationMarker) destinationMarker = L.marker([end.lat, end.lng]).addTo(courierMap).bindPopup('Manzil');
-      else destinationMarker.setLatLng([end.lat, end.lng]);
 
       try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const route = data?.routes?.[0];
-        if (!route?.geometry?.coordinates?.length) {
+        const ymaps = await ensureYandexMap(start.lat, start.lng);
+        if (!yMap || !ymaps) {
           setRouteFallback(t('routeFail'));
           return;
         }
-        const latLngs = route.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
-        if (routePolyline) courierMap.removeLayer(routePolyline);
-        routePolyline = L.polyline(latLngs, { color: '#34d399', weight: 5, opacity: 0.85 }).addTo(courierMap);
-        courierMap.fitBounds(routePolyline.getBounds(), { padding: [28, 28] });
-        updateRouteKpi(route.distance, route.duration, buildDirectionHint(route.geometry.coordinates));
+
+        if (!yCourierMark) {
+          yCourierMark = new ymaps.Placemark(
+            [start.lat, start.lng],
+            { balloonContent: 'Kuryer' },
+            { preset: 'islands#yellowCircleDotIcon' }
+          );
+          yMap.geoObjects.add(yCourierMark);
+        } else {
+          yCourierMark.geometry.setCoordinates([start.lat, start.lng]);
+        }
+        if (!yDestMark) {
+          yDestMark = new ymaps.Placemark([end.lat, end.lng], { balloonContent: 'Manzil' }, { preset: 'islands#greenDotIcon' });
+          yMap.geoObjects.add(yDestMark);
+        } else {
+          yDestMark.geometry.setCoordinates([end.lat, end.lng]);
+        }
+
+        if (yMultiRoute) {
+          try {
+            yMap.geoObjects.remove(yMultiRoute);
+          } catch (_) {}
+          yMultiRoute = null;
+        }
+
+        yMultiRoute = new ymaps.multiRouter.MultiRoute(
+          {
+            referencePoints: [[start.lat, start.lng], [end.lat, end.lng]],
+            params: { routingMode: 'auto' }
+          },
+          {
+            boundsAutoApply: true,
+            routeActiveStrokeWidth: 6,
+            routeActiveStrokeColor: '#FFD60A',
+            routeStrokeWidth: 0
+          }
+        );
+
+        const onRouteReady = () => {
+          const ar = yMultiRoute.getActiveRoute();
+          if (!ar) return;
+          let distM = 0;
+          let durS = 0;
+          try {
+            const d0 = ar.properties.get('distance');
+            const t0 = ar.properties.get('duration');
+            distM = typeof d0 === 'object' && d0 && typeof d0.value === 'number' ? d0.value : Number(d0) || 0;
+            durS = typeof t0 === 'object' && t0 && typeof t0.value === 'number' ? t0.value : Number(t0) || 0;
+          } catch (_) {}
+          const hintCoords = [
+            [start.lng, start.lat],
+            [end.lng, end.lat]
+          ];
+          updateRouteKpi(distM, durS, buildDirectionHint(hintCoords));
+        };
+
+        yMultiRoute.model.events.add('requestsuccess', onRouteReady);
+        yMap.geoObjects.add(yMultiRoute);
       } catch (_) {
         setRouteFallback(t('routeFail'));
       }

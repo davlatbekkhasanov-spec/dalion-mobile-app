@@ -3,19 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>GlobusMarket · Kuryer portali</title>
+  <title>GlobusMarket · Kuryer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
+  <script src="https://api-maps.yandex.ru/2.1/?apikey=98fbccfc-0ccc-46cc-923a-cfc8b9267d3e&lang=uz_UZ" async></script>
   <style>
     :root {
-      --bg: #050b14;
-      --line: rgba(90, 140, 210, 0.35);
-      --txt: #eef6ff;
-      --muted: #8aa3c8;
-      --acc: #2ef0a8;
-      --acc2: #38cfff;
-      --radius: 16px;
+      --black: #0a0a0a;
+      --ink: #111;
+      --gold: #ffd60a;
+      --gold2: #f5b800;
+      --line: rgba(255, 214, 10, 0.28);
+      --txt: #fafafa;
+      --muted: #a3a3a3;
+      --radius: 18px;
     }
     * { box-sizing: border-box; }
     body {
@@ -23,123 +25,335 @@
       min-height: 100dvh;
       font-family: "DM Sans", system-ui, sans-serif;
       color: var(--txt);
-      background: linear-gradient(180deg, #070f1c, var(--bg));
+      background-color: var(--black);
+      background-image:
+        linear-gradient(135deg, rgba(255, 214, 10, 0.06) 25%, transparent 25%),
+        linear-gradient(225deg, rgba(255, 214, 10, 0.06) 25%, transparent 25%),
+        linear-gradient(45deg, rgba(255, 214, 10, 0.06) 25%, transparent 25%),
+        linear-gradient(315deg, rgba(255, 214, 10, 0.06) 25%, transparent 25%),
+        linear-gradient(180deg, #141414, var(--black));
+      background-size: 18px 18px, 18px 18px, 18px 18px, 18px 18px, 100% 100%;
+      background-position: 0 0, 9px 0, 9px -9px, 0 9px, 0 0;
     }
-    .wrap { max-width: 560px; margin: 0 auto; padding: 16px 14px 32px; }
-    .hero {
-      padding: 20px 18px;
-      border-radius: var(--radius);
-      border: 1px solid var(--line);
-      background: linear-gradient(135deg, rgba(46, 240, 168, 0.12), rgba(56, 207, 255, 0.08));
-      margin-bottom: 14px;
+    .bar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 14px calc(12px + env(safe-area-inset-top));
+      background: rgba(10, 10, 10, 0.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(10px);
     }
-    .hero h1 { margin: 0 0 8px; font-size: 22px; }
-    .muted { color: var(--muted); font-size: 14px; line-height: 1.45; }
-    .panel {
+    .bar strong { font-size: 15px; letter-spacing: 0.02em; color: var(--gold); }
+    .bar small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .lang { display: flex; gap: 8px; }
+    .lang button {
       border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 16px;
-      background: rgba(13, 27, 49, 0.92);
-      margin-bottom: 12px;
-    }
-    .panel h2 { margin: 0 0 10px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: #b6c9e6; }
-    button, .btn {
-      width: 100%;
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      background: rgba(10, 22, 42, 0.9);
+      background: var(--ink);
       color: var(--txt);
-      font: inherit;
+      border-radius: 10px;
+      padding: 8px 12px;
       font-weight: 700;
       cursor: pointer;
-      margin-top: 8px;
-      text-align: center;
-      text-decoration: none;
-      display: block;
     }
-    .btn-primary {
-      background: linear-gradient(100deg, var(--acc), var(--acc2));
+    .wrap { max-width: 560px; margin: 0 auto; padding: 12px 14px 100px; }
+    .hero {
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      padding: 16px;
+      background: linear-gradient(145deg, rgba(255, 214, 10, 0.12), rgba(20, 20, 20, 0.95));
+      margin-bottom: 12px;
+    }
+    .hero h1 { margin: 0 0 6px; font-size: 20px; color: var(--gold); }
+    .muted { color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .feed-title {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin: 4px 0 10px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      background: rgba(17, 17, 17, 0.96);
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .card:active { transform: scale(0.99); }
+    .row1 { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+    .row1 b { font-size: 15px; }
+    .pill {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--gold);
+      white-space: nowrap;
+    }
+    .addr { margin-top: 8px; font-size: 13px; color: #e5e5e5; line-height: 1.35; }
+    .sum { margin-top: 8px; font-size: 14px; font-weight: 800; color: var(--gold); }
+    .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    button.main, .btn-link {
+      flex: 1;
+      min-width: 120px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      padding: 11px 12px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    button.main {
+      background: linear-gradient(100deg, var(--gold), var(--gold2));
       border: none;
-      color: #031018;
+      color: var(--black);
+    }
+    button.main:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-link {
+      background: transparent;
+      color: var(--txt);
+      text-decoration: none;
+      text-align: center;
     }
     .err { color: #ffb4c0; font-size: 14px; margin-top: 8px; }
-    .lang { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 10px; }
-    .lang button { width: auto; padding: 8px 12px; margin: 0; font-size: 13px; }
+    .gate { padding: 20px 16px; text-align: center; }
+    .gate a {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 12px 18px;
+      border-radius: 12px;
+      background: linear-gradient(100deg, var(--gold), var(--gold2));
+      color: var(--black);
+      font-weight: 800;
+      text-decoration: none;
+    }
+    .sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 40;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .sheet-backdrop.on { opacity: 1; pointer-events: auto; }
+    .sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 50;
+      max-height: 88vh;
+      background: #0e0e0e;
+      border-radius: 22px 22px 0 0;
+      border: 1px solid var(--line);
+      border-bottom: none;
+      transform: translateY(110%);
+      transition: transform 0.28s ease;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .sheet.on { transform: translateY(0); }
+    .sheet-head {
+      padding: 10px 14px 6px;
+      border-bottom: 1px solid var(--line);
+    }
+    .grab {
+      width: 44px;
+      height: 5px;
+      border-radius: 99px;
+      background: #444;
+      margin: 4px auto 10px;
+    }
+    .sheet-body { overflow: auto; padding: 12px 14px 18px; flex: 1; }
+    #detailMap {
+      height: 38vh;
+      min-height: 220px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      margin-bottom: 12px;
+    }
+    #detailMap img { max-width: none; }
+    .kpi { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+    .kpi div {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi b { display: block; color: var(--gold); font-size: 15px; margin-top: 4px; }
+    .fab-logout {
+      position: fixed;
+      right: 14px;
+      bottom: calc(14px + env(safe-area-inset-bottom));
+      z-index: 30;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--ink);
+      color: var(--txt);
+      padding: 12px 16px;
+      font-weight: 800;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="bar">
+    <div>
+      <strong id="brand">GlobusMarket</strong>
+      <small id="brandSub">Kuryer</small>
+    </div>
     <div class="lang">
       <button type="button" id="langUz">UZ</button>
       <button type="button" id="langRu">RU</button>
     </div>
+  </div>
+
+  <div id="gate" class="wrap gate" style="display:none;">
+    <p class="muted" id="gateMsg"></p>
+    <a href="/" id="gateShop">Bosh sahifa</a>
+  </div>
+
+  <div id="app" class="wrap" style="display:none;">
     <div class="hero">
-      <h1 id="hTitle">GlobusMarket</h1>
-      <p class="muted" id="hSub">Kuryer portali</p>
+      <h1 id="whoName">—</h1>
+      <p class="muted" id="whoPhone">—</p>
     </div>
-    <div id="gate" class="panel" style="display:none;">
-      <p class="err" id="gateMsg"></p>
-      <a class="btn btn-primary" id="backShop" href="/">Do‘konga qaytish</a>
+    <div class="feed-title" id="feedTitle">Buyurtmalar</div>
+    <div id="feed"></div>
+    <p class="muted" id="feedHint" style="margin-top:8px;"></p>
+  </div>
+
+  <button type="button" class="fab-logout" id="logoutBtn" style="display:none;">Chiqish</button>
+
+  <div id="backdrop" class="sheet-backdrop"></div>
+  <div id="sheet" class="sheet" role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="grab"></div>
+      <div class="row1">
+        <b id="dTitle">#</b>
+        <span class="pill" id="dStatus">—</span>
+      </div>
     </div>
-    <div id="app" style="display:none;">
-      <div class="panel">
-        <h2 id="whoTitle">Siz</h2>
-        <p class="muted" id="whoLine"></p>
+    <div class="sheet-body">
+      <div id="detailMap"></div>
+      <div class="kpi">
+        <div><span id="lblDist">Masofa</span><b id="dDist">—</b></div>
+        <div><span id="lblEta">Taxminiy vaqt</span><b id="dEta">—</b></div>
       </div>
-      <div class="panel">
-        <h2 id="nextTitle">Keyingi qadam</h2>
-        <p class="muted" id="nextBody"></p>
+      <p class="muted" id="dAddr"></p>
+      <p class="muted" id="dItems"></p>
+      <div class="actions">
+        <button type="button" class="main" id="claimBtn">Qabul qilish</button>
+        <a class="btn-link" id="openCourierBtn" href="#" target="_blank" rel="noopener" style="display:none;">Kuryer sahifasi</a>
       </div>
-      <button type="button" class="btn" id="logoutBtn"></button>
-      <a class="btn btn-primary" id="shopBtn" href="/" style="margin-top:10px;"></a>
+      <p class="err" id="sheetErr" style="display:none;"></p>
     </div>
   </div>
+
   <script>
     const LS = 'gm_courier_portal_token';
     const langKey = 'gm_courier_portal_lang';
     let lang = localStorage.getItem(langKey) || 'uz';
+    let token = '';
+    let profile = null;
+    let orders = [];
+    let selected = null;
+    let pollTimer = null;
+    let yMap = null;
+    let yRoute = null;
+    let yStart = null;
+    let yEnd = null;
+    let ymapsReadyPromise = null;
+
+    const STORE = { lat: 39.654572, lng: 66.958871 };
     const T = {
       uz: {
-        hTitle: 'GlobusMarket',
-        hSub: 'Kuryer hamkor portali',
-        whoTitle: 'Profil',
-        nextTitle: 'Buyurtmalar',
-        nextBody:
-          'Hozircha buyurtmalar ro‘yxati operator orqali biriktiriladi. Tez orada bu yerda faol yetkazishlar paydo bo‘ladi. Savollar uchun Telegram orqali bog‘lanamiz (keyingi bosqich).',
-        logout: 'Portaldan chiqish',
-        shop: 'Do‘konga qaytish',
-        gateInvalid: 'Havola yaroqsiz yoki muddati tugagan. Iltimos, marketplace profilidan qayta ariza yuboring.',
-        backShop: 'Bosh sahifa'
+        brand: 'GlobusMarket',
+        brandSub: 'Kuryer · taksi uslubi',
+        feedTitle: 'Faol buyurtmalar',
+        feedHint: '«Kuryer kutilmoqda» holatidagi buyurtmani bosing va qabul qiling. Keyin kuryer sahifasidan yo‘lga chiqasiz.',
+        logout: 'Chiqish',
+        gate: 'Havola yaroqsiz. Marketplace profilidan qayta ariza yuboring.',
+        shop: 'Bosh sahifa',
+        claim: 'O‘zimga biriktirish',
+        courierPage: 'Kuryer sahifasi (QR)',
+        dist: 'Masofa',
+        eta: 'Taxminiy vaqt',
+        km: 'km',
+        min: 'daq',
+        busy: 'Boshqa kuryer oldin qabul qilgan',
+        loading: 'Yuklanmoqda...',
+        emptyFeed: 'Hozircha yetkazish buyurtmalari yo‘q'
       },
       ru: {
-        hTitle: 'GlobusMarket',
-        hSub: 'Портал партнёра-курьера',
-        whoTitle: 'Профиль',
-        nextTitle: 'Заказы',
-        nextBody:
-          'Список заказов пока назначается оператором. Скорее всего здесь появятся активные доставки. Связь через Telegram — на следующем этапе.',
-        logout: 'Выйти из портала',
-        shop: 'В магазин',
-        gateInvalid: 'Ссылка недействительна. Отправьте заявку снова из профиля маркетплейса.',
-        backShop: 'На главную'
+        brand: 'GlobusMarket',
+        brandSub: 'Курьер · такси-стиль',
+        feedTitle: 'Активные заказы',
+        feedHint: 'Нажмите заказ в статусе «курьер ожидается» и примите. Затем откройте страницу курьера для выезда.',
+        logout: 'Выйти',
+        gate: 'Ссылка недействительна. Подайте заявку снова из профиля.',
+        shop: 'На главную',
+        claim: 'Забрать себе',
+        courierPage: 'Страница курьера (QR)',
+        dist: 'Дистанция',
+        eta: 'Время',
+        km: 'км',
+        min: 'мин',
+        busy: 'Уже принят другим курьером',
+        loading: 'Загрузка...',
+        emptyFeed: 'Пока нет заказов для доставки'
       }
     };
-    function t(k) {
+    function tr(k) {
       return (T[lang] || T.uz)[k] || k;
+    }
+    function money(n) {
+      return `${Number(n || 0).toLocaleString('ru-RU')} so'm`;
+    }
+    function esc(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+    function statusLabel(st) {
+      const m = {
+        ready_for_courier: lang === 'ru' ? 'Курьер ожидается' : 'Kuryer kutilmoqda',
+        courier_assigned: lang === 'ru' ? 'Назначен' : 'Biriktirildi',
+        out_for_delivery: lang === 'ru' ? 'В пути' : 'Yo‘lda'
+      };
+      return m[st] || st;
     }
     function applyLang() {
       document.documentElement.lang = lang;
-      document.getElementById('hTitle').textContent = t('hTitle');
-      document.getElementById('hSub').textContent = t('hSub');
-      document.getElementById('whoTitle').textContent = t('whoTitle');
-      document.getElementById('nextTitle').textContent = t('nextTitle');
-      document.getElementById('nextBody').textContent = t('nextBody');
-      document.getElementById('logoutBtn').textContent = t('logout');
-      document.getElementById('shopBtn').textContent = t('shop');
-      document.getElementById('backShop').textContent = t('backShop');
-      document.getElementById('gateMsg').textContent = t('gateInvalid');
+      document.getElementById('brand').textContent = tr('brand');
+      document.getElementById('brandSub').textContent = tr('brandSub');
+      document.getElementById('feedTitle').textContent = tr('feedTitle');
+      document.getElementById('feedHint').textContent = tr('feedHint');
+      document.getElementById('logoutBtn').textContent = tr('logout');
+      document.getElementById('gateMsg').textContent = tr('gate');
+      document.getElementById('gateShop').textContent = tr('shop');
+      document.getElementById('claimBtn').textContent = tr('claim');
+      document.getElementById('openCourierBtn').textContent = tr('courierPage');
+      document.getElementById('lblDist').textContent = tr('dist');
+      document.getElementById('lblEta').textContent = tr('eta');
+      renderFeed();
+      if (selected) openSheet(selected);
     }
+
     function readToken() {
       const q = new URLSearchParams(location.search).get('t');
       if (q) {
@@ -148,9 +362,205 @@
       }
       return localStorage.getItem(LS) || '';
     }
+
+    async function api(path, opt) {
+      const res = await fetch('/api/v1' + path, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Courier-Portal-Token': token
+        },
+        ...opt
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Error');
+      return data;
+    }
+
+    function renderFeed() {
+      const el = document.getElementById('feed');
+      if (!el) return;
+      if (!orders.length) {
+        el.innerHTML = `<p class="muted">${esc(tr('emptyFeed'))}</p>`;
+        return;
+      }
+      el.innerHTML = orders
+        .map((o) => {
+          const addr = [o.addressText, o.customerAddress, o.location].map((x) => String(x || '').trim()).find(Boolean) || '—';
+          const mine =
+            String(o.courierName || '').trim() &&
+            profile &&
+            String(o.courierName).trim() === String(profile.fullName || '').trim();
+          return `
+            <article class="card" data-id="${esc(o.id)}">
+              <div class="row1">
+                <b>#${esc(o.orderNumber || o.id)}</b>
+                <span class="pill">${esc(statusLabel(o.status))}</span>
+              </div>
+              <div class="addr">${esc(addr)}</div>
+              <div class="sum">${esc(money(o.total))}</div>
+              ${mine ? `<div class="muted" style="margin-top:6px;font-size:12px;">✓ ${lang === 'ru' ? 'Ваш заказ' : 'Sizning buyurtmangiz'}</div>` : ''}
+            </article>
+          `;
+        })
+        .join('');
+      el.querySelectorAll('.card').forEach((c) => {
+        c.onclick = () => {
+          const id = c.getAttribute('data-id');
+          const o = orders.find((x) => String(x.id) === String(id));
+          if (o) openSheet(o);
+        };
+      });
+    }
+
+    function closeSheet() {
+      document.getElementById('backdrop').classList.remove('on');
+      document.getElementById('sheet').classList.remove('on');
+      selected = null;
+    }
+
+    function ensureYmaps() {
+      if (window.__yandexMapsFailed) return Promise.reject(new Error('yandex'));
+      if (!window.ymaps || typeof window.ymaps.ready !== 'function') return Promise.reject(new Error('yandex'));
+      if (!ymapsReadyPromise) {
+        ymapsReadyPromise = new Promise((resolve, reject) => {
+          const t = setTimeout(() => reject(new Error('timeout')), 9000);
+          window.ymaps.ready(() => {
+            clearTimeout(t);
+            if (window.ymaps && window.ymaps.Map) resolve(window.ymaps);
+            else reject(new Error('map'));
+          });
+        });
+      }
+      return ymapsReadyPromise;
+    }
+
+    function hasCoord(lat, lng) {
+      const la = Number(lat);
+      const ln = Number(lng);
+      if (!Number.isFinite(la) || !Number.isFinite(ln)) return false;
+      if (Math.abs(la) > 90 || Math.abs(ln) > 180) return false;
+      return !(la === 0 && ln === 0);
+    }
+
+    function drawRoute(o) {
+      const errEl = document.getElementById('sheetErr');
+      errEl.style.display = 'none';
+      const box = document.getElementById('detailMap');
+      if (yMap) {
+        try {
+          yMap.destroy();
+        } catch (_) {}
+        yMap = yRoute = yStart = yEnd = null;
+      }
+      if (box) box.innerHTML = '';
+
+      ensureYmaps()
+        .then((ymaps) => {
+          if (!box) return;
+          const endLat = Number(o.locationLat);
+          const endLng = Number(o.locationLng);
+          const startLat = STORE.lat;
+          const startLng = STORE.lng;
+          if (!hasCoord(endLat, endLng)) {
+            document.getElementById('dDist').textContent = '—';
+            document.getElementById('dEta').textContent = '—';
+            box.innerHTML = `<div class="muted" style="padding:16px;">${lang === 'ru' ? 'Нет координат для маршрута' : 'Marshrut uchun koordinata yo‘q'}</div>`;
+            return;
+          }
+
+          yMap = new ymaps.Map(box, { center: [endLat, endLng], zoom: 12, controls: ['zoomControl'] }, { suppressMapOpenBlock: true });
+
+          yStart = new ymaps.Placemark([startLat, startLng], { balloonContent: 'GlobusMarket' }, { preset: 'islands#blueCircleDotIcon' });
+          yMap.geoObjects.add(yStart);
+
+          yEnd = new ymaps.Placemark([endLat, endLng], { balloonContent: 'Manzil' }, { preset: 'islands#greenDotIcon' });
+          yMap.geoObjects.add(yEnd);
+
+          yRoute = new ymaps.multiRouter.MultiRoute(
+            {
+              referencePoints: [[startLat, startLng], [endLat, endLng]],
+              params: { routingMode: 'auto' }
+            },
+            {
+              boundsAutoApply: true,
+              routeActiveStrokeWidth: 6,
+              routeActiveStrokeColor: '#FFD60A',
+              routeStrokeWidth: 0
+            }
+          );
+          yRoute.model.events.add('requestsuccess', () => {
+            const ar = yRoute.getActiveRoute();
+            if (!ar) return;
+            let distM = 0;
+            let durS = 0;
+            try {
+              const d0 = ar.properties.get('distance');
+              const t0 = ar.properties.get('duration');
+              distM = typeof d0 === 'object' && d0 && typeof d0.value === 'number' ? d0.value : Number(d0) || 0;
+              durS = typeof t0 === 'object' && t0 && typeof t0.value === 'number' ? t0.value : Number(t0) || 0;
+            } catch (_) {}
+            const km = (distM / 1000).toFixed(1);
+            const mins = Math.max(1, Math.round(durS / 60));
+            document.getElementById('dDist').textContent = `${km} ${tr('km')}`;
+            document.getElementById('dEta').textContent = `${mins} ${tr('min')}`;
+          });
+          yMap.geoObjects.add(yRoute);
+        })
+        .catch(() => {
+          errEl.textContent = lang === 'ru' ? 'Карта недоступна' : 'Xarita yuklanmadi';
+          errEl.style.display = 'block';
+        });
+    }
+
+    function openSheet(o) {
+      selected = o;
+      document.getElementById('dTitle').textContent = `#${o.orderNumber || o.id}`;
+      document.getElementById('dStatus').textContent = statusLabel(o.status);
+      const addr = [o.addressText, o.customerAddress, o.location].map((x) => String(x || '').trim()).find(Boolean) || '—';
+      document.getElementById('dAddr').textContent = addr;
+      const items = Array.isArray(o.items) ? o.items : [];
+      document.getElementById('dItems').textContent =
+        items.length > 0
+          ? items.map((it) => `${it.title || it.name || '—'} × ${it.qty || it.quantity || 1}`).join(' · ')
+          : '';
+      document.getElementById('dDist').textContent = '…';
+      document.getElementById('dEta').textContent = '…';
+
+      const mine =
+        String(o.courierName || '').trim() &&
+        profile &&
+        String(o.courierName).trim() === String(profile.fullName || '').trim();
+      const canClaim = o.status === 'ready_for_courier' && !String(o.courierName || '').trim();
+      const claimBtn = document.getElementById('claimBtn');
+      const openBtn = document.getElementById('openCourierBtn');
+      claimBtn.style.display = canClaim ? 'block' : 'none';
+      claimBtn.disabled = false;
+      const ct = String(o.courierToken || '').trim();
+      if ((o.status === 'courier_assigned' || o.status === 'out_for_delivery') && mine && ct) {
+        openBtn.style.display = 'block';
+        openBtn.href = `${location.origin}/courier/${encodeURIComponent(ct)}`;
+      } else {
+        openBtn.style.display = 'none';
+        openBtn.href = '#';
+      }
+      document.getElementById('sheetErr').style.display = 'none';
+
+      document.getElementById('backdrop').classList.add('on');
+      document.getElementById('sheet').classList.add('on');
+      setTimeout(() => drawRoute(o), 80);
+    }
+
+    async function loadFeed() {
+      const el = document.getElementById('feed');
+      if (el) el.innerHTML = `<p class="muted">${esc(tr('loading'))}</p>`;
+      const data = await api('/courier-portal/feed');
+      orders = Array.isArray(data.orders) ? data.orders : [];
+      renderFeed();
+    }
+
     async function boot() {
       applyLang();
-      const token = readToken();
+      token = readToken();
       if (!token) {
         document.getElementById('gate').style.display = 'block';
         return;
@@ -163,15 +573,44 @@
           document.getElementById('gate').style.display = 'block';
           return;
         }
-        const a = data.application;
-        document.getElementById('whoLine').textContent = `${a.fullName || '—'} · ${a.phone || '—'}`;
+        profile = data.application;
+        document.getElementById('whoName').textContent = profile.fullName || '—';
+        document.getElementById('whoPhone').textContent = profile.phone || '—';
         document.getElementById('app').style.display = 'block';
+        document.getElementById('logoutBtn').style.display = 'block';
+        await loadFeed();
+        pollTimer = setInterval(loadFeed, 5000);
       } catch (_) {
         document.getElementById('gate').style.display = 'block';
       }
     }
+
+    document.getElementById('backdrop').onclick = closeSheet;
+    document.getElementById('claimBtn').onclick = async () => {
+      if (!selected) return;
+      const btn = document.getElementById('claimBtn');
+      const err = document.getElementById('sheetErr');
+      err.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = tr('loading');
+      try {
+        await api(`/courier-portal/orders/${encodeURIComponent(selected.id)}/claim`, { method: 'POST', body: '{}' });
+        await loadFeed();
+        const fresh = orders.find((x) => String(x.id) === String(selected.id));
+        if (fresh) openSheet(fresh);
+        else closeSheet();
+      } catch (e) {
+        err.textContent = e.message || tr('busy');
+        err.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = tr('claim');
+      }
+    };
+
     document.getElementById('logoutBtn').onclick = () => {
       localStorage.removeItem(LS);
+      if (pollTimer) clearInterval(pollTimer);
       location.href = '/';
     };
     document.getElementById('langUz').onclick = () => {
@@ -184,6 +623,7 @@
       localStorage.setItem(langKey, lang);
       applyLang();
     };
+
     boot();
   </script>
 </body>

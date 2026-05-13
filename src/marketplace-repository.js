@@ -1233,6 +1233,53 @@ async function getCourierApplicationByAccessToken(token) {
   return prisma.courierApplication.findUnique({ where: { accessToken: t } });
 }
 
+async function listCourierPortalOrders() {
+  const rows = await prisma.order.findMany({
+    where: {
+      status: { in: ['ready_for_courier', 'courier_assigned', 'out_for_delivery'] }
+    },
+    orderBy: { updatedAt: 'desc' },
+    take: 150,
+    include: { items: true }
+  });
+  return rows.map((o) => orderToLegacy(o, o.items));
+}
+
+async function claimOrderByCourierPortalToken({ orderId, accessToken }) {
+  const app = await getCourierApplicationByAccessToken(accessToken);
+  if (!app) return { ok: false, code: 'TOKEN', message: 'Token noto‘g‘ri' };
+  const id = String(orderId || '').trim();
+  if (!id) return { ok: false, code: 'ID', message: 'Buyurtma topilmadi' };
+  const n = await prisma.order.updateMany({
+    where: {
+      id,
+      status: 'ready_for_courier',
+      courierName: ''
+    },
+    data: {
+      courierName: app.fullName,
+      courierPhone: app.phone,
+      status: 'courier_assigned',
+      deliveryStatus: 'courier_assigned',
+      updatedAt: new Date()
+    }
+  });
+  if (!n.count) {
+    const cur = await prisma.order.findUnique({ where: { id }, include: { items: true } });
+    if (!cur) return { ok: false, code: 'NOT_FOUND', message: 'Buyurtma topilmadi' };
+    return { ok: false, code: 'BUSY', message: 'Buyurtma boshqa kuryerga biriktirilgan yoki status mos emas' };
+  }
+  const updated = await prisma.order.findUnique({ where: { id }, include: { items: true } });
+  return { ok: true, order: orderToLegacy(updated, updated.items) };
+}
+
+async function listCourierApplicationsAdmin() {
+  return prisma.courierApplication.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 400
+  });
+}
+
 module.exports = {
   APP_ID,
   ensureAppState,
@@ -1263,6 +1310,9 @@ module.exports = {
   upsertApprovedCourierApplication,
   getCourierApplicationByPhone,
   getCourierApplicationByAccessToken,
+  listCourierPortalOrders,
+  claimOrderByCourierPortalToken,
+  listCourierApplicationsAdmin,
   readSmsChallenge,
   writeSmsChallenge,
   deleteSmsChallenge,

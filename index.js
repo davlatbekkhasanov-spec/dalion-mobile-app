@@ -663,6 +663,12 @@ function requireAdmin(req, res, next) {
   return next();
 }
 
+function getCourierPortalToken(req) {
+  const auth = String(req.headers.authorization || '');
+  const bearer = auth.replace(/^Bearer\s+/i, '').trim();
+  return String(req.query.token || req.headers['x-courier-portal-token'] || bearer || '').trim();
+}
+
 function adminV2B64urlJson(obj) {
   return Buffer.from(JSON.stringify(obj), 'utf8')
     .toString('base64')
@@ -1454,7 +1460,7 @@ app.post('/api/v1/courier-applications', async (req, res) => {
 });
 
 app.get('/api/v1/courier-portal/session', async (req, res) => {
-  const tok = String(req.query.token || req.headers['x-courier-portal-token'] || '').trim();
+  const tok = getCourierPortalToken(req);
   if (!tok) return res.status(400).json({ ok: false, message: 'token kerak' });
   const row = await marketplaceRepo.getCourierApplicationByAccessToken(tok);
   if (!row) return res.status(404).json({ ok: false, message: 'Havola yaroqsiz' });
@@ -1466,6 +1472,53 @@ app.get('/api/v1/courier-portal/session', async (req, res) => {
       status: row.status,
       createdAt: row.createdAt ? row.createdAt.toISOString() : null
     }
+  });
+});
+
+app.get('/api/v1/courier-portal/feed', async (req, res) => {
+  const tok = getCourierPortalToken(req);
+  if (!tok) return res.status(401).json({ ok: false, message: 'token kerak' });
+  const row = await marketplaceRepo.getCourierApplicationByAccessToken(tok);
+  if (!row) return res.status(401).json({ ok: false, message: 'Havola yaroqsiz' });
+  if (String(row.status || '') !== 'approved') {
+    return res.status(403).json({ ok: false, message: 'Ariza tasdiqlanmagan' });
+  }
+  const orders = await marketplaceRepo.listCourierPortalOrders();
+  return res.json({ ok: true, orders: orders.map(orderPublic) });
+});
+
+app.post('/api/v1/courier-portal/orders/:id/claim', async (req, res) => {
+  const tok = getCourierPortalToken(req);
+  if (!tok) return res.status(401).json({ ok: false, message: 'token kerak' });
+  const row = await marketplaceRepo.getCourierApplicationByAccessToken(tok);
+  if (!row) return res.status(401).json({ ok: false, message: 'Havola yaroqsiz' });
+  if (String(row.status || '') !== 'approved') {
+    return res.status(403).json({ ok: false, message: 'Ariza tasdiqlanmagan' });
+  }
+  const result = await marketplaceRepo.claimOrderByCourierPortalToken({
+    orderId: req.params.id,
+    accessToken: tok
+  });
+  if (!result.ok) {
+    const status = result.code === 'TOKEN' ? 401 : 409;
+    return res.status(status).json({ ok: false, message: result.message || 'Xato', code: result.code });
+  }
+  return res.json({ ok: true, order: orderPublic(result.order) });
+});
+
+app.get('/api/v1/admin/courier-applications', requireAdmin, async (req, res) => {
+  const rows = await marketplaceRepo.listCourierApplicationsAdmin();
+  return res.json({
+    ok: true,
+    applications: rows.map((r) => ({
+      id: r.id,
+      phone: r.phone,
+      fullName: r.fullName,
+      status: r.status,
+      note: r.note || '',
+      createdAt: r.createdAt ? r.createdAt.toISOString() : null,
+      updatedAt: r.updatedAt ? r.updatedAt.toISOString() : null
+    }))
   });
 });
 
