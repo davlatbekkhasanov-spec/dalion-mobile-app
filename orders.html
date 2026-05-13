@@ -33,6 +33,15 @@
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
     body {
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      min-height: 0;
+      height: 100vh;
+      max-height: 100vh;
+      height: 100dvh;
+      max-height: 100dvh;
+      overflow: hidden;
       font-family: "DM Sans", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
       font-feature-settings: "tnum" 1;
       color: var(--txt);
@@ -41,17 +50,21 @@
         radial-gradient(900px 500px at 100% 0%, rgba(158, 120, 255, 0.1), transparent 50%),
         linear-gradient(180deg, #070f1c 0%, var(--bg) 45%);
     }
+    @supports (height: 100svh) {
+      body {
+        height: 100svh;
+        max-height: 100svh;
+      }
+    }
     .wrap {
+      flex: 1 1 0%;
+      min-height: 0;
       padding: 12px 14px 14px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      min-height: 0;
       box-sizing: border-box;
-      height: 100vh;
-      max-height: 100vh;
-      height: 100dvh;
-      max-height: 100dvh;
+      overflow: hidden;
     }
     .ops-bar {
       display: flex;
@@ -59,6 +72,7 @@
       align-items: center;
       gap: 10px 12px;
       padding: 12px 14px;
+      flex-shrink: 0;
       background: linear-gradient(180deg, rgba(16, 32, 58, 0.92), rgba(8, 18, 34, 0.88));
       border: 1px solid var(--line);
       border-radius: var(--radius);
@@ -114,6 +128,7 @@
       box-shadow: 0 0 0 1px rgba(46, 240, 168, 0.15);
     }
     .stats-bar {
+      flex-shrink: 0;
       border: 1px solid var(--line);
       border-radius: var(--radius);
       background: rgba(8, 18, 34, 0.72);
@@ -196,6 +211,7 @@
     }
     .badge.offline { border-color: #8a4352; color: #ffc8d3; background: rgba(42, 17, 24, 0.75); }
     .token-required {
+      flex-shrink: 0;
       border: 1px dashed rgba(193, 122, 139, 0.65);
       background: rgba(43, 17, 25, 0.75);
       color: #ffcad5;
@@ -207,7 +223,7 @@
       grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
       grid-template-rows: minmax(0, 1fr);
       gap: 12px;
-      flex: 1;
+      flex: 1 1 0%;
       min-height: 0;
       overflow-x: auto;
       overflow-y: hidden;
@@ -224,8 +240,9 @@
       padding: 10px 10px 12px;
       display: flex;
       flex-direction: column;
+      align-self: stretch;
       min-height: 0;
-      max-height: 100%;
+      height: 100%;
       min-width: 268px;
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
     }
@@ -264,6 +281,7 @@
       justify-content: space-between;
       gap: 10px;
       margin-bottom: 10px;
+      flex-shrink: 0;
     }
     .col-head h3 {
       margin: 0;
@@ -288,6 +306,7 @@
       background: rgba(255, 255, 255, 0.06);
       overflow: hidden;
       margin-bottom: 10px;
+      flex-shrink: 0;
     }
     .col-bar > i {
       display: block;
@@ -301,12 +320,13 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      flex: 1;
+      flex: 1 1 0%;
       min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
       padding-right: 2px;
       -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
     .ops-card {
       position: relative;
@@ -497,7 +517,7 @@
         <button type="button" id="langRuBtn" class="btn-ghost">RU</button>
         <span class="sound-tools" title="">
           <button type="button" id="soundToggle" class="chip" aria-pressed="true">🔔</button>
-          <input type="range" id="soundVolume" min="0" max="100" step="1" value="80" aria-label="" />
+          <input type="range" id="soundVolume" min="0" max="200" step="1" value="200" aria-label="" />
         </span>
         <button type="button" id="fullscreenBtn" class="primary">To‘liq ekran</button>
         <div class="token-input-wrap">
@@ -597,7 +617,7 @@
         intervalSuffix: 'interval',
         soundOnLabel: 'Ovoz: yoqilgan',
         soundOffLabel: 'Ovoz: o‘chiq',
-        soundVol: 'Signal balandligi',
+        soundVol: 'Signal (0–200%)',
         statsAll: 'jami',
         statsToday: 'bugun',
         statsActive: 'faol',
@@ -643,7 +663,7 @@
         intervalSuffix: 'интервал',
         soundOnLabel: 'Звук: вкл',
         soundOffLabel: 'Звук: выкл',
-        soundVol: 'Громкость сигнала',
+        soundVol: 'Громкость (0–200%)',
         statsAll: 'всего',
         statsToday: 'сегодня',
         statsActive: 'активные',
@@ -702,13 +722,13 @@
     }
     function getSoundVolume() {
       const raw = localStorage.getItem(SOUND_VOL_LS);
-      if (raw === null || raw === '') return 80;
+      if (raw === null || raw === '') return 200;
       const n = Number(raw);
-      if (!Number.isFinite(n)) return 80;
-      return Math.max(0, Math.min(100, Math.round(n)));
+      if (!Number.isFinite(n)) return 200;
+      return Math.max(0, Math.min(200, Math.round(n)));
     }
     function setSoundVolume(v) {
-      const n = Math.max(0, Math.min(100, Math.round(Number(v))));
+      const n = Math.max(0, Math.min(200, Math.round(Number(v))));
       localStorage.setItem(SOUND_VOL_LS, String(n));
     }
     function syncSoundVolumeUi() {
@@ -742,19 +762,19 @@
       const ctx = getAudioContext();
       if (!ctx) return;
       if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-      const vol = getSoundVolume() / 100;
-      if (vol <= 0) return;
+      const drive = getSoundVolume() / 100;
+      if (drive <= 0) return;
       try {
         const t0 = ctx.currentTime;
-        const master = ctx.createGain();
-        master.gain.value = vol * 0.98;
-        master.connect(ctx.destination);
+        const makeup = ctx.createGain();
+        makeup.gain.value = drive * 4.1;
+        makeup.connect(ctx.destination);
 
         const lp = ctx.createBiquadFilter();
         lp.type = 'lowpass';
-        lp.frequency.setValueAtTime(5200, t0);
-        lp.Q.setValueAtTime(0.7, t0);
-        lp.connect(master);
+        lp.frequency.setValueAtTime(6800, t0);
+        lp.Q.setValueAtTime(0.45, t0);
+        lp.connect(makeup);
 
         function bellPartial(start, freq, dur, peak, type) {
           const osc = ctx.createOscillator();
@@ -765,7 +785,7 @@
           const b = a + dur;
           const p = Math.max(0.0008, peak);
           g.gain.setValueAtTime(0.0001, a);
-          g.gain.exponentialRampToValueAtTime(p, a + 0.018);
+          g.gain.exponentialRampToValueAtTime(p, a + 0.012);
           g.gain.exponentialRampToValueAtTime(0.0001, b);
           osc.connect(g);
           g.connect(lp);
@@ -774,14 +794,14 @@
         }
 
         if (kind === 'route') {
-          bellPartial(0, 392, 0.28, 0.44, 'triangle');
-          bellPartial(0.06, 523.25, 0.24, 0.34, 'sine');
-          bellPartial(0.12, 659.25, 0.2, 0.24, 'sine');
+          bellPartial(0, 392, 0.3, 0.72, 'triangle');
+          bellPartial(0.06, 523.25, 0.26, 0.58, 'sine');
+          bellPartial(0.12, 659.25, 0.22, 0.46, 'sine');
         } else {
-          bellPartial(0, 783.99, 0.42, 0.58, 'triangle');
-          bellPartial(0.1, 987.77, 0.36, 0.46, 'triangle');
-          bellPartial(0.2, 1174.66, 0.3, 0.32, 'sine');
-          bellPartial(0.32, 1318.51, 0.22, 0.18, 'sine');
+          bellPartial(0, 783.99, 0.44, 0.95, 'triangle');
+          bellPartial(0.1, 987.77, 0.38, 0.78, 'triangle');
+          bellPartial(0.2, 1174.66, 0.32, 0.58, 'sine');
+          bellPartial(0.32, 1318.51, 0.24, 0.4, 'sine');
         }
       } catch (_) {}
     }
