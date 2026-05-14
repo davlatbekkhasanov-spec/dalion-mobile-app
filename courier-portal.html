@@ -747,7 +747,7 @@
       document.getElementById('dEta').textContent = '…';
 
       const mine = mineByPhone(o);
-      const canClaim = o.status === 'ready_for_courier' && !String(o.courierName || '').trim();
+      const canClaim = o.status === 'ready_for_courier' && !String(o.courierPhone || '').trim();
       const claimBtn = document.getElementById('claimBtn');
       const openBtn = document.getElementById('openCourierBtn');
       claimBtn.style.display = canClaim ? 'block' : 'none';

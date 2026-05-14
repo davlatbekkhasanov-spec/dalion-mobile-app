@@ -872,7 +872,10 @@ const PAYMENT_STATUS_LABELS = {
 };
 
 function normalizeOrderStatus(status) {
-  const raw = String(status || '').trim();
+  const raw = String(status || '')
+    .trim()
+    .toLowerCase()
+    .replace(/-/g, '_');
   if (!raw) return 'created';
   return ORDER_STATUS_ALIASES[raw] || raw;
 }
@@ -2588,7 +2591,12 @@ app.get('/api/v1/courier/:token', async (req, res) => {
   const token = String(req.params.token || '').trim();
   const order = await marketplaceRepo.loadOrderLegacy({ courierToken: token });
   if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
-  if (order.courierTokenUsed && !['out_for_delivery', 'courier_assigned'].includes(normalizeOrderStatus(order.status))) {
+  const courierNs = normalizeOrderStatus(order.status);
+  // ready_for_courier: kuryer havolasini ochish bloklanmasin (eski courierTokenUsed noto‘g‘ri bo‘lsa ham)
+  if (
+    order.courierTokenUsed &&
+    !['out_for_delivery', 'courier_assigned', 'ready_for_courier'].includes(courierNs)
+  ) {
     return res.status(410).json({ ok: false, message: 'Bu QR kod yaroqsiz yoki ishlatilgan' });
   }
   const routeOrders = await marketplaceRepo.listCourierRouteSliceByCourierToken(token);

@@ -1260,7 +1260,7 @@ async function claimOrderByCourierPortalToken({ orderId, accessToken }) {
   try {
     const done = await prisma.$transaction(async (tx) => {
       const target = await tx.order.findFirst({
-        where: { id, status: 'ready_for_courier', courierName: '' },
+        where: { id, status: 'ready_for_courier', courierPhone: '' },
         include: { items: true }
       });
       if (!target) {
@@ -1324,7 +1324,7 @@ async function claimOrderByCourierPortalToken({ orderId, accessToken }) {
       const nextSeq = (maxAgg._max.courierStopSeq || 0) + 1;
 
       const updated = await tx.order.update({
-        where: { id, status: 'ready_for_courier', courierName: '' },
+        where: { id, status: 'ready_for_courier', courierPhone: '' },
         data: {
           courierName: app.fullName,
           courierPhone: phone,
