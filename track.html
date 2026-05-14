@@ -54,16 +54,17 @@
     .feedback-emoji-wrap{text-align:center;margin:4px 0 12px;min-height:52px;display:flex;align-items:center;justify-content:center}
     .feedback-emoji{font-size:44px;line-height:1;transition:transform .18s ease}
     .feedback-emoji.pop{transform:scale(1.12)}
-    .star-bar{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-    .star-btn{
-      width:44px;height:44px;border-radius:12px;border:1px solid var(--line);
-      background:#fff;font-size:22px;line-height:1;cursor:pointer;padding:0;
-      display:inline-flex;align-items:center;justify-content:center;
-      color:#d0d5dd;transition:color .15s,background .15s,transform .12s;
+    .star-bar{
+      display:flex;justify-content:center;gap:6px;flex-wrap:nowrap;margin:0 auto 8px;max-width:300px;
+      touch-action:none;user-select:none;-webkit-user-select:none;padding:6px 4px;cursor:pointer;
     }
-    .star-btn.on{color:#f5b000;border-color:#f5d78a;background:linear-gradient(180deg,#fffbeb,#fff)}
-    .star-btn:active{transform:scale(.94)}
-    .star-btn:disabled{opacity:.55;cursor:not-allowed}
+    .star-cell{
+      flex:1;min-width:0;text-align:center;
+      font-size:24px;line-height:1.1;border-radius:10px;padding:6px 0;
+      color:#d0d5dd;transition:color .15s,transform .12s;
+    }
+    .star-cell.on{color:#f5b000;text-shadow:0 2px 10px rgba(245,176,0,.28)}
+    .star-bar.is-disabled{pointer-events:none;opacity:.55}
     .feedback-hint{text-align:center;font-size:12px;font-weight:600;color:#475467;min-height:2.6em;margin:0 0 10px;line-height:1.35}
     #feedbackCard textarea{font-family:inherit}
   </style>
@@ -126,7 +127,7 @@
       <h3 style="margin:0 0 6px;" id="labelFeedback">Fikr qoldirish</h3>
       <p class="feedback-why" id="feedbackWhy"></p>
       <div class="feedback-emoji-wrap" aria-hidden="true"><span class="feedback-emoji" id="feedbackEmoji">✨</span></div>
-      <div class="star-bar" id="starBar" role="group" aria-label=""></div>
+      <div class="star-bar" id="starBar" role="slider" aria-valuemin="1" aria-valuemax="5" aria-valuenow="0" tabindex="0"></div>
       <p class="feedback-hint" id="feedbackHint"></p>
       <textarea id="comment" rows="3" placeholder="Izoh" style="width:100%;margin-top:4px;padding:10px;border-radius:10px;border:1px solid #d0d5dd;"></textarea>
       <button type="button" id="sendFeedback" class="icon-btn" style="width:100%;margin-top:8px;">Fikr yuborish</button>
@@ -225,7 +226,7 @@
       labelFeedback: "Buyurtmani baholang",
       feedbackWhy: "Sizning bahoyingiz mahsulotlar, yetkazish va mijozlarga xizmat sifatini yaxshilashda to‘g‘ridan-to‘g‘ri yordam beradi. Qisqa izoh yozsangiz, jamoamiz muammoni tezroq aniqlaydi.",
       feedbackPickAria: "Yetkazib berishni 1 dan 5 gacha baholang",
-      feedbackHint0: "Iltimos, yulduzlarni tanlang — shunda sizga yanada yaxshi xizmat ko‘rsatamiz.",
+      feedbackHint0: "Yulduz ustiga bosing yoki qator bo‘ylab chapga-o‘ngga yengil siljiting — baho belgilanadi.",
       feedbackHint1: "Kechirasiz, noqulaylik uchun. Izoh qoldirsangiz, tuzatishga harakat qilamiz.",
       feedbackHint2: "Tushundik — yanada yaxshilash uchun izohingiz muhim.",
       feedbackHint3: "Rahmat! Yana rivojlanish uchun fikringizni yozing.",
@@ -304,7 +305,7 @@
       labelFeedback: "Оцените заказ",
       feedbackWhy: "Ваша оценка напрямую помогает улучшать товары, доставку и сервис. Короткий комментарий помогает команде быстрее найти причину, если что-то пошло не так.",
       feedbackPickAria: "Оцените доставку от 1 до 5 звёзд",
-      feedbackHint0: "Нажмите на звёзды — так мы сможем сделать сервис лучше именно для вас.",
+      feedbackHint0: "Нажмите на звезду или слегка проведите влево-вправо по ряду — оценка выставится.",
       feedbackHint1: "Сожалеем о неудобстве. Комментарий поможет нам исправить ситуацию.",
       feedbackHint2: "Поняли вас — комментарий важен, чтобы стать лучше.",
       feedbackHint3: "Спасибо! Напишите, что можно улучшить.",
@@ -438,25 +439,33 @@
     starBarEl.setAttribute('data-built', '1');
     var i;
     for (i = 1; i <= 5; i++) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'star-btn';
-      b.setAttribute('data-star', String(i));
-      b.setAttribute('aria-label', String(i));
-      b.textContent = '\u2605';
-      starBarEl.appendChild(b);
+      var c = document.createElement('div');
+      c.className = 'star-cell';
+      c.setAttribute('data-star', String(i));
+      c.textContent = '\u2605';
+      starBarEl.appendChild(c);
     }
+  }
+
+  function trackStarFromClientX(clientX){
+    if (!starBarEl) return 0;
+    var r = starBarEl.getBoundingClientRect();
+    if (r.width <= 0) return 0;
+    var frac = (clientX - r.left) / r.width;
+    var n = Math.ceil(frac * 5);
+    return Math.min(5, Math.max(1, n));
   }
 
   function syncStarButtons(){
     if (!starBarEl) return;
-    var nodes = starBarEl.querySelectorAll('.star-btn');
+    var nodes = starBarEl.querySelectorAll('.star-cell');
     var j;
     for (j = 0; j < nodes.length; j++) {
-      var btn = nodes[j];
-      var sn = Number(btn.getAttribute('data-star')) || 0;
-      btn.classList.toggle('on', selectedStar > 0 && sn <= selectedStar);
+      var el = nodes[j];
+      var sn = Number(el.getAttribute('data-star')) || 0;
+      el.classList.toggle('on', selectedStar > 0 && sn <= selectedStar);
     }
+    starBarEl.setAttribute('aria-valuenow', selectedStar > 0 ? String(selectedStar) : '0');
   }
 
   function updateFeedbackDisplay(doPop){
@@ -472,18 +481,51 @@
     }
   }
 
-  if (feedbackCardEl) {
-    feedbackCardEl.addEventListener('click', function(ev){
-      var tBtn = ev.target && ev.target.closest ? ev.target.closest('.star-btn') : null;
-      if (!tBtn || tBtn.disabled) return;
+  function bindTrackStarBarPointer(){
+    if (!starBarEl || starBarEl.getAttribute('data-drag-bound') === '1') return;
+    starBarEl.setAttribute('data-drag-bound', '1');
+    var active = false;
+    var pid = null;
+    function onMove(e){
+      if (!active || e.pointerId !== pid) return;
       if (!order || order.status !== 'delivered' || order.feedbackAt) return;
-      var sv = Number(tBtn.getAttribute('data-star')) || 0;
-      if (sv < 1 || sv > 5) return;
-      selectedStar = sv;
-      syncStarButtons();
-      updateFeedbackDisplay(true);
+      if (starBarEl.classList.contains('is-disabled')) return;
+      var n = trackStarFromClientX(e.clientX);
+      if (n && n !== selectedStar) {
+        selectedStar = n;
+        syncStarButtons();
+        updateFeedbackDisplay(false);
+      }
+    }
+    function onUp(e){
+      if (!active || e.pointerId !== pid) return;
+      active = false;
+      pid = null;
+      try { starBarEl.releasePointerCapture(e.pointerId); } catch(_){}
+      window.removeEventListener('pointermove', onMove, true);
+      window.removeEventListener('pointerup', onUp, true);
+      window.removeEventListener('pointercancel', onUp, true);
+    }
+    starBarEl.addEventListener('pointerdown', function(e){
+      if (!order || order.status !== 'delivered' || order.feedbackAt) return;
+      if (starBarEl.classList.contains('is-disabled')) return;
+      active = true;
+      pid = e.pointerId;
+      try { starBarEl.setPointerCapture(e.pointerId); } catch(_){}
+      window.addEventListener('pointermove', onMove, true);
+      window.addEventListener('pointerup', onUp, true);
+      window.addEventListener('pointercancel', onUp, true);
+      var n = trackStarFromClientX(e.clientX);
+      if (n) {
+        selectedStar = n;
+        syncStarButtons();
+        updateFeedbackDisplay(true);
+      }
+      e.preventDefault();
     });
   }
+
+  bindTrackStarBarPointer();
 
   var WAREHOUSE_COORDS = {lat:39.654722, lng:66.958972};
   var COURIER_ACTIVE_STATUSES = ['out_for_delivery','delivered'];
@@ -1020,30 +1062,19 @@
       }
     }
 
-    feedbackCardEl.style.display = order.status === 'delivered' ? 'block' : 'none';
-    if (order.status === 'delivered') {
+    feedbackCardEl.style.display = order.status === 'delivered' && !order.feedbackAt ? 'block' : 'none';
+    if (order.status === 'delivered' && !order.feedbackAt) {
       ensureStarBar();
-      var submitted = !!order.feedbackAt;
-      if (submitted) {
-        var fr = Number(order.feedbackRating);
-        selectedStar = fr >= 1 && fr <= 5 ? fr : 0;
-      }
+      var submitted = false;
       syncStarButtons();
       updateFeedbackDisplay(false);
-      sendFeedbackEl.disabled = submitted;
-      if (commentEl) commentEl.disabled = submitted;
-      var starBtns = starBarEl ? starBarEl.querySelectorAll('.star-btn') : [];
-      var si;
-      for (si = 0; si < starBtns.length; si++) starBtns[si].disabled = submitted;
-      if (submitted) {
-        if (selectedStar >= 1 && selectedStar <= 5) {
-          feedbackMsgEl.textContent = t('thankYouFeedback') + ' ' + t('feedbackSubmittedLine') + ': ' + String(selectedStar) + '/5 ' + (FEEDBACK_EMOJI[selectedStar] || '');
-        } else {
-          feedbackMsgEl.textContent = t('thankYouFeedback');
-        }
-      } else {
-        feedbackMsgEl.textContent = '';
-      }
+      sendFeedbackEl.disabled = false;
+      if (commentEl) commentEl.disabled = false;
+      if (starBarEl) starBarEl.classList.remove('is-disabled');
+      feedbackMsgEl.textContent = '';
+    } else if (order.status === 'delivered' && order.feedbackAt) {
+      var fr2 = Number(order.feedbackRating);
+      selectedStar = fr2 >= 1 && fr2 <= 5 ? fr2 : 0;
     }
   }
 

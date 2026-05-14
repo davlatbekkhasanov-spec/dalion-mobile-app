@@ -1320,6 +1320,56 @@
     #confirmOrderBtn { width:100%; min-height:52px; height:52px; border-radius:14px; }
     .success-card { margin-top:20px; text-align:center; border-radius:18px; }
     .success-timeline { margin:12px 0; padding:10px; border:1px solid #eceff5; border-radius:12px; background:#f8fafc; text-align:left; }
+    .gm-success-rating {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid #e7eaf1;
+      background: linear-gradient(180deg, #fffefb, #fff);
+      text-align: center;
+      transition: opacity 0.38s ease, max-height 0.45s ease, margin 0.45s ease, padding 0.45s ease;
+      overflow: hidden;
+      max-height: 520px;
+    }
+    .gm-success-rating.gm-success-rating--hide {
+      opacity: 0;
+      max-height: 0;
+      margin-top: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      pointer-events: none;
+    }
+    .gm-success-rating__title { margin: 0 0 6px; font-size: 16px; font-weight: 800; color: #1d2440; }
+    .gm-success-rating__why { text-align: left; font-size: 13px; margin: 0 0 10px; line-height: 1.45; }
+    .gm-success-rating__emoji { font-size: 40px; line-height: 1; margin: 4px 0 10px; }
+    .gm-success-rating__emoji span.pop { animation: successEmojiPop 0.22s ease; }
+    @keyframes successEmojiPop { 0% { transform: scale(1); } 55% { transform: scale(1.12); } 100% { transform: scale(1); } }
+    .gm-success-rating__stars {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 0 auto 8px;
+      max-width: 280px;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      padding: 8px 4px;
+      cursor: pointer;
+    }
+    .gm-success-rating__stars .star-cell {
+      flex: 1;
+      min-width: 0;
+      text-align: center;
+      font-size: 26px;
+      line-height: 1.1;
+      color: #d0d5dd;
+      transition: color 0.12s ease, transform 0.1s ease;
+      border-radius: 10px;
+      padding: 4px 0;
+    }
+    .gm-success-rating__stars .star-cell.on { color: #f5b000; text-shadow: 0 2px 10px rgba(245, 176, 0, 0.32); }
+    .gm-success-rating__hint { font-size: 12px; font-weight: 600; color: #475467; margin: 0 0 8px; min-height: 2.6em; line-height: 1.35; }
+    .gm-success-rating__ta { width: 100%; border-radius: 10px; border: 1px solid #d0d5dd; padding: 10px; font: inherit; box-sizing: border-box; margin-bottom: 8px; text-align: left; }
     .cart-item-warn { margin-top:8px; color:#ffd89a; font-size:12px; }
     .icon-btn { border:1px solid rgba(255,134,134,.4); color:#ffb0b0; background:rgba(68,20,26,.45); border-radius:12px; min-height:48px; padding:0 12px; font-weight:700; }
     .cart-summary-grid .list-row { margin-bottom:6px; }
@@ -2506,6 +2556,16 @@
             <p class="muted" id="successOrderStatus">Holat: Buyurtma qabul qilindi</p>
             <p class="muted" id="successPaymentPending">To‘lov: Tasdiqlanish jarayonida</p>
           </div>
+          <div id="successRatingCard" class="gm-success-rating" style="display:none;">
+            <h3 id="successRatingTitle" class="gm-success-rating__title"></h3>
+            <p id="successRatingWhy" class="gm-success-rating__why muted"></p>
+            <div class="gm-success-rating__emoji" aria-hidden="true"><span id="successRatingEmoji">✨</span></div>
+            <div id="successStarBar" class="gm-success-rating__stars" role="slider" aria-valuemin="1" aria-valuemax="5" aria-valuenow="0" tabindex="0"></div>
+            <p id="successRatingHint" class="gm-success-rating__hint"></p>
+            <textarea id="successRatingComment" class="gm-success-rating__ta" rows="2"></textarea>
+            <button type="button" id="successRatingSubmit" class="full-btn gm-btn gm-btn-secondary btn-secondary"></button>
+            <p id="successRatingMsg" class="muted" style="margin-top:6px;"></p>
+          </div>
           <a id="trackOrderBtn" class="btn gm-btn gm-btn-secondary btn-secondary" style="display:none;">Kuzatish</a>
           <button class="full-btn gm-btn gm-btn-primary gm-sticky-cta-trigger" id="backHomeBtn">Bosh sahifaga qaytish</button>
         </div>
@@ -2666,6 +2726,8 @@ Oq fonli foto</div>
     const appNavStack = ['homeView'];
     let orderStatusTimer = null;
     let lastOrderData = null;
+    let successRatingValue = 0;
+    const SUCCESS_FEEDBACK_EMOJI = ['✨', '😞', '😕', '🙂', '😊', '🤩'];
 
     const phone = document.getElementById('phone');
     const viewTitles = {
@@ -3685,6 +3747,20 @@ Oq fonli foto</div>
         successTitle: 'Buyurtma qabul qilindi',
         successBody: "Buyurtmangiz qabul qilindi, tez orada operator bog'lanadi",
         successPaymentPending: "To'lov: Tasdiqlanish jarayonida",
+        successRatingTitle: 'Buyurtmani baholang',
+        successRatingWhy:
+          "Baho va izoh mahsulotlar, yig‘ish, yetkazib berish va qo‘llab-quvvatlash sifatini yaxshilash uchun muhim. Kuzatuv sahifasiga kirmasdan shu yerda qoldirishingiz mumkin.",
+        successRatingAria: '1 dan 5 gacha yulduz bilan baholang',
+        successFeedbackHint0: 'Yulduz ustiga bosing yoki pastdagi qator bo‘ylab chapga-o‘ngga yengil siljiting — baho belgilanadi.',
+        successFeedbackHint1: "Afsus, noqulaylik uchun. Izoh qoldirsangiz, tuzatishga harakat qilamiz.",
+        successFeedbackHint2: 'Tushundik — yanada yaxshilash uchun izohingiz muhim.',
+        successFeedbackHint3: 'Rahmat! Yana rivojlanish uchun fikr yozing.',
+        successFeedbackHint4: 'Ajoyib! Sizning fikringiz jamoamizga ilhom beradi.',
+        successFeedbackHint5: "Zo‘r! Bunday baho biz uchun eng yaxshi mukofot.",
+        successRatingCommentPh: 'Ixtiyoriy izoh',
+        successRatingSend: 'Bahoni yuborish',
+        successRatingNeed: 'Avval yulduzlarni tanlang (1–5).',
+        successRatingThanks: 'Rahmat! Bahoyingiz qabul qilindi.',
         backHome: 'Bosh sahifaga qaytish',
         searchEmptyHint: "Boshqa nom yoki kategoriya bilan qidirib ko'ring"
         ,checkoutValidationHint: "Manzil ma'lumotlarini tekshiring va to'lov turini tanlang."
@@ -3909,6 +3985,20 @@ Oq fonli foto</div>
         successTitle: 'Заказ принят',
         successBody: 'Ваш заказ принят, оператор скоро свяжется с вами',
         successPaymentPending: 'Оплата: в процессе подтверждения',
+        successRatingTitle: 'Оцените заказ',
+        successRatingWhy:
+          'Оценка и комментарий помогают улучшать товары, сборку, доставку и поддержку. Можно оставить здесь, без страницы отслеживания.',
+        successRatingAria: 'Оцените от 1 до 5 звёзд',
+        successFeedbackHint0: 'Нажмите на звезду или слегка проведите пальцем влево-вправо по ряду — оценка выставится.',
+        successFeedbackHint1: 'Жаль, что неудобно. Комментарий поможет исправить ситуацию.',
+        successFeedbackHint2: 'Поняли вас — комментарий важен, чтобы стать лучше.',
+        successFeedbackHint3: 'Спасибо! Напишите, что можно улучшить.',
+        successFeedbackHint4: 'Отлично! Ваш отзыв вдохновляет команду.',
+        successFeedbackHint5: 'Супер! Такая оценка — лучшая награда для нас.',
+        successRatingCommentPh: 'Комментарий (необязательно)',
+        successRatingSend: 'Отправить оценку',
+        successRatingNeed: 'Сначала выберите звёзды (1–5).',
+        successRatingThanks: 'Спасибо! Оценка принята.',
         backHome: 'Вернуться на главную',
         searchEmptyHint: 'Попробуйте другой запрос или категорию',
         checkoutValidationHint: 'Проверьте адрес и выберите способ оплаты',
@@ -4049,6 +4139,7 @@ Oq fonli foto</div>
       document.getElementById('successPaymentPending').textContent = t('successPaymentPending');
       document.getElementById('backHomeBtn').textContent = t('backHome');
       document.getElementById('trackOrderBtn').textContent = t('track');
+      applySuccessRatingLang();
       document.getElementById('modalUpsellTitle').textContent = t('upsellWithProduct');
       const homeTabLabel = document.getElementById('homeTabLabel');
       const searchTabLabel = document.getElementById('searchTabLabel');
@@ -6116,11 +6207,168 @@ Oq fonli foto</div>
       return setView('homeView');
     }
 
+    function applySuccessRatingLang() {
+      const title = document.getElementById('successRatingTitle');
+      const why = document.getElementById('successRatingWhy');
+      const ta = document.getElementById('successRatingComment');
+      const sub = document.getElementById('successRatingSubmit');
+      const bar = document.getElementById('successStarBar');
+      if (title) title.textContent = t('successRatingTitle');
+      if (why) why.textContent = t('successRatingWhy');
+      if (ta) ta.placeholder = t('successRatingCommentPh');
+      if (sub) sub.textContent = t('successRatingSend');
+      if (bar) bar.setAttribute('aria-label', t('successRatingAria'));
+      updateSuccessRatingDisplay(false);
+    }
+
+    function resetSuccessStarBar() {
+      const bar = document.getElementById('successStarBar');
+      if (!bar) return;
+      bar.innerHTML = '';
+      delete bar.dataset.built;
+      delete bar.dataset.dragBound;
+    }
+
+    function starIndexFromPointerX(bar, clientX) {
+      const r = bar.getBoundingClientRect();
+      if (r.width <= 0) return 0;
+      const frac = (clientX - r.left) / r.width;
+      const n = Math.ceil(frac * 5);
+      return Math.min(5, Math.max(1, n));
+    }
+
+    function buildSuccessStarCells() {
+      const bar = document.getElementById('successStarBar');
+      if (!bar || bar.dataset.built === '1') return;
+      bar.dataset.built = '1';
+      for (let i = 1; i <= 5; i += 1) {
+        const c = document.createElement('div');
+        c.className = 'star-cell';
+        c.dataset.star = String(i);
+        c.textContent = '\u2605';
+        bar.appendChild(c);
+      }
+    }
+
+    function syncSuccessStars() {
+      const bar = document.getElementById('successStarBar');
+      if (!bar) return;
+      bar.querySelectorAll('.star-cell').forEach((el) => {
+        const sn = Number(el.dataset.star) || 0;
+        el.classList.toggle('on', successRatingValue > 0 && sn <= successRatingValue);
+      });
+      bar.setAttribute('aria-valuenow', successRatingValue > 0 ? String(successRatingValue) : '0');
+    }
+
+    function updateSuccessRatingDisplay(doPop) {
+      const emWrap = document.getElementById('successRatingEmoji');
+      const hintEl = document.getElementById('successRatingHint');
+      const idx = successRatingValue > 0 ? successRatingValue : 0;
+      if (emWrap) emWrap.textContent = SUCCESS_FEEDBACK_EMOJI[idx] || SUCCESS_FEEDBACK_EMOJI[0];
+      if (hintEl) hintEl.textContent = t(`successFeedbackHint${idx}`);
+      if (doPop && emWrap) {
+        emWrap.classList.remove('pop');
+        void emWrap.offsetWidth;
+        emWrap.classList.add('pop');
+        setTimeout(() => emWrap.classList.remove('pop'), 240);
+      }
+    }
+
+    function bindSuccessStarBarDragOnce() {
+      const bar = document.getElementById('successStarBar');
+      if (!bar || bar.dataset.dragBound === '1') return;
+      bar.dataset.dragBound = '1';
+      let active = false;
+      let pid = null;
+      const onMove = (e) => {
+        if (!active || e.pointerId !== pid) return;
+        const n = starIndexFromPointerX(bar, e.clientX);
+        if (n && n !== successRatingValue) {
+          successRatingValue = n;
+          syncSuccessStars();
+          updateSuccessRatingDisplay(false);
+        }
+      };
+      const onUp = (e) => {
+        if (!active || e.pointerId !== pid) return;
+        active = false;
+        pid = null;
+        try {
+          bar.releasePointerCapture(e.pointerId);
+        } catch (_) {}
+        window.removeEventListener('pointermove', onMove, true);
+        window.removeEventListener('pointerup', onUp, true);
+        window.removeEventListener('pointercancel', onUp, true);
+      };
+      bar.addEventListener('pointerdown', (e) => {
+        const card = document.getElementById('successRatingCard');
+        const submit = document.getElementById('successRatingSubmit');
+        if (!card || card.style.display === 'none' || card.classList.contains('gm-success-rating--hide')) return;
+        if (submit && submit.disabled) return;
+        active = true;
+        pid = e.pointerId;
+        try {
+          bar.setPointerCapture(e.pointerId);
+        } catch (_) {}
+        window.addEventListener('pointermove', onMove, true);
+        window.addEventListener('pointerup', onUp, true);
+        window.addEventListener('pointercancel', onUp, true);
+        const n = starIndexFromPointerX(bar, e.clientX);
+        if (n) {
+          successRatingValue = n;
+          syncSuccessStars();
+          updateSuccessRatingDisplay(true);
+        }
+        e.preventDefault();
+      });
+    }
+
+    function hideSuccessRatingCard() {
+      const card = document.getElementById('successRatingCard');
+      if (!card || card.style.display === 'none') return;
+      card.classList.add('gm-success-rating--hide');
+      setTimeout(() => {
+        if (card.classList.contains('gm-success-rating--hide')) card.style.display = 'none';
+      }, 480);
+    }
+
+    function showSuccessRatingPanel(order) {
+      const card = document.getElementById('successRatingCard');
+      if (!card || !latestOrderNumber) return;
+      if (order && order.feedbackAt) {
+        card.style.display = 'none';
+        card.classList.remove('gm-success-rating--hide');
+        return;
+      }
+      resetSuccessStarBar();
+      successRatingValue = 0;
+      buildSuccessStarCells();
+      bindSuccessStarBarDragOnce();
+      syncSuccessStars();
+      updateSuccessRatingDisplay(false);
+      card.classList.remove('gm-success-rating--hide');
+      card.style.display = 'block';
+      const msg = document.getElementById('successRatingMsg');
+      const ta = document.getElementById('successRatingComment');
+      const submit = document.getElementById('successRatingSubmit');
+      if (msg) msg.textContent = '';
+      if (ta) {
+        ta.value = '';
+        ta.disabled = false;
+      }
+      if (submit) submit.disabled = false;
+      applySuccessRatingLang();
+    }
+
     async function refreshOrderStatus() {
       if (!latestOrderNumber) return;
       try {
         const data = await api(`/orders/${encodeURIComponent(latestOrderNumber)}/track`);
         successOrderStatus.textContent = `${t('statusLabel')}: ${orderStatusLabel(data.order?.status)}`;
+        const ord = data.order;
+        if (ord && ord.feedbackAt && String(ord.orderNumber || latestOrderNumber) === String(latestOrderNumber)) {
+          hideSuccessRatingCard();
+        }
         if (!isActiveOrderStatus(data.order?.status)) {
           pushOrderHistory(data.order);
           activeOrderNumber = '';
@@ -6765,6 +7013,7 @@ Oq fonli foto</div>
         orderStatusTimer = setInterval(refreshOrderStatus, 5000);
         refreshOrderStatus();
         setView('successView');
+        showSuccessRatingPanel(order);
       } catch (error) {
         showToast(error.message || t('toastOrderSendErr'));
       }
@@ -6775,10 +7024,41 @@ Oq fonli foto</div>
         clearInterval(orderStatusTimer);
         orderStatusTimer = null;
       }
+      hideSuccessRatingCard();
+      successRatingValue = 0;
+      resetSuccessStarBar();
       await initializeAppData();
       setView('homeView');
       trackOrderBtn.style.display = 'none';
       showToast(t('toastOrderDone'));
+    });
+
+    document.getElementById('successRatingSubmit')?.addEventListener('click', async () => {
+      const submit = document.getElementById('successRatingSubmit');
+      if (!submit || submit.disabled || !latestOrderNumber) return;
+      if (!successRatingValue || successRatingValue < 1 || successRatingValue > 5) {
+        showToast(t('successRatingNeed'));
+        return;
+      }
+      setBtnLoading(submit, true);
+      try {
+        await api(`/orders/${encodeURIComponent(latestOrderNumber)}/feedback`, {
+          method: 'POST',
+          body: JSON.stringify({
+            feedbackRating: successRatingValue,
+            feedbackComment: String(document.getElementById('successRatingComment')?.value || '').trim()
+          })
+        });
+        showToast(t('successRatingThanks'));
+        hideSuccessRatingCard();
+        const ta = document.getElementById('successRatingComment');
+        if (ta) ta.disabled = true;
+        submit.disabled = true;
+      } catch (err) {
+        showToast(err?.message || t('toastError'));
+      } finally {
+        setBtnLoading(submit, false);
+      }
     });
 
 
