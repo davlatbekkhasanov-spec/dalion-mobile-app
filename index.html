@@ -7051,9 +7051,15 @@ Oq fonli foto</div>
         });
         showToast(t('successRatingThanks'));
         hideSuccessRatingCard();
-        const ta = document.getElementById('successRatingComment');
-        if (ta) ta.disabled = true;
-        submit.disabled = true;
+        successRatingValue = 0;
+        resetSuccessStarBar();
+        if (orderStatusTimer) {
+          clearInterval(orderStatusTimer);
+          orderStatusTimer = null;
+        }
+        await initializeAppData();
+        setView('homeView');
+        trackOrderBtn.style.display = 'none';
       } catch (err) {
         showToast(err?.message || t('toastError'));
       } finally {
