@@ -232,6 +232,11 @@
       <p class="muted" id="routeActiveHint" style="margin-top:6px;display:none;font-size:13px;"></p>
     </div>
     <div class="feed-title" id="feedTitle">Buyurtmalar</div>
+    <div id="myRoutePanel" class="hero" style="display:none;margin-bottom:12px;padding:12px 14px;">
+      <div class="feed-title" id="myRouteHeading" style="margin-top:0;">Mening marshrutim</div>
+      <p class="muted" id="myRouteEta" style="margin:6px 0 10px;"></p>
+      <div id="myRouteList" class="list"></div>
+    </div>
     <div id="feed"></div>
     <p class="muted" id="feedHint" style="margin-top:8px;"></p>
   </div>
@@ -290,6 +295,9 @@
         feedHint: '«Kuryer kutilmoqda» holatidagi buyurtmani bosing va qabul qiling. Bir nechtasini ketma-ket olishingiz mumkin (navbat raqami). Keyin kuryer sahifasidan yo‘lga chiqasiz.',
         routePill: 'Navbat',
         activeStops: 'Faol yetkazishingiz',
+        myRouteTitle: 'Mening marshrutim',
+        myRouteEta: 'Taxminiy umumiy vaqt',
+        openCourierShort: 'Kuryer',
         logout: 'Chiqish',
         gate: 'Havola yaroqsiz. Marketplace profilidan qayta ariza yuboring.',
         shop: 'Bosh sahifa',
@@ -310,6 +318,9 @@
         feedHint: 'Нажмите заказ в статусе «курьер ожидается» и примите. Можно взять несколько по очереди (номер в маршруте). Затем откройте страницу курьера для выезда.',
         routePill: 'Очередь',
         activeStops: 'Активных доставок',
+        myRouteTitle: 'Мой маршрут',
+        myRouteEta: 'Примерное общее время',
+        openCourierShort: 'Курьер',
         logout: 'Выйти',
         gate: 'Ссылка недействительна. Подайте заявку снова из профиля.',
         shop: 'На главную',
@@ -354,19 +365,57 @@
     }
 
     async function loadRouteHint() {
-      const el = document.getElementById('routeActiveHint');
-      if (!el || !profile) return;
+      const hintEl = document.getElementById('routeActiveHint');
+      const panel = document.getElementById('myRoutePanel');
+      const listEl = document.getElementById('myRouteList');
+      const etaEl = document.getElementById('myRouteEta');
+      const headEl = document.getElementById('myRouteHeading');
+      if (!profile) return;
+      if (headEl) headEl.textContent = tr('myRouteTitle');
       try {
         const d = await api('/courier-portal/my-route');
         const n = Array.isArray(d.orders) ? d.orders.length : 0;
-        if (n > 0) {
-          el.style.display = 'block';
-          el.textContent = `${tr('activeStops')}: ${n}`;
-        } else {
-          el.style.display = 'none';
+        const eta = Number(d.routeEtaHintMinutes) || 0;
+        if (hintEl) {
+          if (n > 0) {
+            hintEl.style.display = 'block';
+            hintEl.textContent = `${tr('activeStops')}: ${n}`;
+          } else {
+            hintEl.style.display = 'none';
+          }
+        }
+        if (panel && listEl && etaEl) {
+          if (n > 0) {
+            panel.style.display = 'block';
+            etaEl.textContent = `${tr('myRouteEta')}: ~${eta} ${tr('min')}`;
+            const sorted = [...d.orders].sort(
+              (a, b) => (Number(a.courierStopSeq) || 0) - (Number(b.courierStopSeq) || 0)
+            );
+            listEl.innerHTML = sorted
+              .map((o) => {
+                const addr =
+                  [o.addressText, o.customerAddress, o.location].map((x) => String(x || '').trim()).find(Boolean) ||
+                  '—';
+                const ct = String(o.courierToken || '').trim();
+                const href = ct ? `${location.origin}/courier/${encodeURIComponent(ct)}` : '#';
+                const link = ct
+                  ? `<a class="btn-link" href="${esc(href)}" target="_blank" rel="noopener">${esc(tr('openCourierShort'))} #${esc(
+                      o.orderNumber || ''
+                    )}</a>`
+                  : '';
+                return `<div class="item" style="margin-bottom:6px;"><b>${esc(String(o.courierStopSeq || '?'))}.</b> #${esc(
+                  o.orderNumber || o.id
+                )} · ${esc(addr)}<br>${link}</div>`;
+              })
+              .join('');
+          } else {
+            panel.style.display = 'none';
+            listEl.innerHTML = '';
+          }
         }
       } catch (_) {
-        el.style.display = 'none';
+        if (hintEl) hintEl.style.display = 'none';
+        if (panel) panel.style.display = 'none';
       }
     }
     function applyLang() {

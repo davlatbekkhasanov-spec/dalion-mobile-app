@@ -1266,6 +1266,11 @@ async function claimOrderByCourierPortalToken({ orderId, accessToken }) {
       if (!target) {
         const cur = await tx.order.findUnique({ where: { id }, include: { items: true } });
         if (!cur) return { err: 'NOT_FOUND' };
+        const assignedPhone = String(cur.courierPhone || '').trim();
+        const st = String(cur.status || '');
+        const assignedToMe =
+          assignedPhone === phone && ['courier_assigned', 'out_for_delivery'].includes(st);
+        if (assignedToMe) return { ok: true, order: orderToLegacy(cur, cur.items) };
         return { err: 'BUSY' };
       }
 
@@ -1407,19 +1412,62 @@ async function listCourierRouteSliceByCourierToken(courierToken) {
   }));
 }
 
-/** Bitta buyurtma yopilgach, shu `courierRunId` dagi faol stoplarni 1..n qilib qayta raqamlash */
-async function repackCourierRunStopsAfterDelivery(deliveredOrderId) {
-  const id = String(deliveredOrderId || '').trim();
-  if (!id) return;
-  const row = await prisma.order.findUnique({
-    where: { id },
-    select: { courierRunId: true }
-  });
-  const runId = row?.courierRunId;
-  if (!runId) return;
+/** Do‘kondan greedy TSP: eng yaqin keyingi nuqta — `courierStopSeq` yangilanadi */
+function _haversineKm(lat1, lon1, lat2, lon2) {
+  const a1 = Number(lat1);
+  const b1 = Number(lon1);
+  const a2 = Number(lat2);
+  const b2 = Number(lon2);
+  if (![a1, b1, a2, b2].every((n) => Number.isFinite(n))) return Infinity;
+  const R = 6371;
+  const dLat = ((a2 - a1) * Math.PI) / 180;
+  const dLon = ((b2 - b1) * Math.PI) / 180;
+  const p1 = (a1 * Math.PI) / 180;
+  const p2 = (a2 * Math.PI) / 180;
+  const x = Math.sin(dLat / 2) ** 2 + Math.sin(dLon / 2) ** 2 * Math.cos(p1) * Math.cos(p2);
+  const y = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+  return R * y;
+}
+
+/** Test uchun: nuqtalar ro‘yxatidan greedy tartib (id lar) */
+function greedyOrderIdsFromStore(points, storeLat, storeLng) {
+  const list = (points || [])
+    .map((p) => ({
+      id: String(p.id || ''),
+      lat: Number(p.lat),
+      lng: Number(p.lng)
+    }))
+    .filter((p) => p.id && Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  if (!list.length) return [];
+  const remaining = [...list];
+  const ordered = [];
+  let curLat = Number(storeLat);
+  let curLng = Number(storeLng);
+  if (!Number.isFinite(curLat) || !Number.isFinite(curLng)) return list.map((p) => p.id);
+  while (remaining.length) {
+    let bestI = 0;
+    let bestD = Infinity;
+    for (let i = 0; i < remaining.length; i++) {
+      const d = _haversineKm(curLat, curLng, remaining[i].lat, remaining[i].lng);
+      if (d < bestD) {
+        bestD = d;
+        bestI = i;
+      }
+    }
+    const [next] = remaining.splice(bestI, 1);
+    ordered.push(next.id);
+    curLat = next.lat;
+    curLng = next.lng;
+  }
+  return ordered;
+}
+
+async function repackCourierRunStopsForRunId(runId) {
+  const rid = String(runId || '').trim();
+  if (!rid) return;
   const active = await prisma.order.findMany({
     where: {
-      courierRunId: runId,
+      courierRunId: rid,
       status: { in: ['courier_assigned', 'out_for_delivery'] }
     },
     orderBy: [{ courierStopSeq: 'asc' }, { createdAt: 'asc' }],
@@ -1432,6 +1480,106 @@ async function repackCourierRunStopsAfterDelivery(deliveredOrderId) {
       data: { courierStopSeq: seq++, updatedAt: new Date() }
     });
   }
+}
+
+/** Buyurtmani marshrut guruhi bilan ajratish (admin qayta biriktirish / bekor) */
+async function detachOrderFromCourierRun(orderId) {
+  const id = String(orderId || '').trim();
+  if (!id) return;
+  const row = await prisma.order.findUnique({
+    where: { id },
+    select: { courierRunId: true }
+  });
+  const runId = row?.courierRunId;
+  await prisma.order.update({
+    where: { id },
+    data: { courierRunId: null, courierStopSeq: null, updatedAt: new Date() }
+  });
+  if (runId) await repackCourierRunStopsForRunId(runId);
+}
+
+async function greedyReorderCourierRunFromStore(runId, storeLat, storeLng) {
+  const rid = String(runId || '').trim();
+  if (!rid) return { ok: false, message: 'runId kerak' };
+  const slat = Number(storeLat);
+  const slng = Number(storeLng);
+  if (!Number.isFinite(slat) || !Number.isFinite(slng)) return { ok: false, message: 'Do‘kon koordinatasi noto‘g‘ri' };
+  const rows = await prisma.order.findMany({
+    where: { courierRunId: rid, status: { in: ['courier_assigned', 'out_for_delivery'] } },
+    select: { id: true, locationLat: true, locationLng: true }
+  });
+  const withCoords = rows.filter(
+    (r) =>
+      r.locationLat != null &&
+      r.locationLng != null &&
+      Number.isFinite(Number(r.locationLat)) &&
+      Number.isFinite(Number(r.locationLng))
+  );
+  const noCoord = rows.filter((r) => !withCoords.find((w) => w.id === r.id));
+  if (!withCoords.length) return { ok: true, updated: 0 };
+  const points = withCoords.map((r) => ({ id: r.id, lat: Number(r.locationLat), lng: Number(r.locationLng) }));
+  const orderedIds = greedyOrderIdsFromStore(points, slat, slng);
+  let seq = 1;
+  for (const oid of orderedIds) {
+    await prisma.order.update({
+      where: { id: oid },
+      data: { courierStopSeq: seq++, updatedAt: new Date() }
+    });
+  }
+  for (const r of noCoord) {
+    await prisma.order.update({
+      where: { id: r.id },
+      data: { courierStopSeq: seq++, updatedAt: new Date() }
+    });
+  }
+  return { ok: true, updated: rows.length };
+}
+
+async function findNextActiveCourierTokenForPhone(courierPhone) {
+  const p = String(courierPhone || '').trim();
+  if (!p) return null;
+  const row = await prisma.order.findFirst({
+    where: {
+      courierPhone: p,
+      status: { in: ['courier_assigned', 'out_for_delivery'] }
+    },
+    orderBy: [{ courierStopSeq: 'asc' }, { createdAt: 'asc' }],
+    select: { courierToken: true }
+  });
+  return row?.courierToken ? String(row.courierToken) : null;
+}
+
+/** Bitta buyurtma yopilgach, shu `courierRunId` dagi faol stoplarni 1..n qilib qayta raqamlash */
+async function repackCourierRunStopsAfterDelivery(deliveredOrderId) {
+  const id = String(deliveredOrderId || '').trim();
+  if (!id) return;
+  const row = await prisma.order.findUnique({
+    where: { id },
+    select: { courierRunId: true }
+  });
+  await repackCourierRunStopsForRunId(row?.courierRunId);
+}
+
+async function getCourierOpsMetricsSummary() {
+  const [activeCourierOrders, readyForCourier, runGroups] = await Promise.all([
+    prisma.order.count({
+      where: { status: { in: ['courier_assigned', 'out_for_delivery'] } }
+    }),
+    prisma.order.count({ where: { status: 'ready_for_courier' } }),
+    prisma.order.groupBy({
+      by: ['courierRunId'],
+      where: {
+        courierRunId: { not: null },
+        status: { in: ['courier_assigned', 'out_for_delivery'] }
+      },
+      _count: { _all: true }
+    })
+  ]);
+  return {
+    activeCourierOrders,
+    readyForCourier,
+    activeRunsWithOrders: runGroups.length
+  };
 }
 
 async function listCourierApplicationsAdmin() {
@@ -1476,6 +1624,12 @@ module.exports = {
   listCourierRouteOrders,
   listCourierRouteSliceByCourierToken,
   repackCourierRunStopsAfterDelivery,
+  repackCourierRunStopsForRunId,
+  detachOrderFromCourierRun,
+  greedyReorderCourierRunFromStore,
+  findNextActiveCourierTokenForPhone,
+  greedyOrderIdsFromStore,
+  getCourierOpsMetricsSummary,
   listCourierApplicationsAdmin,
   readSmsChallenge,
   writeSmsChallenge,

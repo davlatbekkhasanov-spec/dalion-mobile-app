@@ -984,10 +984,12 @@
                 <div class="muted">To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatusLabel || o.paymentStatus || '-'} · Yetkazish: ${o.statusLabel || adminStatusLabel(o.status)}</div>
                 <div class="muted">${(o.items || []).length} item · ${Number(o.total || 0).toLocaleString('ru-RU')} so'm</div>
                 <div class="muted">Kurier: ${o.courierName || 'Kurier biriktirilmoqda'} ${o.courierPhone ? `(${o.courierPhone})` : ''}</div>
+                <div class="muted">Marshrut: ${o.courierRunId ? `${String(o.courierRunId).slice(0, 8)}…` : '—'} · stop ${o.courierStopSeq != null ? o.courierStopSeq : '—'}</div>
                 <div class="muted" style="margin-top:6px;">Tezkor amallar:</div>
                 <div class="action-group">
                   ${orderNext[o.status] ? `<button class="action-primary" data-id="${o.id}" data-next="${orderNext[o.status][1]}">${orderNext[o.status][0]}</button>` : ''}
                   ${o.status === 'ready_for_courier' ? `<button class="action-secondary" data-id="${o.id}" data-assign="1">Kurier ma'lumotini kiritish</button>` : ''}
+                  ${o.courierRunId && ['courier_assigned', 'out_for_delivery'].includes(o.status) ? `<button type="button" class="action-secondary" data-id="${o.id}" data-reorder-run="${encodeURIComponent(o.courierRunId)}">Marshrut (greedy)</button>` : ''}
                   ${o.courierToken && ['preparing','ready_for_courier','courier_assigned','out_for_delivery'].includes(o.status) ? `<a class="action-secondary" href="/courier/${encodeURIComponent(o.courierToken)}" target="_blank" rel="noopener" style="text-decoration:none;text-align:center;">Kuryer sahifasi</a>` : ''}
                   ${o.status !== 'cancelled' && o.status !== 'delivered' ? `<button class="action-danger" data-id="${o.id}" data-cancel="1">Buyurtmani bekor qilish</button>` : ''}
                 </div>
@@ -1007,6 +1009,9 @@
           const courierName = prompt('Kurier ismi');
           const courierPhone = prompt('Kurier telefoni');
           if (courierName && courierPhone) await api('/admin/orders/'+btn.dataset.id+'/assign-courier',{method:'POST',body:JSON.stringify({courierName,courierPhone})});
+        }
+        if (btn.dataset.reorderRun) {
+          await api('/admin/courier-runs/' + btn.dataset.reorderRun + '/reorder-greedy', { method: 'POST', body: '{}' });
         }
         if (btn.dataset.next) await api('/admin/orders/'+btn.dataset.id+'/status',{method:'PUT',body:JSON.stringify({status:btn.dataset.next})});
         showToast(t('saveOk'));

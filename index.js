@@ -80,6 +80,26 @@ const SMS_OTP_TTL_MS = Math.min(
 );
 /** Yandex Geosuggest (manzil tavsiyasi). MapKit kaliti veb serverda ishlatilmaydi — faqat mobil loyihada. */
 const GEO_SUGGEST_API_KEY = String(process.env.GEO_SUGGEST_API_KEY || '').trim();
+/** Do‘kon — marshrut greedy optimallashtirish va narx hisobi bilan bir xil */
+const STORE_LAT_DEFAULT = Number(process.env.STORE_LAT || 39.654722) || 39.654722;
+const STORE_LNG_DEFAULT = Number(process.env.STORE_LNG || 66.958972) || 66.958972;
+
+async function notifyTelegramMessage(text) {
+  const bot = String(process.env.TELEGRAM_BOT_TOKEN || '').trim();
+  const chat = String(process.env.TELEGRAM_CHAT_ID || process.env.TELEGRAM_NOTIFY_CHAT_ID || '').trim();
+  if (!bot || !chat || !String(text || '').trim()) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${bot}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chat,
+        text: String(text).slice(0, 3900),
+        disable_web_page_preview: true
+      })
+    });
+  } catch (_) {}
+}
 
 const smsThrottlePhone = new Map();
 const smsThrottleIp = new Map();
@@ -1547,7 +1567,13 @@ app.get('/api/v1/courier-portal/my-route', async (req, res) => {
   }
   const route = await marketplaceRepo.listCourierRouteOrders({ accessToken: tok });
   if (route === null) return res.status(401).json({ ok: false, message: 'Havola yaroqsiz' });
-  return res.json({ ok: true, orders: route.map(orderPublic) });
+  const n = route.length;
+  const routeEtaHintMinutes = n > 0 ? Math.max(5, n * 12) : 0;
+  return res.json({
+    ok: true,
+    orders: route.map(orderPublic),
+    routeEtaHintMinutes
+  });
 });
 
 app.post('/api/v1/courier-portal/orders/:id/claim', async (req, res) => {
@@ -1568,7 +1594,22 @@ app.post('/api/v1/courier-portal/orders/:id/claim', async (req, res) => {
       code === 'TOKEN' ? 401 : code === 'NOT_FOUND' ? 404 : 409;
     return res.status(status).json({ ok: false, message: result.message || 'Xato', code });
   }
+  void notifyTelegramMessage(
+    `GlobusMarket · Kuryer: ${row.fullName} (${row.phone}) buyurtmani oldi — #${result.order?.orderNumber || req.params.id}`
+  );
   return res.json({ ok: true, order: orderPublic(result.order) });
+});
+
+app.get('/api/v1/admin/metrics/courier-ops', requireAdmin, async (req, res) => {
+  const metrics = await marketplaceRepo.getCourierOpsMetricsSummary();
+  return res.json({ ok: true, metrics });
+});
+
+app.post('/api/v1/admin/courier-runs/:runId/reorder-greedy', requireAdmin, async (req, res) => {
+  const runId = String(req.params.runId || '').trim();
+  const r = await marketplaceRepo.greedyReorderCourierRunFromStore(runId, STORE_LAT_DEFAULT, STORE_LNG_DEFAULT);
+  if (!r.ok) return res.status(400).json({ ok: false, message: r.message || 'Xato' });
+  return res.json({ ok: true, updated: r.updated });
 });
 
 app.get('/api/v1/admin/courier-applications', requireAdmin, async (req, res) => {
@@ -2456,6 +2497,7 @@ app.post('/api/v1/admin/orders/:id/cancel', requireAdmin, async (req, res) => {
   if (TERMINAL_ORDER_STATUSES.has(currentStatus)) {
     return res.status(409).json({ ok: false, message: `Buyurtma allaqachon yakunlangan (${currentStatus})`, code: 'ORDER_TERMINAL' });
   }
+  await marketplaceRepo.detachOrderFromCourierRun(o.id);
   applyOrderUpdateTimestamp(o);
   const next = await marketplaceRepo.patchOrderScalars(o.id, {
     status: 'cancelled',
@@ -2476,6 +2518,7 @@ app.post('/api/v1/admin/orders/:id/assign-courier', requireAdmin, async (req, re
       code: 'INVALID_ORDER_TRANSITION'
     });
   }
+  await marketplaceRepo.detachOrderFromCourierRun(o.id);
   applyOrderUpdateTimestamp(o);
   const next = await marketplaceRepo.patchOrderScalars(o.id, {
     courierName: String(req.body.courierName || '').trim(),
@@ -2485,6 +2528,9 @@ app.post('/api/v1/admin/orders/:id/assign-courier', requireAdmin, async (req, re
     trackingUpdatedAt: new Date(o.trackingUpdatedAt || o.updated_at),
     updatedAt: new Date(o.updated_at)
   });
+  void notifyTelegramMessage(
+    `GlobusMarket · Admin: #${next.orderNumber || o.id} kuryerga biriktirildi — ${next.courierName} (${next.courierPhone})`
+  );
   return res.json({ ok: true, order: orderPublic(next) });
 });
 app.put('/api/v1/admin/orders/:id/status', requireAdmin, async (req, res) => {
@@ -2598,6 +2644,16 @@ app.post('/api/v1/courier/:token/deliver', async (req, res) => {
   const order = await marketplaceRepo.loadOrderLegacy({ courierToken: token });
   if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
   const currentStatus = normalizeOrderStatus(order.status);
+  if (currentStatus === 'delivered') {
+    const fresh = await marketplaceRepo.loadOrderLegacy({ courierToken: token });
+    const nextTok = await marketplaceRepo.findNextActiveCourierTokenForPhone(String(fresh?.courierPhone || '').trim());
+    return res.json({
+      ok: true,
+      order: orderPublic(fresh),
+      nextCourierToken: nextTok,
+      alreadyDelivered: true
+    });
+  }
   if (!canTransitionOrderStatus(currentStatus, 'delivered')) {
     return res.status(409).json({ ok: false, message: `Buyurtma bu holatda yopilmaydi: ${currentStatus}` });
   }
@@ -2613,7 +2669,14 @@ app.post('/api/v1/courier/:token/deliver', async (req, res) => {
     updatedAt: new Date(order.updated_at)
   });
   await marketplaceRepo.repackCourierRunStopsAfterDelivery(order.id);
-  return res.json({ ok: true, order: orderPublic(next) });
+  const phone = String(next.courierPhone || order.courierPhone || '').trim();
+  const nextTok = await marketplaceRepo.findNextActiveCourierTokenForPhone(phone);
+  void notifyTelegramMessage(`GlobusMarket: #${next.orderNumber || '-'} yetkazildi (${phone}).`);
+  return res.json({
+    ok: true,
+    order: orderPublic(next),
+    nextCourierToken: nextTok
+  });
 });
 
 app.post('/api/v1/admin/store/reload', requireAdmin, async (req, res) => {
@@ -2637,9 +2700,13 @@ app.get('/api/v1/admin/store/summary', requireAdmin, async (req, res) => {
 });
 
 app.get('/api/v1/integrations/status', requireAdmin, (req, res) => {
+  const tg = Boolean(
+    String(process.env.TELEGRAM_BOT_TOKEN || '').trim() &&
+      String(process.env.TELEGRAM_CHAT_ID || process.env.TELEGRAM_NOTIFY_CHAT_ID || '').trim()
+  );
   res.json({
     ok: true,
-    integrations: { dalionTrend1C: { enabled: false } },
+    integrations: { dalionTrend1C: { enabled: false }, telegramCourierNotify: { enabled: tg } },
     stats: { storageMode: 'postgresql' }
   });
 });

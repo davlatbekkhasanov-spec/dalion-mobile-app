@@ -229,6 +229,11 @@
       </div>
       <div id="courierMap"></div>
     </section>
+    <section class="panel" id="nextOrderBar" style="display:none;">
+      <h3 id="nextOrderTitle" style="margin:0 0 8px;font-size:15px;">Keyingi buyurtma</h3>
+      <a id="nextOrderLink" class="primary" href="#" style="display:block;text-align:center;text-decoration:none;padding:14px;border-radius:12px;font-weight:800;">Ochish</a>
+      <p class="muted" id="nextOrderHint" style="margin-top:8px;font-size:12px;"></p>
+    </section>
     <section class="panel">
       <input id="courierName" type="text" autocomplete="name" inputmode="text" placeholder="" />
       <input id="courierPhone" type="tel" autocomplete="tel" inputmode="tel" placeholder="" />
@@ -281,7 +286,10 @@
         navYandexMaps: 'Yandex Xarita',
         navWebFallback: 'Brauzerda marshrut (zaxira)',
         navVoiceStart: 'Yo‘lga chiqamiz!',
-        routeMulti: 'Marshrut: %1 ta nuqta · navbatingiz %2'
+        routeMulti: 'Marshrut: %1 ta nuqta · navbatingiz %2',
+        nextOrderTitle: 'Keyingi buyurtma',
+        nextOrderOpen: 'Kuryer sahifasini ochish',
+        nextOrderHint: 'Marshrutda yana faol buyurtma bo‘lsa, shu yerda ochasiz.'
       },
       ru: {
         brandTitle: 'GlobusMarket · Курьер',
@@ -321,7 +329,10 @@
         navYandexMaps: 'Яндекс Карты',
         navWebFallback: 'Маршрут в браузере (запасной вариант)',
         navVoiceStart: 'Поехали!',
-        routeMulti: 'Маршрут: %1 остановок · ваша очередь %2'
+        routeMulti: 'Маршрут: %1 остановок · ваша очередь %2',
+        nextOrderTitle: 'Следующий заказ',
+        nextOrderOpen: 'Открыть страницу курьера',
+        nextOrderHint: 'Если в маршруте ещё есть активная доставка — откройте здесь.'
       }
     };
     function t(key) {
@@ -379,6 +390,12 @@
       document.getElementById('openYandexNav').textContent = t('navYandexMaps');
       const fb = document.getElementById('navWebFallback');
       if (fb) fb.textContent = t('navWebFallback');
+      const nt = document.getElementById('nextOrderTitle');
+      if (nt) nt.textContent = t('nextOrderTitle');
+      const nl = document.getElementById('nextOrderLink');
+      if (nl) nl.textContent = t('nextOrderOpen');
+      const nh = document.getElementById('nextOrderHint');
+      if (nh) nh.textContent = t('nextOrderHint');
       if (order) render();
     }
 
@@ -398,6 +415,8 @@
 
     function render() {
       if (!order) return;
+      const nextBar = document.getElementById('nextOrderBar');
+      if (nextBar && order.status !== 'delivered') nextBar.style.display = 'none';
       const badge = document.getElementById('statusBadge');
       badge.hidden = false;
       badge.textContent = String(order.status || '');
@@ -786,14 +805,40 @@
       }
     }
 
+    function buildMapReferencePoints(start, ord, mates) {
+      const pts = [];
+      const pushUnique = (lat, lng) => {
+        if (!hasValidCoords(lat, lng)) return;
+        const la = Number(lat);
+        const ln = Number(lng);
+        const key = `${la.toFixed(5)},${ln.toFixed(5)}`;
+        if (pts.length) {
+          const p = pts[pts.length - 1];
+          const prev = `${Number(p[0]).toFixed(5)},${Number(p[1]).toFixed(5)}`;
+          if (prev === key) return;
+        }
+        pts.push([la, ln]);
+      };
+      pushUnique(start.lat, start.lng);
+      const sorted = [...(mates || [])].sort(
+        (a, b) => (Number(a.courierStopSeq) || 0) - (Number(b.courierStopSeq) || 0)
+      );
+      for (const ro of sorted) {
+        if (hasValidCoords(ro.locationLat, ro.locationLng)) pushUnique(ro.locationLat, ro.locationLng);
+      }
+      if (ord && hasValidCoords(ord.locationLat, ord.locationLng)) pushUnique(ord.locationLat, ord.locationLng);
+      return pts.length >= 2 ? pts : null;
+    }
+
     async function maybeUpdateRoute(force = false) {
       if (!order || order.status !== 'out_for_delivery') return;
-      if (!hasValidCoords(order.locationLat, order.locationLng)) return;
       const now = Date.now();
       const start = hasValidCoords(lastKnownPosition?.lat, lastKnownPosition?.lng)
         ? { lat: Number(lastKnownPosition.lat), lng: Number(lastKnownPosition.lng) }
         : { lat: STORE_LOCATION.lat, lng: STORE_LOCATION.lng };
-      const end = { lat: Number(order.locationLat), lng: Number(order.locationLng) };
+      const refPts = buildMapReferencePoints(start, order, routeOrders);
+      if (!refPts || refPts.length < 2) return;
+      const end = { lat: refPts[refPts.length - 1][0], lng: refPts[refPts.length - 1][1] };
       const movedMinor =
         lastRouteStart &&
         Math.abs(lastRouteStart.lat - start.lat) < 0.0004 &&
@@ -844,7 +889,7 @@
 
         yMultiRoute = new ymaps.multiRouter.MultiRoute(
           {
-            referencePoints: [[start.lat, start.lng], [end.lat, end.lng]],
+            referencePoints: refPts,
             params: { routingMode: 'auto' }
           },
           {
@@ -866,10 +911,16 @@
             distM = typeof d0 === 'object' && d0 && typeof d0.value === 'number' ? d0.value : Number(d0) || 0;
             durS = typeof t0 === 'object' && t0 && typeof t0.value === 'number' ? t0.value : Number(t0) || 0;
           } catch (_) {}
-          const hintCoords = [
-            [start.lng, start.lat],
-            [end.lng, end.lat]
-          ];
+          const hintCoords =
+            refPts.length >= 2
+              ? [
+                  [refPts[refPts.length - 2][1], refPts[refPts.length - 2][0]],
+                  [refPts[refPts.length - 1][1], refPts[refPts.length - 1][0]]
+                ]
+              : [
+                  [start.lng, start.lat],
+                  [end.lng, end.lat]
+                ];
           updateRouteKpi(distM, durS, buildDirectionHint(hintCoords));
         };
 
@@ -921,8 +972,7 @@
             courierPhone: phoneInput.value.trim()
           })
         });
-        order = data.order;
-        render();
+        await refresh();
         ensureTracking();
         void maybeUpdateRoute(true);
         const mapEl = document.getElementById('courierMap');
@@ -943,6 +993,14 @@
         const data = await api('/courier/' + token + '/deliver', { method: 'POST' });
         order = data.order;
         stopTracking(true);
+        const bar = document.getElementById('nextOrderBar');
+        const link = document.getElementById('nextOrderLink');
+        if (bar && link && data.nextCourierToken) {
+          bar.style.display = 'block';
+          link.href = `${location.origin}/courier/${encodeURIComponent(data.nextCourierToken)}`;
+        } else if (bar) {
+          bar.style.display = 'none';
+        }
         render();
       } catch (e) {
         document.getElementById('msg').textContent = e.message || t('error');
