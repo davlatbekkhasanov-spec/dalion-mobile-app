@@ -64,7 +64,7 @@
     main {
       flex: 1;
       overflow-y: auto;
-      padding: 12px 14px 24px;
+      padding: 12px 14px calc(28px + env(safe-area-inset-bottom));
       max-width: 640px;
       width: 100%;
       margin: 0 auto;
@@ -178,6 +178,19 @@
       overflow: hidden;
     }
     #courierMap img { max-width: none; }
+    #nextOrderBar.panel {
+      border-left: 4px solid var(--acc);
+      background: linear-gradient(95deg, rgba(255, 214, 10, 0.14) 0%, rgba(18, 18, 22, 0.98) 48%);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+    }
+    #nextOrderBar.panel h3 {
+      color: var(--acc);
+      font-weight: 800;
+      letter-spacing: 0.03em;
+    }
+    #nextOrderBar .primary {
+      box-shadow: 0 4px 14px rgba(255, 214, 10, 0.25);
+    }
   </style>
 </head>
 <body>
