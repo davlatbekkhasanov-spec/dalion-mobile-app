@@ -506,7 +506,8 @@
         stopTracking();
       }
 
-      if (order.courierTokenUsed || st === 'cancelled') {
+      const courierLinkOkWithUsedToken = ['ready_for_courier', 'courier_assigned', 'out_for_delivery'].includes(st);
+      if (st === 'cancelled' || (order.courierTokenUsed && !courierLinkOkWithUsedToken)) {
         document.getElementById('msg').textContent = t('invalidQr');
         acceptBtn.style.display = 'none';
         deliverBtn.style.display = 'none';
