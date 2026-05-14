@@ -1478,8 +1478,12 @@ app.post('/api/v1/notifications/read-all', async (req, res) => {
 app.post('/api/v1/orders/:orderNumber/feedback', async (req, res) => {
   const legacy = await marketplaceRepo.loadOrderLegacy({ orderNumber: String(req.params.orderNumber) });
   if (!legacy) return res.status(404).json({ ok: false, message: 'Buyurtma topilmadi' });
+  const r = Number(req.body.feedbackRating);
+  if (!Number.isFinite(r) || r < 1 || r > 5) {
+    return res.status(400).json({ ok: false, message: 'Reyting 1–5 orasida tanlanishi kerak' });
+  }
   const updated = await marketplaceRepo.patchOrderScalars(legacy.id, {
-    feedbackRating: Number(req.body.feedbackRating || 0),
+    feedbackRating: Math.round(r),
     feedbackComment: String(req.body.feedbackComment || '').trim(),
     feedbackAt: new Date(),
     trackingUpdatedAt: new Date()
