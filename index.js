@@ -10,6 +10,7 @@ const marketplaceRepo = require('./src/marketplace-repository');
 const r2Service = require('./src/services/r2.service');
 const dalionExcelImportService = require('./src/services/dalion-excel-import.service');
 const { paymeRpc } = require('./src/controllers/payme.controller');
+const { normalizeOrderStatus } = require('./src/order-status');
 
 process.on('uncaughtException', (error) => {
   console.error('[PROCESS] uncaughtException', { message: error?.message });
@@ -836,13 +837,6 @@ function ensureCourierToken(order) {
 }
 
 const TERMINAL_ORDER_STATUSES = new Set(['delivered', 'cancelled']);
-const ORDER_STATUS_ALIASES = {
-  new: 'created',
-  sent_to_tsd: 'preparing',
-  picking: 'preparing',
-  picked: 'ready_for_courier',
-  waiting_courier: 'ready_for_courier'
-};
 const ALLOWED_ORDER_TRANSITIONS = {
   created: new Set(['payment_pending', 'payment_confirmed', 'preparing', 'cancelled']),
   payment_pending: new Set(['payment_confirmed', 'preparing', 'cancelled']),
@@ -870,16 +864,6 @@ const PAYMENT_STATUS_LABELS = {
   unpaid: 'To‘lanmagan',
   paid: 'To‘langan'
 };
-
-function normalizeOrderStatus(status) {
-  const raw = String(status || '')
-    .trim()
-    .toLowerCase()
-    .replace(/-/g, '_')
-    .replace(/\s+/g, '_');
-  if (!raw) return 'created';
-  return ORDER_STATUS_ALIASES[raw] || raw;
-}
 
 function applyOrderUpdateTimestamp(order, at = nowIso()) {
   order.updated_at = at;
