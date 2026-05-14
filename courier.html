@@ -191,6 +191,12 @@
     #nextOrderBar .primary {
       box-shadow: 0 4px 14px rgba(255, 214, 10, 0.25);
     }
+    #courierActions {
+      position: sticky;
+      bottom: max(10px, env(safe-area-inset-bottom));
+      z-index: 30;
+      box-shadow: 0 -14px 36px rgba(0, 0, 0, 0.55);
+    }
   </style>
 </head>
 <body>
@@ -302,7 +308,8 @@
         routeMulti: 'Marshrut: %1 ta nuqta · navbatingiz %2',
         nextOrderTitle: 'Keyingi buyurtma',
         nextOrderOpen: 'Kuryer sahifasini ochish',
-        nextOrderHint: 'Marshrutda yana faol buyurtma bo‘lsa, shu yerda ochasiz.'
+        nextOrderHint: 'Marshrutda yana faol buyurtma bo‘lsa, shu yerda ochasiz.',
+        acceptHiddenHint: '«Qabul» tugmasi faqat buyurtma kuryerga tayyor yoki kuryer biriktirilgan bo‘lganda chiqadi. Barcha qatorlarni pastga suring.'
       },
       ru: {
         brandTitle: 'GlobusMarket · Курьер',
@@ -345,7 +352,8 @@
         routeMulti: 'Маршрут: %1 остановок · ваша очередь %2',
         nextOrderTitle: 'Следующий заказ',
         nextOrderOpen: 'Открыть страницу курьера',
-        nextOrderHint: 'Если в маршруте ещё есть активная доставка — откройте здесь.'
+        nextOrderHint: 'Если в маршруте ещё есть активная доставка — откройте здесь.',
+        acceptHiddenHint: 'Кнопка «Принять» появляется только когда заказ готов курьеру или курьер уже назначен. Прокрутите страницу вниз.'
       }
     };
     function t(key) {
@@ -437,7 +445,8 @@
       const r = String(s || '')
         .trim()
         .toLowerCase()
-        .replace(/-/g, '_');
+        .replace(/-/g, '_')
+        .replace(/\s+/g, '_');
       return a[r] || r;
     }
 
@@ -504,6 +513,7 @@
         nameInput.readOnly = false;
         phoneInput.readOnly = false;
         stopTracking();
+        document.getElementById('msg').textContent = `${t('status')}: ${st} — ${t('acceptHiddenHint')}`;
       }
 
       const courierLinkOkWithUsedToken = ['ready_for_courier', 'courier_assigned', 'out_for_delivery'].includes(st);

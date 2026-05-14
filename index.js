@@ -875,7 +875,8 @@ function normalizeOrderStatus(status) {
   const raw = String(status || '')
     .trim()
     .toLowerCase()
-    .replace(/-/g, '_');
+    .replace(/-/g, '_')
+    .replace(/\s+/g, '_');
   if (!raw) return 'created';
   return ORDER_STATUS_ALIASES[raw] || raw;
 }
