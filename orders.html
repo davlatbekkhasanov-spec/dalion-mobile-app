@@ -284,7 +284,7 @@
       padding-bottom: 4px;
       scrollbar-color: rgba(120, 160, 220, 0.35) transparent;
     }
-    .grid.is-loading { opacity: 0.55; pointer-events: none; }
+    .grid.is-loading { pointer-events: none; }
     .col {
       scroll-snap-align: start;
       background: linear-gradient(180deg, rgba(18, 34, 58, 0.95), rgba(8, 18, 34, 0.92));
@@ -373,7 +373,7 @@
       border-radius: inherit;
       background: linear-gradient(90deg, var(--acc), var(--acc2));
       width: 0%;
-      transition: width 0.35s ease;
+      transition: none;
     }
     .list {
       display: flex;
@@ -396,9 +396,6 @@
       cursor: pointer;
       overflow: hidden;
       min-width: 0;
-      content-visibility: auto;
-      contain-intrinsic-size: auto 168px;
-      contain: layout style paint;
     }
     .ops-card::before {
       content: "";
@@ -578,8 +575,36 @@
     }
     .toast.show { display: block; }
     .toast.err { border-color: #a0485b; color: #ffd7e0; background: rgba(42, 17, 25, 0.95); }
-    .card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; position: relative; z-index: 2; }
-    .card-actions .primary { padding: 8px 12px; font-size: 13px; border-radius: 10px; min-height: 40px; }
+    .card-actions {
+      display: flex;
+      align-items: stretch;
+      margin-top: 8px;
+      position: relative;
+      z-index: 2;
+      min-height: 52px;
+      flex-shrink: 0;
+    }
+    .card-actions .primary,
+    .card-actions .card-action-slot {
+      width: 100%;
+      min-height: 52px;
+      max-height: 52px;
+      padding: 8px 12px;
+      font-size: 13px;
+      border-radius: 10px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.2;
+      overflow: hidden;
+    }
+    .card-actions .card-action-slot {
+      visibility: hidden;
+      pointer-events: none;
+      border: 1px solid transparent;
+    }
     .sound-tools {
       display: inline-flex;
       align-items: center;
@@ -795,8 +820,8 @@
     let orders = [];
     let courierApplications = [];
     let activeOrder = null;
-    const POLL_MS_VISIBLE = 6000;
-    const POLL_MS_HIDDEN = 25000;
+    const POLL_MS_VISIBLE = 8000;
+    const POLL_MS_HIDDEN = 30000;
     let pollDelay = POLL_MS_VISIBLE;
     let pollTimer = null;
     let isRefreshing = false;
@@ -1010,19 +1035,95 @@
     }
     function buildStatsFingerprint(list) {
       const arr = Array.isArray(list) ? list : [];
-      return arr
-        .map((o) => `${o.id}:${normalizeStatus(o.status)}:${o.total || 0}:${o.created_at || ''}`)
-        .sort()
-        .join('|');
+      if (!arr.length) return '0';
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const today = arr.filter((o) => new Date(o.created_at || 0) >= start);
+      const active = arr.filter((o) => !['delivered', 'cancelled'].includes(normalizeStatus(o.status)));
+      const sum = (xs) => xs.reduce((s, o) => s + Number(o.total || 0), 0);
+      return `${arr.length}:${today.length}:${active.length}:${sum(arr)}:${sum(today)}`;
     }
     function buildColumnsFingerprint() {
       return getFilteredOrders()
-        .map(
-          (o) =>
-            `${o.id}:${normalizeStatus(o.status)}:${o.updated_at || ''}:${o.total || 0}:${o.courierName || ''}:${o.paymentStatus || ''}`
-        )
+        .map((o) => {
+          const next = getNextTransition(o);
+          return [
+            o.id,
+            normalizeStatus(o.status),
+            o.total || 0,
+            o.courierName || '',
+            o.paymentStatus || '',
+            o.paymentMethod || '',
+            (o.items || []).length,
+            next ? next.to : ''
+          ].join(':');
+        })
         .sort()
         .join('|');
+    }
+    function captureColumnScroll() {
+      const m = new Map();
+      document.querySelectorAll('section.col[data-col] .list').forEach((list) => {
+        const col = list.closest('section.col')?.dataset.col;
+        if (col) m.set(col, list.scrollTop);
+      });
+      return m;
+    }
+    function restoreColumnScroll(m) {
+      if (!m || !m.size) return;
+      document.querySelectorAll('section.col[data-col] .list').forEach((list) => {
+        const col = list.closest('section.col')?.dataset.col;
+        if (col && m.has(col)) list.scrollTop = m.get(col);
+      });
+    }
+    function sortColumnOrders(items) {
+      return [...items].sort((a, b) => {
+        const ta = new Date(a.created_at || 0).getTime();
+        const tb = new Date(b.created_at || 0).getTime();
+        if (tb !== ta) return tb - ta;
+        return String(b.id || '').localeCompare(String(a.id || ''));
+      });
+    }
+    function patchCardsLiveMeta() {
+      const byId = new Map(getFilteredOrders().map((o) => [String(o.id), o]));
+      document.querySelectorAll('.ops-card[data-order-id]').forEach((card) => {
+        const o = byId.get(card.getAttribute('data-order-id'));
+        if (!o) return;
+        const rel = card.querySelector('[data-rel-ts]');
+        if (rel) {
+          rel.setAttribute('data-rel-ts', String(o.created_at || ''));
+          rel.textContent = relTime(o.created_at);
+        }
+        const foot = card.querySelector('.ops-card__foot');
+        if (foot) {
+          foot.textContent = `${fmt(o.created_at)} · ↑ ${fmt(o.updated_at)}`;
+        }
+        let slaEl = card.querySelector('.sla-live');
+        const st = normalizeStatus(o.status);
+        if (st === 'delivered' || st === 'cancelled') {
+          if (slaEl) slaEl.remove();
+          return;
+        }
+        const raw = o.created_at;
+        if (!raw) return;
+        const ts = new Date(raw).getTime();
+        if (!Number.isFinite(ts)) return;
+        const { mins, tier } = slaTierFromCreated(ts);
+        const label = t('slaMins').replace('{n}', String(mins));
+        if (!slaEl) {
+          const footHost = card.querySelector('.ops-card__foot');
+          if (!footHost) return;
+          const div = document.createElement('div');
+          div.className = `sla-live sla ${tier}`;
+          div.dataset.createdTs = String(ts);
+          div.textContent = label;
+          footHost.insertAdjacentElement('beforebegin', div);
+          slaEl = div;
+        }
+        slaEl.dataset.createdTs = String(ts);
+        slaEl.textContent = label;
+        slaEl.className = `sla-live sla ${tier}`;
+      });
     }
     function scheduleRenderColumns() {
       if (columnsRenderRaf) return;
@@ -1262,12 +1363,16 @@
     }
     function renderColumnsNow() {
       const fp = buildColumnsFingerprint();
-      if (fp === lastColumnsFingerprint) return;
+      if (fp === lastColumnsFingerprint) {
+        patchCardsLiveMeta();
+        return;
+      }
+      const scrollMap = captureColumnScroll();
       lastColumnsFingerprint = fp;
       const base = getFilteredOrders();
       const grouped = statusGroups.map((group) => ({
         ...group,
-        items: base.filter((o) => group.statuses.includes(normalizeStatus(o.status)))
+        items: sortColumnOrders(base.filter((o) => group.statuses.includes(normalizeStatus(o.status))))
       }));
       const maxCount = Math.max(1, ...grouped.map((g) => g.items.length));
       document.getElementById('columns').innerHTML = grouped
@@ -1302,7 +1407,7 @@
                   ? `<button type="button" data-quick-next="${escapeHtml(
                       next.to
                     )}" data-order-id="${id}" class="primary">${escapeHtml(next.label)}</button>`
-                  : '';
+                  : '<span class="card-action-slot" aria-hidden="true">.</span>';
                 return `
               <article class="ops-card ${cardAccentClass(o.status)}" data-order-id="${id}">
                 <div class="ops-card__top">
@@ -1334,6 +1439,7 @@
         </section>`;
         })
         .join('');
+      restoreColumnScroll(scrollMap);
     }
 
     function renderModal(order) {
@@ -1505,13 +1611,20 @@
       document.getElementById('tokenRequired').style.display = 'none';
       try {
         const prev = snapshotFeed(orders);
+        const prevColFp = buildColumnsFingerprint();
         const { orders: list, source } = await loadDisplayOrders();
         orders = list || [];
         notifyFeedChanges(prev, orders);
         renderStatsBar();
         courierStaffPollSkip += 1;
         if (courierStaffPollSkip % 5 === 0) await loadCourierStaff();
-        scheduleRenderColumns();
+        const nextColFp = buildColumnsFingerprint();
+        if (prevColFp === nextColFp && lastColumnsFingerprint === nextColFp) {
+          patchCardsLiveMeta();
+        } else {
+          lastColumnsFingerprint = '';
+          scheduleRenderColumns();
+        }
         if (activeOrder) {
           const upd = orders.find((o) => o.id === activeOrder.id);
           if (upd) renderModal(upd);
