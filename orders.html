@@ -546,6 +546,10 @@
       box-shadow: 0 0 12px color-mix(in srgb, var(--col-accent) 65%, transparent);
       flex-shrink: 0;
     }
+    .col-icon {
+      opacity: 0.85;
+      margin-right: 2px;
+    }
     .col-head h3 {
       margin: 0;
       font-size: 13px;
@@ -660,64 +664,156 @@
     .ops-card.accent-out::before { background: var(--st-out); }
     .ops-card.accent-done::before { background: var(--st-done); }
     .ops-card.accent-cancel::before { background: var(--st-cancel); }
-    .ops-card__top {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) max-content;
-      grid-template-rows: auto auto;
-      gap: 6px 10px;
-      align-items: start;
-      margin-bottom: 8px;
-    }
-    .ops-card__no {
-      grid-column: 1;
-      grid-row: 1;
-      font-size: 17px;
-      font-weight: 800;
-      letter-spacing: 0.02em;
-      min-width: 0;
-      overflow-wrap: anywhere;
-    }
-    .ops-card__rel {
-      grid-column: 2;
-      grid-row: 1;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--muted2);
-      white-space: nowrap;
-      justify-self: end;
-    }
-    .ops-card__sum {
-      grid-column: 1 / -1;
-      grid-row: 2;
-      justify-self: end;
-      font-size: 18px;
-      font-weight: 800;
-      color: #fff;
-      white-space: nowrap;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .ops-card__who {
+    .ops-card__hero {
       display: flex;
       flex-wrap: wrap;
       align-items: baseline;
-      gap: 6px 10px;
+      justify-content: space-between;
+      gap: 4px 10px;
+      margin-bottom: 10px;
+    }
+    .ops-card__no {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      line-height: 1.1;
+    }
+    .ops-card__sum {
+      font-size: 17px;
+      font-weight: 800;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+      margin-left: auto;
+    }
+    .ops-card__rel {
+      width: 100%;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+    }
+    .ops-card__customer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 12px;
       margin-bottom: 6px;
     }
-    .ops-card__who b { font-size: 14px; min-width: 0; overflow-wrap: anywhere; }
-    .ops-card__who a { color: var(--acc2); text-decoration: none; font-weight: 700; font-size: 13px; }
-    .ops-card__who a:hover { text-decoration: underline; }
+    .ops-card__customer b {
+      font-size: 15px;
+      font-weight: 700;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+    .ops-card__customer a {
+      color: var(--acc2);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .ops-card__customer a:hover { text-decoration: underline; }
     .ops-card__addr {
+      display: flex;
+      gap: 6px;
+      align-items: flex-start;
+      margin-bottom: 8px;
+      min-width: 0;
+    }
+    .ops-card__pin { flex-shrink: 0; opacity: 0.85; line-height: 1.45; }
+    .ops-card__addr-txt {
       color: var(--muted2);
       font-size: 12px;
-      line-height: 1.4;
+      line-height: 1.45;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      margin-bottom: 8px;
+      min-width: 0;
     }
+    .ops-card__meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .sla.sla-quiet {
+      opacity: 0.65;
+      font-size: 10px;
+      padding: 3px 7px;
+      margin-bottom: 6px;
+    }
+    .col-stale-hint {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--warn);
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(255, 193, 74, 0.12);
+      border: 1px solid rgba(255, 193, 74, 0.35);
+      white-space: nowrap;
+    }
+    .col--collapsed {
+      min-width: 0 !important;
+      width: 56px !important;
+      max-width: 56px;
+      padding: 8px 6px;
+      align-self: stretch;
+    }
+    .col-collapsed-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      width: 100%;
+      min-height: 120px;
+      padding: 10px 4px;
+      border: 1px dashed color-mix(in srgb, var(--col-accent) 35%, var(--line));
+      border-radius: 12px;
+      background: rgba(5, 12, 24, 0.4);
+      color: var(--muted2);
+      cursor: pointer;
+      font: inherit;
+    }
+    .col-collapsed-btn:hover {
+      border-color: var(--col-accent);
+      background: rgba(8, 20, 38, 0.75);
+      color: var(--txt);
+    }
+    .col-collapsed-btn .col-mark { margin-top: 4px; }
+    .col-collapsed-label {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      max-height: 140px;
+      overflow: hidden;
+    }
+    #focusModeBtn.on {
+      border-color: rgba(46, 240, 168, 0.55);
+      color: #e8fff6;
+      background: rgba(15, 48, 38, 0.55);
+    }
+    .settings-modal {
+      width: min(420px, 100%);
+    }
+    .settings-modal label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .settings-modal .token-input-wrap { width: 100%; }
+    .settings-modal .token-input-wrap input { max-width: none; flex: 1; }
     .ops-card__thumbs {
       display: flex;
       align-items: center;
@@ -882,6 +978,34 @@
       .col[data-col="delivered"],
       .col[data-col="cancelled"] { width: min(82vw, 252px); }
     }
+    /* —— Focus mode —— */
+    body.mode-focus .wrap { gap: 6px; }
+    body.mode-focus .ops-brand small { display: none; }
+    body.mode-focus .ops-bar { padding: 8px 12px; gap: 6px; }
+    body.mode-focus .ops-bar-row--tools { display: none !important; }
+    body.mode-focus #courierStaffBar { display: none !important; }
+    body.mode-focus .ops-card__foot { display: none; }
+    body.mode-focus .thumb-more { display: none; }
+    body.mode-focus .stats-bar {
+      border: none;
+      background: transparent;
+      padding: 0;
+      min-height: 0;
+      box-shadow: none;
+    }
+    body.mode-focus .stats-inner {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+    }
+    body.mode-focus .stat-chip {
+      flex-direction: row;
+      gap: 5px;
+      padding: 5px 8px;
+      border-radius: 10px;
+    }
+    body.mode-focus .stat-chip b { font-size: 14px; }
+    body.mode-focus #tokenToolsInline,
+    body.mode-focus #saveTokenBtn { display: none !important; }
   </style>
 </head>
 <body>
@@ -912,8 +1036,10 @@
           <button type="button" id="soundToggle" class="chip" aria-pressed="true">🔔</button>
           <input type="range" id="soundVolume" min="0" max="200" step="1" value="200" aria-label="" />
         </span>
+        <button type="button" id="focusModeBtn" class="chip" aria-pressed="false">Focus</button>
         <button type="button" id="fullscreenBtn" class="primary" aria-label="To‘liq ekran">⛶</button>
-        <div class="token-input-wrap">
+        <button type="button" id="settingsBtn" class="btn-ghost" aria-label="">⚙</button>
+        <div class="token-input-wrap" id="tokenToolsInline">
           <input id="tokenInput" type="password" placeholder="ADMIN_IMPORT_TOKEN" autocomplete="off" spellcheck="false" autocapitalize="off" />
           <button type="button" id="tokenRevealBtn" class="btn-ghost" aria-pressed="false" aria-label="">👁</button>
         </div>
@@ -938,6 +1064,22 @@
     </div>
   </div>
   <div id="toast" class="toast"></div>
+
+  <div id="settingsOverlay" class="overlay">
+    <div class="modal settings-modal">
+      <div class="row">
+        <h2 id="settingsTitle" style="margin:0;">Sozlamalar</h2>
+        <button type="button" id="closeSettings">Yopish</button>
+      </div>
+      <p class="muted" id="settingsHint"></p>
+      <label for="tokenInputSettings">Admin token</label>
+      <div class="token-input-wrap" style="width:100%;margin-bottom:12px;">
+        <input id="tokenInputSettings" type="password" placeholder="ADMIN_IMPORT_TOKEN" autocomplete="off" spellcheck="false" />
+        <button type="button" id="tokenRevealSettingsBtn" class="btn-ghost" aria-pressed="false">👁</button>
+      </div>
+      <button type="button" id="saveTokenSettingsBtn" class="primary" style="width:100%;min-height:48px;">Token saqlash</button>
+    </div>
+  </div>
 
   <script>
     (function setupFrontendErrorLogger() {
@@ -1026,7 +1168,13 @@
         slaMins: 'SLA {n} daq',
         slaHours: 'SLA {n} soat',
         slaDays: 'SLA {n} kun',
-        courierStaffTitle: 'Ro‘yxatdan kuryerlar (portallar)'
+        courierStaffTitle: 'Ro‘yxatdan kuryerlar (portallar)',
+        focusOn: 'Focus ✓',
+        focusOff: 'Focus',
+        settingsTitle: 'Sozlamalar',
+        settingsHint: 'Admin token va boshqa sozlamalar.',
+        colStaleHint: '{n} ta 20+ daq',
+        colExpandTitle: 'Ustunni ochish'
       },
       ru: {
         opsTitle: 'GlobusMarket · Ops',
@@ -1082,7 +1230,13 @@
         slaMins: 'SLA {n} мин',
         slaHours: 'SLA {n} ч',
         slaDays: 'SLA {n} дн',
-        courierStaffTitle: 'Курьеры (регистрация / портал)'
+        courierStaffTitle: 'Курьеры (регистрация / портал)',
+        focusOn: 'Focus ✓',
+        focusOff: 'Focus',
+        settingsTitle: 'Настройки',
+        settingsHint: 'Токен администратора и прочие параметры.',
+        colStaleHint: '{n} × 20+ мин',
+        colExpandTitle: 'Развернуть колонку'
       }
     };
     function t(key) {
@@ -1095,13 +1249,26 @@
       mapsUrl: 'https://maps.google.com/maps?q=39.654572,66.958871&ll=39.654572,66.958871&z=16'
     };
     const statusGroups = [
-      { key: 'new', labelKey: 'colNew', statuses: ['created', 'payment_pending', 'payment_confirmed'], boardWeight: 0.85, boardMin: 220 },
-      { key: 'preparing', labelKey: 'colPreparing', statuses: ['preparing'], boardWeight: 1.52, boardMin: 304 },
-      { key: 'ready', labelKey: 'colReady', statuses: ['ready_for_courier', 'courier_assigned'], boardWeight: 1.18, boardMin: 268 },
-      { key: 'out_for_delivery', labelKey: 'colOut', statuses: ['out_for_delivery'], boardWeight: 1.06, boardMin: 248 },
-      { key: 'delivered', labelKey: 'colDone', statuses: ['delivered'], boardWeight: 0.72, boardMin: 200 },
-      { key: 'cancelled', labelKey: 'colCancelled', statuses: ['cancelled'], boardWeight: 0.62, boardMin: 188 }
+      { key: 'new', labelKey: 'colNew', colIcon: '✦', statuses: ['created', 'payment_pending', 'payment_confirmed'], boardWeight: 0.85, boardMin: 220 },
+      { key: 'preparing', labelKey: 'colPreparing', colIcon: '◈', statuses: ['preparing'], boardWeight: 1.52, boardMin: 304 },
+      { key: 'ready', labelKey: 'colReady', colIcon: '◉', statuses: ['ready_for_courier', 'courier_assigned'], boardWeight: 1.18, boardMin: 268 },
+      { key: 'out_for_delivery', labelKey: 'colOut', colIcon: '→', statuses: ['out_for_delivery'], boardWeight: 1.06, boardMin: 248 },
+      { key: 'delivered', labelKey: 'colDone', colIcon: '✓', statuses: ['delivered'], boardWeight: 0.72, boardMin: 200 },
+      { key: 'cancelled', labelKey: 'colCancelled', colIcon: '✕', statuses: ['cancelled'], boardWeight: 0.62, boardMin: 188 }
     ];
+    const focusModeKey = 'gm_ops_focus';
+    const expandedColsKey = 'gm_ops_expanded_cols';
+    let expandedCols = new Set(
+      (() => {
+        try {
+          const raw = localStorage.getItem(expandedColsKey);
+          const arr = raw ? JSON.parse(raw) : [];
+          return Array.isArray(arr) ? arr : [];
+        } catch (_) {
+          return [];
+        }
+      })()
+    );
     let orders = [];
     let courierApplications = [];
     let activeOrder = null;
@@ -1119,6 +1286,48 @@
     let columnsRenderRaf = 0;
     let courierStaffPollSkip = 0;
     const viewFilters = { today: false, payme: false, cash: false, active: false };
+
+    function saveExpandedCols() {
+      localStorage.setItem(expandedColsKey, JSON.stringify([...expandedCols]));
+    }
+    function isColCollapsed(group) {
+      if (group.items.length > 0) return false;
+      return !expandedCols.has(group.key);
+    }
+    function colStaleCount(items) {
+      return items.filter((o) => {
+        const ts = new Date(o.created_at || 0).getTime();
+        return Number.isFinite(ts) && Date.now() - ts > 20 * 60000;
+      }).length;
+    }
+    function setFocusMode(on) {
+      document.body.classList.toggle('mode-focus', on);
+      localStorage.setItem(focusModeKey, on ? '1' : '0');
+      const btn = document.getElementById('focusModeBtn');
+      if (btn) {
+        btn.classList.toggle('on', on);
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        btn.textContent = on ? t('focusOn') : t('focusOff');
+      }
+    }
+    function syncSettingsTokenFields() {
+      const tok = getToken();
+      const inp = document.getElementById('tokenInputSettings');
+      const main = document.getElementById('tokenInput');
+      if (main) main.value = tok;
+      if (inp) inp.value = tok;
+    }
+    function openSettings() {
+      syncSettingsTokenFields();
+      document.getElementById('settingsTitle').textContent = t('settingsTitle');
+      document.getElementById('settingsHint').textContent = t('settingsHint');
+      document.getElementById('closeSettings').textContent = t('close');
+      document.getElementById('saveTokenSettingsBtn').textContent = t('saveToken');
+      document.getElementById('settingsOverlay').classList.add('show');
+    }
+    function closeSettings() {
+      document.getElementById('settingsOverlay').classList.remove('show');
+    }
 
     const allowedTransitions = {
       created: ['payment_pending', 'payment_confirmed', 'preparing', 'cancelled'],
@@ -1315,6 +1524,7 @@
       const ts = new Date(raw).getTime();
       if (!Number.isFinite(ts)) return '';
       const { mins, tier } = slaTierFromCreated(ts);
+      if (tier === 'sla-ok') return '';
       const label = formatSlaLabel(mins);
       return `<div class="sla-live sla ${tier}" data-created-ts="${ts}">${escapeHtml(label)}</div>`;
     }
@@ -1322,6 +1532,10 @@
       document.querySelectorAll('.sla-live[data-created-ts]').forEach((el) => {
         const ts = Number(el.dataset.createdTs);
         const { mins, tier } = slaTierFromCreated(ts);
+        if (tier === 'sla-ok') {
+          el.remove();
+          return;
+        }
         el.textContent = formatSlaLabel(mins);
         el.className = `sla-live sla ${tier}`;
       });
@@ -1405,6 +1619,10 @@
         const ts = new Date(raw).getTime();
         if (!Number.isFinite(ts)) return;
         const { mins, tier } = slaTierFromCreated(ts);
+        if (tier === 'sla-ok') {
+          if (slaEl) slaEl.remove();
+          return;
+        }
         const label = formatSlaLabel(mins);
         if (!slaEl) {
           const footHost = card.querySelector('.ops-card__foot');
@@ -1797,6 +2015,7 @@
       }
       const maxCount = Math.max(1, ...grouped.map((g) => g.items.length));
       const parts = grouped.map((group) => {
+        if (isColCollapsed(group)) return '56px';
         const meta = statusGroups.find((s) => s.key === group.key) || {};
         const base = meta.boardWeight ?? 1;
         const minW = meta.boardMin ?? 250;
@@ -1805,6 +2024,52 @@
         return `minmax(${minW}px, ${fr.toFixed(3)}fr)`;
       });
       grid.style.gridTemplateColumns = parts.join(' ');
+    }
+    function renderOrderCard(o) {
+      const id = escapeHtml(String(o.id));
+      const num = escapeHtml(String(o.orderNumber || o.id));
+      const name = escapeHtml(String(o.customerName || '').trim() || t('guest'));
+      const phoneRaw = String(o.customerPhone || '').trim();
+      const phoneHref = phoneRaw ? `tel:${escapeHtml(phoneRaw.replace(/\s+/g, ''))}` : '';
+      const phoneTxt = escapeHtml(phoneRaw || '—');
+      const addrRaw = [o.customerAddress, o.addressText, o.location]
+        .map((x) => String(x || '').trim())
+        .find(Boolean);
+      const addr = escapeHtml(addrRaw || '—');
+      const lm = escapeHtml(String(o.landmarkText || '').trim());
+      const landmarkLine = lm
+        ? `<div class="muted" style="margin-bottom:4px;font-size:11px;">Orientir: ${lm}</div>`
+        : '';
+      const next = getNextTransition(o);
+      const nextBtn = next
+        ? `<button type="button" data-quick-next="${escapeHtml(next.to)}" data-order-id="${id}" class="primary">${escapeHtml(
+            next.label
+          )}</button>`
+        : '<span class="card-action-slot" aria-hidden="true">.</span>';
+      const payRow = paymentPillsHtml(o).replace('pill-row', 'ops-card__meta pill-row');
+      return `
+              <article class="ops-card ${cardAccentClass(o.status)}" data-order-id="${id}">
+                <header class="ops-card__hero">
+                  <span class="ops-card__no">#${num}</span>
+                  <span class="ops-card__sum">${escapeHtml(moneyFmt(o.total))}</span>
+                  <span class="ops-card__rel" data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span>
+                </header>
+                <div class="ops-card__customer">
+                  <b>${name}</b>
+                  ${
+                    phoneHref
+                      ? `<a href="${phoneHref}">${phoneTxt}</a>`
+                      : `<span class="muted">${phoneTxt}</span>`
+                  }
+                </div>
+                <p class="ops-card__addr"><span class="ops-card__pin" aria-hidden="true">📍</span><span class="ops-card__addr-txt">${addr}</span></p>
+                ${landmarkLine}
+                ${thumbsHtml(o.items)}
+                ${payRow}
+                ${slaBlockHtml(o)}
+                <div class="ops-card__foot">${escapeHtml(`${fmt(o.created_at)} · ↑ ${fmt(o.updated_at)}`)}</div>
+                <div class="card-actions">${nextBtn}</div>
+              </article>`;
     }
     function renderColumnsNow() {
       const fp = buildColumnsFingerprint();
@@ -1820,71 +2085,43 @@
         items: sortColumnOrders(base.filter((o) => group.statuses.includes(normalizeStatus(o.status))))
       }));
       const maxCount = Math.max(1, ...grouped.map((g) => g.items.length));
+      grouped.forEach((g) => {
+        if (g.items.length > 0) expandedCols.delete(g.key);
+      });
+      saveExpandedCols();
       document.getElementById('columns').innerHTML = grouped
         .map((group) => {
+          const meta = statusGroups.find((s) => s.key === group.key) || {};
+          const colIcon = escapeHtml(meta.colIcon || '•');
+          if (isColCollapsed(group)) {
+            return `
+        <section class="col col--collapsed col--${escapeHtml(group.key)}" data-col="${escapeHtml(group.key)}">
+          <button type="button" class="col-collapsed-btn" data-col-expand="${escapeHtml(group.key)}" title="${escapeHtml(t('colExpandTitle'))}">
+            <span class="col-mark" aria-hidden="true"></span>
+            <span class="col-collapsed-label">${escapeHtml(t(group.labelKey))}</span>
+            <span class="count-pill" data-count="0">0</span>
+          </button>
+        </section>`;
+          }
           const pct = Math.round((group.items.length / maxCount) * 100);
+          const stale = colStaleCount(group.items);
+          const staleHint =
+            stale > 0
+              ? `<span class="col-stale-hint">${escapeHtml(t('colStaleHint').replace('{n}', String(stale)))}</span>`
+              : '';
           return `
         <section class="col col--${escapeHtml(group.key)}${group.items.length >= 4 ? ' col--busy' : ''}" data-col="${escapeHtml(group.key)}">
           <div class="col-head">
             <div class="col-head__title">
               <span class="col-mark" aria-hidden="true"></span>
-              <h3>${escapeHtml(t(group.labelKey))}</h3>
+              <h3><span class="col-icon" aria-hidden="true">${colIcon}</span> ${escapeHtml(t(group.labelKey))}</h3>
             </div>
             <span class="count-pill" data-count="${group.items.length}">${group.items.length}</span>
           </div>
+          ${staleHint ? `<div style="margin:-4px 0 8px;">${staleHint}</div>` : ''}
           <div class="col-bar" aria-hidden="true"><i style="width:${pct}%"></i></div>
           <div class="list">
-            ${group.items.length
-              ? group.items
-              .map((o) => {
-                const id = escapeHtml(String(o.id));
-                const num = escapeHtml(String(o.orderNumber || o.id));
-                const name = escapeHtml(String(o.customerName || '').trim() || t('guest'));
-                const phoneRaw = String(o.customerPhone || '').trim();
-                const phoneHref = phoneRaw ? `tel:${escapeHtml(phoneRaw.replace(/\s+/g, ''))}` : '';
-                const phoneTxt = escapeHtml(phoneRaw || '—');
-                const addrRaw = [o.customerAddress, o.addressText, o.location]
-                  .map((x) => String(x || '').trim())
-                  .find(Boolean);
-                const addr = escapeHtml(addrRaw || '—');
-                const lm = escapeHtml(String(o.landmarkText || '').trim());
-                const landmarkLine = lm
-                  ? `<div class="muted" style="margin-bottom:4px;">Orientir: ${lm}</div>`
-                  : '';
-                const next = getNextTransition(o);
-                const nextBtn = next
-                  ? `<button type="button" data-quick-next="${escapeHtml(
-                      next.to
-                    )}" data-order-id="${id}" class="primary">${escapeHtml(next.label)}</button>`
-                  : '<span class="card-action-slot" aria-hidden="true">.</span>';
-                return `
-              <article class="ops-card ${cardAccentClass(o.status)}" data-order-id="${id}">
-                <div class="ops-card__top">
-                  <span class="ops-card__no">#${num}</span>
-                  <span class="ops-card__rel" data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span>
-                  <span class="ops-card__sum">${escapeHtml(moneyFmt(o.total))}</span>
-                </div>
-                <div class="ops-card__who">
-                  <b>${name}</b>
-                  ${
-                    phoneHref
-                      ? `<a href="${phoneHref}">${phoneTxt}</a>`
-                      : `<span class="muted">${phoneTxt}</span>`
-                  }
-                </div>
-                <div class="ops-card__addr">${addr}</div>
-                ${landmarkLine}
-                ${thumbsHtml(o.items)}
-                ${paymentPillsHtml(o)}
-                ${slaBlockHtml(o)}
-                <div class="ops-card__foot">${escapeHtml(
-                  `${fmt(o.created_at)} · ↑ ${fmt(o.updated_at)}`
-                )}</div>
-                <div class="card-actions">${nextBtn}</div>
-              </article>`;
-              })
-              .join('')
-            : `<div class="list-empty"><p>${escapeHtml(t('colEmpty'))}</p></div>`}
+            ${group.items.length ? group.items.map((o) => renderOrderCard(o)).join('') : `<motion class="list-empty"><p>${escapeHtml(t('colEmpty'))}</p></div>`}
           </div>
         </section>`;
         })
@@ -2090,11 +2327,35 @@
       inp.type = inp.type === 'password' ? 'text' : 'password';
       syncTokenRevealUi();
     };
-    document.getElementById('saveTokenBtn').onclick = () => {
-      localStorage.setItem(tokenKey, document.getElementById('tokenInput').value.trim());
-      document.getElementById('tokenInput').type = 'password';
+    function persistToken(val) {
+      localStorage.setItem(tokenKey, val);
+      syncSettingsTokenFields();
+      const inp = document.getElementById('tokenInput');
+      if (inp) {
+        inp.value = val;
+        inp.type = 'password';
+      }
       syncTokenRevealUi();
       refresh();
+    }
+    document.getElementById('saveTokenBtn').onclick = () => {
+      persistToken(document.getElementById('tokenInput').value.trim());
+    };
+    document.getElementById('saveTokenSettingsBtn').onclick = () => {
+      persistToken(document.getElementById('tokenInputSettings').value.trim());
+      closeSettings();
+    };
+    document.getElementById('settingsBtn').onclick = () => openSettings();
+    document.getElementById('closeSettings').onclick = () => closeSettings();
+    document.getElementById('settingsOverlay').onclick = (e) => {
+      if (e.target.id === 'settingsOverlay') closeSettings();
+    };
+    document.getElementById('tokenRevealSettingsBtn').onclick = () => {
+      const inp = document.getElementById('tokenInputSettings');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    };
+    document.getElementById('focusModeBtn').onclick = () => {
+      setFocusMode(!document.body.classList.contains('mode-focus'));
     };
 
     document.getElementById('fullscreenBtn').onclick = async () => {
@@ -2128,6 +2389,15 @@
     })();
 
     document.getElementById('columns').onclick = (e) => {
+      const expandBtn = e.target.closest('[data-col-expand]');
+      if (expandBtn) {
+        e.preventDefault();
+        expandedCols.add(expandBtn.dataset.colExpand);
+        saveExpandedCols();
+        lastColumnsFingerprint = '';
+        scheduleRenderColumns();
+        return;
+      }
       const quickBtn = e.target.closest('[data-quick-next]');
       if (quickBtn) {
         e.preventDefault();
@@ -2243,6 +2513,7 @@
       });
     });
     applyLang();
+    setFocusMode(localStorage.getItem(focusModeKey) === '1');
     startLiveFeed();
     refresh({ silent: true });
   </script>
