@@ -68,9 +68,9 @@
     }
     .ops-bar {
       display: flex;
-      flex-wrap: wrap;
-      align-items: flex-start;
-      gap: 10px 12px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
       padding: 12px 14px;
       flex-shrink: 0;
       background: linear-gradient(180deg, rgba(16, 32, 58, 0.92), rgba(8, 18, 34, 0.88));
@@ -78,7 +78,14 @@
       border-radius: var(--radius);
       box-shadow: var(--shadow);
     }
-    .ops-brand { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 120px; max-width: 100%; }
+    .ops-bar-top {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 10px 12px;
+      min-width: 0;
+    }
+    .ops-brand { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 0 1 auto; max-width: 28%; }
     .ops-brand strong { font-size: 15px; letter-spacing: 0.02em; }
     .ops-brand small { color: var(--muted); font-size: 12px; }
     .ops-clock {
@@ -86,20 +93,67 @@
       font-weight: 700;
       font-size: 22px;
       letter-spacing: 0.04em;
-      padding: 6px 12px;
+      padding: 6px 10px;
       border-radius: 12px;
       border: 1px solid var(--line);
       background: rgba(6, 14, 28, 0.65);
       color: var(--muted2);
+      flex: 0 0 auto;
+      width: 7.25rem;
+      text-align: center;
+      box-sizing: border-box;
     }
     .ops-tools {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       gap: 8px;
       align-items: center;
-      flex: 1 1 220px;
+      flex: 1 1 auto;
       min-width: 0;
       justify-content: flex-end;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+    .ops-tools > * { flex-shrink: 0; }
+    #fullscreenBtn {
+      min-width: 8.75rem;
+      max-width: 8.75rem;
+      padding-left: 10px;
+      padding-right: 10px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #saveTokenBtn {
+      min-width: 6.75rem;
+      white-space: nowrap;
+    }
+    #langUzBtn, #langRuBtn {
+      min-width: 2.75rem;
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+    #soundToggle {
+      min-width: 2.75rem;
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+    .ops-network {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--muted);
+      min-height: 0;
+      max-height: 0;
+      overflow: hidden;
+      padding: 0;
+    }
+    .ops-network:not(:empty) {
+      min-height: 1.35em;
+      max-height: 2.7em;
+      padding: 0 2px 2px;
     }
     .chip-row {
       display: flex;
@@ -248,10 +302,24 @@
       border-radius: 999px;
       border: 1px solid var(--line);
       background: rgba(5, 12, 24, 0.55);
-      max-width: min(420px, 100%);
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-variant-numeric: tabular-nums;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-width: 10.5rem;
+      box-sizing: border-box;
+    }
+    .sync-pill__time {
+      display: inline-block;
+      min-width: 4.6rem;
+      text-align: center;
+    }
+    .sync-pill__interval {
+      display: inline-block;
+      min-width: 1.75rem;
+      text-align: right;
     }
     .badge {
       padding: 4px 10px;
@@ -261,6 +329,12 @@
       background: rgba(15, 42, 34, 0.75);
       font-size: 11px;
       font-weight: 700;
+      min-width: 4.75rem;
+      text-align: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
     }
     .badge.offline { border-color: #8a4352; color: #ffc8d3; background: rgba(42, 17, 24, 0.75); }
     .token-required {
@@ -630,7 +704,8 @@
 <body>
   <div class="wrap">
     <header class="ops-bar">
-      <div class="ops-brand">
+      <div class="ops-bar-top">
+        <div class="ops-brand">
         <strong id="opsTitle">GlobusMarket · Ops</strong>
         <small id="opsSubtitle">Buyurtmalar paneli</small>
       </div>
@@ -649,10 +724,15 @@
         </div>
         <button type="button" id="saveTokenBtn">Token saqlash</button>
         <span id="online" class="badge">Online</span>
-        <span id="lastUpdated" class="sync-pill">Yangilanmagan</span>
-        <span id="network" class="muted" style="max-width:220px"></span>
+          <span id="lastUpdated" class="sync-pill" title="">
+            <span id="lastUpdatedTime" class="sync-pill__time">--:--:--</span>
+            <span aria-hidden="true">·</span>
+            <span id="lastUpdatedInterval" class="sync-pill__interval">—</span>
+          </span>
+      </div>
       </div>
       <div class="chip-row" id="filterChips" aria-label="Filters"></div>
+      <p id="network" class="ops-network"></p>
     </header>
     <div id="statsBar" class="stats-bar" hidden></div>
     <div id="courierStaffBar" class="courier-staff-bar" hidden></div>
@@ -882,7 +962,8 @@
       const on = getSoundOn();
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       btn.classList.toggle('on', on);
-      btn.textContent = on ? `🔔 ${t('soundOnLabel')}` : `🔕 ${t('soundOffLabel')}`;
+      btn.textContent = on ? '🔔' : '🔕';
+      btn.title = on ? t('soundOnLabel') : t('soundOffLabel');
       syncSoundVolumeUi();
     }
     function getAudioContext() {
@@ -1286,6 +1367,19 @@
       btn.title = lab;
     }
 
+    function setLastUpdatedUi() {
+      const lu = document.getElementById('lastUpdated');
+      const timeEl = document.getElementById('lastUpdatedTime');
+      const intEl = document.getElementById('lastUpdatedInterval');
+      const loc = currentLang === 'ru' ? 'ru-RU' : 'uz-UZ';
+      if (timeEl) timeEl.textContent = new Date().toLocaleTimeString(loc);
+      if (intEl) intEl.textContent = `${Math.round(pollDelay / 1000)}s`;
+      if (lu) {
+        lu.dataset.ticking = '1';
+        lu.title = `${t('syncPrefix')} ${timeEl ? timeEl.textContent : ''}`;
+      }
+    }
+
     function applyLang() {
       document.documentElement.lang = currentLang;
       const title = document.getElementById('opsTitle');
@@ -1297,7 +1391,13 @@
       syncTokenRevealUi();
       document.getElementById('online').textContent = t('online');
       const lu = document.getElementById('lastUpdated');
-      if (lu && !lu.dataset.ticking) lu.textContent = t('notUpdated');
+      if (lu && !lu.dataset.ticking) {
+        const timeEl = document.getElementById('lastUpdatedTime');
+        const intEl = document.getElementById('lastUpdatedInterval');
+        if (timeEl) timeEl.textContent = '—';
+        if (intEl) intEl.textContent = '—';
+        lu.title = t('notUpdated');
+      }
       document.getElementById('tokenRequired').textContent = t('tokenRequired');
       document.getElementById('closeModal').textContent = t('close');
       syncSoundToggle();
@@ -1642,14 +1742,7 @@
         pollDelay = Math.min(12000, Math.round(pollDelay * 1.5));
       } finally {
         if (gridEl) gridEl.classList.remove('is-loading');
-        const lu = document.getElementById('lastUpdated');
-        const loc = currentLang === 'ru' ? 'ru-RU' : 'uz-UZ';
-        if (lu) {
-          lu.dataset.ticking = '1';
-          lu.textContent = `${t('syncPrefix')} ${new Date().toLocaleTimeString(loc)} · ${t('intervalSuffix')} ${Math.round(
-            pollDelay / 1000
-          )}s`;
-        }
+        setLastUpdatedUi();
         isRefreshing = false;
         clearTimeout(pollTimer);
         pollTimer = setTimeout(() => refresh({ silent: true }), pollDelay);
