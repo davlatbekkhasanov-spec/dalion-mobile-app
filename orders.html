@@ -9,26 +9,30 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #050b14;
+      --bg: #040a12;
       --bg2: #0a1628;
       --card: #0d1b31;
-      --line: rgba(90, 140, 210, 0.35);
-      --txt: #eef6ff;
+      --line: rgba(90, 140, 210, 0.32);
+      --line-strong: rgba(120, 180, 255, 0.45);
+      --txt: #f4f9ff;
       --muted: #8aa3c8;
-      --muted2: #b6c9e6;
+      --muted2: #c5d8f2;
       --acc: #2ef0a8;
       --acc2: #38cfff;
       --warn: #ffc14a;
       --danger: #ff6b7a;
+      --live: #3dffb8;
       --st-new: #38cfff;
       --st-work: #9b7dff;
       --st-ready: #ffc14a;
       --st-out: #2ef0a8;
       --st-done: #6b8cff;
       --st-cancel: #ff6b7a;
-      --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
-      --radius: 16px;
+      --shadow: 0 22px 60px rgba(0, 0, 0, 0.5);
+      --shadow-card: 0 10px 28px rgba(0, 0, 0, 0.35);
+      --radius: 18px;
       --radius-sm: 12px;
+      --glass: rgba(12, 24, 44, 0.72);
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
@@ -46,9 +50,21 @@
       font-feature-settings: "tnum" 1;
       color: var(--txt);
       background:
-        radial-gradient(1200px 600px at 10% -10%, rgba(56, 207, 255, 0.12), transparent 55%),
-        radial-gradient(900px 500px at 100% 0%, rgba(158, 120, 255, 0.1), transparent 50%),
+        radial-gradient(1200px 600px at 10% -10%, rgba(56, 207, 255, 0.14), transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, rgba(158, 120, 255, 0.12), transparent 50%),
         linear-gradient(180deg, #070f1c 0%, var(--bg) 45%);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.35;
+      background-image:
+        linear-gradient(rgba(56, 207, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 207, 255, 0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 70%);
     }
     @supports (height: 100svh) {
       body {
@@ -73,10 +89,11 @@
       gap: 8px;
       padding: 12px 14px;
       flex-shrink: 0;
-      background: linear-gradient(180deg, rgba(16, 32, 58, 0.92), rgba(8, 18, 34, 0.88));
-      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(18, 36, 64, 0.94), rgba(8, 18, 34, 0.9));
+      border: 1px solid var(--line-strong);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
     }
     .ops-bar-row {
       display: flex;
@@ -139,8 +156,12 @@
     }
     .ops-tools > * { flex-shrink: 0; }
     #fullscreenBtn {
-      min-width: 5.5rem;
-      white-space: nowrap;
+      min-width: 2.75rem;
+      width: 2.75rem;
+      padding-left: 0;
+      padding-right: 0;
+      font-size: 18px;
+      line-height: 1;
     }
     #saveTokenBtn {
       min-width: 6.75rem;
@@ -277,27 +298,29 @@
       }
     }
     .stat-chip {
-      display: inline-flex;
-      align-items: baseline;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       justify-content: center;
-      gap: 6px;
-      padding: 6px 11px;
-      border-radius: 999px;
+      gap: 2px;
+      padding: 8px 10px;
+      border-radius: 14px;
       border: 1px solid var(--line);
-      background: rgba(5, 12, 24, 0.55);
-      font-size: 12px;
-      color: var(--muted2);
+      background: linear-gradient(180deg, rgba(14, 28, 50, 0.9), rgba(6, 14, 28, 0.85));
+      font-size: 11px;
+      color: var(--muted);
       white-space: nowrap;
       min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
     .stat-chip b {
-      font-size: 14px;
+      font-size: 17px;
       font-weight: 800;
       color: #fff;
       font-variant-numeric: tabular-nums;
+      line-height: 1.1;
     }
+    .stat-chip.stat-money b { font-size: 14px; }
     .stat-money b { font-size: 13px; }
     .sla {
       font-size: 11px;
@@ -328,9 +351,9 @@
     }
     .muted { color: var(--muted); font-size: 12px; line-height: 1.35; }
     .sync-pill {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--muted2);
-      padding: 6px 10px;
+      padding: 6px 11px;
       border-radius: 999px;
       border: 1px solid var(--line);
       background: rgba(5, 12, 24, 0.55);
@@ -339,36 +362,67 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      min-width: 10.5rem;
+      gap: 8px;
+      min-width: 9.5rem;
       box-sizing: border-box;
+    }
+    .sync-pill--live {
+      border-color: rgba(61, 255, 184, 0.4);
+      background: linear-gradient(90deg, rgba(12, 42, 32, 0.75), rgba(8, 22, 40, 0.75));
+      box-shadow: 0 0 20px rgba(46, 240, 168, 0.08);
     }
     .sync-pill__time {
       display: inline-block;
       min-width: 4.6rem;
       text-align: center;
+      font-weight: 600;
     }
-    .sync-pill__interval {
-      display: inline-block;
-      min-width: 1.75rem;
-      text-align: right;
+    .sync-pill__live {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--live);
     }
     .badge {
-      padding: 4px 10px;
+      padding: 5px 11px 5px 8px;
       border-radius: 999px;
       border: 1px solid #2d7f5f;
       color: #9cffcf;
       background: rgba(15, 42, 34, 0.75);
       font-size: 11px;
-      font-weight: 700;
-      min-width: 4.75rem;
-      text-align: center;
+      font-weight: 800;
+      min-width: 5.5rem;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      gap: 7px;
       box-sizing: border-box;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
-    .badge.offline { border-color: #8a4352; color: #ffc8d3; background: rgba(42, 17, 24, 0.75); }
+    .badge--live { box-shadow: 0 0 24px rgba(46, 240, 168, 0.12); }
+    .badge.offline {
+      border-color: #8a4352;
+      color: #ffc8d3;
+      background: rgba(42, 17, 24, 0.75);
+      box-shadow: none;
+    }
+    .badge.offline .live-dot { background: #ff8a9a; box-shadow: none; animation: none; }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--live);
+      box-shadow: 0 0 0 0 rgba(61, 255, 184, 0.55);
+      animation: livePulse 2s ease-out infinite;
+      flex-shrink: 0;
+    }
+    @keyframes livePulse {
+      0% { box-shadow: 0 0 0 0 rgba(61, 255, 184, 0.55); }
+      70% { box-shadow: 0 0 0 8px rgba(61, 255, 184, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(61, 255, 184, 0); }
+    }
     .token-required {
       flex-shrink: 0;
       border: 1px dashed rgba(193, 122, 139, 0.65);
@@ -400,7 +454,8 @@
     .col {
       --col-accent: var(--acc2);
       scroll-snap-align: start;
-      background: linear-gradient(180deg, rgba(18, 34, 58, 0.95), rgba(8, 18, 34, 0.92));
+      background: linear-gradient(180deg, rgba(20, 38, 66, 0.96), rgba(8, 18, 34, 0.94));
+      backdrop-filter: blur(8px);
       border: 1px solid var(--line);
       border-radius: var(--radius);
       padding: 0 10px 12px;
@@ -575,12 +630,19 @@
     .ops-card {
       position: relative;
       border: 1px solid var(--line);
-      background: linear-gradient(165deg, rgba(14, 28, 52, 0.98), rgba(8, 16, 32, 0.98));
-      border-radius: 14px;
-      padding: 12px 12px 12px 14px;
+      background: linear-gradient(165deg, rgba(16, 32, 58, 0.98), rgba(8, 16, 32, 0.98));
+      border-radius: 16px;
+      padding: 12px 12px 12px 15px;
       cursor: pointer;
       overflow: hidden;
       min-width: 0;
+      box-shadow: var(--shadow-card);
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .ops-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--line-strong);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.42);
     }
     .ops-card::before {
       content: "";
@@ -832,11 +894,13 @@
         </div>
         <div class="ops-head-status">
           <div class="ops-clock" id="clock" aria-live="polite">--:--:--</div>
-          <span id="online" class="badge">Online</span>
+          <span id="online" class="badge badge--live">
+            <span class="live-dot" aria-hidden="true"></span>
+            <span id="onlineLabel">Jonli</span>
+          </span>
           <span id="lastUpdated" class="sync-pill" title="">
             <span id="lastUpdatedTime" class="sync-pill__time">--:--:--</span>
-            <span aria-hidden="true">·</span>
-            <span id="lastUpdatedInterval" class="sync-pill__interval">—</span>
+            <span id="lastUpdatedLive" class="sync-pill__live">—</span>
           </span>
         </div>
       </div>
@@ -848,7 +912,7 @@
           <button type="button" id="soundToggle" class="chip" aria-pressed="true">🔔</button>
           <input type="range" id="soundVolume" min="0" max="200" step="1" value="200" aria-label="" />
         </span>
-        <button type="button" id="fullscreenBtn" class="primary">Ekran</button>
+        <button type="button" id="fullscreenBtn" class="primary" aria-label="To‘liq ekran">⛶</button>
         <div class="token-input-wrap">
           <input id="tokenInput" type="password" placeholder="ADMIN_IMPORT_TOKEN" autocomplete="off" spellcheck="false" autocapitalize="off" />
           <button type="button" id="tokenRevealBtn" class="btn-ghost" aria-pressed="false" aria-label="">👁</button>
@@ -935,6 +999,10 @@
         tokenShow: 'Tokenni ko‘rsatish',
         tokenHide: 'Tokenni yashirish',
         online: 'Online',
+        liveOnline: 'Jonli',
+        liveSync: 'Jonli',
+        liveConnecting: 'Ulanmoqda',
+        livePaused: 'Pauza',
         offline: 'Offline',
         notUpdated: 'Yangilanmagan',
         tokenRequired: 'Token kiriting',
@@ -956,6 +1024,8 @@
         statsSum: 'jami summa',
         statsTodaySum: 'bugun summa',
         slaMins: 'SLA {n} daq',
+        slaHours: 'SLA {n} soat',
+        slaDays: 'SLA {n} kun',
         courierStaffTitle: 'Ro‘yxatdan kuryerlar (portallar)'
       },
       ru: {
@@ -985,6 +1055,10 @@
         tokenShow: 'Показать токен',
         tokenHide: 'Скрыть токен',
         online: 'Онлайн',
+        liveOnline: 'Онлайн',
+        liveSync: 'Live',
+        liveConnecting: 'Подключение',
+        livePaused: 'Пауза',
         offline: 'Офлайн',
         notUpdated: 'Не обновлялось',
         tokenRequired: 'Введите токен',
@@ -1006,6 +1080,8 @@
         statsSum: 'сумма',
         statsTodaySum: 'сумма сегодня',
         slaMins: 'SLA {n} мин',
+        slaHours: 'SLA {n} ч',
+        slaDays: 'SLA {n} дн',
         courierStaffTitle: 'Курьеры (регистрация / портал)'
       }
     };
@@ -1029,10 +1105,14 @@
     let orders = [];
     let courierApplications = [];
     let activeOrder = null;
-    const POLL_MS_VISIBLE = 8000;
-    const POLL_MS_HIDDEN = 30000;
-    let pollDelay = POLL_MS_VISIBLE;
+    const POLL_MS_FALLBACK = 3000;
+    const POLL_MS_HIDDEN = 20000;
+    let pollDelay = POLL_MS_FALLBACK;
     let pollTimer = null;
+    let sseRetryTimer = null;
+    let feedStream = null;
+    let liveState = 'connecting';
+    let feedApplyCount = 0;
     let isRefreshing = false;
     let lastColumnsFingerprint = '';
     let lastStatsFingerprint = '';
@@ -1221,6 +1301,12 @@
       else if (mins >= 15) tier = 'sla-warn';
       return { mins, tier };
     }
+    function formatSlaLabel(mins) {
+      const m = Math.max(0, Math.floor(Number(mins) || 0));
+      if (m < 90) return t('slaMins').replace('{n}', String(m));
+      if (m < 1440) return t('slaHours').replace('{n}', String(Math.floor(m / 60)));
+      return t('slaDays').replace('{n}', String(Math.floor(m / 1440)));
+    }
     function slaBlockHtml(o) {
       const st = normalizeStatus(o.status);
       if (st === 'delivered' || st === 'cancelled') return '';
@@ -1229,14 +1315,14 @@
       const ts = new Date(raw).getTime();
       if (!Number.isFinite(ts)) return '';
       const { mins, tier } = slaTierFromCreated(ts);
-      const label = t('slaMins').replace('{n}', String(mins));
+      const label = formatSlaLabel(mins);
       return `<div class="sla-live sla ${tier}" data-created-ts="${ts}">${escapeHtml(label)}</div>`;
     }
     function tickLiveLabels() {
       document.querySelectorAll('.sla-live[data-created-ts]').forEach((el) => {
         const ts = Number(el.dataset.createdTs);
         const { mins, tier } = slaTierFromCreated(ts);
-        el.textContent = t('slaMins').replace('{n}', String(mins));
+        el.textContent = formatSlaLabel(mins);
         el.className = `sla-live sla ${tier}`;
       });
       document.querySelectorAll('[data-rel-ts]').forEach((el) => {
@@ -1319,7 +1405,7 @@
         const ts = new Date(raw).getTime();
         if (!Number.isFinite(ts)) return;
         const { mins, tier } = slaTierFromCreated(ts);
-        const label = t('slaMins').replace('{n}', String(mins));
+        const label = formatSlaLabel(mins);
         if (!slaEl) {
           const footHost = card.querySelector('.ops-card__foot');
           if (!footHost) return;
@@ -1496,17 +1582,124 @@
       btn.title = lab;
     }
 
-    function setLastUpdatedUi() {
+    function setLiveStatus(state, source = '') {
+      liveState = state;
+      const badge = document.getElementById('online');
+      const label = document.getElementById('onlineLabel');
+      const pill = document.getElementById('lastUpdated');
+      const liveEl = document.getElementById('lastUpdatedLive');
+      if (badge) {
+        badge.classList.toggle('badge--live', state === 'live' || state === 'connecting');
+        badge.classList.toggle('offline', state === 'offline');
+      }
+      if (label) {
+        if (state === 'live') label.textContent = t('liveOnline');
+        else if (state === 'offline') label.textContent = t('offline');
+        else if (state === 'paused') label.textContent = t('livePaused');
+        else label.textContent = t('liveConnecting');
+      }
+      if (liveEl) {
+        liveEl.textContent =
+          state === 'live' ? t('liveSync') : state === 'paused' ? t('livePaused') : state === 'connecting' ? '…' : '—';
+      }
+      if (pill) pill.classList.toggle('sync-pill--live', state === 'live');
+      setLastUpdatedUi(source);
+    }
+
+    function setLastUpdatedUi(source = '') {
       const lu = document.getElementById('lastUpdated');
       const timeEl = document.getElementById('lastUpdatedTime');
-      const intEl = document.getElementById('lastUpdatedInterval');
       const loc = currentLang === 'ru' ? 'ru-RU' : 'uz-UZ';
       if (timeEl) timeEl.textContent = new Date().toLocaleTimeString(loc);
-      if (intEl) intEl.textContent = `${Math.round(pollDelay / 1000)}s`;
       if (lu) {
         lu.dataset.ticking = '1';
-        lu.title = `${t('syncPrefix')} ${timeEl ? timeEl.textContent : ''}`;
+        const src = source ? ` · ${source}` : '';
+        lu.title = `${t('syncPrefix')} ${timeEl ? timeEl.textContent : ''}${src}`;
       }
+    }
+
+    function stopLiveFeed() {
+      if (feedStream) {
+        feedStream.close();
+        feedStream = null;
+      }
+    }
+
+    function schedulePollFallback() {
+      clearTimeout(pollTimer);
+      if (document.hidden) return;
+      pollTimer = setTimeout(() => refresh({ silent: true }), pollDelay);
+    }
+
+    function scheduleSseRetry() {
+      if (sseRetryTimer || document.hidden) return;
+      sseRetryTimer = setTimeout(() => {
+        sseRetryTimer = null;
+        if (!document.hidden && liveState !== 'live') startLiveFeed();
+      }, 12000);
+    }
+
+    function startLiveFeed() {
+      stopLiveFeed();
+      if (document.hidden) {
+        setLiveStatus('paused');
+        return;
+      }
+      if (typeof EventSource === 'undefined') {
+        setLiveStatus('offline');
+        schedulePollFallback();
+        return;
+      }
+      setLiveStatus('connecting');
+      feedStream = new EventSource('/api/v1/orders-display/stream');
+      feedStream.addEventListener('feed', (ev) => {
+        try {
+          const data = JSON.parse(ev.data);
+          applyFeedFromServer(Array.isArray(data.orders) ? data.orders : [], 'display-stream');
+        } catch (_) {
+          /* ignore malformed chunk */
+        }
+      });
+      feedStream.addEventListener('error', () => {
+        /* server error event */
+      });
+      feedStream.onopen = () => {
+        clearTimeout(pollTimer);
+        setLiveStatus('live', 'SSE');
+      };
+      feedStream.onerror = () => {
+        stopLiveFeed();
+        setLiveStatus('offline');
+        pollDelay = POLL_MS_FALLBACK;
+        schedulePollFallback();
+        scheduleSseRetry();
+      };
+    }
+
+    function applyFeedFromServer(list, source) {
+      const prev = snapshotFeed(orders);
+      const prevColFp = buildColumnsFingerprint();
+      orders = list || [];
+      notifyFeedChanges(prev, orders);
+      renderStatsBar();
+      feedApplyCount += 1;
+      if (feedApplyCount % 5 === 0) loadCourierStaff();
+      const nextColFp = buildColumnsFingerprint();
+      if (prevColFp === nextColFp && lastColumnsFingerprint === nextColFp) {
+        patchCardsLiveMeta();
+      } else {
+        lastColumnsFingerprint = '';
+        scheduleRenderColumns();
+      }
+      if (activeOrder) {
+        const upd = orders.find((o) => o.id === activeOrder.id);
+        if (upd) renderModal(upd);
+      }
+      document.getElementById('network').textContent =
+        source === 'display-stream' || source === 'display-feed'
+          ? ''
+          : 'Display feed mavjud emas, admin feed ishlatilmoqda';
+      if (liveState !== 'paused') setLiveStatus('live', source);
     }
 
     function applyLang() {
@@ -1517,18 +1710,19 @@
       if (sub) sub.textContent = t('opsSubtitle');
       const fsBtn = document.getElementById('fullscreenBtn');
       if (fsBtn) {
-        fsBtn.textContent = t('fullscreenShort');
+        fsBtn.textContent = '⛶';
+        fsBtn.setAttribute('aria-label', t('fullscreen'));
         fsBtn.title = t('fullscreen');
       }
       document.getElementById('saveTokenBtn').textContent = t('saveToken');
       syncTokenRevealUi();
-      document.getElementById('online').textContent = t('online');
+      setLiveStatus(liveState || 'connecting');
       const lu = document.getElementById('lastUpdated');
       if (lu && !lu.dataset.ticking) {
         const timeEl = document.getElementById('lastUpdatedTime');
-        const intEl = document.getElementById('lastUpdatedInterval');
+        const liveEl = document.getElementById('lastUpdatedLive');
         if (timeEl) timeEl.textContent = '—';
-        if (intEl) intEl.textContent = '—';
+        if (liveEl) liveEl.textContent = '—';
         lu.title = t('notUpdated');
       }
       document.getElementById('tokenRequired').textContent = t('tokenRequired');
@@ -1867,42 +2061,26 @@
       const token = getToken();
       document.getElementById('tokenRequired').style.display = 'none';
       try {
-        const prev = snapshotFeed(orders);
-        const prevColFp = buildColumnsFingerprint();
         const { orders: list, source } = await loadDisplayOrders();
-        orders = list || [];
-        notifyFeedChanges(prev, orders);
-        renderStatsBar();
         courierStaffPollSkip += 1;
         if (courierStaffPollSkip % 5 === 0) await loadCourierStaff();
-        const nextColFp = buildColumnsFingerprint();
-        if (prevColFp === nextColFp && lastColumnsFingerprint === nextColFp) {
-          patchCardsLiveMeta();
-        } else {
-          lastColumnsFingerprint = '';
-          scheduleRenderColumns();
-        }
-        if (activeOrder) {
-          const upd = orders.find((o) => o.id === activeOrder.id);
-          if (upd) renderModal(upd);
-        }
-        document.getElementById('online').textContent = t('online');
-        document.getElementById('online').classList.remove('offline');
-        document.getElementById('network').textContent = source === 'display-feed' ? '' : 'Display feed mavjud emas, admin feed ishlatilmoqda';
-        pollDelay = document.hidden ? POLL_MS_HIDDEN : POLL_MS_VISIBLE;
+        applyFeedFromServer(list, source);
+        pollDelay = document.hidden ? POLL_MS_HIDDEN : POLL_MS_FALLBACK;
       } catch (e) {
         document.getElementById('tokenRequired').style.display = token ? 'none' : 'block';
-        document.getElementById('online').textContent = t('offline');
-        document.getElementById('online').classList.add('offline');
+        setLiveStatus('offline');
         document.getElementById('network').textContent = token ? 'Aloqa uzildi, qayta ulanmoqda...' : 'Display uchun token yoki server aloqasi kerak';
         if (!silent) showToast(e.message || t('refreshError'), true);
         pollDelay = Math.min(12000, Math.round(pollDelay * 1.5));
+        scheduleSseRetry();
       } finally {
         if (gridEl) gridEl.classList.remove('is-loading');
-        setLastUpdatedUi();
         isRefreshing = false;
-        clearTimeout(pollTimer);
-        pollTimer = setTimeout(() => refresh({ silent: true }), pollDelay);
+        if (liveState === 'live' && feedStream) {
+          clearTimeout(pollTimer);
+        } else {
+          schedulePollFallback();
+        }
       }
     }
 
@@ -2023,8 +2201,17 @@
     setInterval(tickLiveLabels, 30000);
 
     document.addEventListener('visibilitychange', () => {
-      pollDelay = document.hidden ? POLL_MS_HIDDEN : POLL_MS_VISIBLE;
-      if (!document.hidden) refresh({ silent: true });
+      if (document.hidden) {
+        stopLiveFeed();
+        clearTimeout(pollTimer);
+        clearTimeout(sseRetryTimer);
+        sseRetryTimer = null;
+        setLiveStatus('paused');
+      } else {
+        pollDelay = POLL_MS_FALLBACK;
+        startLiveFeed();
+        refresh({ silent: true });
+      }
     });
 
     document.getElementById('filterChips').addEventListener('click', (e) => {
@@ -2056,7 +2243,8 @@
       });
     });
     applyLang();
-    refresh();
+    startLiveFeed();
+    refresh({ silent: true });
   </script>
 </body>
 </html>

@@ -1616,7 +1616,7 @@ app.get('/api/v1/admin/courier-applications', requireAdmin, async (req, res) => 
   });
 });
 
-app.get('/api/v1/orders-display/feed', async (req, res) => {
+async function buildOrdersDisplayFeedPayload() {
   const activeStatuses = new Set([
     'created',
     'payment_pending',
@@ -1647,11 +1647,47 @@ app.get('/api/v1/orders-display/feed', async (req, res) => {
     })
     .slice(0, 300)
     .map(orderPublic);
-  return res.json({
+  return {
     ok: true,
     total: feedOrders.length,
     updatedAt: nowIso(),
     orders: feedOrders
+  };
+}
+
+app.get('/api/v1/orders-display/feed', async (req, res) => {
+  try {
+    return res.json(await buildOrdersDisplayFeedPayload());
+  } catch (err) {
+    return res.status(500).json({ ok: false, message: err.message || 'Feed error' });
+  }
+});
+
+app.get('/api/v1/orders-display/stream', async (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+  let closed = false;
+  const push = async () => {
+    if (closed) return;
+    try {
+      const payload = await buildOrdersDisplayFeedPayload();
+      res.write(`event: feed\ndata: ${JSON.stringify(payload)}\n\n`);
+    } catch (err) {
+      res.write(
+        `event: error\ndata: ${JSON.stringify({ ok: false, message: String(err.message || 'stream error') })}\n\n`
+      );
+    }
+  };
+
+  await push();
+  const timer = setInterval(push, 2500);
+  req.on('close', () => {
+    closed = true;
+    clearInterval(timer);
   });
 });
 
