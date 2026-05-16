@@ -7,7 +7,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
-  <script src="https://api-maps.yandex.ru/2.1/?apikey=98fbccfc-0ccc-46cc-923a-cfc8b9267d3e&lang=uz_UZ" async></script>
   <style>
     :root {
       --black: #050508;
@@ -172,6 +171,9 @@
       margin-bottom: 10px;
       cursor: pointer;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      content-visibility: auto;
+      contain-intrinsic-size: auto 120px;
+      contain: layout style paint;
     }
     .card:active { transform: scale(0.99); }
     .row1 {
@@ -286,8 +288,8 @@
     }
     .sheet-body { overflow: auto; padding: 12px 14px 18px; flex: 1; }
     #detailMap {
-      height: 38vh;
-      min-height: 220px;
+      height: 32vh;
+      min-height: 180px;
       border-radius: 16px;
       overflow: hidden;
       border: 1px solid var(--line);
@@ -403,6 +405,15 @@
     let orders = [];
     let selected = null;
     let pollTimer = null;
+    let feedInFlight = false;
+    let lastFeedFingerprint = '';
+    let lastRouteFingerprint = '';
+    let routePollSkip = 0;
+    let mapOrderId = null;
+    let mapCoordsKey = '';
+    const POLL_MS_VISIBLE = 8000;
+    const POLL_MS_HIDDEN = 30000;
+    const POLL_MS_SHEET_OPEN = 14000;
     let yMap = null;
     let yRoute = null;
     let yStart = null;
@@ -516,6 +527,48 @@
       return isMine(o) && Boolean(String(o.courierPhone || '').trim());
     }
 
+    function feedFingerprint(arr) {
+      return (Array.isArray(arr) ? arr : [])
+        .map(
+          (o) =>
+            `${o.id}:${normPortalStatus(o.status)}:${o.updated_at || ''}:${o.courierPhone || ''}:${o.courierStopSeq || ''}:${o.portalMine ? 1 : 0}`
+        )
+        .sort()
+        .join('|');
+    }
+
+    function loadYandexScript() {
+      if (window.__yandexMapsFailed) return Promise.reject(new Error('yandex'));
+      if (window.__yandexScriptPromise) return window.__yandexScriptPromise;
+      window.__yandexScriptPromise = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src =
+          'https://api-maps.yandex.ru/2.1/?apikey=98fbccfc-0ccc-46cc-923a-cfc8b9267d3e&lang=uz_UZ';
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => {
+          window.__yandexMapsFailed = true;
+          reject(new Error('yandex'));
+        };
+        document.head.appendChild(s);
+      });
+      return window.__yandexScriptPromise;
+    }
+
+    function pollIntervalMs() {
+      if (document.hidden) return POLL_MS_HIDDEN;
+      if (document.getElementById('sheet')?.classList.contains('on')) return POLL_MS_SHEET_OPEN;
+      return POLL_MS_VISIBLE;
+    }
+
+    function schedulePoll() {
+      clearTimeout(pollTimer);
+      pollTimer = setTimeout(async () => {
+        await loadFeed({ silent: true });
+        schedulePoll();
+      }, pollIntervalMs());
+    }
+
     async function loadRouteHint() {
       const hintEl = document.getElementById('routeActiveHint');
       const panel = document.getElementById('myRoutePanel');
@@ -526,7 +579,13 @@
       if (headEl) headEl.textContent = tr('myRouteTitle');
       try {
         const d = await api('/courier-portal/my-route');
-        const n = Array.isArray(d.orders) ? d.orders.length : 0;
+        const routeOrders = Array.isArray(d.orders) ? d.orders : [];
+        const routeFp = routeOrders
+          .map((o) => `${o.id}:${o.courierStopSeq}:${o.status}:${o.updated_at || ''}`)
+          .join('|');
+        if (routeFp === lastRouteFingerprint && document.getElementById('myRouteList')?.innerHTML) return;
+        lastRouteFingerprint = routeFp;
+        const n = routeOrders.length;
         const eta = Number(d.routeEtaHintMinutes) || 0;
         if (hintEl) {
           if (n > 0) {
@@ -540,7 +599,7 @@
           if (n > 0) {
             panel.style.display = 'block';
             etaEl.textContent = `${tr('myRouteEta')}: ~${eta} ${tr('min')}`;
-            const sorted = [...d.orders].sort(
+            const sorted = [...routeOrders].sort(
               (a, b) => (Number(a.courierStopSeq) || 0) - (Number(b.courierStopSeq) || 0)
             );
             listEl.innerHTML = sorted
@@ -669,9 +728,19 @@
       document.getElementById('backdrop').classList.remove('on');
       document.getElementById('sheet').classList.remove('on');
       selected = null;
+      mapOrderId = null;
+      mapCoordsKey = '';
     }
 
     function ensureYmaps() {
+      if (window.__yandexMapsFailed) return Promise.reject(new Error('yandex'));
+      return loadYandexScript().then(() => {
+        if (!window.ymaps || typeof window.ymaps.ready !== 'function') return Promise.reject(new Error('yandex'));
+        return ensureYmapsReady();
+      });
+    }
+
+    function ensureYmapsReady() {
       if (window.__yandexMapsFailed) return Promise.reject(new Error('yandex'));
       if (!window.ymaps || typeof window.ymaps.ready !== 'function') return Promise.reject(new Error('yandex'));
       if (!ymapsReadyPromise) {
@@ -687,6 +756,50 @@
       return ymapsReadyPromise;
     }
 
+    function patchSheetMeta(o) {
+      const st = normPortalStatus(o.status);
+      document.getElementById('dStatus').textContent = statusLabel(st);
+      const routeEl = document.getElementById('dRouteStop');
+      if (isMine(o) && o.courierStopSeq != null && Number(o.courierStopSeq) > 0) {
+        routeEl.textContent = `${tr('routePill')} ${o.courierStopSeq}`;
+        routeEl.style.display = 'inline-block';
+      } else {
+        routeEl.textContent = '';
+        routeEl.style.display = 'none';
+      }
+      const mine = isMine(o);
+      const canClaim = st === 'ready_for_courier' && !String(o.courierPhone || '').trim();
+      const ct = String(o.courierToken || '').trim();
+      const canStart = mine && ct && (st === 'courier_assigned' || st === 'out_for_delivery');
+      const claimBtn = document.getElementById('claimBtn');
+      const openBtn = document.getElementById('openCourierBtn');
+      const errEl = document.getElementById('sheetErr');
+      sheetPrimaryAction = 'none';
+      claimBtn.style.display = 'none';
+      openBtn.style.display = 'none';
+      openBtn.href = '#';
+      claimBtn.disabled = false;
+      errEl.style.display = 'none';
+      errEl.textContent = '';
+      if (canClaim) {
+        sheetPrimaryAction = 'claim';
+        claimBtn.style.display = 'block';
+        claimBtn.textContent = tr('claim');
+      } else if (canStart) {
+        sheetPrimaryAction = 'start';
+        const href = `${location.origin}/courier/${encodeURIComponent(ct)}`;
+        claimBtn.style.display = 'block';
+        claimBtn.textContent =
+          st === 'out_for_delivery' ? tr('courierPageShort') : tr('startDelivery');
+        openBtn.style.display = 'block';
+        openBtn.href = href;
+        openBtn.textContent = tr('courierPageShort');
+      } else if (st === 'ready_for_courier' && String(o.courierPhone || '').trim() && !mine) {
+        errEl.textContent = tr('busy');
+        errEl.style.display = 'block';
+      }
+    }
+
     function hasCoord(lat, lng) {
       const la = Number(lat);
       const ln = Number(lng);
@@ -699,6 +812,12 @@
       const errEl = document.getElementById('sheetErr');
       errEl.style.display = 'none';
       const box = document.getElementById('detailMap');
+      const endLat = Number(o.locationLat);
+      const endLng = Number(o.locationLng);
+      const coordKey = `${o.id}:${endLat},${endLng}`;
+      if (mapOrderId === o.id && mapCoordsKey === coordKey && yMap) return;
+      mapOrderId = o.id;
+      mapCoordsKey = coordKey;
       if (yMap) {
         try {
           yMap.destroy();
@@ -710,8 +829,6 @@
       ensureYmaps()
         .then((ymaps) => {
           if (!box) return;
-          const endLat = Number(o.locationLat);
-          const endLng = Number(o.locationLng);
           const startLat = STORE.lat;
           const startLng = STORE.lng;
           if (!hasCoord(endLat, endLng)) {
@@ -765,19 +882,10 @@
         });
     }
 
-    function openSheet(o) {
+    function openSheet(o, opts = {}) {
+      const sameOrder = selected && String(selected.id) === String(o.id);
       selected = o;
-      const st = normPortalStatus(o.status);
       document.getElementById('dTitle').textContent = `#${o.orderNumber || o.id}`;
-      document.getElementById('dStatus').textContent = statusLabel(st);
-      const routeEl = document.getElementById('dRouteStop');
-      if (isMine(o) && o.courierStopSeq != null && Number(o.courierStopSeq) > 0) {
-        routeEl.textContent = `${tr('routePill')} ${o.courierStopSeq}`;
-        routeEl.style.display = 'inline-block';
-      } else {
-        routeEl.textContent = '';
-        routeEl.style.display = 'none';
-      }
       const addr = [o.addressText, o.customerAddress, o.location].map((x) => String(x || '').trim()).find(Boolean) || '—';
       document.getElementById('dAddr').textContent = addr;
       const items = Array.isArray(o.items) ? o.items : [];
@@ -785,54 +893,48 @@
         items.length > 0
           ? items.map((it) => `${it.title || it.name || '—'} × ${it.qty || it.quantity || 1}`).join(' · ')
           : '';
-      document.getElementById('dDist').textContent = '…';
-      document.getElementById('dEta').textContent = '…';
-
-      const mine = isMine(o);
-      const canClaim = st === 'ready_for_courier' && !String(o.courierPhone || '').trim();
-      const ct = String(o.courierToken || '').trim();
-      const canStart =
-        mine && ct && (st === 'courier_assigned' || st === 'out_for_delivery');
-      const claimBtn = document.getElementById('claimBtn');
-      const openBtn = document.getElementById('openCourierBtn');
-      const errEl = document.getElementById('sheetErr');
-      sheetPrimaryAction = 'none';
-      claimBtn.style.display = 'none';
-      openBtn.style.display = 'none';
-      openBtn.href = '#';
-      claimBtn.disabled = false;
-      errEl.style.display = 'none';
-      errEl.textContent = '';
-      if (canClaim) {
-        sheetPrimaryAction = 'claim';
-        claimBtn.style.display = 'block';
-        claimBtn.textContent = tr('claim');
-      } else if (canStart) {
-        sheetPrimaryAction = 'start';
-        const href = `${location.origin}/courier/${encodeURIComponent(ct)}`;
-        claimBtn.style.display = 'block';
-        claimBtn.textContent =
-          st === 'out_for_delivery' ? tr('courierPageShort') : tr('startDelivery');
-        openBtn.style.display = 'block';
-        openBtn.href = href;
-        openBtn.textContent = tr('courierPageShort');
-      } else if (st === 'ready_for_courier' && String(o.courierPhone || '').trim() && !mine) {
-        errEl.textContent = tr('busy');
-        errEl.style.display = 'block';
+      patchSheetMeta(o);
+      if (!sameOrder || opts.redrawMap) {
+        document.getElementById('dDist').textContent = '…';
+        document.getElementById('dEta').textContent = '…';
       }
-
       document.getElementById('backdrop').classList.add('on');
       document.getElementById('sheet').classList.add('on');
-      setTimeout(() => drawRoute(o), 80);
+      if (!sameOrder || opts.redrawMap) {
+        requestAnimationFrame(() => drawRoute(o));
+      }
     }
 
-    async function loadFeed() {
+    async function loadFeed(opts = {}) {
+      const silent = opts.silent === true;
+      if (feedInFlight) return;
+      feedInFlight = true;
       const el = document.getElementById('feed');
-      if (el) el.innerHTML = `<p class="muted">${esc(tr('loading'))}</p>`;
-      const data = await api('/courier-portal/feed');
-      orders = Array.isArray(data.orders) ? data.orders : [];
-      renderFeed();
-      void loadRouteHint();
+      try {
+        if (!silent && el) el.innerHTML = `<p class="muted">${esc(tr('loading'))}</p>`;
+        const data = await api('/courier-portal/feed');
+        const next = Array.isArray(data.orders) ? data.orders : [];
+        const fp = feedFingerprint(next);
+        const sheetOpen = document.getElementById('sheet')?.classList.contains('on');
+        if (fp !== lastFeedFingerprint) {
+          orders = next;
+          lastFeedFingerprint = fp;
+          renderFeed();
+        } else {
+          orders = next;
+        }
+        if (selected) {
+          const fresh = orders.find((x) => String(x.id) === String(selected.id));
+          if (fresh) {
+            if (sheetOpen) openSheet(fresh, { redrawMap: false });
+            else selected = fresh;
+          }
+        }
+        routePollSkip += 1;
+        if (routePollSkip % 3 === 0) void loadRouteHint();
+      } finally {
+        feedInFlight = false;
+      }
     }
 
     async function boot() {
@@ -855,8 +957,8 @@
         document.getElementById('whoPhone').textContent = profile.phone || '—';
         document.getElementById('app').style.display = 'block';
         document.getElementById('logoutBtn').style.display = 'block';
-        await loadFeed();
-        pollTimer = setInterval(loadFeed, 5000);
+        await loadFeed({ silent: false });
+        schedulePoll();
       } catch (_) {
         document.getElementById('gate').style.display = 'block';
       }
@@ -878,9 +980,10 @@
       btn.textContent = tr('loading');
       try {
         await api(`/courier-portal/orders/${encodeURIComponent(selected.id)}/claim`, { method: 'POST', body: '{}' });
-        await loadFeed();
+        lastFeedFingerprint = '';
+        await loadFeed({ silent: true });
         const fresh = orders.find((x) => String(x.id) === String(selected.id));
-        if (fresh) openSheet(fresh);
+        if (fresh) openSheet(fresh, { redrawMap: true });
         else closeSheet();
       } catch (e) {
         err.textContent = e.message || tr('busy');
@@ -903,9 +1006,14 @@
 
     document.getElementById('logoutBtn').onclick = () => {
       localStorage.removeItem(LS);
-      if (pollTimer) clearInterval(pollTimer);
+      clearTimeout(pollTimer);
       location.href = '/';
     };
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) void loadFeed({ silent: true });
+      schedulePoll();
+    });
     document.getElementById('langUz').onclick = () => {
       lang = 'uz';
       localStorage.setItem(langKey, lang);

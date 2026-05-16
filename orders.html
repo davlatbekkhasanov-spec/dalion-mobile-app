@@ -396,6 +396,9 @@
       cursor: pointer;
       overflow: hidden;
       min-width: 0;
+      content-visibility: auto;
+      contain-intrinsic-size: auto 168px;
+      contain: layout style paint;
     }
     .ops-card::before {
       content: "";
@@ -792,9 +795,15 @@
     let orders = [];
     let courierApplications = [];
     let activeOrder = null;
-    let pollDelay = 2500;
+    const POLL_MS_VISIBLE = 6000;
+    const POLL_MS_HIDDEN = 25000;
+    let pollDelay = POLL_MS_VISIBLE;
     let pollTimer = null;
     let isRefreshing = false;
+    let lastColumnsFingerprint = '';
+    let lastStatsFingerprint = '';
+    let columnsRenderRaf = 0;
+    let courierStaffPollSkip = 0;
     const viewFilters = { today: false, payme: false, cash: false, active: false };
 
     const allowedTransitions = {
@@ -988,18 +997,47 @@
       const label = t('slaMins').replace('{n}', String(mins));
       return `<div class="sla-live sla ${tier}" data-created-ts="${ts}">${escapeHtml(label)}</div>`;
     }
-    function tickSlaLabels() {
+    function tickLiveLabels() {
       document.querySelectorAll('.sla-live[data-created-ts]').forEach((el) => {
         const ts = Number(el.dataset.createdTs);
         const { mins, tier } = slaTierFromCreated(ts);
         el.textContent = t('slaMins').replace('{n}', String(mins));
         el.className = `sla-live sla ${tier}`;
       });
+      document.querySelectorAll('[data-rel-ts]').forEach((el) => {
+        el.textContent = relTime(el.getAttribute('data-rel-ts'));
+      });
+    }
+    function buildStatsFingerprint(list) {
+      const arr = Array.isArray(list) ? list : [];
+      return arr
+        .map((o) => `${o.id}:${normalizeStatus(o.status)}:${o.total || 0}:${o.created_at || ''}`)
+        .sort()
+        .join('|');
+    }
+    function buildColumnsFingerprint() {
+      return getFilteredOrders()
+        .map(
+          (o) =>
+            `${o.id}:${normalizeStatus(o.status)}:${o.updated_at || ''}:${o.total || 0}:${o.courierName || ''}:${o.paymentStatus || ''}`
+        )
+        .sort()
+        .join('|');
+    }
+    function scheduleRenderColumns() {
+      if (columnsRenderRaf) return;
+      columnsRenderRaf = requestAnimationFrame(() => {
+        columnsRenderRaf = 0;
+        renderColumnsNow();
+      });
     }
     function renderStatsBar() {
       const el = document.getElementById('statsBar');
       if (!el) return;
       const list = Array.isArray(orders) ? orders : [];
+      const fp = buildStatsFingerprint(list);
+      if (fp === lastStatsFingerprint && el.innerHTML) return;
+      lastStatsFingerprint = fp;
       if (!list.length) {
         el.hidden = true;
         el.innerHTML = '';
@@ -1129,7 +1167,7 @@
       const bits = [];
       for (let i = 0; i < Math.min(2, arr.length); i += 1) {
         const u = String(arr[i].image_url || '').trim();
-        if (u) bits.push(`<img class="thumb" src="${escapeHtml(u)}" alt="" />`);
+        if (u) bits.push(`<img class="thumb" src="${escapeHtml(u)}" alt="" loading="lazy" decoding="async" />`);
         else bits.push('<span class="thumb" style="display:inline-grid;place-items:center;font-size:14px;">📦</span>');
       }
       const more = arr.length > 2 ? `<span class="thumb-more">+${arr.length - 2}</span>` : '';
@@ -1165,7 +1203,7 @@
       renderStatsBar();
       renderCourierStaffBar();
       renderFilterChips();
-      if (!activeOrder) renderColumns();
+      if (!activeOrder) scheduleRenderColumns();
       if (activeOrder) renderModal(activeOrder);
     }
     function getToken(){ return localStorage.getItem(tokenKey) || ''; }
@@ -1220,6 +1258,12 @@
     }
 
     function renderColumns() {
+      scheduleRenderColumns();
+    }
+    function renderColumnsNow() {
+      const fp = buildColumnsFingerprint();
+      if (fp === lastColumnsFingerprint) return;
+      lastColumnsFingerprint = fp;
       const base = getFilteredOrders();
       const grouped = statusGroups.map((group) => ({
         ...group,
@@ -1263,7 +1307,7 @@
               <article class="ops-card ${cardAccentClass(o.status)}" data-order-id="${id}">
                 <div class="ops-card__top">
                   <span class="ops-card__no">#${num}</span>
-                  <span class="ops-card__rel">${escapeHtml(relTime(o.created_at))}</span>
+                  <span class="ops-card__rel" data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span>
                   <span class="ops-card__sum">${escapeHtml(moneyFmt(o.total))}</span>
                 </div>
                 <div class="ops-card__who">
@@ -1465,8 +1509,9 @@
         orders = list || [];
         notifyFeedChanges(prev, orders);
         renderStatsBar();
-        await loadCourierStaff();
-        renderColumns();
+        courierStaffPollSkip += 1;
+        if (courierStaffPollSkip % 5 === 0) await loadCourierStaff();
+        scheduleRenderColumns();
         if (activeOrder) {
           const upd = orders.find((o) => o.id === activeOrder.id);
           if (upd) renderModal(upd);
@@ -1474,7 +1519,7 @@
         document.getElementById('online').textContent = t('online');
         document.getElementById('online').classList.remove('offline');
         document.getElementById('network').textContent = source === 'display-feed' ? '' : 'Display feed mavjud emas, admin feed ishlatilmoqda';
-        pollDelay = 2500;
+        pollDelay = document.hidden ? POLL_MS_HIDDEN : POLL_MS_VISIBLE;
       } catch (e) {
         document.getElementById('tokenRequired').style.display = token ? 'none' : 'block';
         document.getElementById('online').textContent = t('offline');
@@ -1612,7 +1657,12 @@
       setInterval(tick, 1000);
     })();
 
-    setInterval(tickSlaLabels, 30000);
+    setInterval(tickLiveLabels, 30000);
+
+    document.addEventListener('visibilitychange', () => {
+      pollDelay = document.hidden ? POLL_MS_HIDDEN : POLL_MS_VISIBLE;
+      if (!document.hidden) refresh({ silent: true });
+    });
 
     document.getElementById('filterChips').addEventListener('click', (e) => {
       const b = e.target.closest('[data-filter]');
@@ -1623,7 +1673,8 @@
       if (k === 'payme' && viewFilters.payme) viewFilters.cash = false;
       if (k === 'cash' && viewFilters.cash) viewFilters.payme = false;
       renderFilterChips();
-      renderColumns();
+      lastColumnsFingerprint = '';
+      scheduleRenderColumns();
     });
 
     document.getElementById('langUzBtn').onclick = () => { currentLang = 'uz'; localStorage.setItem(langKey, currentLang); applyLang(); };
