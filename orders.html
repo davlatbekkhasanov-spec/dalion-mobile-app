@@ -78,14 +78,33 @@
       border-radius: var(--radius);
       box-shadow: var(--shadow);
     }
-    .ops-bar-top {
+    .ops-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px 10px;
+      min-width: 0;
+    }
+    .ops-bar-row--head {
+      flex-wrap: nowrap;
+      justify-content: space-between;
+    }
+    .ops-bar-row--tools {
+      flex-wrap: nowrap;
+    }
+    .ops-brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+    .ops-head-status {
       display: flex;
       flex-wrap: nowrap;
       align-items: center;
-      gap: 10px 12px;
-      min-width: 0;
+      gap: 8px;
+      flex-shrink: 0;
     }
-    .ops-brand { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 0 1 auto; max-width: 28%; }
     .ops-brand strong { font-size: 15px; letter-spacing: 0.02em; }
     .ops-brand small { color: var(--muted); font-size: 12px; }
     .ops-clock {
@@ -103,27 +122,24 @@
       text-align: center;
       box-sizing: border-box;
     }
-    .ops-tools {
+    .ops-bar-row--tools .ops-tools {
       display: flex;
       flex-wrap: nowrap;
       gap: 8px;
       align-items: center;
-      flex: 1 1 auto;
+      flex: 1 1 100%;
+      width: 100%;
       min-width: 0;
-      justify-content: flex-end;
+      justify-content: flex-start;
       overflow-x: auto;
       overflow-y: hidden;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: thin;
+      padding-bottom: 2px;
     }
     .ops-tools > * { flex-shrink: 0; }
     #fullscreenBtn {
-      min-width: 8.75rem;
-      max-width: 8.75rem;
-      padding-left: 10px;
-      padding-right: 10px;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      min-width: 5.5rem;
       white-space: nowrap;
     }
     #saveTokenBtn {
@@ -204,6 +220,8 @@
       background: rgba(8, 18, 34, 0.72);
       padding: 10px 12px;
       box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+      min-height: 46px;
+      box-sizing: border-box;
     }
     .stats-bar[hidden] { display: none !important; }
     .courier-staff-bar {
@@ -212,8 +230,10 @@
       border-radius: var(--radius);
       background: linear-gradient(90deg, rgba(255, 193, 7, 0.1), rgba(8, 18, 34, 0.75));
       padding: 8px 10px;
+      min-height: 44px;
       max-height: 120px;
       overflow: auto;
+      box-sizing: border-box;
     }
     .courier-staff-bar[hidden] { display: none !important; }
     .cstaff-inner {
@@ -244,14 +264,22 @@
       font-weight: 600;
     }
     .stats-inner {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px 12px;
-      align-items: center;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      align-items: stretch;
+    }
+    @media (max-width: 1100px) {
+      .stats-inner {
+        grid-template-columns: repeat(5, minmax(128px, 1fr));
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
     }
     .stat-chip {
       display: inline-flex;
       align-items: baseline;
+      justify-content: center;
       gap: 6px;
       padding: 6px 11px;
       border-radius: 999px;
@@ -259,6 +287,10 @@
       background: rgba(5, 12, 24, 0.55);
       font-size: 12px;
       color: var(--muted2);
+      white-space: nowrap;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .stat-chip b {
       font-size: 14px;
@@ -704,32 +736,36 @@
 <body>
   <div class="wrap">
     <header class="ops-bar">
-      <div class="ops-bar-top">
+      <div class="ops-bar-row ops-bar-row--head">
         <div class="ops-brand">
-        <strong id="opsTitle">GlobusMarket · Ops</strong>
-        <small id="opsSubtitle">Buyurtmalar paneli</small>
+          <strong id="opsTitle">GlobusMarket · Ops</strong>
+          <small id="opsSubtitle">Buyurtmalar paneli</small>
+        </div>
+        <div class="ops-head-status">
+          <div class="ops-clock" id="clock" aria-live="polite">--:--:--</div>
+          <span id="online" class="badge">Online</span>
+          <span id="lastUpdated" class="sync-pill" title="">
+            <span id="lastUpdatedTime" class="sync-pill__time">--:--:--</span>
+            <span aria-hidden="true">·</span>
+            <span id="lastUpdatedInterval" class="sync-pill__interval">—</span>
+          </span>
+        </div>
       </div>
-      <div class="ops-clock" id="clock" aria-live="polite">--:--:--</div>
-      <div class="ops-tools">
+      <div class="ops-bar-row ops-bar-row--tools">
+        <div class="ops-tools">
         <button type="button" id="langUzBtn" class="btn-ghost">UZ</button>
         <button type="button" id="langRuBtn" class="btn-ghost">RU</button>
         <span class="sound-tools" title="">
           <button type="button" id="soundToggle" class="chip" aria-pressed="true">🔔</button>
           <input type="range" id="soundVolume" min="0" max="200" step="1" value="200" aria-label="" />
         </span>
-        <button type="button" id="fullscreenBtn" class="primary">To‘liq ekran</button>
+        <button type="button" id="fullscreenBtn" class="primary">Ekran</button>
         <div class="token-input-wrap">
           <input id="tokenInput" type="password" placeholder="ADMIN_IMPORT_TOKEN" autocomplete="off" spellcheck="false" autocapitalize="off" />
           <button type="button" id="tokenRevealBtn" class="btn-ghost" aria-pressed="false" aria-label="">👁</button>
         </div>
         <button type="button" id="saveTokenBtn">Token saqlash</button>
-        <span id="online" class="badge">Online</span>
-          <span id="lastUpdated" class="sync-pill" title="">
-            <span id="lastUpdatedTime" class="sync-pill__time">--:--:--</span>
-            <span aria-hidden="true">·</span>
-            <span id="lastUpdatedInterval" class="sync-pill__interval">—</span>
-          </span>
-      </div>
+        </div>
       </div>
       <div class="chip-row" id="filterChips" aria-label="Filters"></div>
       <p id="network" class="ops-network"></p>
@@ -804,6 +840,7 @@
         relHour: '{n} soat',
         relDay: '{n} kun',
         fullscreen: "To'liq ekran",
+        fullscreenShort: 'Ekran',
         saveToken: 'Token saqlash',
         tokenShow: 'Tokenni ko‘rsatish',
         tokenHide: 'Tokenni yashirish',
@@ -852,6 +889,7 @@
         relHour: '{n} ч',
         relDay: '{n} дн',
         fullscreen: 'Полный экран',
+        fullscreenShort: 'Экран',
         saveToken: 'Сохранить токен',
         tokenShow: 'Показать токен',
         tokenHide: 'Скрыть токен',
