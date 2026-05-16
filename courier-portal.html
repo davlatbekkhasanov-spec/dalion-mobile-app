@@ -303,6 +303,15 @@
       color: var(--muted);
     }
     .kpi b { display: block; color: var(--gold); font-size: 15px; margin-top: 4px; }
+    .sheet-actions {
+      position: sticky;
+      bottom: 0;
+      z-index: 2;
+      margin: 12px -14px 0;
+      padding: 12px 14px calc(8px + env(safe-area-inset-bottom));
+      background: linear-gradient(180deg, rgba(14, 14, 14, 0) 0%, #0e0e0e 28%);
+      border-top: 1px solid var(--line);
+    }
     .fab-logout {
       position: fixed;
       right: 14px;
@@ -375,9 +384,11 @@
       </div>
       <p class="muted" id="dAddr"></p>
       <p class="muted" id="dItems"></p>
-      <div class="actions">
-        <button type="button" class="main" id="claimBtn">Qabul qilish</button>
-        <a class="btn-link" id="openCourierBtn" href="#" target="_blank" rel="noopener" style="display:none;">Kuryer sahifasi</a>
+      <div class="sheet-actions">
+        <div class="actions">
+          <button type="button" class="main" id="claimBtn">Qabul qilish</button>
+          <a class="btn-link main" id="openCourierBtn" href="#" rel="noopener" style="display:none;">Kuryer sahifasi</a>
+        </div>
       </div>
       <p class="err" id="sheetErr" style="display:none;"></p>
     </div>
@@ -397,6 +408,7 @@
     let yStart = null;
     let yEnd = null;
     let ymapsReadyPromise = null;
+    let sheetPrimaryAction = 'none';
 
     const STORE = { lat: 39.654572, lng: 66.958871 };
     const T = {
@@ -414,7 +426,9 @@
         gate: 'Havola yaroqsiz. Marketplace profilidan qayta ariza yuboring.',
         shop: 'Bosh sahifa',
         claim: 'O‘zimga biriktirish',
+        startDelivery: 'Yo‘lga chiqish (buyurtmani qabul qilish)',
         courierPage: 'Kuryer sahifasi (QR)',
+        courierPageShort: 'Kuryer sahifasi',
         dist: 'Masofa',
         eta: 'Taxminiy vaqt',
         km: 'km',
@@ -437,7 +451,9 @@
         gate: 'Ссылка недействительна. Подайте заявку снова из профиля.',
         shop: 'На главную',
         claim: 'Забрать себе',
+        startDelivery: 'Выехать (принять заказ)',
         courierPage: 'Страница курьера (QR)',
+        courierPageShort: 'Страница курьера',
         dist: 'Дистанция',
         eta: 'Время',
         km: 'км',
@@ -460,6 +476,29 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
     }
+    function normPortalStatus(s) {
+      const aliases = {
+        new: 'created',
+        sent_to_tsd: 'preparing',
+        picking: 'preparing',
+        picked: 'ready_for_courier',
+        waiting_courier: 'ready_for_courier'
+      };
+      const r = String(s || '')
+        .trim()
+        .toLowerCase()
+        .replace(/-/g, '_')
+        .replace(/\s+/g, '_');
+      return aliases[r] || r;
+    }
+    function phonesMatch(a, b) {
+      const da = String(a || '').replace(/\D/g, '').slice(-9);
+      const db = String(b || '').replace(/\D/g, '').slice(-9);
+      if (da.length >= 9 && db.length >= 9 && da === db) return true;
+      const na = String(a || '').trim();
+      const nb = String(b || '').trim();
+      return Boolean(na && nb && na === nb);
+    }
     function statusLabel(st) {
       const m = {
         ready_for_courier: lang === 'ru' ? 'Курьер ожидается' : 'Kuryer kutilmoqda',
@@ -468,12 +507,13 @@
       };
       return m[st] || st;
     }
+    function isMine(o) {
+      if (!profile || !o) return false;
+      if (o.portalMine === true) return true;
+      return phonesMatch(o.courierPhone, profile.phone);
+    }
     function mineByPhone(o) {
-      return Boolean(
-        profile &&
-          String(o.courierPhone || '').trim() &&
-          String(o.courierPhone).trim() === String(profile.phone || '').trim()
-      );
+      return isMine(o) && Boolean(String(o.courierPhone || '').trim());
     }
 
     async function loadRouteHint() {
@@ -578,8 +618,8 @@
         return;
       }
       const sorted = [...orders].sort((a, b) => {
-        const ma = mineByPhone(a);
-        const mb = mineByPhone(b);
+        const ma = isMine(a);
+        const mb = isMine(b);
         if (ma && !mb) return -1;
         if (!ma && mb) return 1;
         if (ma && mb) {
@@ -594,7 +634,8 @@
       el.innerHTML = sorted
         .map((o) => {
           const addr = [o.addressText, o.customerAddress, o.location].map((x) => String(x || '').trim()).find(Boolean) || '—';
-          const mine = mineByPhone(o);
+          const mine = isMine(o);
+          const st = normPortalStatus(o.status);
           const stopPill =
             mine && o.courierStopSeq != null && Number(o.courierStopSeq) > 0
               ? `<span class="pill" title="${esc(tr('routePill'))}">${esc(String(o.courierStopSeq))}</span>`
@@ -605,7 +646,7 @@
                 <b>#${esc(o.orderNumber || o.id)}</b>
                 <span class="row1-meta">
                   ${stopPill}
-                  <span class="pill">${esc(statusLabel(o.status))}</span>
+                  <span class="pill">${esc(statusLabel(st))}</span>
                 </span>
               </div>
               <div class="addr">${esc(addr)}</div>
@@ -726,10 +767,11 @@
 
     function openSheet(o) {
       selected = o;
+      const st = normPortalStatus(o.status);
       document.getElementById('dTitle').textContent = `#${o.orderNumber || o.id}`;
-      document.getElementById('dStatus').textContent = statusLabel(o.status);
+      document.getElementById('dStatus').textContent = statusLabel(st);
       const routeEl = document.getElementById('dRouteStop');
-      if (mineByPhone(o) && o.courierStopSeq != null && Number(o.courierStopSeq) > 0) {
+      if (isMine(o) && o.courierStopSeq != null && Number(o.courierStopSeq) > 0) {
         routeEl.textContent = `${tr('routePill')} ${o.courierStopSeq}`;
         routeEl.style.display = 'inline-block';
       } else {
@@ -746,21 +788,38 @@
       document.getElementById('dDist').textContent = '…';
       document.getElementById('dEta').textContent = '…';
 
-      const mine = mineByPhone(o);
-      const canClaim = o.status === 'ready_for_courier' && !String(o.courierPhone || '').trim();
+      const mine = isMine(o);
+      const canClaim = st === 'ready_for_courier' && !String(o.courierPhone || '').trim();
+      const ct = String(o.courierToken || '').trim();
+      const canStart =
+        mine && ct && (st === 'courier_assigned' || st === 'out_for_delivery');
       const claimBtn = document.getElementById('claimBtn');
       const openBtn = document.getElementById('openCourierBtn');
-      claimBtn.style.display = canClaim ? 'block' : 'none';
+      const errEl = document.getElementById('sheetErr');
+      sheetPrimaryAction = 'none';
+      claimBtn.style.display = 'none';
+      openBtn.style.display = 'none';
+      openBtn.href = '#';
       claimBtn.disabled = false;
-      const ct = String(o.courierToken || '').trim();
-      if ((o.status === 'courier_assigned' || o.status === 'out_for_delivery') && mine && ct) {
+      errEl.style.display = 'none';
+      errEl.textContent = '';
+      if (canClaim) {
+        sheetPrimaryAction = 'claim';
+        claimBtn.style.display = 'block';
+        claimBtn.textContent = tr('claim');
+      } else if (canStart) {
+        sheetPrimaryAction = 'start';
+        const href = `${location.origin}/courier/${encodeURIComponent(ct)}`;
+        claimBtn.style.display = 'block';
+        claimBtn.textContent =
+          st === 'out_for_delivery' ? tr('courierPageShort') : tr('startDelivery');
         openBtn.style.display = 'block';
-        openBtn.href = `${location.origin}/courier/${encodeURIComponent(ct)}`;
-      } else {
-        openBtn.style.display = 'none';
-        openBtn.href = '#';
+        openBtn.href = href;
+        openBtn.textContent = tr('courierPageShort');
+      } else if (st === 'ready_for_courier' && String(o.courierPhone || '').trim() && !mine) {
+        errEl.textContent = tr('busy');
+        errEl.style.display = 'block';
       }
-      document.getElementById('sheetErr').style.display = 'none';
 
       document.getElementById('backdrop').classList.add('on');
       document.getElementById('sheet').classList.add('on');
@@ -806,6 +865,12 @@
     document.getElementById('backdrop').onclick = closeSheet;
     document.getElementById('claimBtn').onclick = async () => {
       if (!selected) return;
+      if (sheetPrimaryAction === 'start') {
+        const ct = String(selected.courierToken || '').trim();
+        if (ct) location.href = `${location.origin}/courier/${encodeURIComponent(ct)}`;
+        return;
+      }
+      if (sheetPrimaryAction !== 'claim') return;
       const btn = document.getElementById('claimBtn');
       const err = document.getElementById('sheetErr');
       err.style.display = 'none';
@@ -824,6 +889,16 @@
         btn.disabled = false;
         btn.textContent = tr('claim');
       }
+    };
+
+    document.getElementById('openCourierBtn').onclick = (e) => {
+      const href = document.getElementById('openCourierBtn').getAttribute('href');
+      if (!href || href === '#') {
+        e.preventDefault();
+        return;
+      }
+      e.preventDefault();
+      location.href = href;
     };
 
     document.getElementById('logoutBtn').onclick = () => {

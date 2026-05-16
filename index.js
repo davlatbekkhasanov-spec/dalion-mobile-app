@@ -148,26 +148,7 @@ function randomId(prefix = 'id') {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function normalizeSmsPhone(input) {
-  const digits = String(input || '').replace(/\D/g, '');
-  if (!digits) return '';
-  let nine = '';
-  if (digits.length >= 12 && digits.startsWith('998')) {
-    nine = digits.slice(-9);
-  } else if (digits.length === 9) {
-    nine = digits;
-  } else if (digits.length > 9) {
-    nine = digits.slice(-9);
-  }
-  if (/^[1-9]\d{8}$/.test(nine)) return `+998${nine}`;
-  return '';
-}
-
-function normalizePhone(phone) {
-  const uz = normalizeSmsPhone(phone);
-  if (uz) return uz;
-  return String(phone || '').trim();
-}
+const { normalizeSmsPhone, normalizePhone, phonesEqual } = require('./src/phone');
 
 function isEphemeralUploadUrl(url) {
   const raw = String(url || '').trim();
@@ -1546,7 +1527,22 @@ app.get('/api/v1/courier-portal/feed', async (req, res) => {
     return res.status(403).json({ ok: false, message: 'Ariza tasdiqlanmagan' });
   }
   const orders = await marketplaceRepo.listCourierPortalOrders();
-  return res.json({ ok: true, orders: orders.map(orderPublic) });
+  const courierPhone = normalizePhone(row.phone);
+  const enriched = [];
+  for (const o of orders) {
+    const portalMine = phonesEqual(o.courierPhone, courierPhone);
+    let courierToken = o.courierToken;
+    if (
+      portalMine &&
+      !courierToken &&
+      ['courier_assigned', 'out_for_delivery'].includes(normalizeOrderStatus(o.status))
+    ) {
+      courierToken = await marketplaceRepo.ensureOrderCourierToken(o.id);
+      if (courierToken) o.courierToken = courierToken;
+    }
+    enriched.push({ ...orderPublic(o), portalMine });
+  }
+  return res.json({ ok: true, orders: enriched });
 });
 
 app.get('/api/v1/courier-portal/my-route', async (req, res) => {

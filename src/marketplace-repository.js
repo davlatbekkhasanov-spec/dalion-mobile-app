@@ -1323,6 +1323,8 @@ async function claimOrderByCourierPortalToken({ orderId, accessToken }) {
       });
       const nextSeq = (maxAgg._max.courierStopSeq || 0) + 1;
 
+      const courierToken =
+        target.courierToken || `crt_${crypto.randomBytes(6).toString('hex')}`;
       const updated = await tx.order.update({
         where: { id, status: 'ready_for_courier', courierPhone: '' },
         data: {
@@ -1332,6 +1334,7 @@ async function claimOrderByCourierPortalToken({ orderId, accessToken }) {
           deliveryStatus: 'courier_assigned',
           courierRunId: runId,
           courierStopSeq: nextSeq,
+          courierToken,
           updatedAt: new Date()
         },
         include: { items: true }
@@ -1589,6 +1592,25 @@ async function listCourierApplicationsAdmin() {
   });
 }
 
+async function ensureOrderCourierToken(orderId) {
+  const id = String(orderId || '').trim();
+  if (!id) return null;
+  const row = await prisma.order.findUnique({
+    where: { id },
+    select: { courierToken: true }
+  });
+  if (!row) return null;
+  if (row.courierToken) return String(row.courierToken);
+  const crypto = require('crypto');
+  const courierToken = `crt_${crypto.randomBytes(6).toString('hex')}`;
+  const next = await prisma.order.update({
+    where: { id },
+    data: { courierToken },
+    select: { courierToken: true }
+  });
+  return next.courierToken ? String(next.courierToken) : courierToken;
+}
+
 module.exports = {
   APP_ID,
   ensureAppState,
@@ -1621,6 +1643,7 @@ module.exports = {
   getCourierApplicationByAccessToken,
   listCourierPortalOrders,
   claimOrderByCourierPortalToken,
+  ensureOrderCourierToken,
   listCourierRouteOrders,
   listCourierRouteSliceByCourierToken,
   repackCourierRunStopsAfterDelivery,
