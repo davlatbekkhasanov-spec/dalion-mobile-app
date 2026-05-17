@@ -8,12 +8,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
   <style>
+    /* Ops board: Stripe/Linear-style density — equal pipeline cols, clamp() scale, compact chrome */
     :root {
       --bg: #040a12;
       --bg2: #0a1628;
       --card: #0d1b31;
-      --line: rgba(90, 140, 210, 0.32);
-      --line-strong: rgba(120, 180, 255, 0.45);
+      --line: rgba(90, 140, 210, 0.28);
+      --line-strong: rgba(120, 180, 255, 0.38);
       --txt: #f4f9ff;
       --muted: #8aa3c8;
       --muted2: #c5d8f2;
@@ -28,11 +29,19 @@
       --st-out: #2ef0a8;
       --st-done: #6b8cff;
       --st-cancel: #ff6b7a;
-      --shadow: 0 22px 60px rgba(0, 0, 0, 0.5);
-      --shadow-card: 0 10px 28px rgba(0, 0, 0, 0.35);
-      --radius: 18px;
-      --radius-sm: 12px;
+      --shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+      --shadow-card: 0 4px 14px rgba(0, 0, 0, 0.22);
+      --radius: 16px;
+      --radius-sm: 10px;
       --glass: rgba(12, 24, 44, 0.72);
+      --space: 8px;
+      --font-xs: clamp(11px, 0.68rem + 0.15vw, 12px);
+      --font-sm: clamp(12px, 0.74rem + 0.2vw, 14px);
+      --font-md: clamp(14px, 0.82rem + 0.25vw, 16px);
+      --font-lg: clamp(16px, 0.92rem + 0.35vw, 20px);
+      --col-min: clamp(280px, 24vw, 320px);
+      --col-rail: 48px;
+      --header-compact-max: 120px;
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
@@ -75,10 +84,10 @@
     .wrap {
       flex: 1 1 0%;
       min-height: 0;
-      padding: 12px 14px 14px;
+      padding: var(--space) clamp(10px, 2vw, 14px);
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: var(--space);
       box-sizing: border-box;
       overflow: hidden;
     }
@@ -86,14 +95,18 @@
       display: flex;
       flex-direction: column;
       align-items: stretch;
-      gap: 8px;
-      padding: 12px 14px;
+      gap: var(--space);
+      padding: clamp(8px, 1.2vw, 12px) clamp(10px, 1.5vw, 14px);
       flex-shrink: 0;
       background: linear-gradient(180deg, rgba(18, 36, 64, 0.94), rgba(8, 18, 34, 0.9));
       border: 1px solid var(--line-strong);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       backdrop-filter: blur(12px);
+    }
+    body.viewport-compact .ops-bar {
+      max-height: var(--header-compact-max);
+      overflow: hidden;
     }
     .ops-bar-row {
       display: flex;
@@ -122,12 +135,13 @@
       gap: 8px;
       flex-shrink: 0;
     }
-    .ops-brand strong { font-size: 15px; letter-spacing: 0.02em; }
-    .ops-brand small { color: var(--muted); font-size: 12px; }
+    .ops-brand strong { font-size: var(--font-md); letter-spacing: 0.02em; }
+    .ops-brand small { color: var(--muted); font-size: var(--font-xs); }
+    body.viewport-compact .ops-brand small { display: none; }
     .ops-clock {
       font-variant-numeric: tabular-nums;
       font-weight: 700;
-      font-size: 22px;
+      font-size: clamp(16px, 1.1rem + 0.5vw, 22px);
       letter-spacing: 0.04em;
       padding: 6px 10px;
       border-radius: 12px;
@@ -166,6 +180,17 @@
     #saveTokenBtn {
       min-width: 6.75rem;
       white-space: nowrap;
+    }
+    @media (max-width: 899px) {
+      #tokenToolsInline,
+      #saveTokenBtn { display: none !important; }
+      .ops-bar-row--tools .chip:not(#focusModeBtn):not(#courierBarToggle) { padding: 8px 10px; font-size: var(--font-xs); }
+      #fullscreenBtn, #settingsBtn, #langUzBtn, #langRuBtn, #soundToggle {
+        min-width: 2.5rem;
+        width: 2.5rem;
+        padding: 8px;
+      }
+      .sound-tools input[type="range"]#soundVolume { width: 64px; }
     }
     #langUzBtn, #langRuBtn {
       min-width: 2.75rem;
@@ -257,6 +282,11 @@
       box-sizing: border-box;
     }
     .courier-staff-bar[hidden] { display: none !important; }
+    body:not(.courier-bar-open) .courier-staff-bar.courier-collapsible {
+      display: none !important;
+    }
+    #courierBarToggle { display: none; }
+    #courierBarToggle.is-visible { display: inline-flex; }
     .cstaff-inner {
       display: flex;
       flex-wrap: wrap;
@@ -433,52 +463,66 @@
     }
     .grid {
       display: grid;
-      grid-template-columns:
-        minmax(236px, 0.85fr)
-        minmax(320px, 1.52fr)
-        minmax(284px, 1.18fr)
-        minmax(264px, 1.06fr)
-        minmax(200px, 0.72fr)
-        minmax(188px, 0.62fr);
       grid-template-rows: minmax(0, 1fr);
-      gap: 12px;
+      gap: var(--space);
       flex: 1 1 0%;
       min-height: 0;
+      overflow: hidden;
+      align-content: stretch;
+    }
+    .grid[data-board-mode="mobile"],
+    .grid[data-board-mode="tablet"] {
+      grid-auto-flow: column;
       overflow-x: auto;
       overflow-y: hidden;
-      scroll-snap-type: x proximity;
-      padding-bottom: 4px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
       scrollbar-color: rgba(120, 160, 220, 0.35) transparent;
+      padding-bottom: 4px;
+    }
+    .grid[data-board-mode="mobile"] {
+      grid-auto-columns: min(100%, 100vw - 28px);
+    }
+    .grid[data-board-mode="tablet"] {
+      grid-auto-columns: minmax(var(--col-min), 1fr);
+    }
+    .grid[data-board-mode="desktop"] {
+      overflow-x: hidden;
     }
     .grid.is-loading { pointer-events: none; }
     .col {
       --col-accent: var(--acc2);
-      scroll-snap-align: start;
-      background: linear-gradient(180deg, rgba(20, 38, 66, 0.96), rgba(8, 18, 34, 0.94));
-      backdrop-filter: blur(8px);
+      scroll-snap-align: center;
+      scroll-snap-stop: always;
+      background: rgba(12, 24, 44, 0.92);
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      padding: 0 10px 12px;
+      padding: 0 clamp(8px, 1vw, 10px) var(--space);
       display: flex;
       flex-direction: column;
       align-self: stretch;
       min-height: 0;
       height: 100%;
       min-width: 0;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+      box-shadow: var(--shadow-card);
       position: relative;
       overflow: hidden;
+    }
+    .grid[data-board-mode="mobile"] .col:not(.col--collapsed) {
+      width: 100%;
+      max-width: 100%;
     }
     .col::before {
       content: "";
       position: absolute;
       left: 0;
-      right: 0;
       top: 0;
-      height: 3px;
-      background: linear-gradient(90deg, var(--col-accent), transparent 85%);
-      opacity: 0.95;
+      bottom: 0;
+      width: 3px;
+      background: var(--col-accent);
+      opacity: 0.88;
       pointer-events: none;
+      border-radius: 3px 0 0 3px;
     }
     .col[data-col="new"] { --col-accent: var(--st-new); }
     .col[data-col="preparing"] { --col-accent: var(--st-work); }
@@ -487,8 +531,7 @@
     .col[data-col="delivered"] { --col-accent: var(--st-done); }
     .col[data-col="cancelled"] { --col-accent: var(--st-cancel); }
     .col--busy {
-      border-color: color-mix(in srgb, var(--col-accent) 42%, var(--line));
-      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.32), inset 0 1px 0 color-mix(in srgb, var(--col-accent) 18%, transparent);
+      border-color: color-mix(in srgb, var(--col-accent) 32%, var(--line));
     }
     .col--preparing.col--busy .list { scrollbar-color: color-mix(in srgb, var(--st-work) 55%, transparent) transparent; }
     .token-input-wrap {
@@ -552,17 +595,16 @@
     }
     .col-head h3 {
       margin: 0;
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: 0.06em;
+      font-size: var(--font-xs);
+      font-weight: 700;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--txt);
+      color: var(--muted2);
       flex: 1 1 auto;
       min-width: 0;
       overflow-wrap: anywhere;
       line-height: 1.3;
     }
-    .col--preparing .col-head h3 { font-size: 12px; letter-spacing: 0.04em; }
     .count-pill {
       font-size: 12px;
       font-weight: 800;
@@ -634,19 +676,19 @@
     .ops-card {
       position: relative;
       border: 1px solid var(--line);
-      background: linear-gradient(165deg, rgba(16, 32, 58, 0.98), rgba(8, 16, 32, 0.98));
-      border-radius: 16px;
-      padding: 12px 12px 12px 15px;
+      background: rgba(14, 28, 50, 0.96);
+      border-radius: var(--radius-sm);
+      padding: var(--space) var(--space) var(--space) calc(var(--space) + 4px);
       cursor: pointer;
-      overflow: hidden;
+      overflow: visible;
       min-width: 0;
+      min-height: 0;
       box-shadow: var(--shadow-card);
-      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
     .ops-card:hover {
-      transform: translateY(-2px);
       border-color: var(--line-strong);
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.42);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
     }
     .ops-card::before {
       content: "";
@@ -666,33 +708,50 @@
     .ops-card.accent-cancel::before { background: var(--st-cancel); }
     .ops-card__hero {
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: var(--space);
+    }
+    .ops-card__toprow {
+      display: flex;
       align-items: baseline;
       justify-content: space-between;
-      gap: 4px 10px;
-      margin-bottom: 10px;
+      gap: var(--space);
+      min-width: 0;
     }
     .ops-card__no {
-      font-size: 20px;
+      font-size: var(--font-lg);
       font-weight: 800;
       letter-spacing: 0.03em;
-      line-height: 1.1;
+      line-height: 1.15;
       flex-shrink: 0;
     }
     .ops-card__sum {
-      font-size: 17px;
+      font-size: var(--font-md);
       font-weight: 800;
       color: #fff;
       font-variant-numeric: tabular-nums;
       margin-left: auto;
       flex-shrink: 0;
+      text-align: right;
+      max-width: 58%;
+      overflow-wrap: anywhere;
+    }
+    .ops-card__subrow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
     }
     .ops-card__rel {
-      width: 100%;
-      font-size: 11px;
+      font-size: var(--font-xs);
       font-weight: 600;
       color: var(--muted);
       letter-spacing: 0.02em;
+    }
+    .ops-card__sla {
+      margin: 0;
     }
     .ops-card__customer {
       display: flex;
@@ -702,7 +761,7 @@
       margin-bottom: 6px;
     }
     .ops-card__customer b {
-      font-size: 15px;
+      font-size: var(--font-sm);
       font-weight: 700;
       min-width: 0;
       max-width: 100%;
@@ -729,7 +788,7 @@
     .ops-card__pin { flex-shrink: 0; opacity: 0.85; line-height: 1.45; }
     .ops-card__addr-txt {
       color: var(--muted2);
-      font-size: 12px;
+      font-size: var(--font-xs);
       line-height: 1.45;
       min-width: 0;
       white-space: normal;
@@ -760,11 +819,12 @@
       white-space: nowrap;
     }
     .col--collapsed {
-      min-width: 0 !important;
-      width: 56px !important;
-      max-width: 56px;
-      padding: 8px 6px;
+      min-width: var(--col-rail) !important;
+      width: var(--col-rail) !important;
+      max-width: var(--col-rail);
+      padding: var(--space) 4px;
       align-self: stretch;
+      scroll-snap-align: start;
     }
     .col-collapsed-btn {
       flex: 1;
@@ -967,18 +1027,31 @@
       opacity: 0.45;
       cursor: not-allowed;
     }
-    @media (max-width: 1100px) {
-      .grid {
-        grid-auto-flow: column;
-        grid-auto-columns: max-content;
-        grid-template-columns: unset !important;
-      }
-      .col { width: min(88vw, 300px); }
-      .col[data-col="preparing"] { width: min(94vw, 352px); }
-      .col[data-col="ready"] { width: min(92vw, 324px); }
-      .col[data-col="out_for_delivery"] { width: min(90vw, 312px); }
-      .col[data-col="delivered"],
-      .col[data-col="cancelled"] { width: min(82vw, 252px); }
+    body.viewport-compact .stats-bar {
+      padding: 6px 8px;
+      min-height: 0;
+    }
+    body.viewport-compact .stats-inner {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 6px;
+      grid-template-columns: unset;
+      -webkit-overflow-scrolling: touch;
+    }
+    body.viewport-compact .stat-chip {
+      flex: 0 0 auto;
+      min-width: 5.5rem;
+    }
+    @media (min-width: 1600px) {
+      .ops-card__no { font-size: clamp(18px, 1.1rem + 0.4vw, 22px); }
+      .ops-card__sum { font-size: clamp(15px, 0.95rem + 0.35vw, 18px); }
+      .ops-card__customer b { font-size: var(--font-md); }
+      .ops-card__addr-txt { font-size: var(--font-sm); }
+    }
+    @media (min-width: 1920px) {
+      .grid[data-board-mode="desktop"] { gap: 10px; }
+      :root { --col-min: clamp(300px, 16vw, 360px); }
     }
     /* —— Focus mode —— */
     body.mode-focus .wrap { gap: 6px; }
@@ -1038,6 +1111,7 @@
           <button type="button" id="soundToggle" class="chip" aria-pressed="true">🔔</button>
           <input type="range" id="soundVolume" min="0" max="200" step="1" value="200" aria-label="" />
         </span>
+        <button type="button" id="courierBarToggle" class="chip" aria-pressed="false" hidden>Kuryer</button>
         <button type="button" id="focusModeBtn" class="chip" aria-pressed="false">Focus</button>
         <button type="button" id="fullscreenBtn" class="primary" aria-label="To‘liq ekran">⛶</button>
         <button type="button" id="settingsBtn" class="btn-ghost" aria-label="">⚙</button>
@@ -1176,7 +1250,9 @@
         settingsTitle: 'Sozlamalar',
         settingsHint: 'Admin token va boshqa sozlamalar.',
         colStaleHint: '{n} ta 20+ daq',
-        colExpandTitle: 'Ustunni ochish'
+        colExpandTitle: 'Ustunni ochish',
+        courierBarShow: 'Kuryerlar',
+        courierBarHide: 'Kuryerlar ✓'
       },
       ru: {
         opsTitle: 'GlobusMarket · Ops',
@@ -1238,7 +1314,9 @@
         settingsTitle: 'Настройки',
         settingsHint: 'Токен администратора и прочие параметры.',
         colStaleHint: '{n} × 20+ мин',
-        colExpandTitle: 'Развернуть колонку'
+        colExpandTitle: 'Развернуть колонку',
+        courierBarShow: 'Курьеры',
+        courierBarHide: 'Курьеры ✓'
       }
     };
     function t(key) {
@@ -1251,13 +1329,25 @@
       mapsUrl: 'https://maps.google.com/maps?q=39.654572,66.958871&ll=39.654572,66.958871&z=16'
     };
     const COLLAPSIBLE_EMPTY_COLS = new Set(['delivered', 'cancelled']);
+    const PIPELINE_COL_KEYS = new Set(['new', 'preparing', 'ready', 'out_for_delivery']);
+    const BOARD_BP = {
+      mobile: '(max-width: 767px)',
+      tablet: '(min-width: 768px) and (max-width: 1200px)',
+      desktop: '(min-width: 1201px)',
+      compact: '(max-width: 899px)'
+    };
+    function getBoardMode() {
+      if (window.matchMedia(BOARD_BP.mobile).matches) return 'mobile';
+      if (window.matchMedia(BOARD_BP.tablet).matches) return 'tablet';
+      return 'desktop';
+    }
     const statusGroups = [
-      { key: 'new', labelKey: 'colNew', colIcon: '✦', statuses: ['created', 'payment_pending', 'payment_confirmed'], boardWeight: 0.85, boardMin: 236 },
-      { key: 'preparing', labelKey: 'colPreparing', colIcon: '◈', statuses: ['preparing'], boardWeight: 1.52, boardMin: 320 },
-      { key: 'ready', labelKey: 'colReady', colIcon: '◉', statuses: ['ready_for_courier', 'courier_assigned'], boardWeight: 1.18, boardMin: 284 },
-      { key: 'out_for_delivery', labelKey: 'colOut', colIcon: '→', statuses: ['out_for_delivery'], boardWeight: 1.06, boardMin: 264 },
-      { key: 'delivered', labelKey: 'colDone', colIcon: '✓', statuses: ['delivered'], boardWeight: 0.72, boardMin: 200 },
-      { key: 'cancelled', labelKey: 'colCancelled', colIcon: '✕', statuses: ['cancelled'], boardWeight: 0.62, boardMin: 188 }
+      { key: 'new', labelKey: 'colNew', colIcon: '✦', statuses: ['created', 'payment_pending', 'payment_confirmed'] },
+      { key: 'preparing', labelKey: 'colPreparing', colIcon: '◈', statuses: ['preparing'] },
+      { key: 'ready', labelKey: 'colReady', colIcon: '◉', statuses: ['ready_for_courier', 'courier_assigned'] },
+      { key: 'out_for_delivery', labelKey: 'colOut', colIcon: '→', statuses: ['out_for_delivery'] },
+      { key: 'delivered', labelKey: 'colDone', colIcon: '✓', statuses: ['delivered'] },
+      { key: 'cancelled', labelKey: 'colCancelled', colIcon: '✕', statuses: ['cancelled'] }
     ];
     const focusModeKey = 'gm_ops_focus';
     const expandedColsKey = 'gm_ops_expanded_cols';
@@ -1304,6 +1394,12 @@
         return Number.isFinite(ts) && Date.now() - ts > 20 * 60000;
       }).length;
     }
+    function resolveFocusMode() {
+      const compact = window.matchMedia(BOARD_BP.compact).matches;
+      const saved = localStorage.getItem(focusModeKey);
+      if (compact) return saved !== '0';
+      return saved === '1';
+    }
     function setFocusMode(on) {
       document.body.classList.toggle('mode-focus', on);
       localStorage.setItem(focusModeKey, on ? '1' : '0');
@@ -1313,6 +1409,27 @@
         btn.setAttribute('aria-pressed', on ? 'true' : 'false');
         btn.textContent = on ? t('focusOn') : t('focusOff');
       }
+    }
+    function syncCourierBarToggle() {
+      const toggle = document.getElementById('courierBarToggle');
+      const bar = document.getElementById('courierStaffBar');
+      if (!toggle || !bar) return;
+      const compact = window.matchMedia(BOARD_BP.compact).matches;
+      const visible = compact && !bar.hidden && bar.textContent.trim().length > 0;
+      toggle.hidden = !visible;
+      toggle.classList.toggle('is-visible', visible);
+      const open = document.body.classList.contains('courier-bar-open');
+      toggle.classList.toggle('on', open);
+      toggle.setAttribute('aria-pressed', open ? 'true' : 'false');
+      toggle.textContent = open ? t('courierBarHide') : t('courierBarShow');
+    }
+    function syncViewportChrome() {
+      const compact = window.matchMedia(BOARD_BP.compact).matches;
+      document.body.classList.toggle('viewport-compact', compact);
+      const bar = document.getElementById('courierStaffBar');
+      if (bar) bar.classList.toggle('courier-collapsible', compact);
+      if (!compact) document.body.classList.add('courier-bar-open');
+      syncCourierBarToggle();
     }
     function syncSettingsTokenFields() {
       const tok = getToken();
@@ -1629,18 +1746,18 @@
         }
         const label = formatSlaLabel(mins);
         if (!slaEl) {
-          const footHost = card.querySelector('.ops-card__foot');
-          if (!footHost) return;
+          const subrow = card.querySelector('.ops-card__subrow');
+          if (!subrow) return;
           const div = document.createElement('div');
-          div.className = `sla-live sla ${tier}`;
+          div.className = `sla-live sla ops-card__sla ${tier}`;
           div.dataset.createdTs = String(ts);
           div.textContent = label;
-          footHost.insertAdjacentElement('beforebegin', div);
+          subrow.appendChild(div);
           slaEl = div;
         }
         slaEl.dataset.createdTs = String(ts);
         slaEl.textContent = label;
-        slaEl.className = `sla-live sla ${tier}`;
+        slaEl.className = `sla-live sla ops-card__sla ${tier}`;
       });
     }
     function scheduleRenderColumns() {
@@ -1685,6 +1802,7 @@
       if (!tok) {
         el.hidden = true;
         el.innerHTML = '';
+        syncCourierBarToggle();
         return;
       }
       const list = Array.isArray(courierApplications) ? courierApplications : [];
@@ -1700,6 +1818,7 @@
       el.innerHTML = `<div class="cstaff-inner"><span class="cstaff-label">${escapeHtml(
         t('courierStaffTitle')
       )}</span>${chips || `<span class="muted">—</span>`}</div>`;
+      syncCourierBarToggle();
     }
 
     async function loadCourierStaff() {
@@ -2013,19 +2132,16 @@
     function applyBoardGridColumns(grouped) {
       const grid = document.getElementById('columns');
       if (!grid) return;
-      if (window.matchMedia('(max-width: 1100px)').matches) {
+      const mode = getBoardMode();
+      grid.dataset.boardMode = mode;
+      if (mode !== 'desktop') {
         grid.style.gridTemplateColumns = '';
         return;
       }
-      const maxCount = Math.max(1, ...grouped.map((g) => g.items.length));
       const parts = grouped.map((group) => {
-        if (isColCollapsed(group)) return '56px';
-        const meta = statusGroups.find((s) => s.key === group.key) || {};
-        const base = meta.boardWeight ?? 1;
-        const minW = meta.boardMin ?? 250;
-        const load = group.items.length / maxCount;
-        const fr = base * (0.58 + 0.42 * load);
-        return `minmax(${minW}px, ${fr.toFixed(3)}fr)`;
+        if (isColCollapsed(group)) return 'var(--col-rail)';
+        if (PIPELINE_COL_KEYS.has(group.key)) return 'minmax(var(--col-min), 1fr)';
+        return 'minmax(200px, 0.65fr)';
       });
       grid.style.gridTemplateColumns = parts.join(' ');
     }
@@ -2051,12 +2167,21 @@
           )}</button>`
         : '<span class="card-action-slot" aria-hidden="true">.</span>';
       const payRow = paymentPillsHtml(o).replace('pill-row', 'ops-card__meta pill-row');
+      const slaHero = slaBlockHtml(o).replace(
+        'class="sla-live sla',
+        'class="sla-live sla ops-card__sla'
+      );
       return `
               <article class="ops-card ${cardAccentClass(o.status)}" data-order-id="${id}">
                 <header class="ops-card__hero">
-                  <span class="ops-card__no">#${num}</span>
-                  <span class="ops-card__sum">${escapeHtml(moneyFmt(o.total))}</span>
-                  <span class="ops-card__rel" data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span>
+                  <div class="ops-card__toprow">
+                    <span class="ops-card__no">#${num}</span>
+                    <span class="ops-card__sum">${escapeHtml(moneyFmt(o.total))}</span>
+                  </div>
+                  <div class="ops-card__subrow">
+                    <span class="ops-card__rel" data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span>
+                    ${slaHero}
+                  </div>
                 </header>
                 <div class="ops-card__customer">
                   <b>${name}</b>
@@ -2066,11 +2191,10 @@
                       : `<span class="muted">${phoneTxt}</span>`
                   }
                 </div>
-                <p class="ops-card__addr"><span class="ops-card__pin" aria-hidden="true">📍</span><span class="ops-card__addr-txt">${addr}</span></p>
+                <p class="ops-card__addr"><span class="ops-card__pin" aria-hidden="true">Loc.</span><span class="ops-card__addr-txt">${addr}</span></p>
                 ${landmarkLine}
                 ${thumbsHtml(o.items)}
                 ${payRow}
-                ${slaBlockHtml(o)}
                 <div class="ops-card__foot">${escapeHtml(`${fmt(o.created_at)} · ↑ ${fmt(o.updated_at)}`)}</div>
                 <div class="card-actions">${nextBtn}</div>
               </article>`;
@@ -2361,6 +2485,10 @@
     document.getElementById('focusModeBtn').onclick = () => {
       setFocusMode(!document.body.classList.contains('mode-focus'));
     };
+    document.getElementById('courierBarToggle').onclick = () => {
+      document.body.classList.toggle('courier-bar-open');
+      syncCourierBarToggle();
+    };
 
     document.getElementById('fullscreenBtn').onclick = async () => {
       if (!document.fullscreenElement) await document.documentElement.requestFullscreen().catch(()=>{});
@@ -2508,6 +2636,7 @@
       if (boardResizeRaf) return;
       boardResizeRaf = requestAnimationFrame(() => {
         boardResizeRaf = 0;
+        syncViewportChrome();
         const base = getFilteredOrders();
         const grouped = statusGroups.map((group) => ({
           ...group,
@@ -2517,7 +2646,8 @@
       });
     });
     applyLang();
-    setFocusMode(localStorage.getItem(focusModeKey) === '1');
+    syncViewportChrome();
+    setFocusMode(resolveFocusMode());
     startLiveFeed();
     refresh({ silent: true });
   </script>
