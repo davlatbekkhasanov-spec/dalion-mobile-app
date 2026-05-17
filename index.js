@@ -11,6 +11,8 @@ const r2Service = require('./src/services/r2.service');
 const dalionExcelImportService = require('./src/services/dalion-excel-import.service');
 const { paymeRpc } = require('./src/controllers/payme.controller');
 const { normalizeOrderStatus } = require('./src/order-status');
+const { shouldShowOnOpsBoards } = require('./src/order-board-filter');
+const { buildOrderChannelReports } = require('./src/order-reports');
 const { integrationConfig } = require('./src/integrations/integration.config');
 const tsdService = require('./src/integrations/tsd.service');
 const { orderTsdSent } = require('./src/integrations/integration-meta');
@@ -904,15 +906,6 @@ function orderStatusLabel(status) {
 function paymentStatusLabel(status) {
   const normalized = String(status || '').trim().toLowerCase();
   return PAYMENT_STATUS_LABELS[normalized] || normalized || '-';
-}
-
-function shouldShowOnOpsBoards(order) {
-  const normalizedStatus = String(order?.status || '').trim().toLowerCase();
-  if (normalizedStatus === 'payment_pending') return false;
-  const method = String(order?.paymentMethod || '').trim().toLowerCase();
-  const payment = String(order?.paymentStatus || '').trim().toLowerCase();
-  if (method === 'payme' && payment !== 'paid') return false;
-  return true;
 }
 
 app.use((req, res, next) => {
@@ -2522,6 +2515,15 @@ app.delete('/api/v1/admin/ambient-playlist/slots/:slot', requireAdmin, async (re
     }
   }
   return res.json({ ok: true, removed: true, tracks: await getAdminAmbientTracksOrdered() });
+});
+
+app.get('/api/v1/admin/reports/orders', requireAdmin, async (req, res) => {
+  const orders = await marketplaceRepo.listOrdersLegacySorted();
+  const report = buildOrderChannelReports(orders, {
+    from: req.query.from,
+    to: req.query.to
+  });
+  return res.json({ ok: true, ...report });
 });
 
 app.get('/api/v1/admin/orders', requireAdmin, async (req, res) => {

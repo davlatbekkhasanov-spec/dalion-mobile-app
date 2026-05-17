@@ -49,6 +49,20 @@
     #ordersAdminBoard > .item > b{display:block;margin-bottom:6px}
     #ordersAdminBoard > .item > .list{display:flex;flex-direction:column;gap:8px;margin-top:0}
     #ordersAdminBoard > .item > .list > .item{min-width:0;overflow-wrap:anywhere;word-break:break-word}
+    .reports-range{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
+    .reports-range label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+    .reports-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media (max-width:900px){.reports-cols{grid-template-columns:1fr}}
+    .reports-block{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0a162b}
+    .reports-block h4{margin:0 0 10px;font-size:15px}
+    .reports-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+    .reports-table{width:100%;border-collapse:collapse;font-size:13px}
+    .reports-table th,.reports-table td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
+    .reports-table th{color:var(--muted);font-weight:600}
+    .reports-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+    .reports-sub{margin-top:10px}
+    .reports-sub h5{margin:0 0 6px;font-size:13px;color:var(--muted)}
+    .reports-loading{opacity:.7}
   </style>
 </head>
 <body>
@@ -190,6 +204,32 @@
       <div id="shortsList" class="list"></div>
     </section>
 
+    <section class="panel card" id="reports-panel">
+      <h3 id="reportsTitle">Hisobotlar</h3>
+      <p class="muted" id="reportsHelp">Marketplace — barcha buyurtmalar. Tablo — ops ekranidagi filtr (to'langan Payme va boshqalar).</p>
+      <div class="reports-range">
+        <label><span id="reportsFromLabel">Dan</span><input type="date" id="reportsFrom" /></label>
+        <label><span id="reportsToLabel">Gacha</span><input type="date" id="reportsTo" /></label>
+        <button id="reportsLoadBtn" class="primary">Yuklash</button>
+        <button id="reportsCsvBtn" class="btn">CSV</button>
+      </div>
+      <p class="muted" id="reportsMeta"></p>
+      <div id="reportsContent" class="reports-cols reports-loading">
+        <div class="reports-block" id="reportsMarketplace">
+          <h4 id="reportsMpTitle">Marketplace</h4>
+          <div class="reports-metrics" id="reportsMpMetrics"></div>
+          <table class="reports-table"><thead><tr><th id="reportsMpDayCol">Kun</th><th id="reportsMpCountCol">Soni</th><th id="reportsMpSumCol">Summa</th></tr></thead><tbody id="reportsMpDaily"></tbody></table>
+          <div class="reports-sub"><h5 id="reportsMpStatusTitle">Status</h5><div id="reportsMpStatus"></div></div>
+        </div>
+        <div class="reports-block" id="reportsTablo">
+          <h4 id="reportsTabloTitle">Tablo</h4>
+          <div class="reports-metrics" id="reportsTabloMetrics"></div>
+          <table class="reports-table"><thead><tr><th id="reportsTabloDayCol">Kun</th><th id="reportsTabloCountCol">Soni</th><th id="reportsTabloSumCol">Summa</th></tr></thead><tbody id="reportsTabloDaily"></tbody></table>
+          <div class="reports-sub"><h5 id="reportsTabloStatusTitle">Status</h5><div id="reportsTabloStatus"></div></div>
+        </div>
+      </div>
+    </section>
+
     <section class="panel card" id="orders-panel">
       <h3>Orders</h3>
       <div class="row">
@@ -217,7 +257,7 @@
   <div class="toast" id="toast"></div>
   <script>
     const tabs = [
-      ['excel','Excel Import'],['banners','Banners'],['promotions','Promotions'],['home-settings','Home Settings'],['categories','Categories'],['products','Products'],['notifications','Notifications'],['shorts','Shorts'],['orders','Orders'],['biometric','Biometric'],['ambient','Ambient Music']
+      ['excel','Excel Import'],['banners','Banners'],['promotions','Promotions'],['home-settings','Home Settings'],['categories','Categories'],['products','Products'],['notifications','Notifications'],['shorts','Shorts'],['reports','Hisobotlar'],['orders','Orders'],['biometric','Biometric'],['ambient','Ambient Music']
     ];
     const i18n = {
       uz: {
@@ -285,6 +325,25 @@
         ,dalionSyncStarted: 'DALION sinxronizatsiyasi ishga tushdi'
         ,dalionSyncReply: 'DALION xizmati javobi olindi'
         ,dalionNotReady: 'DALION integratsiyasi hali sozlanmagan'
+        ,reports: 'Hisobotlar'
+        ,reportsHelp: "Marketplace — barcha buyurtmalar. Tablo — ops ekranidagi filtr (to'langan Payme va boshqalar)."
+        ,reportsFrom: 'Dan'
+        ,reportsTo: 'Gacha'
+        ,reportsLoad: 'Yuklash'
+        ,reportsCsv: 'CSV'
+        ,reportsMp: 'Marketplace'
+        ,reportsTablo: 'Tablo (ops)'
+        ,reportsDay: 'Kun'
+        ,reportsCount: 'Soni'
+        ,reportsSum: 'Summa (soʻm)'
+        ,reportsStatus: 'Status bo\'yicha'
+        ,reportsToday: 'Bugun'
+        ,reportsPeriod: 'Tanlangan davr'
+        ,reportsActive: 'Faol'
+        ,reportsDelivered: 'Yetkazilgan'
+        ,reportsCancelled: 'Bekor'
+        ,reportsMeta: 'Vaqt zonasi: {tz} · {from} — {to}'
+        ,reportsEmpty: 'Ma\'lumot yo\'q'
       },
       ru: {
         pageTitle: 'Админ панель',
@@ -350,7 +409,26 @@
         ambientUploadError: 'Ошибка загрузки ambient трека',
         dalionSyncStarted: 'Синхронизация DALION запущена',
         dalionSyncReply: 'Получен ответ сервиса DALION',
-        dalionNotReady: 'Интеграция DALION пока не настроена'
+        dalionNotReady: 'Интеграция DALION пока не настроена',
+        reports: 'Отчёты',
+        reportsHelp: 'Marketplace — все заказы. Tablo — фильтр ops-экрана (оплаченный Payme и т.д.).',
+        reportsFrom: 'С',
+        reportsTo: 'По',
+        reportsLoad: 'Загрузить',
+        reportsCsv: 'CSV',
+        reportsMp: 'Marketplace',
+        reportsTablo: 'Tablo (ops)',
+        reportsDay: 'День',
+        reportsCount: 'Кол-во',
+        reportsSum: 'Сумма (сум)',
+        reportsStatus: 'По статусу',
+        reportsToday: 'Сегодня',
+        reportsPeriod: 'За период',
+        reportsActive: 'Активные',
+        reportsDelivered: 'Доставлено',
+        reportsCancelled: 'Отменено',
+        reportsMeta: 'Часовой пояс: {tz} · {from} — {to}',
+        reportsEmpty: 'Нет данных'
       }
     };
     const langKey = 'admin_lang';
@@ -389,6 +467,7 @@
     function activateTab(id){
       document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.id===id));
       document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id===id+'-panel'));
+      if (id === 'reports') loadReports().catch(()=>{});
     }
 
     tabs.forEach(([id,label])=>{
@@ -408,6 +487,20 @@
       document.getElementById('productsTitle').textContent = t.products;
       document.querySelector('#notifications-panel h3').textContent = t.notifications;
       document.querySelector('#shorts-panel h3').textContent = t.shorts;
+      document.getElementById('reportsTitle').textContent = t.reports;
+      document.getElementById('reportsHelp').textContent = t.reportsHelp;
+      document.getElementById('reportsFromLabel').textContent = t.reportsFrom;
+      document.getElementById('reportsToLabel').textContent = t.reportsTo;
+      document.getElementById('reportsLoadBtn').textContent = t.reportsLoad;
+      document.getElementById('reportsCsvBtn').textContent = t.reportsCsv;
+      document.getElementById('reportsMpTitle').textContent = t.reportsMp;
+      document.getElementById('reportsTabloTitle').textContent = t.reportsTablo;
+      ['Mp','Tablo'].forEach((pfx) => {
+        document.getElementById('reports'+pfx+'DayCol').textContent = t.reportsDay;
+        document.getElementById('reports'+pfx+'CountCol').textContent = t.reportsCount;
+        document.getElementById('reports'+pfx+'SumCol').textContent = t.reportsSum;
+        document.getElementById('reports'+pfx+'StatusTitle').textContent = t.reportsStatus;
+      });
       document.querySelector('#orders-panel h3').textContent = t.ordersPanel;
       document.querySelector('#biometric-panel h3').textContent = t.biometricPanel;
       document.getElementById('ambientTitle').textContent = t.ambientPanel;
@@ -431,6 +524,7 @@
         if (key === 'products') btn.textContent = t.products;
         if (key === 'notifications') btn.textContent = t.notifications;
         if (key === 'shorts') btn.textContent = t.shorts;
+        if (key === 'reports') btn.textContent = t.reports;
         if (key === 'orders') btn.textContent = t.orders;
         if (key === 'biometric') btn.textContent = t.biometric;
         if (key === 'ambient') btn.textContent = t.ambient;
@@ -967,6 +1061,110 @@
       }[status] || status;
     }
 
+    let lastReportsData = null;
+
+    function formatReportSum(n) {
+      return Number(n || 0).toLocaleString('ru-RU');
+    }
+
+    function ymdLocal(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function initReportsDateInputs() {
+      const to = new Date();
+      const from = new Date();
+      from.setDate(from.getDate() - 29);
+      const fromEl = document.getElementById('reportsFrom');
+      const toEl = document.getElementById('reportsTo');
+      if (!fromEl.value) fromEl.value = ymdLocal(from);
+      if (!toEl.value) toEl.value = ymdLocal(to);
+    }
+
+    function renderReportsMetrics(elId, summary) {
+      const s = summary || {};
+      document.getElementById(elId).innerHTML = `
+        <div class="metric"><span class="muted">${t('reportsToday')}</span><b>${s.today?.count || 0}</b><span class="muted">${formatReportSum(s.today?.totalSum)}</span></div>
+        <div class="metric"><span class="muted">${t('reportsPeriod')}</span><b>${s.period?.count || 0}</b><span class="muted">${formatReportSum(s.period?.totalSum)}</span></div>
+        <div class="metric"><span class="muted">${t('reportsActive')}</span><b>${s.activeCount || 0}</b></div>
+        <div class="metric"><span class="muted">${t('reportsDelivered')}</span><b>${s.deliveredCount || 0}</b></div>
+        <div class="metric"><span class="muted">${t('reportsCancelled')}</span><b>${s.cancelledCount || 0}</b></div>
+      `;
+    }
+
+    function renderReportsDaily(tbodyId, daily) {
+      const rows = (daily || []).slice().reverse();
+      const tb = document.getElementById(tbodyId);
+      if (!rows.length) {
+        tb.innerHTML = `<tr><td colspan="3" class="muted">${t('reportsEmpty')}</td></tr>`;
+        return;
+      }
+      tb.innerHTML = rows.map((r) => `
+        <tr><td>${r.date}</td><td class="num">${r.count}</td><td class="num">${formatReportSum(r.totalSum)}</td></tr>
+      `).join('');
+    }
+
+    function renderReportsStatus(containerId, list) {
+      const el = document.getElementById(containerId);
+      const rows = list || [];
+      if (!rows.length) {
+        el.innerHTML = `<div class="muted">${t('reportsEmpty')}</div>`;
+        return;
+      }
+      el.innerHTML = `<table class="reports-table"><thead><tr><th>${t('reportsStatus')}</th><th>${t('reportsCount')}</th><th>${t('reportsSum')}</th></tr></thead><tbody>${
+        rows.map((r) => `<tr><td>${r.key}</td><td class="num">${r.count}</td><td class="num">${formatReportSum(r.totalSum)}</td></tr>`).join('')
+      }</tbody></table>`;
+    }
+
+    async function loadReports() {
+      initReportsDateInputs();
+      const from = document.getElementById('reportsFrom').value;
+      const to = document.getElementById('reportsTo').value;
+      const content = document.getElementById('reportsContent');
+      content.classList.add('reports-loading');
+      try {
+        const data = await api(`/admin/reports/orders?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+        lastReportsData = data;
+        document.getElementById('reportsMeta').textContent = t('reportsMeta')
+          .replace('{tz}', data.timezone || 'Asia/Tashkent')
+          .replace('{from}', data.from || from)
+          .replace('{to}', data.to || to);
+        renderReportsMetrics('reportsMpMetrics', data.marketplace?.summary);
+        renderReportsMetrics('reportsTabloMetrics', data.tablo?.summary);
+        renderReportsDaily('reportsMpDaily', data.marketplace?.daily);
+        renderReportsDaily('reportsTabloDaily', data.tablo?.daily);
+        renderReportsStatus('reportsMpStatus', data.marketplace?.summary?.byStatus);
+        renderReportsStatus('reportsTabloStatus', data.tablo?.summary?.byStatus);
+      } finally {
+        content.classList.remove('reports-loading');
+      }
+    }
+
+    function downloadReportsCsv() {
+      if (!lastReportsData) {
+        showToast(t('reportsEmpty'));
+        return;
+      }
+      const lines = ['channel,date,count,total_sum'];
+      ['marketplace', 'tablo'].forEach((ch) => {
+        (lastReportsData[ch]?.daily || []).forEach((r) => {
+          lines.push(`${ch},${r.date},${r.count},${r.totalSum}`);
+        });
+      });
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `orders-report-${lastReportsData.from}_${lastReportsData.to}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    document.getElementById('reportsLoadBtn').onclick = () => loadReports().catch((e) => showToast(e.message || t('loadError')));
+    document.getElementById('reportsCsvBtn').onclick = () => downloadReportsCsv();
+
     async function loadOrdersAdmin(){
       const {orders} = await api('/admin/orders');
       const wrap = document.getElementById('ordersAdminBoard');
@@ -1160,6 +1358,7 @@
         ['shorts', loadShorts],
         ['store-summary', loadStoreSummary],
         ['dalion-status', loadDalionStatus],
+        ['reports', loadReports],
         ['orders', loadOrdersAdmin],
         ['biometric', loadBiometricCustomers],
         ['ambient', loadAmbientPlaylist]
@@ -1175,6 +1374,7 @@
     }
     bootstrap();
     setInterval(() => {
+      if (document.getElementById('reports-panel').classList.contains('active')) loadReports().catch(()=>{});
       if (document.getElementById('orders-panel').classList.contains('active')) loadOrdersAdmin().catch(()=>{});
       if (document.getElementById('biometric-panel').classList.contains('active')) loadBiometricCustomers().catch(()=>{});
       if (document.getElementById('ambient-panel').classList.contains('active')) loadAmbientPlaylist().catch(()=>{});
