@@ -472,14 +472,16 @@
     .ops-table-wrap {
       flex: 1 1 0%;
       min-height: 0;
-      overflow: auto;
+      overflow-x: auto;
+      overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
     .ops-table {
       width: 100%;
-      min-width: 720px;
-      border-collapse: collapse;
-      table-layout: fixed;
+      min-width: 960px;
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: auto;
       font-size: var(--font-sm);
     }
     .ops-table thead {
@@ -489,30 +491,34 @@
     }
     .ops-table thead th {
       text-align: left;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
       color: var(--muted);
       background: #161d27;
       border-bottom: 1px solid var(--line-strong);
-      padding: 10px 12px;
-      line-height: 1.4;
-      vertical-align: bottom;
-      white-space: normal;
-      word-break: break-word;
-      overflow-wrap: anywhere;
+      padding: 10px 8px;
+      line-height: 1.2;
+      vertical-align: middle;
+      white-space: nowrap;
+      overflow: hidden;
     }
-    .ops-table .col-num { width: 4.25rem; }
-    .ops-table .col-sum { width: 5.5rem; }
-    .ops-table .col-time { width: 4.75rem; }
-    .ops-table .col-status { width: 10rem; }
-    .ops-table .col-name { width: 8rem; }
-    .ops-table .col-phone { width: 7.5rem; }
-    .ops-table .col-addr { width: auto; }
-    .ops-table .col-pay { width: 7rem; }
-    .ops-table .col-sla { width: 4.5rem; }
-    .ops-table .col-act { width: 7.5rem; }
+    .ops-table .col-status { width: 40px; text-align: center; }
+    .ops-table .col-num { width: 90px; }
+    .ops-table .col-sum { width: 11%; min-width: 100px; text-align: right; }
+    .ops-table .col-time { width: 72px; }
+    .ops-table .col-name { min-width: 120px; }
+    .ops-table .col-tel { width: 44px; text-align: center; }
+    .ops-table .col-addr { min-width: 180px; }
+    .ops-table .col-pay { width: 56px; text-align: center; }
+    .ops-table .col-sla { width: 64px; text-align: center; }
+    .ops-table .col-act { width: 48px; text-align: center; }
+    .ops-table thead th.col-sum { text-align: right; }
+    .ops-table thead th.col-tel,
+    .ops-table thead th.col-pay,
+    .ops-table thead th.col-sla,
+    .ops-table thead th.col-act { text-align: center; }
     .ops-table tbody tr.ops-table-group td {
       padding: 8px 10px 6px;
       font-size: 11px;
@@ -522,6 +528,10 @@
       color: var(--muted2);
       background: #121820;
       border-bottom: 1px solid var(--line);
+    }
+    .ops-table tbody tr.ops-table-group .ops-table-group__ico {
+      margin-right: 6px;
+      opacity: 0.85;
     }
     .ops-table tbody tr.ops-table-group .ops-table-group__count {
       margin-left: 8px;
@@ -564,50 +574,75 @@
     .ops-table tbody tr[data-order-id]:nth-child(even) { background: #17202c; }
     .ops-table tbody tr[data-order-id]:hover { background: var(--card-hover); }
     .ops-table td {
-      padding: 10px 12px;
-      vertical-align: top;
+      padding: 10px 8px;
+      vertical-align: middle;
       color: var(--txt);
-      line-height: 1.4;
-      overflow-wrap: anywhere;
-      word-break: break-word;
+      line-height: 1.35;
+      overflow: hidden;
     }
     .ops-table .col-num,
     .ops-table .col-sum,
-    .ops-table .col-time,
-    .ops-table .col-phone { font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .ops-table .col-num { font-weight: 600; }
-    .ops-table .col-sum { font-weight: 600; }
-    .ops-table .col-time { color: var(--muted); font-size: var(--font-xs); }
-    .ops-table .col-name { white-space: normal; word-break: break-word; }
-    .ops-table .col-addr {
-      white-space: normal;
-      word-break: break-word;
+    .ops-table .col-time { font-variant-numeric: tabular-nums; }
+    .ops-table .col-num { font-weight: 600; white-space: nowrap; }
+    .ops-table .col-sum { font-weight: 600; white-space: nowrap; }
+    .ops-table .col-time { color: var(--muted); font-size: var(--font-xs); white-space: nowrap; }
+    .ops-table .col-name .ops-name {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 22vw;
+    }
+    .ops-table .col-addr .ops-addr {
+      display: flex;
+      align-items: flex-start;
+      gap: 4px;
       color: var(--muted);
       font-size: var(--font-xs);
     }
-    .ops-table .col-status {
-      white-space: normal;
+    .ops-table .col-addr .ops-addr__pin {
+      flex: 0 0 auto;
+      line-height: 1.3;
+      opacity: 0.85;
+    }
+    .ops-table .col-addr .ops-addr__txt {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
       word-break: break-word;
-      font-size: var(--font-xs);
+      line-height: 1.35;
     }
-    .ops-table .col-status .status-label { display: inline; }
-    .ops-table .col-pay .pill { margin: 2px 4px 2px 0; display: inline-block; }
+    .ops-table .col-status { text-align: center; }
+    .ops-table .col-status .status-label { display: none; }
+    .ops-table .col-time .ops-time {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      max-width: 100%;
+    }
+    .ops-table .col-time .ops-time__ico { font-size: 11px; opacity: 0.75; flex-shrink: 0; }
     .ops-table .col-sla { white-space: nowrap; }
-    .ops-table .col-sla .sla { margin: 0; font-size: 10px; padding: 2px 6px; }
-    .ops-table .col-act { white-space: nowrap; text-align: right; vertical-align: middle; }
-    .ops-table .col-act .ops-row__btn {
-      min-height: 30px;
-      max-height: 30px;
-      padding: 4px 8px;
+    .ops-table .col-sla .ops-sla {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
       font-size: 11px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      padding: 2px 5px;
+      border-radius: var(--radius-sm);
     }
+    .ops-table .col-sla .ops-sla.sla-warn { color: #f0c14b; background: rgba(210, 153, 34, 0.12); }
+    .ops-table .col-sla .ops-sla.sla-hot { color: #ffa198; background: rgba(248, 81, 73, 0.12); }
+    .ops-table .col-act { white-space: nowrap; }
     .ops-table .status-dot {
       display: inline-block;
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
-      margin-right: 6px;
       vertical-align: middle;
+      cursor: default;
     }
     .ops-table .status-dot--new { background: var(--st-new); }
     .ops-table .status-dot--work { background: var(--st-work); }
@@ -615,8 +650,56 @@
     .ops-table .status-dot--out { background: var(--st-out); }
     .ops-table .status-dot--done { background: var(--st-done); }
     .ops-table .status-dot--cancel { background: var(--st-cancel); }
-    .ops-table .col-phone a { color: var(--st-new); text-decoration: none; }
-    .ops-table .col-phone a:hover { text-decoration: underline; }
+    .ops-tel-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      color: var(--st-new);
+      text-decoration: none;
+      font-size: 15px;
+      line-height: 1;
+    }
+    .ops-tel-link:hover { background: rgba(88, 166, 255, 0.12); }
+    .ops-pay-cell {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      flex-wrap: nowrap;
+    }
+    .ops-pay-badge {
+      display: inline-grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1;
+      border: 1px solid var(--line);
+      background: var(--bg2);
+      color: var(--muted2);
+    }
+    .ops-pay-badge--payme { border-color: #238636; color: #aff5b4; background: rgba(63, 185, 80, 0.15); }
+    .ops-pay-badge--cash { border-color: #9e6a03; color: #f0c14b; background: rgba(210, 153, 34, 0.12); }
+    .ops-pay-state { font-size: 13px; line-height: 1; }
+    .ops-pay-state--paid { color: #3fb950; }
+    .ops-pay-state--unpaid { color: #d29922; }
+    .ops-icon-btn {
+      display: inline-grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      min-height: 36px;
+      max-height: 36px;
+      padding: 0;
+      font-size: 16px;
+      line-height: 1;
+      border-radius: var(--radius-sm);
+    }
     .ops-kanban {
       flex: 1 1 0%;
       min-height: 0;
@@ -1112,10 +1195,8 @@
     @media (max-width: 899px) {
       .ops-table .col-hide-sm,
       .ops-table thead th.col-hide-sm { display: none; }
-      .ops-table { min-width: 620px; }
-      .ops-table .col-status { width: 2rem; }
-      .ops-table .col-status .status-label { display: none; }
-      .ops-table .col-status .status-dot { margin-right: 0; }
+      .ops-table { min-width: 720px; }
+      .ops-table .col-name .ops-name { max-width: 28vw; }
     }
     @media (max-width: 767px) {
       .ops-kanban {
@@ -1752,6 +1833,32 @@
       const label = formatSlaLabel(mins);
       return `<div class="sla-live sla ${tier}" data-created-ts="${ts}">${escapeHtml(label)}</div>`;
     }
+    function slaShortMins(mins) {
+      const m = Math.max(0, Math.floor(Number(mins) || 0));
+      if (m < 90) return String(m);
+      if (m < 1440) return String(Math.floor(m / 60));
+      return String(Math.floor(m / 1440));
+    }
+    function updateSlaLiveElement(el, mins, tier) {
+      const txtEl = el.querySelector('.ops-sla__txt');
+      if (txtEl) {
+        txtEl.textContent = slaShortMins(mins);
+        const iconEl = el.querySelector('.ops-sla__ico');
+        if (iconEl) iconEl.textContent = tier === 'sla-hot' ? '🔥' : '⚠';
+        el.className = `ops-sla sla-live sla ${tier}`;
+        el.title = formatSlaLabel(mins);
+        return;
+      }
+      el.textContent = formatSlaLabel(mins);
+      el.className = `sla-live sla ${tier}`;
+    }
+    function buildSlaLiveMarkup(ts, tier, mins) {
+      const icon = tier === 'sla-hot' ? '🔥' : '⚠';
+      const title = escapeHtml(formatSlaLabel(mins));
+      return `<span class="ops-sla sla-live sla ${tier}" data-created-ts="${ts}" title="${title}"><span class="ops-sla__ico" aria-hidden="true">${icon}</span><span class="ops-sla__txt">${escapeHtml(
+        slaShortMins(mins)
+      )}</span></span>`;
+    }
     function tickLiveLabels() {
       document.querySelectorAll('.sla-live[data-created-ts]').forEach((el) => {
         const ts = Number(el.dataset.createdTs);
@@ -1760,8 +1867,7 @@
           el.remove();
           return;
         }
-        el.textContent = formatSlaLabel(mins);
-        el.className = `sla-live sla ${tier}`;
+        updateSlaLiveElement(el, mins, tier);
       });
       document.querySelectorAll('[data-rel-ts]').forEach((el) => {
         el.textContent = relTime(el.getAttribute('data-rel-ts'));
@@ -1853,20 +1959,29 @@
         if (!slaEl) {
           const host = row.querySelector('.col-sla') || row.querySelector('.ops-card__foot');
           if (!host) return;
-          const div = document.createElement('div');
           const inTable = row.tagName === 'TR';
-          div.className = inTable ? `sla-live sla ${tier}` : `sla-live sla ops-row__sla ${tier}`;
-          div.dataset.createdTs = String(ts);
-          div.textContent = label;
-          const btn = host.querySelector('[data-quick-next]');
-          if (btn && !inTable) host.insertBefore(div, btn);
-          else host.appendChild(div);
-          slaEl = div;
+          if (inTable) {
+            host.insertAdjacentHTML('beforeend', buildSlaLiveMarkup(ts, tier, mins));
+            slaEl = host.querySelector('.sla-live');
+          } else {
+            const div = document.createElement('div');
+            div.className = `sla-live sla ops-row__sla ${tier}`;
+            div.dataset.createdTs = String(ts);
+            div.textContent = label;
+            const btn = host.querySelector('[data-quick-next]');
+            if (btn) host.insertBefore(div, btn);
+            else host.appendChild(div);
+            slaEl = div;
+          }
         }
+        if (!slaEl) return;
         slaEl.dataset.createdTs = String(ts);
-        slaEl.textContent = label;
         const inTable = row.tagName === 'TR';
-        slaEl.className = inTable ? `sla-live sla ${tier}` : `sla-live sla ops-row__sla ${tier}`;
+        if (inTable) updateSlaLiveElement(slaEl, mins, tier);
+        else {
+          slaEl.textContent = label;
+          slaEl.className = `sla-live sla ops-row__sla ${tier}`;
+        }
       });
     }
     const patchCardsLiveMeta = patchRowsLiveMeta;
@@ -2024,6 +2139,34 @@
       const pText = paid ? t('paidShort') : t('unpaidShort');
       return `<span class="${mCls}">${escapeHtml(rawM)}</span> <span class="${pCls}">${escapeHtml(pText)}</span>`;
     }
+    function paymentTableHtml(o) {
+      const rawM = String(o.paymentMethod || '').trim().toLowerCase();
+      const ps = String(o.paymentStatus || '').trim().toLowerCase();
+      const paid = ps === 'paid';
+      let methodBadge = '';
+      if (rawM === 'payme') {
+        methodBadge = `<span class="ops-pay-badge ops-pay-badge--payme" title="Payme">P</span>`;
+      } else if (rawM === 'cash') {
+        methodBadge = `<span class="ops-pay-badge ops-pay-badge--cash" title="${escapeHtml(t('filterCash'))}">N</span>`;
+      } else if (rawM) {
+        methodBadge = `<span class="ops-pay-badge" title="${escapeHtml(rawM)}">·</span>`;
+      }
+      const paidIcon = paid
+        ? `<span class="ops-pay-state ops-pay-state--paid" title="${escapeHtml(t('paidShort'))}" aria-label="${escapeHtml(t('paidShort'))}">✓</span>`
+        : `<span class="ops-pay-state ops-pay-state--unpaid" title="${escapeHtml(t('unpaidShort'))}" aria-label="${escapeHtml(t('unpaidShort'))}">⏳</span>`;
+      return `<span class="ops-pay-cell">${methodBadge}${paidIcon}</span>`;
+    }
+    function nextActionIcon(next) {
+      if (!next) return '→';
+      const icons = {
+        preparing: '📦',
+        ready_for_courier: '🚴',
+        courier_assigned: '🚴',
+        out_for_delivery: '🚴',
+        delivered: '✓'
+      };
+      return icons[next.to] || '→';
+    }
     function quickNextBtnHtml(o) {
       const next = getNextTransition(o);
       if (!next) return '';
@@ -2032,9 +2175,24 @@
         next.label
       )}</button>`;
     }
-    function slaCellHtml(o) {
-      const html = slaBlockHtml(o);
-      return html || '<span class="muted">—</span>';
+    function quickNextIconBtnHtml(o) {
+      const next = getNextTransition(o);
+      if (!next) return '';
+      const id = escapeHtml(String(o.id));
+      const label = escapeHtml(next.label);
+      const icon = nextActionIcon(next);
+      return `<button type="button" class="ops-icon-btn ops-row__btn primary" data-quick-next="${escapeHtml(next.to)}" data-order-id="${id}" aria-label="${label}" title="${label}"><span aria-hidden="true">${icon}</span></button>`;
+    }
+    function slaTableCellHtml(o) {
+      const st = normalizeStatus(o.status);
+      if (st === 'delivered' || st === 'cancelled') return '';
+      const raw = o.created_at;
+      if (!raw) return '';
+      const ts = new Date(raw).getTime();
+      if (!Number.isFinite(ts)) return '';
+      const { mins, tier } = slaTierFromCreated(ts);
+      if (tier === 'sla-ok') return '';
+      return buildSlaLiveMarkup(ts, tier, mins);
     }
 
     function cardAccentClass(status) {
@@ -2296,24 +2454,27 @@
     function renderOrderTableRow(o) {
       const id = escapeHtml(String(o.id));
       const num = escapeHtml(String(o.orderNumber || o.id));
-      const name = escapeHtml(String(o.customerName || '').trim() || t('guest'));
+      const nameRaw = String(o.customerName || '').trim() || t('guest');
+      const name = escapeHtml(nameRaw);
       const phoneRaw = String(o.customerPhone || '').trim();
       const phoneHref = phoneRaw ? `tel:${escapeHtml(phoneRaw.replace(/\s+/g, ''))}` : '';
       const phoneTxt = escapeHtml(phoneRaw || '—');
-      const addr = escapeHtml(orderAddress(o) || '—');
+      const addrRaw = orderAddress(o) || '—';
+      const addr = escapeHtml(addrRaw);
       const mod = rowAccentMod(o.status);
       const statusLbl = escapeHtml(orderStatusLabel(o.status));
+      const timeFull = escapeHtml(fmt(o.created_at));
       return `<tr data-order-id="${id}" tabindex="0">
-        <td class="col-status"><span class="status-dot status-dot--${mod}" aria-hidden="true"></span><span class="status-label">${statusLbl}</span></td>
+        <td class="col-status"><span class="status-dot status-dot--${mod}" title="${statusLbl}" aria-label="${statusLbl}"></span></td>
         <td class="col-num">#${num}</td>
         <td class="col-sum">${escapeHtml(moneyFmt(o.total))}</td>
-        <td class="col-time"><span data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span></td>
-        <td class="col-name">${name}</td>
-        <td class="col-phone">${phoneHref ? `<a href="${phoneHref}">${phoneTxt}</a>` : phoneTxt}</td>
-        <td class="col-addr">${addr}</td>
-        <td class="col-pay col-hide-sm">${paymentPillsCompact(o)}</td>
-        <td class="col-sla col-hide-sm">${slaCellHtml(o)}</td>
-        <td class="col-act">${quickNextBtnHtml(o)}</td>
+        <td class="col-time" title="${timeFull}"><span class="ops-time"><span class="ops-time__ico" aria-hidden="true">🕐</span><span data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span></span></td>
+        <td class="col-name"><span class="ops-name" title="${name}">${name}</span></td>
+        <td class="col-tel">${phoneHref ? `<a class="ops-tel-link" href="${phoneHref}" title="${phoneTxt}" aria-label="${phoneTxt}">📞</a>` : `<span class="muted" title="—">—</span>`}</td>
+        <td class="col-addr"><span class="ops-addr"><span class="ops-addr__pin" aria-hidden="true">📍</span><span class="ops-addr__txt" title="${addr}">${addr}</span></span></td>
+        <td class="col-pay col-hide-sm">${paymentTableHtml(o)}</td>
+        <td class="col-sla col-hide-sm">${slaTableCellHtml(o)}</td>
+        <td class="col-act">${quickNextIconBtnHtml(o)}</td>
       </tr>`;
     }
     function renderKanbanCard(o) {
@@ -2353,7 +2514,7 @@
       let body = activeGroups
         .map((group) => {
           if (!group.items.length) return '';
-          return `<tr class="ops-table-group"><td colspan="10">${escapeHtml(t(group.labelKey))}<span class="ops-table-group__count">${group.items.length}</span></td></tr>${group.items.map((o) => renderOrderTableRow(o)).join('')}`;
+          return `<tr class="ops-table-group"><td colspan="10"><span class="ops-table-group__ico" aria-hidden="true">${group.colIcon || ''}</span>${escapeHtml(t(group.labelKey))}<span class="ops-table-group__count">${group.items.length}</span></td></tr>${group.items.map((o) => renderOrderTableRow(o)).join('')}`;
         })
         .join('');
       if (!body && !archCount) {
@@ -2364,7 +2525,7 @@
         const archRows = archGroups
           .map((group) => {
             if (!group.items.length) return '';
-            return `<tr class="ops-table-group"><td colspan="10">${escapeHtml(t(group.labelKey))}<span class="ops-table-group__count">${group.items.length}</span></td></tr>${group.items.map((o) => renderOrderTableRow(o)).join('')}`;
+            return `<tr class="ops-table-group"><td colspan="10"><span class="ops-table-group__ico" aria-hidden="true">${group.colIcon || ''}</span>${escapeHtml(t(group.labelKey))}<span class="ops-table-group__count">${group.items.length}</span></td></tr>${group.items.map((o) => renderOrderTableRow(o)).join('')}`;
           })
           .join('');
         archHtml = `<tr class="ops-table-arch"><td colspan="10">
@@ -2380,16 +2541,16 @@
       board.className = 'orders-board orders-board--table';
       board.innerHTML = `<div class="ops-table-wrap"><table class="ops-table">
         <thead><tr>
-          <th>${escapeHtml(t('thStatus'))}</th>
-          <th>${escapeHtml(t('thNum'))}</th>
-          <th>${escapeHtml(t('thSum'))}</th>
-          <th>${escapeHtml(t('thTime'))}</th>
-          <th>${escapeHtml(t('thClient'))}</th>
-          <th>${escapeHtml(t('thPhone'))}</th>
-          <th>${escapeHtml(t('thAddr'))}</th>
-          <th class="col-hide-sm">${escapeHtml(t('thPay'))}</th>
-          <th class="col-hide-sm">${escapeHtml(t('thSla'))}</th>
-          <th>${escapeHtml(t('thAct'))}</th>
+          <th class="col-status" title="${escapeHtml(t('thStatus'))}">●</th>
+          <th class="col-num" title="${escapeHtml(t('thNum'))}">#</th>
+          <th class="col-sum" title="${escapeHtml(t('thSum'))}">${escapeHtml(t('thSum'))}</th>
+          <th class="col-time" title="${escapeHtml(t('thTime'))}">⏱</th>
+          <th class="col-name" title="${escapeHtml(t('thClient'))}">${escapeHtml(t('thClient'))}</th>
+          <th class="col-tel" title="${escapeHtml(t('thPhone'))}">📞</th>
+          <th class="col-addr" title="${escapeHtml(t('thAddr'))}">📍</th>
+          <th class="col-pay col-hide-sm" title="${escapeHtml(t('thPay'))}">₽</th>
+          <th class="col-sla col-hide-sm" title="${escapeHtml(t('thSla'))}">SLA</th>
+          <th class="col-act" title="${escapeHtml(t('thAct'))}">→</th>
         </tr></thead>
         <tbody>${body}${archHtml}</tbody>
       </table></div>`;
