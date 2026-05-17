@@ -38,7 +38,8 @@
       --font-sm: 13px;
       --font-md: 14px;
       --font-lg: 15px;
-      --row-h: 44px;
+      --row-h: 52px;
+      --table-row-min: 52px;
       --header-compact-max: 96px;
     }
     * { box-sizing: border-box; }
@@ -86,9 +87,8 @@
       border: 1px solid var(--line);
       border-radius: var(--radius);
     }
-    body.viewport-compact .ops-bar {
-      max-height: var(--header-compact-max);
-      overflow: hidden;
+    body.viewport-compact .ops-bar-row--head {
+      gap: 8px;
     }
     .ops-bar-row {
       display: flex;
@@ -99,7 +99,8 @@
     .ops-bar-row--head {
       flex-wrap: wrap;
       justify-content: space-between;
-      gap: 10px 16px;
+      align-items: center;
+      gap: 8px 12px;
     }
     @media (min-width: 900px) {
       .ops-bar-row--head { flex-wrap: nowrap; }
@@ -112,12 +113,12 @@
     }
     .ops-tools {
       display: flex;
-      flex-wrap: nowrap;
+      flex-wrap: wrap;
       gap: 6px;
       align-items: center;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: thin;
+      min-width: 0;
+      flex: 1 1 auto;
+      justify-content: flex-end;
     }
     .ops-brand {
       display: flex;
@@ -128,10 +129,15 @@
     }
     .ops-head-status {
       display: flex;
-      flex-wrap: nowrap;
+      flex-wrap: wrap;
       align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
+      gap: 6px 8px;
+      flex: 1 1 auto;
+      min-width: 0;
+      justify-content: flex-end;
+    }
+    @media (min-width: 900px) {
+      .ops-head-status { flex: 0 0 auto; justify-content: flex-start; }
     }
     .ops-brand strong { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
     .ops-brand small { display: none; }
@@ -261,11 +267,24 @@
     }
     .view-chips {
       display: inline-flex;
-      gap: 4px;
+      gap: 2px;
       flex-shrink: 0;
-      margin-right: 6px;
+      margin-right: 8px;
+      padding: 2px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
     }
-    .view-chips .chip { font-weight: 600; }
+    .view-chips .chip {
+      font-weight: 600;
+      border-color: transparent;
+      background: transparent;
+    }
+    .view-chips .chip.on {
+      border-color: transparent;
+      color: #0d1117;
+      background: var(--acc);
+    }
     .stats-bar {
       flex-shrink: 0;
       border: none;
@@ -275,16 +294,21 @@
       padding: 0 4px 10px;
       min-height: 0;
       box-sizing: border-box;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
     }
     .stats-bar[hidden] { display: none !important; }
     .stats-inline {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       align-items: center;
-      gap: 4px 0;
+      gap: 0;
+      min-width: min-content;
       font-size: var(--font-sm);
       color: var(--muted);
       font-variant-numeric: tabular-nums;
+      white-space: nowrap;
     }
     .stats-inline b {
       font-weight: 600;
@@ -397,11 +421,7 @@
       font-weight: 600;
     }
     .sync-pill__live {
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--live);
+      display: none;
     }
     .badge {
       padding: 5px 10px 5px 8px;
@@ -457,8 +477,9 @@
     }
     .ops-table {
       width: 100%;
-      min-width: 960px;
+      min-width: 720px;
       border-collapse: collapse;
+      table-layout: fixed;
       font-size: var(--font-sm);
     }
     .ops-table thead {
@@ -475,9 +496,23 @@
       color: var(--muted);
       background: #161d27;
       border-bottom: 1px solid var(--line-strong);
-      padding: 8px 10px;
-      white-space: nowrap;
+      padding: 10px 12px;
+      line-height: 1.4;
+      vertical-align: bottom;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
     }
+    .ops-table .col-num { width: 4.25rem; }
+    .ops-table .col-sum { width: 5.5rem; }
+    .ops-table .col-time { width: 4.75rem; }
+    .ops-table .col-status { width: 10rem; }
+    .ops-table .col-name { width: 8rem; }
+    .ops-table .col-phone { width: 7.5rem; }
+    .ops-table .col-addr { width: auto; }
+    .ops-table .col-pay { width: 7rem; }
+    .ops-table .col-sla { width: 4.5rem; }
+    .ops-table .col-act { width: 7.5rem; }
     .ops-table tbody tr.ops-table-group td {
       padding: 8px 10px 6px;
       font-size: 11px;
@@ -523,44 +558,49 @@
       background: var(--card);
       border-bottom: 1px solid var(--line);
     }
+    .ops-table tbody tr[data-order-id] td {
+      min-height: var(--table-row-min);
+    }
     .ops-table tbody tr[data-order-id]:nth-child(even) { background: #17202c; }
     .ops-table tbody tr[data-order-id]:hover { background: var(--card-hover); }
     .ops-table td {
-      padding: 7px 10px;
-      vertical-align: middle;
+      padding: 10px 12px;
+      vertical-align: top;
       color: var(--txt);
-      line-height: 1.35;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
     .ops-table .col-num,
     .ops-table .col-sum,
-    .ops-table .col-time { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .ops-table .col-time,
+    .ops-table .col-phone { font-variant-numeric: tabular-nums; white-space: nowrap; }
     .ops-table .col-num { font-weight: 600; }
     .ops-table .col-sum { font-weight: 600; }
     .ops-table .col-time { color: var(--muted); font-size: var(--font-xs); }
-    .ops-table .col-name,
-    .ops-table .col-phone { white-space: normal; word-break: break-word; }
+    .ops-table .col-name { white-space: normal; word-break: break-word; }
     .ops-table .col-addr {
       white-space: normal;
       word-break: break-word;
-      max-width: 14rem;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
       color: var(--muted);
       font-size: var(--font-xs);
     }
-    .ops-table .col-pay .pill { margin: 1px 2px 1px 0; }
+    .ops-table .col-status {
+      white-space: normal;
+      word-break: break-word;
+      font-size: var(--font-xs);
+    }
+    .ops-table .col-status .status-label { display: inline; }
+    .ops-table .col-pay .pill { margin: 2px 4px 2px 0; display: inline-block; }
     .ops-table .col-sla { white-space: nowrap; }
     .ops-table .col-sla .sla { margin: 0; font-size: 10px; padding: 2px 6px; }
-    .ops-table .col-act { white-space: nowrap; text-align: right; }
+    .ops-table .col-act { white-space: nowrap; text-align: right; vertical-align: middle; }
     .ops-table .col-act .ops-row__btn {
       min-height: 30px;
       max-height: 30px;
       padding: 4px 8px;
       font-size: 11px;
     }
-    .ops-table .col-status { white-space: nowrap; }
     .ops-table .status-dot {
       display: inline-block;
       width: 8px;
@@ -1069,13 +1109,20 @@
     }
     body.viewport-compact .stats-bar { padding: 0 2px 8px; }
     body.viewport-compact .stats-inline { font-size: 11px; }
+    @media (max-width: 899px) {
+      .ops-table .col-hide-sm,
+      .ops-table thead th.col-hide-sm { display: none; }
+      .ops-table { min-width: 620px; }
+      .ops-table .col-status { width: 2rem; }
+      .ops-table .col-status .status-label { display: none; }
+      .ops-table .col-status .status-dot { margin-right: 0; }
+    }
     @media (max-width: 767px) {
       .ops-kanban {
         grid-template-columns: 1fr;
         padding: 8px;
       }
       .ops-kanban-col { min-width: 0; }
-      .ops-table { min-width: 880px; }
     }
     @media (max-width: 1100px) {
       .ops-kanban { grid-template-columns: repeat(3, minmax(280px, 1fr)); }
@@ -1085,6 +1132,7 @@
     body.mode-focus .ops-brand small { display: none; }
     body.mode-focus .ops-bar { padding: 8px 12px; gap: 6px; }
     body.mode-focus .ops-tools { display: none !important; }
+    body.mode-focus .ops-head-status #fullscreenBtn { display: inline-flex !important; }
     body.mode-focus #courierStaffBar { display: none !important; }
     body.mode-focus .stats-bar {
       border: none;
@@ -1112,10 +1160,11 @@
           </span>
           <span id="lastUpdated" class="sync-pill" title="">
             <span id="lastUpdatedTime" class="sync-pill__time">--:--:--</span>
-            <span id="lastUpdatedLive" class="sync-pill__live">—</span>
+            <span id="lastUpdatedLive" class="sync-pill__live" hidden aria-hidden="true">—</span>
           </span>
+          <div class="ops-clock" id="clock" aria-live="polite">--:--:--</div>
+          <button type="button" id="fullscreenBtn" class="primary" aria-label="To‘liq ekran" title="To‘liq ekran">⛶</button>
         </div>
-        <div class="ops-clock" id="clock" aria-live="polite">--:--:--</div>
         <div class="ops-tools">
         <button type="button" id="langUzBtn" class="btn-ghost">UZ</button>
         <button type="button" id="langRuBtn" class="btn-ghost">RU</button>
@@ -1125,7 +1174,6 @@
         </span>
         <button type="button" id="courierBarToggle" class="chip" aria-pressed="false" hidden>Kuryer</button>
         <button type="button" id="focusModeBtn" class="chip" aria-pressed="false">Focus</button>
-        <button type="button" id="fullscreenBtn" class="primary" aria-label="To‘liq ekran">⛶</button>
         <button type="button" id="settingsBtn" class="btn-ghost" aria-label="">⚙</button>
         <div class="token-input-wrap" id="tokenToolsInline">
           <input id="tokenInput" type="password" placeholder="ADMIN_IMPORT_TOKEN" autocomplete="off" spellcheck="false" autocapitalize="off" />
@@ -2256,15 +2304,15 @@
       const mod = rowAccentMod(o.status);
       const statusLbl = escapeHtml(orderStatusLabel(o.status));
       return `<tr data-order-id="${id}" tabindex="0">
-        <td class="col-status"><span class="status-dot status-dot--${mod}" aria-hidden="true"></span>${statusLbl}</td>
+        <td class="col-status"><span class="status-dot status-dot--${mod}" aria-hidden="true"></span><span class="status-label">${statusLbl}</span></td>
         <td class="col-num">#${num}</td>
         <td class="col-sum">${escapeHtml(moneyFmt(o.total))}</td>
         <td class="col-time"><span data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span></td>
         <td class="col-name">${name}</td>
         <td class="col-phone">${phoneHref ? `<a href="${phoneHref}">${phoneTxt}</a>` : phoneTxt}</td>
         <td class="col-addr">${addr}</td>
-        <td class="col-pay">${paymentPillsCompact(o)}</td>
-        <td class="col-sla">${slaCellHtml(o)}</td>
+        <td class="col-pay col-hide-sm">${paymentPillsCompact(o)}</td>
+        <td class="col-sla col-hide-sm">${slaCellHtml(o)}</td>
         <td class="col-act">${quickNextBtnHtml(o)}</td>
       </tr>`;
     }
@@ -2339,8 +2387,8 @@
           <th>${escapeHtml(t('thClient'))}</th>
           <th>${escapeHtml(t('thPhone'))}</th>
           <th>${escapeHtml(t('thAddr'))}</th>
-          <th>${escapeHtml(t('thPay'))}</th>
-          <th>${escapeHtml(t('thSla'))}</th>
+          <th class="col-hide-sm">${escapeHtml(t('thPay'))}</th>
+          <th class="col-hide-sm">${escapeHtml(t('thSla'))}</th>
           <th>${escapeHtml(t('thAct'))}</th>
         </tr></thead>
         <tbody>${body}${archHtml}</tbody>
