@@ -8,37 +8,38 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    /* Ops queue — light desk, list rows (Stripe/Shopify style) */
+    /* Ops room — dark table default, optional kanban */
     :root {
-      --bg: #fafafa;
-      --bg2: #ffffff;
-      --card: #ffffff;
-      --line: #e5e7eb;
-      --line-strong: #d1d5db;
-      --txt: #111827;
-      --muted: #6b7280;
-      --muted2: #374151;
-      --acc: #059669;
-      --acc-hover: #047857;
-      --warn: #d97706;
-      --danger: #dc2626;
-      --live: #059669;
-      --st-new: #2563eb;
-      --st-work: #7c3aed;
-      --st-ready: #d97706;
-      --st-out: #059669;
-      --st-done: #6b7280;
-      --st-cancel: #dc2626;
-      --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-      --radius: 10px;
+      --bg: #0f1419;
+      --bg2: #141b24;
+      --card: #1a2332;
+      --card-hover: #222d3f;
+      --line: #2d3a4d;
+      --line-strong: #3d4f66;
+      --txt: #e6edf3;
+      --muted: #8b9cb3;
+      --muted2: #b4c0d4;
+      --acc: #3fb950;
+      --acc-hover: #2ea043;
+      --warn: #d29922;
+      --danger: #f85149;
+      --live: #3fb950;
+      --st-new: #58a6ff;
+      --st-work: #a371f7;
+      --st-ready: #d29922;
+      --st-out: #3fb950;
+      --st-done: #8b9cb3;
+      --st-cancel: #f85149;
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      --radius: 8px;
       --radius-sm: 6px;
-      --space: 12px;
+      --space: 10px;
       --font-xs: 12px;
       --font-sm: 13px;
       --font-md: 14px;
       --font-lg: 15px;
-      --row-h: 60px;
-      --header-compact-max: 108px;
+      --row-h: 44px;
+      --header-compact-max: 96px;
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
@@ -52,7 +53,8 @@
       height: 100dvh;
       max-height: 100dvh;
       overflow: hidden;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      font-size: var(--font-sm);
       font-feature-settings: "tnum" 1;
       color: var(--txt);
       background: var(--bg);
@@ -77,8 +79,8 @@
       display: flex;
       flex-direction: column;
       align-items: stretch;
-      gap: 10px;
-      padding: 12px 16px;
+      gap: 8px;
+      padding: 10px 12px;
       flex-shrink: 0;
       background: var(--bg2);
       border: 1px solid var(--line);
@@ -198,6 +200,21 @@
       max-height: 2.7em;
       padding: 0 2px 2px;
     }
+    .ops-bar-row--sub {
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 12px;
+    }
+    .ops-bar-row--sub .chip-row {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .ops-bar-row--sub .stats-bar {
+      flex: 1 1 auto;
+      min-width: 12rem;
+      border-bottom: none;
+      padding: 0;
+    }
     .chip-row {
       display: flex;
       flex-wrap: wrap;
@@ -219,11 +236,11 @@
     button { cursor: pointer; }
     button:disabled { opacity: 0.55; cursor: not-allowed; }
     .btn-ghost { background: transparent; }
-    .btn-ghost:hover { background: #f3f4f6; }
+    .btn-ghost:hover { background: var(--card); }
     .primary {
       background: var(--acc);
       border: 1px solid transparent;
-      color: #052e16;
+      color: #0d1117;
       font-weight: 600;
     }
     .primary:hover:not(:disabled) { background: var(--acc-hover); }
@@ -233,15 +250,22 @@
       color: var(--muted2);
       font-size: var(--font-xs);
       font-weight: 500;
-      padding: 6px 12px;
+      padding: 5px 10px;
       border-radius: var(--radius-sm);
       white-space: nowrap;
     }
     .chip.on {
-      border-color: #86efac;
-      color: #065f46;
-      background: #ecfdf5;
+      border-color: #238636;
+      color: #aff5b4;
+      background: rgba(63, 185, 80, 0.12);
     }
+    .view-chips {
+      display: inline-flex;
+      gap: 4px;
+      flex-shrink: 0;
+      margin-right: 6px;
+    }
+    .view-chips .chip { font-weight: 600; }
     .stats-bar {
       flex-shrink: 0;
       border: none;
@@ -279,12 +303,12 @@
       background: var(--card);
       padding: 8px 12px;
       min-height: 0;
-      max-height: 72px;
+      max-height: 80px;
       overflow: auto;
       box-sizing: border-box;
     }
     .courier-staff-bar[hidden] { display: none !important; }
-    body:not(.courier-bar-open) .courier-staff-bar.courier-collapsible {
+    body:not(.courier-bar-open) .courier-staff-bar {
       display: none !important;
     }
     #courierBarToggle { display: none; }
@@ -333,17 +357,17 @@
     .sla-ok {
       color: var(--muted);
       border-color: var(--line);
-      background: #f9fafb;
+      background: var(--card);
     }
     .sla-warn {
-      color: #92400e;
-      border-color: #fcd34d;
-      background: #fffbeb;
+      color: #f0c14b;
+      border-color: #9e6a03;
+      background: rgba(210, 153, 34, 0.15);
     }
     .sla-hot {
-      color: #991b1b;
-      border-color: #fecaca;
-      background: #fef2f2;
+      color: #ff7b72;
+      border-color: #da3633;
+      background: rgba(248, 81, 73, 0.12);
     }
     .muted { color: var(--muted); font-size: 12px; line-height: 1.35; }
     .sync-pill {
@@ -363,8 +387,8 @@
       box-sizing: border-box;
     }
     .sync-pill--live {
-      border-color: #a7f3d0;
-      background: #ecfdf5;
+      border-color: #238636;
+      background: rgba(63, 185, 80, 0.1);
     }
     .sync-pill__time {
       display: inline-block;
@@ -382,9 +406,9 @@
     .badge {
       padding: 5px 10px 5px 8px;
       border-radius: var(--radius-sm);
-      border: 1px solid #a7f3d0;
-      color: #065f46;
-      background: #ecfdf5;
+      border: 1px solid #238636;
+      color: #aff5b4;
+      background: rgba(63, 185, 80, 0.1);
       font-size: 11px;
       font-weight: 500;
       display: inline-flex;
@@ -393,13 +417,12 @@
       gap: 6px;
       box-sizing: border-box;
     }
-    .badge--live { }
     .badge.offline {
-      border-color: #fecaca;
-      color: #991b1b;
-      background: #fef2f2;
+      border-color: #da3633;
+      color: #ffa198;
+      background: rgba(248, 81, 73, 0.1);
     }
-    .badge.offline .live-dot { background: #dc2626; }
+    .badge.offline .live-dot { background: var(--danger); }
     .live-dot {
       width: 6px;
       height: 6px;
@@ -409,23 +432,297 @@
     }
     .token-required {
       flex-shrink: 0;
-      border: 1px dashed #fca5a5;
-      background: #fef2f2;
-      color: #991b1b;
+      border: 1px dashed #da3633;
+      background: rgba(248, 81, 73, 0.08);
+      color: #ffa198;
       padding: 12px 14px;
       border-radius: var(--radius-sm);
     }
     .orders-board {
       flex: 1 1 0%;
       min-height: 0;
-      overflow-y: auto;
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
       border: 1px solid var(--line);
       border-radius: var(--radius);
       background: var(--bg2);
     }
     .orders-board.is-loading { pointer-events: none; opacity: 0.85; }
+    .ops-table-wrap {
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .ops-table {
+      width: 100%;
+      min-width: 960px;
+      border-collapse: collapse;
+      font-size: var(--font-sm);
+    }
+    .ops-table thead {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+    }
+    .ops-table thead th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: #161d27;
+      border-bottom: 1px solid var(--line-strong);
+      padding: 8px 10px;
+      white-space: nowrap;
+    }
+    .ops-table tbody tr.ops-table-group td {
+      padding: 8px 10px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted2);
+      background: #121820;
+      border-bottom: 1px solid var(--line);
+    }
+    .ops-table tbody tr.ops-table-group .ops-table-group__count {
+      margin-left: 8px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .ops-table tbody tr.ops-table-arch td {
+      padding: 0;
+      border: none;
+      background: transparent;
+    }
+    .ops-table-arch-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      padding: 10px 12px;
+      border: none;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: #121820;
+      color: var(--muted2);
+      font: inherit;
+      font-size: var(--font-xs);
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+    }
+    .ops-table-arch-btn:hover { background: var(--card); }
+    .ops-table-arch-body tr { background: var(--card); }
+    .ops-table tbody tr[data-order-id] {
+      cursor: pointer;
+      background: var(--card);
+      border-bottom: 1px solid var(--line);
+    }
+    .ops-table tbody tr[data-order-id]:nth-child(even) { background: #17202c; }
+    .ops-table tbody tr[data-order-id]:hover { background: var(--card-hover); }
+    .ops-table td {
+      padding: 7px 10px;
+      vertical-align: middle;
+      color: var(--txt);
+      line-height: 1.35;
+    }
+    .ops-table .col-num,
+    .ops-table .col-sum,
+    .ops-table .col-time { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .ops-table .col-num { font-weight: 600; }
+    .ops-table .col-sum { font-weight: 600; }
+    .ops-table .col-time { color: var(--muted); font-size: var(--font-xs); }
+    .ops-table .col-name,
+    .ops-table .col-phone { white-space: normal; word-break: break-word; }
+    .ops-table .col-addr {
+      white-space: normal;
+      word-break: break-word;
+      max-width: 14rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: var(--font-xs);
+    }
+    .ops-table .col-pay .pill { margin: 1px 2px 1px 0; }
+    .ops-table .col-sla { white-space: nowrap; }
+    .ops-table .col-sla .sla { margin: 0; font-size: 10px; padding: 2px 6px; }
+    .ops-table .col-act { white-space: nowrap; text-align: right; }
+    .ops-table .col-act .ops-row__btn {
+      min-height: 30px;
+      max-height: 30px;
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+    .ops-table .col-status { white-space: nowrap; }
+    .ops-table .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .ops-table .status-dot--new { background: var(--st-new); }
+    .ops-table .status-dot--work { background: var(--st-work); }
+    .ops-table .status-dot--ready { background: var(--st-ready); }
+    .ops-table .status-dot--out { background: var(--st-out); }
+    .ops-table .status-dot--done { background: var(--st-done); }
+    .ops-table .status-dot--cancel { background: var(--st-cancel); }
+    .ops-table .col-phone a { color: var(--st-new); text-decoration: none; }
+    .ops-table .col-phone a:hover { text-decoration: underline; }
+    .ops-kanban {
+      flex: 1 1 0%;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(320px, 1fr));
+      gap: var(--space);
+      padding: var(--space);
+      overflow: auto;
+      align-content: start;
+    }
+    .ops-kanban-col {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 320px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--card);
+      overflow: hidden;
+    }
+    .ops-kanban-col__head {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      background: #161d27;
+    }
+    .ops-kanban-col__bar {
+      width: 4px;
+      height: 1rem;
+      border-radius: 2px;
+      background: var(--col-accent, var(--st-new));
+      flex-shrink: 0;
+    }
+    .ops-kanban-col[data-col="new"] { --col-accent: var(--st-new); }
+    .ops-kanban-col[data-col="work"] { --col-accent: var(--st-work); }
+    .ops-kanban-col[data-col="out"] { --col-accent: var(--st-out); }
+    .ops-kanban-col__title {
+      margin: 0;
+      flex: 1;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted2);
+    }
+    .ops-kanban-col__count {
+      font-size: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .ops-kanban-col__list {
+      flex: 1 1 0%;
+      min-height: 120px;
+      max-height: none;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .ops-kanban-foot {
+      grid-column: 1 / -1;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--card);
+      overflow: hidden;
+    }
+    .ops-kanban-foot__toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border: none;
+      background: #161d27;
+      color: var(--muted2);
+      font: inherit;
+      font-size: var(--font-xs);
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+    }
+    .ops-kanban-foot__toggle:hover { background: var(--card-hover); }
+    .ops-kanban-foot__body { padding: 8px 12px 12px; display: grid; gap: 8px; }
+    .ops-kanban-foot--collapsed .ops-kanban-foot__body { display: none; }
+    .ops-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--bg2);
+      padding: 10px 10px 10px 12px;
+      cursor: pointer;
+      position: relative;
+    }
+    .ops-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      border-radius: 3px 0 0 3px;
+      background: var(--row-accent, var(--st-new));
+    }
+    .ops-card:hover { background: var(--card-hover); }
+    .ops-card--new { --row-accent: var(--st-new); }
+    .ops-card--work { --row-accent: var(--st-work); }
+    .ops-card--ready { --row-accent: var(--st-ready); }
+    .ops-card--out { --row-accent: var(--st-out); }
+    .ops-card--done { --row-accent: var(--st-done); }
+    .ops-card--cancel { --row-accent: var(--st-cancel); }
+    .ops-card__top {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: baseline;
+      margin-bottom: 4px;
+    }
+    .ops-card__id { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .ops-card__sum { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .ops-card__meta {
+      font-size: var(--font-xs);
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .ops-card__name { color: var(--txt); font-weight: 500; }
+    .ops-card__foot {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .ops-card__btn {
+      margin-left: auto;
+      min-height: 30px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+    }
     .ops-section {
       --section-accent: var(--st-new);
       border-bottom: 1px solid var(--line);
@@ -449,14 +746,14 @@
       padding: 10px 14px 10px 12px;
       border: none;
       border-bottom: 1px solid var(--line);
-      background: #f3f4f6;
+      background: #161d27;
       color: var(--txt);
       font: inherit;
       text-align: left;
       cursor: pointer;
       box-sizing: border-box;
     }
-    .ops-section__head:hover { background: #e5e7eb; }
+    .ops-section__head:hover { background: var(--card-hover); }
     .ops-section__bar {
       width: 4px;
       height: 1.25rem;
@@ -498,8 +795,8 @@
       color: var(--warn);
       padding: 2px 6px;
       border-radius: 4px;
-      background: #fffbeb;
-      border: 1px solid #fde68a;
+      background: rgba(210, 153, 34, 0.15);
+      border: 1px solid #9e6a03;
       flex-shrink: 0;
     }
     .ops-section__body { display: block; }
@@ -533,7 +830,7 @@
       background: var(--row-accent, var(--st-new));
       opacity: 0.85;
     }
-    .ops-row:hover { background: #f9fafb; }
+    .ops-row:hover { background: var(--card-hover); }
     .ops-row--new { --row-accent: var(--st-new); }
     .ops-row--work { --row-accent: var(--st-work); }
     .ops-row--ready { --row-accent: var(--st-ready); }
@@ -585,7 +882,7 @@
       flex-shrink: 0;
     }
     .ops-row__phone a {
-      color: #2563eb;
+      color: var(--st-new);
       text-decoration: none;
     }
     .ops-row__phone a:hover { text-decoration: underline; }
@@ -652,19 +949,19 @@
       font-size: 14px;
       line-height: 1;
       flex-shrink: 0;
-      background: #f9fafb;
+      background: var(--bg2);
     }
     #focusModeBtn.on {
-      border-color: #86efac;
-      color: #065f46;
-      background: #ecfdf5;
+      border-color: #238636;
+      color: #aff5b4;
+      background: rgba(63, 185, 80, 0.12);
     }
     #fullscreenBtn.primary {
       background: var(--card);
       color: var(--muted2);
       border: 1px solid var(--line);
     }
-    #fullscreenBtn.primary:hover { background: #f3f4f6; color: var(--txt); }
+    #fullscreenBtn.primary:hover { background: var(--card-hover); color: var(--txt); }
     .settings-modal {
       width: min(420px, 100%);
     }
@@ -682,15 +979,15 @@
       padding: 3px 8px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--line);
-      background: #f9fafb;
+      background: var(--bg2);
       color: var(--muted2);
       text-transform: capitalize;
       letter-spacing: 0.02em;
     }
-    .pill.payme { border-color: #a7f3d0; color: #065f46; background: #ecfdf5; }
-    .pill.cash { border-color: #fde68a; color: #92400e; background: #fffbeb; }
-    .pill.paid { border-color: #a7f3d0; background: #ecfdf5; color: #065f46; }
-    .pill.unpaid { border-color: #fecaca; color: #991b1b; background: #fef2f2; }
+    .pill.payme { border-color: #238636; color: #aff5b4; background: rgba(63, 185, 80, 0.1); }
+    .pill.cash { border-color: #9e6a03; color: #f0c14b; background: rgba(210, 153, 34, 0.12); }
+    .pill.paid { border-color: #238636; background: rgba(63, 185, 80, 0.1); color: #aff5b4; }
+    .pill.unpaid { border-color: #da3633; color: #ffa198; background: rgba(248, 81, 73, 0.1); }
     .row {
       display: flex;
       justify-content: space-between;
@@ -701,7 +998,7 @@
     .overlay {
       position: fixed;
       inset: 0;
-      background: rgba(17, 24, 39, 0.45);
+      background: rgba(0, 0, 0, 0.65);
       backdrop-filter: blur(2px);
       display: none;
       align-items: center;
@@ -732,7 +1029,7 @@
       border-radius: var(--radius-sm);
       padding: 10px;
     }
-    .item img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; background: #fff; }
+    .item img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; background: var(--bg); }
     .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
     .actions button { min-height: 52px; font-size: 16px; font-weight: 700; }
     .actions a.primary { min-height: 52px; font-size: 16px; grid-column: 1 / -1; }
@@ -752,7 +1049,7 @@
       box-shadow: var(--shadow);
     }
     .toast.show { display: block; }
-    .toast.err { border-color: #fecaca; color: #991b1b; background: #fef2f2; }
+    .toast.err { border-color: #da3633; color: #ffa198; background: rgba(248, 81, 73, 0.12); }
     .sound-tools {
       display: inline-flex;
       align-items: center;
@@ -773,23 +1070,15 @@
     body.viewport-compact .stats-bar { padding: 0 2px 8px; }
     body.viewport-compact .stats-inline { font-size: 11px; }
     @media (max-width: 767px) {
-      .ops-row {
+      .ops-kanban {
         grid-template-columns: 1fr;
-        min-height: auto;
-        padding: 10px 12px 10px 14px;
+        padding: 8px;
       }
-      .ops-row__main {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 2px;
-      }
-      .ops-row__dot { display: none; }
-      .ops-row__addr { white-space: normal; max-width: 100%; }
-      .ops-row__end {
-        width: 100%;
-        justify-content: flex-start;
-      }
-      .ops-row__btn { width: 100%; max-width: none; }
+      .ops-kanban-col { min-width: 0; }
+      .ops-table { min-width: 880px; }
+    }
+    @media (max-width: 1100px) {
+      .ops-kanban { grid-template-columns: repeat(3, minmax(280px, 1fr)); }
     }
     /* —— Focus mode —— */
     body.mode-focus .wrap { gap: 6px; }
@@ -976,7 +1265,23 @@
         sectionExpand: 'Bo‘limni ochish',
         sectionCollapse: 'Bo‘limni yopish',
         courierBarShow: 'Kuryerlar',
-        courierBarHide: 'Kuryerlar ✓'
+        courierBarHide: 'Kuryerlar ✓',
+        viewTable: 'Jadval',
+        viewKanban: 'Ustunlar',
+        colKanbanNew: 'Yangi',
+        colKanbanWork: 'Jarayonda',
+        colKanbanOut: "Yo'lda",
+        archDoneCancel: 'Yetkazildi / Bekor',
+        thStatus: 'Status',
+        thNum: '#',
+        thSum: 'Summa',
+        thTime: 'Vaqt',
+        thClient: 'Mijoz',
+        thPhone: 'Telefon',
+        thAddr: 'Manzil',
+        thPay: "To'lov",
+        thSla: 'SLA',
+        thAct: 'Harakat'
       },
       ru: {
         opsTitle: 'GlobusMarket · Ops',
@@ -1041,7 +1346,23 @@
         sectionExpand: 'Развернуть раздел',
         sectionCollapse: 'Свернуть раздел',
         courierBarShow: 'Курьеры',
-        courierBarHide: 'Курьеры ✓'
+        courierBarHide: 'Курьеры ✓',
+        viewTable: 'Таблица',
+        viewKanban: 'Колонки',
+        colKanbanNew: 'Новые',
+        colKanbanWork: 'В работе',
+        colKanbanOut: 'В пути',
+        archDoneCancel: 'Доставлено / Отмена',
+        thStatus: 'Статус',
+        thNum: '#',
+        thSum: 'Сумма',
+        thTime: 'Время',
+        thClient: 'Клиент',
+        thPhone: 'Телефон',
+        thAddr: 'Адрес',
+        thPay: 'Оплата',
+        thSla: 'SLA',
+        thAct: 'Действие'
       }
     };
     function t(key) {
@@ -1054,7 +1375,14 @@
       mapsUrl: 'https://maps.google.com/maps?q=39.654572,66.958871&ll=39.654572,66.958871&z=16'
     };
     const ACCORDION_SECTIONS = new Set(['delivered', 'cancelled']);
+    const ARCHIVE_SECTIONS = new Set(['delivered', 'cancelled']);
+    const viewModeKey = 'gm_ops_view';
     const BOARD_BP = { compact: '(max-width: 899px)' };
+    const kanbanGroups = [
+      { key: 'new', labelKey: 'colKanbanNew', col: 'new', statuses: ['created', 'payment_pending', 'payment_confirmed'] },
+      { key: 'work', labelKey: 'colKanbanWork', col: 'work', statuses: ['preparing', 'ready_for_courier', 'courier_assigned'] },
+      { key: 'out', labelKey: 'colKanbanOut', col: 'out', statuses: ['out_for_delivery'] }
+    ];
     const statusGroups = [
       { key: 'new', labelKey: 'colNew', colIcon: '✦', statuses: ['created', 'payment_pending', 'payment_confirmed'] },
       { key: 'preparing', labelKey: 'colPreparing', colIcon: '◈', statuses: ['preparing'] },
@@ -1095,6 +1423,14 @@
     let courierStaffPollSkip = 0;
     const viewFilters = { today: false, payme: false, cash: false, active: false };
 
+    function getViewMode() {
+      const v = localStorage.getItem(viewModeKey);
+      return v === 'kanban' ? 'kanban' : 'table';
+    }
+    function setViewMode(mode) {
+      localStorage.setItem(viewModeKey, mode === 'kanban' ? 'kanban' : 'table');
+    }
+
     function saveCollapsedSections() {
       localStorage.setItem(collapsedSectionsKey, JSON.stringify([...collapsedSections]));
     }
@@ -1134,13 +1470,11 @@
       const toggle = document.getElementById('courierBarToggle');
       const bar = document.getElementById('courierStaffBar');
       if (!toggle || !bar) return;
-      const compact = window.matchMedia(BOARD_BP.compact).matches;
       const list = Array.isArray(courierApplications) ? courierApplications : [];
       const n = list.length;
       const hasBar = !bar.hidden && n > 0;
-      const visible = compact && hasBar;
-      toggle.hidden = !visible;
-      toggle.classList.toggle('is-visible', visible);
+      toggle.hidden = !hasBar;
+      toggle.classList.toggle('is-visible', hasBar);
       const open = document.body.classList.contains('courier-bar-open');
       toggle.classList.toggle('on', open);
       toggle.setAttribute('aria-pressed', open ? 'true' : 'false');
@@ -1150,9 +1484,6 @@
     function syncViewportChrome() {
       const compact = window.matchMedia(BOARD_BP.compact).matches;
       document.body.classList.toggle('viewport-compact', compact);
-      const bar = document.getElementById('courierStaffBar');
-      if (bar) bar.classList.toggle('courier-collapsible', compact);
-      if (!compact) document.body.classList.add('courier-bar-open');
       syncCourierBarToggle();
     }
     function syncSettingsTokenFields() {
@@ -1399,7 +1730,7 @@
       return `${arr.length}:${today.length}:${active.length}:${sum(arr)}:${sum(today)}`;
     }
     function buildBoardFingerprint() {
-      return getFilteredOrders()
+      const body = getFilteredOrders()
         .map((o) => {
           const next = getNextTransition(o);
           return [
@@ -1415,15 +1746,19 @@
         })
         .sort()
         .join('|');
+      const collapsed = [...collapsedSections].sort().join(',');
+      return `${getViewMode()}|${collapsed}|${body}`;
     }
     const buildColumnsFingerprint = buildBoardFingerprint;
     function captureBoardScroll() {
       const board = document.getElementById('ordersBoard');
-      return board ? board.scrollTop : 0;
+      if (!board) return { top: 0, el: null };
+      const wrap = board.querySelector('.ops-table-wrap') || board.querySelector('.ops-kanban');
+      const el = wrap || board;
+      return { top: el.scrollTop, el };
     }
-    function restoreBoardScroll(top) {
-      const board = document.getElementById('ordersBoard');
-      if (board && Number.isFinite(top)) board.scrollTop = top;
+    function restoreBoardScroll(saved) {
+      if (saved && saved.el && Number.isFinite(saved.top)) saved.el.scrollTop = saved.top;
     }
     function sortColumnOrders(items) {
       return [...items].sort((a, b) => {
@@ -1433,9 +1768,17 @@
         return String(b.id || '').localeCompare(String(a.id || ''));
       });
     }
+    function sortOrdersUrgency(items) {
+      return [...items].sort((a, b) => {
+        const ta = new Date(a.created_at || 0).getTime();
+        const tb = new Date(b.created_at || 0).getTime();
+        if (ta !== tb) return ta - tb;
+        return String(a.id || '').localeCompare(String(b.id || ''));
+      });
+    }
     function patchRowsLiveMeta() {
       const byId = new Map(getFilteredOrders().map((o) => [String(o.id), o]));
-      document.querySelectorAll('.ops-row[data-order-id]').forEach((row) => {
+      document.querySelectorAll('[data-order-id]').forEach((row) => {
         const o = byId.get(row.getAttribute('data-order-id'));
         if (!o) return;
         const rel = row.querySelector('[data-rel-ts]');
@@ -1460,20 +1803,22 @@
         }
         const label = formatSlaLabel(mins);
         if (!slaEl) {
-          const end = row.querySelector('.ops-row__end');
-          if (!end) return;
+          const host = row.querySelector('.col-sla') || row.querySelector('.ops-card__foot');
+          if (!host) return;
           const div = document.createElement('div');
-          div.className = `sla-live sla ops-row__sla ${tier}`;
+          const inTable = row.tagName === 'TR';
+          div.className = inTable ? `sla-live sla ${tier}` : `sla-live sla ops-row__sla ${tier}`;
           div.dataset.createdTs = String(ts);
           div.textContent = label;
-          const btn = end.querySelector('.ops-row__btn');
-          if (btn) end.insertBefore(div, btn);
-          else end.appendChild(div);
+          const btn = host.querySelector('[data-quick-next]');
+          if (btn && !inTable) host.insertBefore(div, btn);
+          else host.appendChild(div);
           slaEl = div;
         }
         slaEl.dataset.createdTs = String(ts);
         slaEl.textContent = label;
-        slaEl.className = `sla-live sla ops-row__sla ${tier}`;
+        const inTable = row.tagName === 'TR';
+        slaEl.className = inTable ? `sla-live sla ${tier}` : `sla-live sla ops-row__sla ${tier}`;
       });
     }
     const patchCardsLiveMeta = patchRowsLiveMeta;
@@ -1582,13 +1927,18 @@
     function renderFilterChips() {
       const el = document.getElementById('filterChips');
       if (!el) return;
+      const mode = getViewMode();
+      const viewHtml = `<span class="view-chips" role="group" aria-label="View">
+        <button type="button" class="chip ${mode === 'table' ? 'on' : ''}" data-view-mode="table">${escapeHtml(t('viewTable'))}</button>
+        <button type="button" class="chip ${mode === 'kanban' ? 'on' : ''}" data-view-mode="kanban">${escapeHtml(t('viewKanban'))}</button>
+      </span>`;
       const specs = [
         { k: 'today', label: t('filterToday') },
         { k: 'payme', label: t('filterPayme') },
         { k: 'cash', label: t('filterCash') },
         { k: 'active', label: t('filterActive') }
       ];
-      el.innerHTML = specs
+      const filterHtml = specs
         .map(
           (s) =>
             `<button type="button" class="chip ${viewFilters[s.k] ? 'on' : ''}" data-filter="${s.k}">${escapeHtml(
@@ -1596,6 +1946,47 @@
             )}</button>`
         )
         .join('');
+      el.innerHTML = viewHtml + filterHtml;
+    }
+    function isArchiveCollapsed() {
+      return collapsedSections.has('delivered') && collapsedSections.has('cancelled');
+    }
+    function toggleArchiveCollapsed() {
+      if (isArchiveCollapsed()) {
+        collapsedSections.delete('delivered');
+        collapsedSections.delete('cancelled');
+      } else {
+        collapsedSections.add('delivered');
+        collapsedSections.add('cancelled');
+      }
+      saveCollapsedSections();
+    }
+    function orderAddress(o) {
+      return [o.customerAddress, o.addressText, o.location]
+        .map((x) => String(x || '').trim())
+        .find(Boolean) || '';
+    }
+    function paymentPillsCompact(o) {
+      const rawM = String(o.paymentMethod || '').trim() || '—';
+      const m = rawM.toLowerCase();
+      const ps = String(o.paymentStatus || '').trim().toLowerCase();
+      const paid = ps === 'paid';
+      const mCls = m === 'payme' ? 'pill payme' : m === 'cash' ? 'pill cash' : 'pill';
+      const pCls = paid ? 'pill paid' : 'pill unpaid';
+      const pText = paid ? t('paidShort') : t('unpaidShort');
+      return `<span class="${mCls}">${escapeHtml(rawM)}</span> <span class="${pCls}">${escapeHtml(pText)}</span>`;
+    }
+    function quickNextBtnHtml(o) {
+      const next = getNextTransition(o);
+      if (!next) return '';
+      const id = escapeHtml(String(o.id));
+      return `<button type="button" class="ops-row__btn primary" data-quick-next="${escapeHtml(next.to)}" data-order-id="${id}">${escapeHtml(
+        next.label
+      )}</button>`;
+    }
+    function slaCellHtml(o) {
+      const html = slaBlockHtml(o);
+      return html || '<span class="muted">—</span>';
     }
 
     function cardAccentClass(status) {
@@ -1854,94 +2245,156 @@
     function rowAccentMod(status) {
       return cardAccentClass(status).replace('accent-', '');
     }
-    function renderOrderRow(o) {
+    function renderOrderTableRow(o) {
       const id = escapeHtml(String(o.id));
       const num = escapeHtml(String(o.orderNumber || o.id));
       const name = escapeHtml(String(o.customerName || '').trim() || t('guest'));
       const phoneRaw = String(o.customerPhone || '').trim();
       const phoneHref = phoneRaw ? `tel:${escapeHtml(phoneRaw.replace(/\s+/g, ''))}` : '';
       const phoneTxt = escapeHtml(phoneRaw || '—');
-      const addrRaw = [o.customerAddress, o.addressText, o.location]
-        .map((x) => String(x || '').trim())
-        .find(Boolean);
-      const addr = escapeHtml(addrRaw || '—');
-      const next = getNextTransition(o);
-      const nextBtn = next
-        ? `<button type="button" class="ops-row__btn primary" data-quick-next="${escapeHtml(next.to)}" data-order-id="${id}">${escapeHtml(
-            next.label
-          )}</button>`
-        : '';
-      const slaChip = slaBlockHtml(o).replace('class="sla-live sla', 'class="sla-live sla ops-row__sla');
-      const rawM = String(o.paymentMethod || '').trim() || '—';
-      const m = rawM.toLowerCase();
-      const ps = String(o.paymentStatus || '').trim().toLowerCase();
-      const paid = ps === 'paid';
-      const mCls = m === 'payme' ? 'pill payme' : m === 'cash' ? 'pill cash' : 'pill';
-      const pCls = paid ? 'pill paid' : 'pill unpaid';
-      const pText = paid ? t('paidShort') : t('unpaidShort');
+      const addr = escapeHtml(orderAddress(o) || '—');
       const mod = rowAccentMod(o.status);
-      return `
-        <div class="ops-row ops-row--${mod}" data-order-id="${id}" role="button" tabindex="0">
-          <div class="ops-row__main">
-            <span class="ops-row__id">#${num}</span>
-            <span class="ops-row__sum">${escapeHtml(moneyFmt(o.total))}</span>
-            <span class="ops-row__dot" aria-hidden="true">·</span>
-            <span class="ops-row__time" data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span>
-            <span class="ops-row__dot" aria-hidden="true">·</span>
-            <span class="ops-row__name">${name}</span>
-            <span class="ops-row__dot" aria-hidden="true">·</span>
-            <span class="ops-row__phone">${phoneHref ? `<a href="${phoneHref}">${phoneTxt}</a>` : phoneTxt}</span>
-            <span class="ops-row__dot" aria-hidden="true">·</span>
-            <span class="ops-row__addr" title="${addr}">${addr}</span>
+      const statusLbl = escapeHtml(orderStatusLabel(o.status));
+      return `<tr data-order-id="${id}" tabindex="0">
+        <td class="col-status"><span class="status-dot status-dot--${mod}" aria-hidden="true"></span>${statusLbl}</td>
+        <td class="col-num">#${num}</td>
+        <td class="col-sum">${escapeHtml(moneyFmt(o.total))}</td>
+        <td class="col-time"><span data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span></td>
+        <td class="col-name">${name}</td>
+        <td class="col-phone">${phoneHref ? `<a href="${phoneHref}">${phoneTxt}</a>` : phoneTxt}</td>
+        <td class="col-addr">${addr}</td>
+        <td class="col-pay">${paymentPillsCompact(o)}</td>
+        <td class="col-sla">${slaCellHtml(o)}</td>
+        <td class="col-act">${quickNextBtnHtml(o)}</td>
+      </tr>`;
+    }
+    function renderKanbanCard(o) {
+      const id = escapeHtml(String(o.id));
+      const num = escapeHtml(String(o.orderNumber || o.id));
+      const name = escapeHtml(String(o.customerName || '').trim() || t('guest'));
+      const phoneTxt = escapeHtml(String(o.customerPhone || '').trim() || '—');
+      const addr = escapeHtml(orderAddress(o) || '—');
+      const mod = rowAccentMod(o.status);
+      const sla = slaBlockHtml(o);
+      const btn = quickNextBtnHtml(o);
+      const btnHtml = btn ? btn.replace('class="ops-row__btn', 'class="ops-card__btn ops-row__btn') : '';
+      return `<article class="ops-card ops-card--${mod}" data-order-id="${id}" tabindex="0">
+        <p class="ops-card__top"><span class="ops-card__id">#${num}</span><span class="ops-card__sum">${escapeHtml(moneyFmt(o.total))}</span></p>
+        <p class="ops-card__meta"><span data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span> · <span class="ops-card__name">${name}</span></p>
+        <p class="ops-card__meta">${phoneTxt} · ${addr}</p>
+        <div class="ops-card__foot">${paymentPillsCompact(o)}${sla}${btnHtml}</div>
+      </article>`;
+    }
+    const renderOrderCard = renderKanbanCard;
+    function renderTableNow() {
+      const base = getFilteredOrders();
+      const activeGroups = statusGroups
+        .filter((g) => !ARCHIVE_SECTIONS.has(g.key))
+        .map((group) => ({
+          ...group,
+          items: sortOrdersUrgency(base.filter((o) => group.statuses.includes(normalizeStatus(o.status))))
+        }));
+      const archGroups = statusGroups
+        .filter((g) => ARCHIVE_SECTIONS.has(g.key))
+        .map((group) => ({
+          ...group,
+          items: sortColumnOrders(base.filter((o) => group.statuses.includes(normalizeStatus(o.status))))
+        }));
+      const archCount = archGroups.reduce((n, g) => n + g.items.length, 0);
+      const archCollapsed = isArchiveCollapsed();
+      let body = activeGroups
+        .map((group) => {
+          if (!group.items.length) return '';
+          return `<tr class="ops-table-group"><td colspan="10">${escapeHtml(t(group.labelKey))}<span class="ops-table-group__count">${group.items.length}</span></td></tr>${group.items.map((o) => renderOrderTableRow(o)).join('')}`;
+        })
+        .join('');
+      if (!body && !archCount) {
+        body = `<tr><td colspan="10" class="ops-section__empty">${escapeHtml(t('colEmpty'))}</td></tr>`;
+      }
+      let archHtml = '';
+      if (archCount) {
+        const archRows = archGroups
+          .map((group) => {
+            if (!group.items.length) return '';
+            return `<tr class="ops-table-group"><td colspan="10">${escapeHtml(t(group.labelKey))}<span class="ops-table-group__count">${group.items.length}</span></td></tr>${group.items.map((o) => renderOrderTableRow(o)).join('')}`;
+          })
+          .join('');
+        archHtml = `<tr class="ops-table-arch"><td colspan="10">
+          <button type="button" class="ops-table-arch-btn" data-archive-toggle="1" aria-expanded="${archCollapsed ? 'false' : 'true'}">
+            <span aria-hidden="true">${archCollapsed ? '▶' : '▼'}</span>
+            ${escapeHtml(t('archDoneCancel'))} (${archCount})
+          </button>
+          ${archCollapsed ? '' : `<table class="ops-table ops-table-arch-body"><tbody>${archRows}</tbody></table>`}
+        </td></tr>`;
+      }
+      const board = document.getElementById('ordersBoard');
+      if (!board) return;
+      board.className = 'orders-board orders-board--table';
+      board.innerHTML = `<div class="ops-table-wrap"><table class="ops-table">
+        <thead><tr>
+          <th>${escapeHtml(t('thStatus'))}</th>
+          <th>${escapeHtml(t('thNum'))}</th>
+          <th>${escapeHtml(t('thSum'))}</th>
+          <th>${escapeHtml(t('thTime'))}</th>
+          <th>${escapeHtml(t('thClient'))}</th>
+          <th>${escapeHtml(t('thPhone'))}</th>
+          <th>${escapeHtml(t('thAddr'))}</th>
+          <th>${escapeHtml(t('thPay'))}</th>
+          <th>${escapeHtml(t('thSla'))}</th>
+          <th>${escapeHtml(t('thAct'))}</th>
+        </tr></thead>
+        <tbody>${body}${archHtml}</tbody>
+      </table></div>`;
+    }
+    function renderKanbanNow() {
+      const base = getFilteredOrders();
+      const cols = kanbanGroups.map((group) => {
+        const items = sortOrdersUrgency(base.filter((o) => group.statuses.includes(normalizeStatus(o.status))));
+        const stale = colStaleCount(items);
+        const staleHint =
+          stale > 0
+            ? `<span class="ops-section__stale">${escapeHtml(t('colStaleHint').replace('{n}', String(stale)))}</span>`
+            : '';
+        return `<div class="ops-kanban-col" data-col="${escapeHtml(group.col)}">
+          <div class="ops-kanban-col__head">
+            <span class="ops-kanban-col__bar" aria-hidden="true"></span>
+            <h3 class="ops-kanban-col__title">${escapeHtml(t(group.labelKey))}</h3>
+            ${staleHint}
+            <span class="ops-kanban-col__count">${items.length}</span>
           </div>
-          <div class="ops-row__end">
-            <span class="${mCls}">${escapeHtml(rawM)}</span>
-            <span class="${pCls}">${escapeHtml(pText)}</span>
-            ${slaChip}
-            ${nextBtn}
+          <div class="ops-kanban-col__list">
+            ${items.length ? items.map((o) => renderKanbanCard(o)).join('') : `<p class="ops-section__empty">${escapeHtml(t('colEmpty'))}</p>`}
           </div>
         </div>`;
+      });
+      const archFiltered = sortColumnOrders(base.filter((o) => ['delivered', 'cancelled'].includes(normalizeStatus(o.status))));
+      const archCollapsed = isArchiveCollapsed();
+      const foot =
+        archFiltered.length > 0
+          ? `<div class="ops-kanban-foot${archCollapsed ? ' ops-kanban-foot--collapsed' : ''}">
+          <button type="button" class="ops-kanban-foot__toggle" data-archive-toggle="1" aria-expanded="${archCollapsed ? 'false' : 'true'}">
+            <span aria-hidden="true">${archCollapsed ? '▶' : '▼'}</span>
+            ${escapeHtml(t('archDoneCancel'))} (${archFiltered.length})
+          </button>
+          <div class="ops-kanban-foot__body">${archFiltered.map((o) => renderKanbanCard(o)).join('')}</div>
+        </div>`
+          : '';
+      const board = document.getElementById('ordersBoard');
+      if (!board) return;
+      board.className = 'orders-board orders-board--kanban';
+      board.innerHTML = `<div class="ops-kanban">${cols.join('')}${foot}</div>`;
     }
-    const renderOrderCard = renderOrderRow;
     function renderBoardNow() {
       const fp = buildBoardFingerprint();
       if (fp === lastBoardFingerprint) {
         patchRowsLiveMeta();
         return;
       }
-      const scrollTop = captureBoardScroll();
+      const scroll = captureBoardScroll();
       lastBoardFingerprint = fp;
-      const base = getFilteredOrders();
-      const grouped = statusGroups.map((group) => ({
-        ...group,
-        items: sortColumnOrders(base.filter((o) => group.statuses.includes(normalizeStatus(o.status))))
-      }));
-      const board = document.getElementById('ordersBoard');
-      if (!board) return;
-      board.innerHTML = grouped
-        .map((group) => {
-          const collapsed = isSectionCollapsed(group.key);
-          const stale = colStaleCount(group.items);
-          const staleHint =
-            stale > 0
-              ? `<span class="ops-section__stale">${escapeHtml(t('colStaleHint').replace('{n}', String(stale)))}</span>`
-              : '';
-          return `
-        <section class="ops-section${collapsed ? ' ops-section--collapsed' : ''}" data-section="${escapeHtml(group.key)}">
-          <button type="button" class="ops-section__head" data-section-toggle="${escapeHtml(group.key)}" aria-expanded="${collapsed ? 'false' : 'true'}">
-            <span class="ops-section__bar" aria-hidden="true"></span>
-            <h3 class="ops-section__title">${escapeHtml(t(group.labelKey))} (${group.items.length})</h3>
-            ${staleHint}
-            <span class="ops-section__count">${group.items.length}</span>
-            <span class="ops-section__chev" aria-hidden="true">▼</span>
-          </button>
-          <div class="ops-section__body">
-            ${group.items.length ? group.items.map((o) => renderOrderRow(o)).join('') : `<p class="ops-section__empty">${escapeHtml(t('colEmpty'))}</p>`}
-          </div>
-        </section>`;
-        })
-        .join('');
-      restoreBoardScroll(scrollTop);
+      if (getViewMode() === 'kanban') renderKanbanNow();
+      else renderTableNow();
+      restoreBoardScroll(scroll);
     }
     const renderColumnsNow = renderBoardNow;
 
@@ -2208,6 +2661,14 @@
     })();
 
     document.getElementById('ordersBoard').onclick = (e) => {
+      const archBtn = e.target.closest('[data-archive-toggle]');
+      if (archBtn) {
+        e.preventDefault();
+        toggleArchiveCollapsed();
+        lastBoardFingerprint = '';
+        scheduleRenderBoard();
+        return;
+      }
       const sectionBtn = e.target.closest('[data-section-toggle]');
       if (sectionBtn) {
         e.preventDefault();
@@ -2303,6 +2764,17 @@
     });
 
     document.getElementById('filterChips').addEventListener('click', (e) => {
+      const viewBtn = e.target.closest('[data-view-mode]');
+      if (viewBtn) {
+        const mode = viewBtn.dataset.viewMode;
+        if (mode === 'table' || mode === 'kanban') {
+          setViewMode(mode);
+          renderFilterChips();
+          lastBoardFingerprint = '';
+          scheduleRenderBoard();
+        }
+        return;
+      }
       const b = e.target.closest('[data-filter]');
       if (!b) return;
       const k = b.dataset.filter;
