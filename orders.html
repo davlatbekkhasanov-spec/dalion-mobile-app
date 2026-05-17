@@ -470,6 +470,7 @@
     }
     .orders-board.is-loading { pointer-events: none; opacity: 0.85; }
     .ops-table-wrap {
+      width: 100%;
       flex: 1 1 0%;
       min-height: 0;
       overflow-x: auto;
@@ -478,10 +479,9 @@
     }
     .ops-table {
       width: 100%;
-      min-width: 960px;
-      border-collapse: separate;
+      border-collapse: collapse;
       border-spacing: 0;
-      table-layout: auto;
+      table-layout: fixed;
       font-size: var(--font-sm);
     }
     .ops-table thead {
@@ -505,15 +505,15 @@
       overflow: hidden;
     }
     .ops-table .col-status { width: 40px; text-align: center; }
-    .ops-table .col-num { width: 90px; }
-    .ops-table .col-sum { width: 11%; min-width: 100px; text-align: right; }
-    .ops-table .col-time { width: 72px; }
-    .ops-table .col-name { min-width: 120px; }
-    .ops-table .col-tel { width: 44px; text-align: center; }
-    .ops-table .col-addr { min-width: 180px; }
-    .ops-table .col-pay { width: 56px; text-align: center; }
-    .ops-table .col-sla { width: 64px; text-align: center; }
-    .ops-table .col-act { width: 48px; text-align: center; }
+    .ops-table .col-num { width: 88px; }
+    .ops-table .col-sum { width: 110px; text-align: right; }
+    .ops-table .col-time { width: 70px; }
+    .ops-table .col-name { width: auto; }
+    .ops-table .col-tel { width: 130px; text-align: left; }
+    .ops-table .col-addr { width: auto; }
+    .ops-table .col-pay { width: 52px; text-align: center; }
+    .ops-table .col-sla { width: 56px; text-align: center; }
+    .ops-table .col-act { width: 44px; text-align: center; }
     .ops-table thead th.col-sum { text-align: right; }
     .ops-table thead th.col-tel,
     .ops-table thead th.col-pay,
@@ -529,9 +529,12 @@
       background: #121820;
       border-bottom: 1px solid var(--line);
     }
-    .ops-table tbody tr.ops-table-group .ops-table-group__ico {
-      margin-right: 6px;
-      opacity: 0.85;
+    .ops-table tbody tr.ops-table-group .ops-table-group__dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 8px;
+      vertical-align: middle;
     }
     .ops-table tbody tr.ops-table-group .ops-table-group__count {
       margin-left: 8px;
@@ -591,7 +594,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      max-width: 22vw;
     }
     .ops-table .col-addr .ops-addr {
       display: flex;
@@ -621,7 +623,29 @@
       gap: 3px;
       max-width: 100%;
     }
-    .ops-table .col-time .ops-time__ico { font-size: 11px; opacity: 0.75; flex-shrink: 0; }
+    .ops-table .col-time .ops-time__ico { opacity: 0.75; flex-shrink: 0; color: var(--muted); }
+    .ops-th-ico {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      vertical-align: middle;
+    }
+    .ops-ico { display: block; flex-shrink: 0; }
+    .ops-tel-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+    .ops-tel-txt {
+      font-size: var(--font-xs);
+      color: var(--muted2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
     .ops-table .col-sla { white-space: nowrap; }
     .ops-table .col-sla .ops-sla {
       display: inline-flex;
@@ -654,13 +678,13 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
       border-radius: var(--radius-sm);
       color: var(--st-new);
       text-decoration: none;
-      font-size: 15px;
-      line-height: 1;
+      line-height: 0;
     }
     .ops-tel-link:hover { background: rgba(88, 166, 255, 0.12); }
     .ops-pay-cell {
@@ -671,35 +695,45 @@
       flex-wrap: nowrap;
     }
     .ops-pay-badge {
-      display: inline-grid;
-      place-items: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       width: 20px;
       height: 20px;
       border-radius: 4px;
-      font-size: 10px;
-      font-weight: 700;
-      line-height: 1;
       border: 1px solid var(--line);
       background: var(--bg2);
       color: var(--muted2);
     }
     .ops-pay-badge--payme { border-color: #238636; color: #aff5b4; background: rgba(63, 185, 80, 0.15); }
     .ops-pay-badge--cash { border-color: #9e6a03; color: #f0c14b; background: rgba(210, 153, 34, 0.12); }
-    .ops-pay-state { font-size: 13px; line-height: 1; }
+    .ops-pay-state {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 0;
+    }
     .ops-pay-state--paid { color: #3fb950; }
     .ops-pay-state--unpaid { color: #d29922; }
+    .ops-sla .ops-ico { color: currentColor; }
     .ops-icon-btn {
-      display: inline-grid;
-      place-items: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       width: 36px;
       height: 36px;
       min-height: 36px;
       max-height: 36px;
       padding: 0;
-      font-size: 16px;
-      line-height: 1;
+      line-height: 0;
       border-radius: var(--radius-sm);
+      color: inherit;
     }
+    .ops-arch-chev {
+      display: inline-flex;
+      transition: transform 0.15s ease;
+    }
+    .ops-arch-chev.is-open { transform: rotate(90deg); }
     .ops-kanban {
       flex: 1 1 0%;
       min-height: 0;
@@ -1195,8 +1229,9 @@
     @media (max-width: 899px) {
       .ops-table .col-hide-sm,
       .ops-table thead th.col-hide-sm { display: none; }
-      .ops-table { min-width: 720px; }
-      .ops-table .col-name .ops-name { max-width: 28vw; }
+    }
+    @media (max-width: 767px) {
+      .ops-tel-txt { display: none; }
     }
     @media (max-width: 767px) {
       .ops-kanban {
@@ -1213,7 +1248,8 @@
     body.mode-focus .ops-brand small { display: none; }
     body.mode-focus .ops-bar { padding: 8px 12px; gap: 6px; }
     body.mode-focus .ops-tools { display: none !important; }
-    body.mode-focus .ops-head-status #fullscreenBtn { display: inline-flex !important; }
+    body.mode-focus .ops-head-status #fullscreenBtn,
+    body.mode-focus .ops-head-status #focusModeBtn { display: inline-flex !important; }
     body.mode-focus #courierStaffBar { display: none !important; }
     body.mode-focus .stats-bar {
       border: none;
@@ -1244,6 +1280,7 @@
             <span id="lastUpdatedLive" class="sync-pill__live" hidden aria-hidden="true">—</span>
           </span>
           <div class="ops-clock" id="clock" aria-live="polite">--:--:--</div>
+          <button type="button" id="focusModeBtn" class="chip" aria-pressed="false">Focus</button>
           <button type="button" id="fullscreenBtn" class="primary" aria-label="To‘liq ekran" title="To‘liq ekran">⛶</button>
         </div>
         <div class="ops-tools">
@@ -1254,7 +1291,6 @@
           <input type="range" id="soundVolume" min="0" max="200" step="1" value="200" aria-label="" />
         </span>
         <button type="button" id="courierBarToggle" class="chip" aria-pressed="false" hidden>Kuryer</button>
-        <button type="button" id="focusModeBtn" class="chip" aria-pressed="false">Focus</button>
         <button type="button" id="settingsBtn" class="btn-ghost" aria-label="">⚙</button>
         <div class="token-input-wrap" id="tokenToolsInline">
           <input id="tokenInput" type="password" placeholder="ADMIN_IMPORT_TOKEN" autocomplete="off" spellcheck="false" autocapitalize="off" />
@@ -1386,8 +1422,8 @@
         slaHours: 'SLA {n} soat',
         slaDays: 'SLA {n} kun',
         courierStaffTitle: 'Ro‘yxatdan kuryerlar (portallar)',
-        focusOn: 'Focus ✓',
-        focusOff: 'Focus',
+        focusOn: 'Fokus ✓',
+        focusOff: 'Fokus',
         settingsTitle: 'Sozlamalar',
         settingsHint: 'Admin token va boshqa sozlamalar.',
         colStaleHint: '{n} ta 20+ daq',
@@ -1467,8 +1503,8 @@
         slaHours: 'SLA {n} ч',
         slaDays: 'SLA {n} дн',
         courierStaffTitle: 'Курьеры (регистрация / портал)',
-        focusOn: 'Focus ✓',
-        focusOff: 'Focus',
+        focusOn: 'Фокус ✓',
+        focusOff: 'Фокус',
         settingsTitle: 'Настройки',
         settingsHint: 'Токен администратора и прочие параметры.',
         colStaleHint: '{n} × 20+ мин',
@@ -1513,13 +1549,25 @@
       { key: 'out', labelKey: 'colKanbanOut', col: 'out', statuses: ['out_for_delivery'] }
     ];
     const statusGroups = [
-      { key: 'new', labelKey: 'colNew', colIcon: '✦', statuses: ['created', 'payment_pending', 'payment_confirmed'] },
-      { key: 'preparing', labelKey: 'colPreparing', colIcon: '◈', statuses: ['preparing'] },
-      { key: 'ready', labelKey: 'colReady', colIcon: '◉', statuses: ['ready_for_courier', 'courier_assigned'] },
-      { key: 'out_for_delivery', labelKey: 'colOut', colIcon: '→', statuses: ['out_for_delivery'] },
-      { key: 'delivered', labelKey: 'colDone', colIcon: '✓', statuses: ['delivered'] },
-      { key: 'cancelled', labelKey: 'colCancelled', colIcon: '✕', statuses: ['cancelled'] }
+      { key: 'new', labelKey: 'colNew', groupDot: 'new', statuses: ['created', 'payment_pending', 'payment_confirmed'] },
+      { key: 'preparing', labelKey: 'colPreparing', groupDot: 'work', statuses: ['preparing'] },
+      { key: 'ready', labelKey: 'colReady', groupDot: 'ready', statuses: ['ready_for_courier', 'courier_assigned'] },
+      { key: 'out_for_delivery', labelKey: 'colOut', groupDot: 'out', statuses: ['out_for_delivery'] },
+      { key: 'delivered', labelKey: 'colDone', groupDot: 'done', statuses: ['delivered'] },
+      { key: 'cancelled', labelKey: 'colCancelled', groupDot: 'cancel', statuses: ['cancelled'] }
     ];
+    const TABLE_COLGROUP = `<colgroup>
+      <col style="width:40px" />
+      <col style="width:88px" />
+      <col style="width:110px" />
+      <col style="width:70px" />
+      <col style="width:14%" />
+      <col style="width:130px" />
+      <col style="width:28%" />
+      <col class="col-hide-sm" style="width:52px" />
+      <col class="col-hide-sm" style="width:56px" />
+      <col style="width:44px" />
+    </colgroup>`;
     const focusModeKey = 'gm_ops_focus';
     const collapsedSectionsKey = 'gm_ops_collapsed_sections';
     let collapsedSections = new Set(
@@ -1792,6 +1840,47 @@
         .replace(/"/g, '&quot;');
     }
 
+    const ICON_PATHS = {
+      phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>',
+      pin: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+      clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+      payme: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+      cash: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+      paid: '<path d="M20 6L9 17l-5-5"/>',
+      unpaid: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+      'sla-warn': '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+      'sla-hot': '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+      'action-next': '<path d="M9 18l6-6-6-6"/>',
+      'action-courier': '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11"/><path d="M15 18H9"/><path d="M19 18h2v-7l-3-3h-4v10"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+      'action-deliver': '<path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+      package: '<path d="M16.5 9.4l-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/>',
+      'chevron-right': '<path d="M9 18l6-6-6-6"/>',
+      'chevron-down': '<path d="M6 9l6 6 6-6"/>'
+    };
+    function iconSvg(name, size = 17) {
+      const inner = ICON_PATHS[name];
+      if (!inner) return '';
+      return `<svg class="ops-ico" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+    }
+    function slaIconName(tier) {
+      return tier === 'sla-hot' ? 'sla-hot' : 'sla-warn';
+    }
+    function nextActionIconName(next) {
+      if (!next) return 'action-next';
+      const map = {
+        preparing: 'package',
+        ready_for_courier: 'action-courier',
+        courier_assigned: 'action-courier',
+        out_for_delivery: 'action-deliver',
+        delivered: 'paid'
+      };
+      return map[next.to] || 'action-next';
+    }
+    function groupHeaderDotHtml(group) {
+      const mod = group.groupDot || 'new';
+      return `<span class="ops-table-group__dot status-dot status-dot--${mod}" aria-hidden="true"></span>`;
+    }
+
     function moneyFmt(n) {
       return `${Number(n || 0).toLocaleString('ru-RU')} so'm`;
     }
@@ -1844,7 +1933,7 @@
       if (txtEl) {
         txtEl.textContent = slaShortMins(mins);
         const iconEl = el.querySelector('.ops-sla__ico');
-        if (iconEl) iconEl.textContent = tier === 'sla-hot' ? '🔥' : '⚠';
+        if (iconEl) iconEl.innerHTML = iconSvg(slaIconName(tier), 14);
         el.className = `ops-sla sla-live sla ${tier}`;
         el.title = formatSlaLabel(mins);
         return;
@@ -1853,9 +1942,8 @@
       el.className = `sla-live sla ${tier}`;
     }
     function buildSlaLiveMarkup(ts, tier, mins) {
-      const icon = tier === 'sla-hot' ? '🔥' : '⚠';
       const title = escapeHtml(formatSlaLabel(mins));
-      return `<span class="ops-sla sla-live sla ${tier}" data-created-ts="${ts}" title="${title}"><span class="ops-sla__ico" aria-hidden="true">${icon}</span><span class="ops-sla__txt">${escapeHtml(
+      return `<span class="ops-sla sla-live sla ${tier}" data-created-ts="${ts}" title="${title}"><span class="ops-sla__ico" aria-hidden="true">${iconSvg(slaIconName(tier), 14)}</span><span class="ops-sla__txt">${escapeHtml(
         slaShortMins(mins)
       )}</span></span>`;
     }
@@ -2145,27 +2233,16 @@
       const paid = ps === 'paid';
       let methodBadge = '';
       if (rawM === 'payme') {
-        methodBadge = `<span class="ops-pay-badge ops-pay-badge--payme" title="Payme">P</span>`;
+        methodBadge = `<span class="ops-pay-badge ops-pay-badge--payme" title="Payme">${iconSvg('payme', 14)}</span>`;
       } else if (rawM === 'cash') {
-        methodBadge = `<span class="ops-pay-badge ops-pay-badge--cash" title="${escapeHtml(t('filterCash'))}">N</span>`;
+        methodBadge = `<span class="ops-pay-badge ops-pay-badge--cash" title="${escapeHtml(t('filterCash'))}">${iconSvg('cash', 14)}</span>`;
       } else if (rawM) {
-        methodBadge = `<span class="ops-pay-badge" title="${escapeHtml(rawM)}">·</span>`;
+        methodBadge = `<span class="ops-pay-badge" title="${escapeHtml(rawM)}">${iconSvg('cash', 14)}</span>`;
       }
       const paidIcon = paid
-        ? `<span class="ops-pay-state ops-pay-state--paid" title="${escapeHtml(t('paidShort'))}" aria-label="${escapeHtml(t('paidShort'))}">✓</span>`
-        : `<span class="ops-pay-state ops-pay-state--unpaid" title="${escapeHtml(t('unpaidShort'))}" aria-label="${escapeHtml(t('unpaidShort'))}">⏳</span>`;
+        ? `<span class="ops-pay-state ops-pay-state--paid" title="${escapeHtml(t('paidShort'))}" aria-label="${escapeHtml(t('paidShort'))}">${iconSvg('paid', 15)}</span>`
+        : `<span class="ops-pay-state ops-pay-state--unpaid" title="${escapeHtml(t('unpaidShort'))}" aria-label="${escapeHtml(t('unpaidShort'))}">${iconSvg('unpaid', 15)}</span>`;
       return `<span class="ops-pay-cell">${methodBadge}${paidIcon}</span>`;
-    }
-    function nextActionIcon(next) {
-      if (!next) return '→';
-      const icons = {
-        preparing: '📦',
-        ready_for_courier: '🚴',
-        courier_assigned: '🚴',
-        out_for_delivery: '🚴',
-        delivered: '✓'
-      };
-      return icons[next.to] || '→';
     }
     function quickNextBtnHtml(o) {
       const next = getNextTransition(o);
@@ -2180,8 +2257,7 @@
       if (!next) return '';
       const id = escapeHtml(String(o.id));
       const label = escapeHtml(next.label);
-      const icon = nextActionIcon(next);
-      return `<button type="button" class="ops-icon-btn ops-row__btn primary" data-quick-next="${escapeHtml(next.to)}" data-order-id="${id}" aria-label="${label}" title="${label}"><span aria-hidden="true">${icon}</span></button>`;
+      return `<button type="button" class="ops-icon-btn ops-row__btn primary" data-quick-next="${escapeHtml(next.to)}" data-order-id="${id}" aria-label="${label}" title="${label}">${iconSvg(nextActionIconName(next), 17)}</button>`;
     }
     function slaTableCellHtml(o) {
       const st = normalizeStatus(o.status);
@@ -2225,7 +2301,7 @@
       for (let i = 0; i < Math.min(2, arr.length); i += 1) {
         const u = String(arr[i].image_url || '').trim();
         if (u) bits.push(`<img class="thumb" src="${escapeHtml(u)}" alt="" loading="lazy" decoding="async" />`);
-        else bits.push('<span class="thumb" style="display:inline-grid;place-items:center;font-size:14px;">📦</span>');
+        else bits.push(`<span class="thumb" style="display:inline-grid;place-items:center;color:var(--muted);">${iconSvg('package', 16)}</span>`);
       }
       const more = arr.length > 2 ? `<span class="thumb-more">+${arr.length - 2}</span>` : '';
       return `<div class="ops-card__thumbs">${bits.join('')}${more}</div>`;
@@ -2393,6 +2469,7 @@
       renderFilterChips();
       if (!activeOrder) scheduleRenderColumns();
       if (activeOrder) renderModal(activeOrder);
+      setFocusMode(document.body.classList.contains('mode-focus'));
     }
     function getToken(){ return localStorage.getItem(tokenKey) || ''; }
     function fmt(v){ return v ? new Date(v).toLocaleTimeString('ru-RU') : '-'; }
@@ -2468,10 +2545,10 @@
         <td class="col-status"><span class="status-dot status-dot--${mod}" title="${statusLbl}" aria-label="${statusLbl}"></span></td>
         <td class="col-num">#${num}</td>
         <td class="col-sum">${escapeHtml(moneyFmt(o.total))}</td>
-        <td class="col-time" title="${timeFull}"><span class="ops-time"><span class="ops-time__ico" aria-hidden="true">🕐</span><span data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span></span></td>
+        <td class="col-time" title="${timeFull}"><span class="ops-time"><span class="ops-time__ico" aria-hidden="true">${iconSvg('clock', 13)}</span><span data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span></span></td>
         <td class="col-name"><span class="ops-name" title="${name}">${name}</span></td>
-        <td class="col-tel">${phoneHref ? `<a class="ops-tel-link" href="${phoneHref}" title="${phoneTxt}" aria-label="${phoneTxt}">📞</a>` : `<span class="muted" title="—">—</span>`}</td>
-        <td class="col-addr"><span class="ops-addr"><span class="ops-addr__pin" aria-hidden="true">📍</span><span class="ops-addr__txt" title="${addr}">${addr}</span></span></td>
+        <td class="col-tel">${phoneHref ? `<span class="ops-tel-cell"><a class="ops-tel-link" href="${phoneHref}" title="${phoneTxt}" aria-label="${phoneTxt}">${iconSvg('phone', 16)}</a><span class="ops-tel-txt">${phoneTxt}</span></span>` : `<span class="muted" title="—">—</span>`}</td>
+        <td class="col-addr"><span class="ops-addr"><span class="ops-addr__pin" aria-hidden="true">${iconSvg('pin', 13)}</span><span class="ops-addr__txt" title="${addr}">${addr}</span></span></td>
         <td class="col-pay col-hide-sm">${paymentTableHtml(o)}</td>
         <td class="col-sla col-hide-sm">${slaTableCellHtml(o)}</td>
         <td class="col-act">${quickNextIconBtnHtml(o)}</td>
@@ -2514,7 +2591,7 @@
       let body = activeGroups
         .map((group) => {
           if (!group.items.length) return '';
-          return `<tr class="ops-table-group"><td colspan="10"><span class="ops-table-group__ico" aria-hidden="true">${group.colIcon || ''}</span>${escapeHtml(t(group.labelKey))}<span class="ops-table-group__count">${group.items.length}</span></td></tr>${group.items.map((o) => renderOrderTableRow(o)).join('')}`;
+          return `<tr class="ops-table-group"><td colspan="10">${groupHeaderDotHtml(group)}${escapeHtml(t(group.labelKey))}<span class="ops-table-group__count">${group.items.length}</span></td></tr>${group.items.map((o) => renderOrderTableRow(o)).join('')}`;
         })
         .join('');
       if (!body && !archCount) {
@@ -2525,32 +2602,32 @@
         const archRows = archGroups
           .map((group) => {
             if (!group.items.length) return '';
-            return `<tr class="ops-table-group"><td colspan="10"><span class="ops-table-group__ico" aria-hidden="true">${group.colIcon || ''}</span>${escapeHtml(t(group.labelKey))}<span class="ops-table-group__count">${group.items.length}</span></td></tr>${group.items.map((o) => renderOrderTableRow(o)).join('')}`;
+            return `<tr class="ops-table-group"><td colspan="10">${groupHeaderDotHtml(group)}${escapeHtml(t(group.labelKey))}<span class="ops-table-group__count">${group.items.length}</span></td></tr>${group.items.map((o) => renderOrderTableRow(o)).join('')}`;
           })
           .join('');
         archHtml = `<tr class="ops-table-arch"><td colspan="10">
           <button type="button" class="ops-table-arch-btn" data-archive-toggle="1" aria-expanded="${archCollapsed ? 'false' : 'true'}">
-            <span aria-hidden="true">${archCollapsed ? '▶' : '▼'}</span>
+            <span class="ops-arch-chev${archCollapsed ? '' : ' is-open'}" aria-hidden="true">${iconSvg('chevron-right', 14)}</span>
             ${escapeHtml(t('archDoneCancel'))} (${archCount})
           </button>
-          ${archCollapsed ? '' : `<table class="ops-table ops-table-arch-body"><tbody>${archRows}</tbody></table>`}
+          ${archCollapsed ? '' : `<table class="ops-table ops-table-arch-body">${TABLE_COLGROUP}<tbody>${archRows}</tbody></table>`}
         </td></tr>`;
       }
       const board = document.getElementById('ordersBoard');
       if (!board) return;
       board.className = 'orders-board orders-board--table';
-      board.innerHTML = `<div class="ops-table-wrap"><table class="ops-table">
+      board.innerHTML = `<div class="ops-table-wrap"><table class="ops-table">${TABLE_COLGROUP}
         <thead><tr>
-          <th class="col-status" title="${escapeHtml(t('thStatus'))}">●</th>
+          <th class="col-status" title="${escapeHtml(t('thStatus'))}"><span class="status-dot status-dot--new" aria-hidden="true"></span></th>
           <th class="col-num" title="${escapeHtml(t('thNum'))}">#</th>
           <th class="col-sum" title="${escapeHtml(t('thSum'))}">${escapeHtml(t('thSum'))}</th>
-          <th class="col-time" title="${escapeHtml(t('thTime'))}">⏱</th>
+          <th class="col-time" title="${escapeHtml(t('thTime'))}"><span class="ops-th-ico">${iconSvg('clock', 14)}</span></th>
           <th class="col-name" title="${escapeHtml(t('thClient'))}">${escapeHtml(t('thClient'))}</th>
-          <th class="col-tel" title="${escapeHtml(t('thPhone'))}">📞</th>
-          <th class="col-addr" title="${escapeHtml(t('thAddr'))}">📍</th>
-          <th class="col-pay col-hide-sm" title="${escapeHtml(t('thPay'))}">₽</th>
+          <th class="col-tel" title="${escapeHtml(t('thPhone'))}"><span class="ops-th-ico">${iconSvg('phone', 14)}</span></th>
+          <th class="col-addr" title="${escapeHtml(t('thAddr'))}"><span class="ops-th-ico">${iconSvg('pin', 14)}</span></th>
+          <th class="col-pay col-hide-sm" title="${escapeHtml(t('thPay'))}"><span class="ops-th-ico">${iconSvg('payme', 14)}</span></th>
           <th class="col-sla col-hide-sm" title="${escapeHtml(t('thSla'))}">SLA</th>
-          <th class="col-act" title="${escapeHtml(t('thAct'))}">→</th>
+          <th class="col-act" title="${escapeHtml(t('thAct'))}"><span class="ops-th-ico">${iconSvg('action-next', 14)}</span></th>
         </tr></thead>
         <tbody>${body}${archHtml}</tbody>
       </table></div>`;
@@ -2582,7 +2659,7 @@
         archFiltered.length > 0
           ? `<div class="ops-kanban-foot${archCollapsed ? ' ops-kanban-foot--collapsed' : ''}">
           <button type="button" class="ops-kanban-foot__toggle" data-archive-toggle="1" aria-expanded="${archCollapsed ? 'false' : 'true'}">
-            <span aria-hidden="true">${archCollapsed ? '▶' : '▼'}</span>
+            <span class="ops-arch-chev${archCollapsed ? '' : ' is-open'}" aria-hidden="true">${iconSvg('chevron-right', 14)}</span>
             ${escapeHtml(t('archDoneCancel'))} (${archFiltered.length})
           </button>
           <div class="ops-kanban-foot__body">${archFiltered.map((o) => renderKanbanCard(o)).join('')}</div>
