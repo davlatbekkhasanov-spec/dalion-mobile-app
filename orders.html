@@ -8,37 +8,36 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    /* Ops board — Linear / Stripe-inspired professional dark UI */
+    /* Ops queue — light desk, list rows (Stripe/Shopify style) */
     :root {
-      --bg: #0c0f14;
-      --bg2: #111827;
-      --card: #161b22;
-      --line: rgba(255, 255, 255, 0.08);
-      --line-strong: rgba(255, 255, 255, 0.14);
-      --txt: #f3f4f6;
-      --muted: #9ca3af;
-      --muted2: #d1d5db;
-      --acc: #22c55e;
-      --acc-hover: #16a34a;
+      --bg: #fafafa;
+      --bg2: #ffffff;
+      --card: #ffffff;
+      --line: #e5e7eb;
+      --line-strong: #d1d5db;
+      --txt: #111827;
+      --muted: #6b7280;
+      --muted2: #374151;
+      --acc: #059669;
+      --acc-hover: #047857;
       --warn: #d97706;
       --danger: #dc2626;
-      --live: #22c55e;
-      --st-new: #60a5fa;
-      --st-work: #a78bfa;
-      --st-ready: #f59e0b;
-      --st-out: #34d399;
+      --live: #059669;
+      --st-new: #2563eb;
+      --st-work: #7c3aed;
+      --st-ready: #d97706;
+      --st-out: #059669;
       --st-done: #6b7280;
-      --st-cancel: #f87171;
-      --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-      --radius: 12px;
-      --radius-sm: 8px;
+      --st-cancel: #dc2626;
+      --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      --radius: 10px;
+      --radius-sm: 6px;
       --space: 12px;
       --font-xs: 12px;
       --font-sm: 13px;
       --font-md: 14px;
-      --font-lg: 18px;
-      --col-min: clamp(272px, 22vw, 300px);
-      --col-rail: 44px;
+      --font-lg: 15px;
+      --row-h: 60px;
       --header-compact-max: 108px;
     }
     * { box-sizing: border-box; }
@@ -133,7 +132,7 @@
       flex-shrink: 0;
     }
     .ops-brand strong { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
-    .ops-brand small { color: var(--muted); font-size: var(--font-xs); font-weight: 400; }
+    .ops-brand small { display: none; }
     body.viewport-compact .ops-brand small { display: none; }
     .ops-clock {
       font-variant-numeric: tabular-nums;
@@ -220,7 +219,7 @@
     button { cursor: pointer; }
     button:disabled { opacity: 0.55; cursor: not-allowed; }
     .btn-ghost { background: transparent; }
-    .btn-ghost:hover { background: rgba(255, 255, 255, 0.04); }
+    .btn-ghost:hover { background: #f3f4f6; }
     .primary {
       background: var(--acc);
       border: 1px solid transparent;
@@ -239,9 +238,9 @@
       white-space: nowrap;
     }
     .chip.on {
-      border-color: rgba(34, 197, 94, 0.35);
-      color: var(--txt);
-      background: rgba(34, 197, 94, 0.12);
+      border-color: #86efac;
+      color: #065f46;
+      background: #ecfdf5;
     }
     .stats-bar {
       flex-shrink: 0;
@@ -334,17 +333,17 @@
     .sla-ok {
       color: var(--muted);
       border-color: var(--line);
-      background: rgba(255, 255, 255, 0.04);
+      background: #f9fafb;
     }
     .sla-warn {
-      color: #fcd34d;
-      border-color: rgba(217, 119, 6, 0.4);
-      background: rgba(217, 119, 6, 0.12);
+      color: #92400e;
+      border-color: #fcd34d;
+      background: #fffbeb;
     }
     .sla-hot {
-      color: #fca5a5;
-      border-color: rgba(220, 38, 38, 0.45);
-      background: rgba(220, 38, 38, 0.12);
+      color: #991b1b;
+      border-color: #fecaca;
+      background: #fef2f2;
     }
     .muted { color: var(--muted); font-size: 12px; line-height: 1.35; }
     .sync-pill {
@@ -364,8 +363,8 @@
       box-sizing: border-box;
     }
     .sync-pill--live {
-      border-color: rgba(34, 197, 94, 0.25);
-      background: rgba(34, 197, 94, 0.06);
+      border-color: #a7f3d0;
+      background: #ecfdf5;
     }
     .sync-pill__time {
       display: inline-block;
@@ -383,9 +382,9 @@
     .badge {
       padding: 5px 10px 5px 8px;
       border-radius: var(--radius-sm);
-      border: 1px solid rgba(34, 197, 94, 0.3);
-      color: var(--muted2);
-      background: rgba(34, 197, 94, 0.08);
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      background: #ecfdf5;
       font-size: 11px;
       font-weight: 500;
       display: inline-flex;
@@ -396,11 +395,11 @@
     }
     .badge--live { }
     .badge.offline {
-      border-color: rgba(248, 113, 113, 0.35);
-      color: var(--muted);
-      background: rgba(248, 113, 113, 0.08);
+      border-color: #fecaca;
+      color: #991b1b;
+      background: #fef2f2;
     }
-    .badge.offline .live-dot { background: #f87171; }
+    .badge.offline .live-dot { background: #dc2626; }
     .live-dot {
       width: 6px;
       height: 6px;
@@ -410,90 +409,229 @@
     }
     .token-required {
       flex-shrink: 0;
-      border: 1px dashed rgba(193, 122, 139, 0.65);
-      background: rgba(43, 17, 25, 0.75);
-      color: #ffcad5;
+      border: 1px dashed #fca5a5;
+      background: #fef2f2;
+      color: #991b1b;
       padding: 12px 14px;
       border-radius: var(--radius-sm);
     }
-    .grid {
-      display: grid;
-      grid-template-rows: minmax(0, 1fr);
-      gap: var(--space);
+    .orders-board {
       flex: 1 1 0%;
       min-height: 0;
-      overflow: hidden;
-      align-content: stretch;
-    }
-    .grid[data-board-mode="mobile"],
-    .grid[data-board-mode="tablet"] {
-      grid-auto-flow: column;
-      overflow-x: auto;
-      overflow-y: hidden;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-color: rgba(120, 160, 220, 0.35) transparent;
-      padding-bottom: 4px;
-    }
-    .grid[data-board-mode="mobile"] {
-      grid-auto-columns: min(100%, 100vw - 28px);
-    }
-    .grid[data-board-mode="tablet"] {
-      grid-auto-columns: minmax(var(--col-min), 1fr);
-    }
-    .grid[data-board-mode="desktop"] {
+      overflow-y: auto;
       overflow-x: hidden;
-    }
-    .grid.is-loading { pointer-events: none; }
-    .col {
-      --col-accent: var(--st-new);
-      scroll-snap-align: center;
-      scroll-snap-stop: always;
-      background: rgba(255, 255, 255, 0.02);
+      -webkit-overflow-scrolling: touch;
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      padding: 0 12px 12px;
+      background: var(--bg2);
+    }
+    .orders-board.is-loading { pointer-events: none; opacity: 0.85; }
+    .ops-section {
+      --section-accent: var(--st-new);
+      border-bottom: 1px solid var(--line);
+    }
+    .ops-section:last-child { border-bottom: none; }
+    .ops-section[data-section="new"] { --section-accent: var(--st-new); }
+    .ops-section[data-section="preparing"] { --section-accent: var(--st-work); }
+    .ops-section[data-section="ready"] { --section-accent: var(--st-ready); }
+    .ops-section[data-section="out_for_delivery"] { --section-accent: var(--st-out); }
+    .ops-section[data-section="delivered"] { --section-accent: var(--st-done); }
+    .ops-section[data-section="cancelled"] { --section-accent: var(--st-cancel); }
+    .ops-section__head {
+      position: sticky;
+      top: 0;
+      z-index: 2;
       display: flex;
-      flex-direction: column;
-      align-self: stretch;
-      min-height: 0;
-      height: 100%;
-      min-width: 0;
-      position: relative;
-      overflow: hidden;
-    }
-    .grid[data-board-mode="mobile"] .col:not(.col--collapsed) {
+      align-items: center;
+      gap: 10px;
       width: 100%;
-      max-width: 100%;
+      margin: 0;
+      padding: 10px 14px 10px 12px;
+      border: none;
+      border-bottom: 1px solid var(--line);
+      background: #f3f4f6;
+      color: var(--txt);
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      box-sizing: border-box;
     }
-    .col::before {
+    .ops-section__head:hover { background: #e5e7eb; }
+    .ops-section__bar {
+      width: 4px;
+      height: 1.25rem;
+      border-radius: 2px;
+      background: var(--section-accent);
+      flex-shrink: 0;
+    }
+    .ops-section__title {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted2);
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .ops-section__count {
+      font-size: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--muted2);
+      flex-shrink: 0;
+    }
+    .ops-section__chev {
+      font-size: 10px;
+      color: var(--muted);
+      flex-shrink: 0;
+      transition: transform 0.15s ease;
+    }
+    .ops-section--collapsed .ops-section__chev { transform: rotate(-90deg); }
+    .ops-section__stale {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--warn);
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      flex-shrink: 0;
+    }
+    .ops-section__body { display: block; }
+    .ops-section--collapsed .ops-section__body { display: none; }
+    .ops-section__empty {
+      padding: 14px 16px;
+      font-size: var(--font-xs);
+      color: var(--muted);
+      text-align: center;
+    }
+    .ops-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px 12px;
+      min-height: var(--row-h);
+      padding: 8px 14px 8px 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--card);
+      cursor: pointer;
+      position: relative;
+      box-sizing: border-box;
+    }
+    .ops-row::before {
       content: "";
       position: absolute;
       left: 0;
       top: 0;
       bottom: 0;
       width: 3px;
-      background: var(--col-accent);
-      opacity: 0.55;
-      pointer-events: none;
+      background: var(--row-accent, var(--st-new));
+      opacity: 0.85;
     }
-    .col[data-col="new"] { --col-accent: var(--st-new); }
-    .col[data-col="preparing"] { --col-accent: var(--st-work); }
-    .col[data-col="ready"] { --col-accent: var(--st-ready); }
-    .col[data-col="out_for_delivery"] { --col-accent: var(--st-out); }
-    .col[data-col="delivered"] { --col-accent: var(--st-done); }
-    .col[data-col="cancelled"] { --col-accent: var(--st-cancel); }
-    .col--busy {
-      border-color: color-mix(in srgb, var(--col-accent) 32%, var(--line));
+    .ops-row:hover { background: #f9fafb; }
+    .ops-row--new { --row-accent: var(--st-new); }
+    .ops-row--work { --row-accent: var(--st-work); }
+    .ops-row--ready { --row-accent: var(--st-ready); }
+    .ops-row--out { --row-accent: var(--st-out); }
+    .ops-row--done { --row-accent: var(--st-done); }
+    .ops-row--cancel { --row-accent: var(--st-cancel); }
+    .ops-row__main {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 4px 8px;
+      min-width: 0;
+      font-size: var(--font-sm);
+      line-height: 1.35;
     }
-    .col--preparing.col--busy .list { scrollbar-color: color-mix(in srgb, var(--st-work) 55%, transparent) transparent; }
+    .ops-row__id {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--txt);
+      flex-shrink: 0;
+    }
+    .ops-row__sum {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--txt);
+      flex-shrink: 0;
+    }
+    .ops-row__dot {
+      color: var(--line-strong);
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .ops-row__time {
+      color: var(--muted);
+      font-size: var(--font-xs);
+      flex-shrink: 0;
+    }
+    .ops-row__name {
+      font-weight: 500;
+      color: var(--txt);
+      max-width: 12rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ops-row__phone {
+      color: var(--muted2);
+      font-size: var(--font-xs);
+      flex-shrink: 0;
+    }
+    .ops-row__phone a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+    .ops-row__phone a:hover { text-decoration: underline; }
+    .ops-row__addr {
+      color: var(--muted);
+      font-size: var(--font-xs);
+      min-width: 0;
+      flex: 1 1 8rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ops-row__end {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .ops-row__end .pill {
+      font-size: 10px;
+      padding: 2px 7px;
+    }
+    .ops-row__sla {
+      margin: 0;
+      font-size: 10px;
+      padding: 2px 6px;
+    }
+    .ops-row__btn {
+      min-height: 34px;
+      max-height: 34px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+    }
     .token-input-wrap {
       display: inline-flex;
       align-items: stretch;
       gap: 0;
       border-radius: var(--radius-sm);
       border: 1px solid var(--line);
-      background: rgba(10, 22, 42, 0.9);
+      background: var(--card);
       overflow: hidden;
     }
     .token-input-wrap input {
@@ -514,300 +652,19 @@
       font-size: 14px;
       line-height: 1;
       flex-shrink: 0;
-      background: rgba(6, 14, 28, 0.55);
-    }
-    .col-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin: 12px 0 8px;
-      padding-top: 2px;
-      flex-shrink: 0;
-      flex-wrap: nowrap;
-    }
-    .col-head__title {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      min-width: 0;
-      flex: 1 1 auto;
-    }
-    .col-mark {
-      width: 6px;
-      height: 6px;
-      margin-top: 5px;
-      border-radius: 50%;
-      background: var(--col-accent);
-      flex-shrink: 0;
-      opacity: 0.85;
-    }
-    .col-icon { display: none; }
-    .col-head h3 {
-      margin: 0;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--muted);
-      flex: 1 1 auto;
-      min-width: 0;
-      overflow-wrap: anywhere;
-      line-height: 1.3;
-    }
-    .count-pill {
-      font-size: 11px;
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-      padding: 2px 8px;
-      min-width: 1.5em;
-      text-align: center;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--muted2);
-      flex-shrink: 0;
-    }
-    .count-pill:empty,
-    .count-pill[data-count="0"] {
-      opacity: 0.5;
-    }
-    .col-bar {
-      height: 2px;
-      border-radius: 1px;
-      background: rgba(255, 255, 255, 0.06);
-      overflow: hidden;
-      margin-bottom: 10px;
-      flex-shrink: 0;
-    }
-    .col-bar > i {
-      display: block;
-      height: 100%;
-      border-radius: inherit;
-      background: var(--col-accent);
-      opacity: 0.5;
-      width: 0%;
-      transition: width 0.35s ease;
-    }
-    .list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      flex: 1 1 0%;
-      min-height: 88px;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding-right: 4px;
-      padding-bottom: 2px;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
-    }
-    .list-empty {
-      flex: 1 1 auto;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100px;
-      padding: 16px 12px;
-      border: 1px dashed var(--line-strong);
-      border-radius: var(--radius-sm);
-      background: transparent;
-      text-align: center;
-    }
-    .list-empty p {
-      margin: 0;
-      font-size: var(--font-xs);
-      font-weight: 500;
-      color: var(--muted);
-      line-height: 1.45;
-    }
-    .ops-card {
-      position: relative;
-      border: 1px solid var(--line);
-      background: var(--card);
-      border-radius: var(--radius-sm);
-      padding: 12px;
-      cursor: pointer;
-      overflow: visible;
-      min-width: 0;
-      min-height: 0;
-      transition: border-color 0.15s ease;
-    }
-    .ops-card:hover {
-      border-color: var(--line-strong);
-    }
-    .ops-card::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: var(--accent, var(--st-new));
-      opacity: 0.7;
-    }
-    .ops-card.accent-new::before { background: var(--st-new); }
-    .ops-card.accent-work::before { background: var(--st-work); }
-    .ops-card.accent-ready::before { background: var(--st-ready); }
-    .ops-card.accent-out::before { background: var(--st-out); }
-    .ops-card.accent-done::before { background: var(--st-done); }
-    .ops-card.accent-cancel::before { background: var(--st-cancel); }
-    .ops-card__hero {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      margin-bottom: 10px;
-    }
-    .ops-card__toprow {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: var(--space);
-      min-width: 0;
-    }
-    .ops-card__no {
-      font-size: var(--font-lg);
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      line-height: 1.2;
-      flex-shrink: 0;
-    }
-    .ops-card__sum {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--txt);
-      font-variant-numeric: tabular-nums;
-      margin-left: auto;
-      flex-shrink: 0;
-      text-align: right;
-      max-width: 58%;
-      overflow-wrap: anywhere;
-    }
-    .ops-card__subrow {
-      display: block;
-      min-width: 0;
-    }
-    .ops-card__rel {
-      font-size: var(--font-xs);
-      font-weight: 400;
-      color: var(--muted);
-    }
-    .ops-card__sla { margin: 0; }
-    .ops-card__name {
-      font-size: var(--font-sm);
-      font-weight: 600;
-      line-height: 1.35;
-      margin: 0 0 4px;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-    .ops-card__phone {
-      display: block;
-      margin: 0 0 8px;
-      font-size: var(--font-sm);
-      font-weight: 500;
-    }
-    .ops-card__phone a {
-      color: #93c5fd;
-      text-decoration: none;
-    }
-    .ops-card__phone a:hover { text-decoration: underline; }
-    .ops-card__addr {
-      margin: 0 0 10px;
-      min-width: 0;
-    }
-    .ops-card__addr-txt {
-      color: var(--muted2);
-      font-size: var(--font-xs);
-      line-height: 1.45;
-      margin: 0;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-    .ops-card__meta {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 10px;
-    }
-    .ops-card__meta .sla {
-      margin-bottom: 0;
-      font-size: 10px;
-      padding: 3px 7px;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-    .ops-card__foot { display: none; }
-    .sla.sla-quiet {
-      opacity: 0.65;
-      font-size: 10px;
-      padding: 3px 7px;
-      margin-bottom: 6px;
-    }
-    .col-stale-hint {
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--warn);
-      padding: 2px 7px;
-      border-radius: 6px;
-      background: rgba(255, 193, 74, 0.12);
-      border: 1px solid rgba(255, 193, 74, 0.35);
-      white-space: nowrap;
-    }
-    .col--collapsed {
-      min-width: var(--col-rail) !important;
-      width: var(--col-rail) !important;
-      max-width: var(--col-rail);
-      padding: var(--space) 4px;
-      align-self: stretch;
-      scroll-snap-align: start;
-    }
-    .col-collapsed-btn {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 10px;
-      width: 100%;
-      min-height: 120px;
-      padding: 10px 4px;
-      border: 1px dashed color-mix(in srgb, var(--col-accent) 35%, var(--line));
-      border-radius: 12px;
-      background: rgba(5, 12, 24, 0.4);
-      color: var(--muted2);
-      cursor: pointer;
-      font: inherit;
-    }
-    .col-collapsed-btn:hover {
-      border-color: var(--col-accent);
-      background: rgba(8, 20, 38, 0.75);
-      color: var(--txt);
-    }
-    .col-collapsed-btn .col-mark { margin-top: 4px; }
-    .col-collapsed-label {
-      writing-mode: vertical-rl;
-      text-orientation: mixed;
-      transform: rotate(180deg);
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      max-height: 140px;
-      overflow: hidden;
+      background: #f9fafb;
     }
     #focusModeBtn.on {
-      border-color: rgba(34, 197, 94, 0.35);
-      color: var(--txt);
-      background: rgba(34, 197, 94, 0.12);
+      border-color: #86efac;
+      color: #065f46;
+      background: #ecfdf5;
     }
     #fullscreenBtn.primary {
       background: var(--card);
       color: var(--muted2);
       border: 1px solid var(--line);
     }
-    #fullscreenBtn.primary:hover { background: rgba(255, 255, 255, 0.06); color: var(--txt); }
+    #fullscreenBtn.primary:hover { background: #f3f4f6; color: var(--txt); }
     .settings-modal {
       width: min(420px, 100%);
     }
@@ -819,47 +676,21 @@
     }
     .settings-modal .token-input-wrap { width: 100%; }
     .settings-modal .token-input-wrap input { max-width: none; flex: 1; }
-    .ops-card__thumbs {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 8px;
-    }
-    .thumb {
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
-      object-fit: cover;
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.04);
-    }
-    .thumb-more {
-      font-size: 10px;
-      font-weight: 600;
-      padding: 0 6px;
-      height: 32px;
-      display: inline-flex;
-      align-items: center;
-      border-radius: 10px;
-      border: 1px dashed var(--line);
-      color: var(--muted2);
-    }
-    .pill-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
     .pill {
       font-size: 10px;
       font-weight: 500;
       padding: 3px 8px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.03);
+      background: #f9fafb;
       color: var(--muted2);
       text-transform: capitalize;
       letter-spacing: 0.02em;
     }
-    .pill.payme { border-color: rgba(34, 197, 94, 0.3); color: #86efac; }
-    .pill.cash { border-color: rgba(217, 119, 6, 0.35); color: #fcd34d; }
-    .pill.paid { border-color: rgba(34, 197, 94, 0.35); background: rgba(34, 197, 94, 0.08); color: #bbf7d0; }
-    .pill.unpaid { border-color: rgba(248, 113, 113, 0.35); color: #fecaca; }
+    .pill.payme { border-color: #a7f3d0; color: #065f46; background: #ecfdf5; }
+    .pill.cash { border-color: #fde68a; color: #92400e; background: #fffbeb; }
+    .pill.paid { border-color: #a7f3d0; background: #ecfdf5; color: #065f46; }
+    .pill.unpaid { border-color: #fecaca; color: #991b1b; background: #fef2f2; }
     .row {
       display: flex;
       justify-content: space-between;
@@ -870,8 +701,8 @@
     .overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(4px);
+      background: rgba(17, 24, 39, 0.45);
+      backdrop-filter: blur(2px);
       display: none;
       align-items: center;
       justify-content: center;
@@ -911,47 +742,17 @@
       right: 14px;
       bottom: 14px;
       max-width: 360px;
-      background: rgba(11, 26, 47, 0.95);
-      color: #d4ecff;
+      background: var(--bg2);
+      color: var(--txt);
       border: 1px solid var(--line);
       padding: 10px 12px;
-      border-radius: 12px;
+      border-radius: var(--radius-sm);
       display: none;
       z-index: 60;
       box-shadow: var(--shadow);
     }
     .toast.show { display: block; }
-    .toast.err { border-color: #a0485b; color: #ffd7e0; background: rgba(42, 17, 25, 0.95); }
-    .card-actions {
-      display: flex;
-      align-items: stretch;
-      margin-top: 0;
-      position: relative;
-      z-index: 2;
-      min-height: 40px;
-      flex-shrink: 0;
-    }
-    .card-actions .primary,
-    .card-actions .card-action-slot {
-      width: 100%;
-      min-height: 40px;
-      max-height: 40px;
-      padding: 8px 12px;
-      font-size: var(--font-sm);
-      border-radius: var(--radius-sm);
-      box-sizing: border-box;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      line-height: 1.2;
-      overflow: hidden;
-    }
-    .card-actions .card-action-slot {
-      visibility: hidden;
-      pointer-events: none;
-      border: 1px solid transparent;
-    }
+    .toast.err { border-color: #fecaca; color: #991b1b; background: #fef2f2; }
     .sound-tools {
       display: inline-flex;
       align-items: center;
@@ -971,12 +772,24 @@
     }
     body.viewport-compact .stats-bar { padding: 0 2px 8px; }
     body.viewport-compact .stats-inline { font-size: 11px; }
-    @media (max-width: 599px) {
-      .ops-card__thumbs { display: none; }
-    }
-    @media (min-width: 1920px) {
-      .grid[data-board-mode="desktop"] { gap: 10px; }
-      :root { --col-min: clamp(300px, 16vw, 360px); }
+    @media (max-width: 767px) {
+      .ops-row {
+        grid-template-columns: 1fr;
+        min-height: auto;
+        padding: 10px 12px 10px 14px;
+      }
+      .ops-row__main {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+      }
+      .ops-row__dot { display: none; }
+      .ops-row__addr { white-space: normal; max-width: 100%; }
+      .ops-row__end {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .ops-row__btn { width: 100%; max-width: none; }
     }
     /* —— Focus mode —— */
     body.mode-focus .wrap { gap: 6px; }
@@ -984,8 +797,6 @@
     body.mode-focus .ops-bar { padding: 8px 12px; gap: 6px; }
     body.mode-focus .ops-tools { display: none !important; }
     body.mode-focus #courierStaffBar { display: none !important; }
-    body.mode-focus .ops-card__foot { display: none; }
-    body.mode-focus .thumb-more { display: none; }
     body.mode-focus .stats-bar {
       border: none;
       padding: 0 0 6px;
@@ -1020,7 +831,7 @@
         <button type="button" id="langUzBtn" class="btn-ghost">UZ</button>
         <button type="button" id="langRuBtn" class="btn-ghost">RU</button>
         <span class="sound-tools" title="">
-          <button type="button" id="soundToggle" class="chip" aria-pressed="true">🔔</button>
+          <button type="button" id="soundToggle" class="chip" aria-pressed="true">Ovoz</button>
           <input type="range" id="soundVolume" min="0" max="200" step="1" value="200" aria-label="" />
         </span>
         <button type="button" id="courierBarToggle" class="chip" aria-pressed="false" hidden>Kuryer</button>
@@ -1040,7 +851,7 @@
     <div id="statsBar" class="stats-bar" hidden></div>
     <div id="courierStaffBar" class="courier-staff-bar" hidden></div>
     <div id="tokenRequired" class="token-required" style="display:none;">Token kiriting</div>
-    <div class="grid" id="columns"></div>
+    <div id="ordersBoard" class="orders-board" aria-label="Buyurtmalar navbati"></div>
   </div>
 
   <div id="modalOverlay" class="overlay">
@@ -1162,7 +973,8 @@
         settingsTitle: 'Sozlamalar',
         settingsHint: 'Admin token va boshqa sozlamalar.',
         colStaleHint: '{n} ta 20+ daq',
-        colExpandTitle: 'Ustunni ochish',
+        sectionExpand: 'Bo‘limni ochish',
+        sectionCollapse: 'Bo‘limni yopish',
         courierBarShow: 'Kuryerlar',
         courierBarHide: 'Kuryerlar ✓'
       },
@@ -1226,7 +1038,8 @@
         settingsTitle: 'Настройки',
         settingsHint: 'Токен администратора и прочие параметры.',
         colStaleHint: '{n} × 20+ мин',
-        colExpandTitle: 'Развернуть колонку',
+        sectionExpand: 'Развернуть раздел',
+        sectionCollapse: 'Свернуть раздел',
         courierBarShow: 'Курьеры',
         courierBarHide: 'Курьеры ✓'
       }
@@ -1240,19 +1053,8 @@
       name: 'GlobusMarket',
       mapsUrl: 'https://maps.google.com/maps?q=39.654572,66.958871&ll=39.654572,66.958871&z=16'
     };
-    const COLLAPSIBLE_EMPTY_COLS = new Set(['delivered', 'cancelled']);
-    const PIPELINE_COL_KEYS = new Set(['new', 'preparing', 'ready', 'out_for_delivery']);
-    const BOARD_BP = {
-      mobile: '(max-width: 767px)',
-      tablet: '(min-width: 768px) and (max-width: 1200px)',
-      desktop: '(min-width: 1201px)',
-      compact: '(max-width: 899px)'
-    };
-    function getBoardMode() {
-      if (window.matchMedia(BOARD_BP.mobile).matches) return 'mobile';
-      if (window.matchMedia(BOARD_BP.tablet).matches) return 'tablet';
-      return 'desktop';
-    }
+    const ACCORDION_SECTIONS = new Set(['delivered', 'cancelled']);
+    const BOARD_BP = { compact: '(max-width: 899px)' };
     const statusGroups = [
       { key: 'new', labelKey: 'colNew', colIcon: '✦', statuses: ['created', 'payment_pending', 'payment_confirmed'] },
       { key: 'preparing', labelKey: 'colPreparing', colIcon: '◈', statuses: ['preparing'] },
@@ -1262,16 +1064,17 @@
       { key: 'cancelled', labelKey: 'colCancelled', colIcon: '✕', statuses: ['cancelled'] }
     ];
     const focusModeKey = 'gm_ops_focus';
-    const expandedColsKey = 'gm_ops_expanded_cols';
-    let expandedCols = new Set(
+    const collapsedSectionsKey = 'gm_ops_collapsed_sections';
+    let collapsedSections = new Set(
       (() => {
         try {
-          const raw = localStorage.getItem(expandedColsKey);
-          const arr = raw ? JSON.parse(raw) : [];
-          return Array.isArray(arr) ? arr : [];
-        } catch (_) {
-          return [];
-        }
+          const raw = localStorage.getItem(collapsedSectionsKey);
+          if (raw !== null) {
+            const arr = JSON.parse(raw);
+            return new Set(Array.isArray(arr) ? arr : []);
+          }
+        } catch (_) {}
+        return new Set(['delivered', 'cancelled']);
       })()
     );
     let orders = [];
@@ -1286,19 +1089,24 @@
     let liveState = 'connecting';
     let feedApplyCount = 0;
     let isRefreshing = false;
-    let lastColumnsFingerprint = '';
+    let lastBoardFingerprint = '';
     let lastStatsFingerprint = '';
     let columnsRenderRaf = 0;
     let courierStaffPollSkip = 0;
     const viewFilters = { today: false, payme: false, cash: false, active: false };
 
-    function saveExpandedCols() {
-      localStorage.setItem(expandedColsKey, JSON.stringify([...expandedCols]));
+    function saveCollapsedSections() {
+      localStorage.setItem(collapsedSectionsKey, JSON.stringify([...collapsedSections]));
     }
-    function isColCollapsed(group) {
-      if (group.items.length > 0) return false;
-      if (!COLLAPSIBLE_EMPTY_COLS.has(group.key)) return false;
-      return !expandedCols.has(group.key);
+    function isSectionCollapsed(sectionKey) {
+      if (!ACCORDION_SECTIONS.has(sectionKey)) return false;
+      return collapsedSections.has(sectionKey);
+    }
+    function toggleSectionCollapsed(sectionKey) {
+      if (!ACCORDION_SECTIONS.has(sectionKey)) return;
+      if (collapsedSections.has(sectionKey)) collapsedSections.delete(sectionKey);
+      else collapsedSections.add(sectionKey);
+      saveCollapsedSections();
     }
     function colStaleCount(items) {
       return items.filter((o) => {
@@ -1417,7 +1225,7 @@
       const on = getSoundOn();
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       btn.classList.toggle('on', on);
-      btn.textContent = on ? '🔔' : '🔕';
+      btn.textContent = on ? 'Ovoz' : 'Sukut';
       btn.title = on ? t('soundOnLabel') : t('soundOffLabel');
       syncSoundVolumeUi();
     }
@@ -1590,7 +1398,7 @@
       const sum = (xs) => xs.reduce((s, o) => s + Number(o.total || 0), 0);
       return `${arr.length}:${today.length}:${active.length}:${sum(arr)}:${sum(today)}`;
     }
-    function buildColumnsFingerprint() {
+    function buildBoardFingerprint() {
       return getFilteredOrders()
         .map((o) => {
           const next = getNextTransition(o);
@@ -1608,20 +1416,14 @@
         .sort()
         .join('|');
     }
-    function captureColumnScroll() {
-      const m = new Map();
-      document.querySelectorAll('section.col[data-col] .list').forEach((list) => {
-        const col = list.closest('section.col')?.dataset.col;
-        if (col) m.set(col, list.scrollTop);
-      });
-      return m;
+    const buildColumnsFingerprint = buildBoardFingerprint;
+    function captureBoardScroll() {
+      const board = document.getElementById('ordersBoard');
+      return board ? board.scrollTop : 0;
     }
-    function restoreColumnScroll(m) {
-      if (!m || !m.size) return;
-      document.querySelectorAll('section.col[data-col] .list').forEach((list) => {
-        const col = list.closest('section.col')?.dataset.col;
-        if (col && m.has(col)) list.scrollTop = m.get(col);
-      });
+    function restoreBoardScroll(top) {
+      const board = document.getElementById('ordersBoard');
+      if (board && Number.isFinite(top)) board.scrollTop = top;
     }
     function sortColumnOrders(items) {
       return [...items].sort((a, b) => {
@@ -1631,21 +1433,17 @@
         return String(b.id || '').localeCompare(String(a.id || ''));
       });
     }
-    function patchCardsLiveMeta() {
+    function patchRowsLiveMeta() {
       const byId = new Map(getFilteredOrders().map((o) => [String(o.id), o]));
-      document.querySelectorAll('.ops-card[data-order-id]').forEach((card) => {
-        const o = byId.get(card.getAttribute('data-order-id'));
+      document.querySelectorAll('.ops-row[data-order-id]').forEach((row) => {
+        const o = byId.get(row.getAttribute('data-order-id'));
         if (!o) return;
-        const rel = card.querySelector('[data-rel-ts]');
+        const rel = row.querySelector('[data-rel-ts]');
         if (rel) {
           rel.setAttribute('data-rel-ts', String(o.created_at || ''));
           rel.textContent = relTime(o.created_at);
         }
-        const foot = card.querySelector('.ops-card__foot');
-        if (foot) {
-          foot.textContent = `${fmt(o.created_at)} · ↑ ${fmt(o.updated_at)}`;
-        }
-        let slaEl = card.querySelector('.sla-live');
+        let slaEl = row.querySelector('.sla-live');
         const st = normalizeStatus(o.status);
         if (st === 'delivered' || st === 'cancelled') {
           if (slaEl) slaEl.remove();
@@ -1662,27 +1460,31 @@
         }
         const label = formatSlaLabel(mins);
         if (!slaEl) {
-          const meta = card.querySelector('.ops-card__meta');
-          if (!meta) return;
+          const end = row.querySelector('.ops-row__end');
+          if (!end) return;
           const div = document.createElement('div');
-          div.className = `sla-live sla ops-card__sla ${tier}`;
+          div.className = `sla-live sla ops-row__sla ${tier}`;
           div.dataset.createdTs = String(ts);
           div.textContent = label;
-          meta.appendChild(div);
+          const btn = end.querySelector('.ops-row__btn');
+          if (btn) end.insertBefore(div, btn);
+          else end.appendChild(div);
           slaEl = div;
         }
         slaEl.dataset.createdTs = String(ts);
         slaEl.textContent = label;
-        slaEl.className = `sla-live sla ops-card__sla ${tier}`;
+        slaEl.className = `sla-live sla ops-row__sla ${tier}`;
       });
     }
-    function scheduleRenderColumns() {
+    const patchCardsLiveMeta = patchRowsLiveMeta;
+    function scheduleRenderBoard() {
       if (columnsRenderRaf) return;
       columnsRenderRaf = requestAnimationFrame(() => {
         columnsRenderRaf = 0;
-        renderColumnsNow();
+        renderBoardNow();
       });
     }
+    const scheduleRenderColumns = scheduleRenderBoard;
     function renderStatsBar() {
       const el = document.getElementById('statsBar');
       if (!el) return;
@@ -1939,18 +1741,18 @@
 
     function applyFeedFromServer(list, source) {
       const prev = snapshotFeed(orders);
-      const prevColFp = buildColumnsFingerprint();
+      const prevColFp = buildBoardFingerprint();
       orders = list || [];
       notifyFeedChanges(prev, orders);
       renderStatsBar();
       feedApplyCount += 1;
       if (feedApplyCount % 5 === 0) loadCourierStaff();
-      const nextColFp = buildColumnsFingerprint();
-      if (prevColFp === nextColFp && lastColumnsFingerprint === nextColFp) {
-        patchCardsLiveMeta();
+      const nextColFp = buildBoardFingerprint();
+      if (prevColFp === nextColFp && lastBoardFingerprint === nextColFp) {
+        patchRowsLiveMeta();
       } else {
-        lastColumnsFingerprint = '';
-        scheduleRenderColumns();
+        lastBoardFingerprint = '';
+        scheduleRenderBoard();
       }
       if (activeOrder) {
         const upd = orders.find((o) => o.id === activeOrder.id);
@@ -2047,25 +1849,12 @@
     }
 
     function renderColumns() {
-      scheduleRenderColumns();
+      scheduleRenderBoard();
     }
-    function applyBoardGridColumns(grouped) {
-      const grid = document.getElementById('columns');
-      if (!grid) return;
-      const mode = getBoardMode();
-      grid.dataset.boardMode = mode;
-      if (mode !== 'desktop') {
-        grid.style.gridTemplateColumns = '';
-        return;
-      }
-      const parts = grouped.map((group) => {
-        if (isColCollapsed(group)) return 'var(--col-rail)';
-        if (PIPELINE_COL_KEYS.has(group.key)) return 'minmax(var(--col-min), 1fr)';
-        return 'minmax(200px, 0.65fr)';
-      });
-      grid.style.gridTemplateColumns = parts.join(' ');
+    function rowAccentMod(status) {
+      return cardAccentClass(status).replace('accent-', '');
     }
-    function renderOrderCard(o) {
+    function renderOrderRow(o) {
       const id = escapeHtml(String(o.id));
       const num = escapeHtml(String(o.orderNumber || o.id));
       const name = escapeHtml(String(o.customerName || '').trim() || t('guest'));
@@ -2076,104 +1865,85 @@
         .map((x) => String(x || '').trim())
         .find(Boolean);
       const addr = escapeHtml(addrRaw || '—');
-      const lm = escapeHtml(String(o.landmarkText || '').trim());
-      const landmarkLine = lm
-        ? `<div class="muted" style="margin-bottom:4px;font-size:11px;">Orientir: ${lm}</div>`
-        : '';
       const next = getNextTransition(o);
       const nextBtn = next
-        ? `<button type="button" data-quick-next="${escapeHtml(next.to)}" data-order-id="${id}" class="primary">${escapeHtml(
+        ? `<button type="button" class="ops-row__btn primary" data-quick-next="${escapeHtml(next.to)}" data-order-id="${id}">${escapeHtml(
             next.label
           )}</button>`
-        : '<span class="card-action-slot" aria-hidden="true">.</span>';
-      const slaChip = slaBlockHtml(o).replace(
-        'class="sla-live sla',
-        'class="sla-live sla ops-card__sla'
-      );
-      const payRow = paymentPillsHtml(o)
-        .replace('class="pill-row"', 'class="ops-card__meta pill-row"')
-        .replace(/<\/div>\s*$/, slaChip + '</' + 'div>');
+        : '';
+      const slaChip = slaBlockHtml(o).replace('class="sla-live sla', 'class="sla-live sla ops-row__sla');
+      const rawM = String(o.paymentMethod || '').trim() || '—';
+      const m = rawM.toLowerCase();
+      const ps = String(o.paymentStatus || '').trim().toLowerCase();
+      const paid = ps === 'paid';
+      const mCls = m === 'payme' ? 'pill payme' : m === 'cash' ? 'pill cash' : 'pill';
+      const pCls = paid ? 'pill paid' : 'pill unpaid';
+      const pText = paid ? t('paidShort') : t('unpaidShort');
+      const mod = rowAccentMod(o.status);
       return `
-              <article class="ops-card ${cardAccentClass(o.status)}" data-order-id="${id}">
-                <header class="ops-card__hero">
-                  <div class="ops-card__toprow">
-                    <span class="ops-card__no">#${num}</span>
-                    <span class="ops-card__sum">${escapeHtml(moneyFmt(o.total))}</span>
-                  </div>
-                  <div class="ops-card__subrow">
-                    <span class="ops-card__rel" data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span>
-                  </div>
-                </header>
-                <p class="ops-card__name">${name}</p>
-                <p class="ops-card__phone">${
-                  phoneHref
-                    ? `<a href="${phoneHref}">${phoneTxt}</a>`
-                    : `<span class="muted">${phoneTxt}</span>`
-                }</p>
-                <p class="ops-card__addr"><span class="ops-card__addr-txt">${addr}</span></p>
-                ${landmarkLine}
-                ${thumbsHtml(o.items)}
-                ${payRow}
-                <div class="ops-card__foot">${escapeHtml(`${fmt(o.created_at)} · ↑ ${fmt(o.updated_at)}`)}</div>
-                <div class="card-actions">${nextBtn}</div>
-              </article>`;
+        <div class="ops-row ops-row--${mod}" data-order-id="${id}" role="button" tabindex="0">
+          <div class="ops-row__main">
+            <span class="ops-row__id">#${num}</span>
+            <span class="ops-row__sum">${escapeHtml(moneyFmt(o.total))}</span>
+            <span class="ops-row__dot" aria-hidden="true">·</span>
+            <span class="ops-row__time" data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span>
+            <span class="ops-row__dot" aria-hidden="true">·</span>
+            <span class="ops-row__name">${name}</span>
+            <span class="ops-row__dot" aria-hidden="true">·</span>
+            <span class="ops-row__phone">${phoneHref ? `<a href="${phoneHref}">${phoneTxt}</a>` : phoneTxt}</span>
+            <span class="ops-row__dot" aria-hidden="true">·</span>
+            <span class="ops-row__addr" title="${addr}">${addr}</span>
+          </div>
+          <div class="ops-row__end">
+            <span class="${mCls}">${escapeHtml(rawM)}</span>
+            <span class="${pCls}">${escapeHtml(pText)}</span>
+            ${slaChip}
+            ${nextBtn}
+          </div>
+        </div>`;
     }
-    function renderColumnsNow() {
-      const fp = buildColumnsFingerprint();
-      if (fp === lastColumnsFingerprint) {
-        patchCardsLiveMeta();
+    const renderOrderCard = renderOrderRow;
+    function renderBoardNow() {
+      const fp = buildBoardFingerprint();
+      if (fp === lastBoardFingerprint) {
+        patchRowsLiveMeta();
         return;
       }
-      const scrollMap = captureColumnScroll();
-      lastColumnsFingerprint = fp;
+      const scrollTop = captureBoardScroll();
+      lastBoardFingerprint = fp;
       const base = getFilteredOrders();
       const grouped = statusGroups.map((group) => ({
         ...group,
         items: sortColumnOrders(base.filter((o) => group.statuses.includes(normalizeStatus(o.status))))
       }));
-      const maxCount = Math.max(1, ...grouped.map((g) => g.items.length));
-      grouped.forEach((g) => {
-        if (g.items.length > 0) expandedCols.delete(g.key);
-      });
-      saveExpandedCols();
-      document.getElementById('columns').innerHTML = grouped
+      const board = document.getElementById('ordersBoard');
+      if (!board) return;
+      board.innerHTML = grouped
         .map((group) => {
-          if (isColCollapsed(group)) {
-            return `
-        <section class="col col--collapsed col--${escapeHtml(group.key)}" data-col="${escapeHtml(group.key)}">
-          <button type="button" class="col-collapsed-btn" data-col-expand="${escapeHtml(group.key)}" title="${escapeHtml(t('colExpandTitle'))}">
-            <span class="col-mark" aria-hidden="true"></span>
-            <span class="col-collapsed-label">${escapeHtml(t(group.labelKey))}</span>
-            <span class="count-pill" data-count="0">0</span>
-          </button>
-        </section>`;
-          }
-          const pct = Math.round((group.items.length / maxCount) * 100);
+          const collapsed = isSectionCollapsed(group.key);
           const stale = colStaleCount(group.items);
           const staleHint =
             stale > 0
-              ? `<span class="col-stale-hint">${escapeHtml(t('colStaleHint').replace('{n}', String(stale)))}</span>`
+              ? `<span class="ops-section__stale">${escapeHtml(t('colStaleHint').replace('{n}', String(stale)))}</span>`
               : '';
           return `
-        <section class="col col--${escapeHtml(group.key)}${group.items.length >= 4 ? ' col--busy' : ''}" data-col="${escapeHtml(group.key)}">
-          <div class="col-head">
-            <div class="col-head__title">
-              <span class="col-mark" aria-hidden="true"></span>
-              <h3>${escapeHtml(t(group.labelKey))}</h3>
-            </div>
-            <span class="count-pill" data-count="${group.items.length}">${group.items.length}</span>
-          </div>
-          ${staleHint ? `<div style="margin:-4px 0 8px;">${staleHint}</div>` : ''}
-          <div class="col-bar" aria-hidden="true"><i style="width:${pct}%"></i></div>
-          <div class="list">
-            ${group.items.length ? group.items.map((o) => renderOrderCard(o)).join('') : `<div class="list-empty"><p>${escapeHtml(t('colEmpty'))}</p></div>`}
+        <section class="ops-section${collapsed ? ' ops-section--collapsed' : ''}" data-section="${escapeHtml(group.key)}">
+          <button type="button" class="ops-section__head" data-section-toggle="${escapeHtml(group.key)}" aria-expanded="${collapsed ? 'false' : 'true'}">
+            <span class="ops-section__bar" aria-hidden="true"></span>
+            <h3 class="ops-section__title">${escapeHtml(t(group.labelKey))} (${group.items.length})</h3>
+            ${staleHint}
+            <span class="ops-section__count">${group.items.length}</span>
+            <span class="ops-section__chev" aria-hidden="true">▼</span>
+          </button>
+          <div class="ops-section__body">
+            ${group.items.length ? group.items.map((o) => renderOrderRow(o)).join('') : `<p class="ops-section__empty">${escapeHtml(t('colEmpty'))}</p>`}
           </div>
         </section>`;
         })
         .join('');
-      applyBoardGridColumns(grouped);
-      restoreColumnScroll(scrollMap);
+      restoreBoardScroll(scrollTop);
     }
+    const renderColumnsNow = renderBoardNow;
 
     function renderModal(order) {
       activeOrder = order;
@@ -2338,8 +2108,8 @@
     async function refresh({ silent = false } = {}) {
       if (isRefreshing) return;
       isRefreshing = true;
-      const gridEl = document.getElementById('columns');
-      if (gridEl && !silent) gridEl.classList.add('is-loading');
+      const boardEl = document.getElementById('ordersBoard');
+      if (boardEl && !silent) boardEl.classList.add('is-loading');
       const token = getToken();
       document.getElementById('tokenRequired').style.display = 'none';
       try {
@@ -2356,7 +2126,7 @@
         pollDelay = Math.min(12000, Math.round(pollDelay * 1.5));
         scheduleSseRetry();
       } finally {
-        if (gridEl) gridEl.classList.remove('is-loading');
+        if (boardEl) boardEl.classList.remove('is-loading');
         isRefreshing = false;
         if (liveState === 'live' && feedStream) {
           clearTimeout(pollTimer);
@@ -2437,14 +2207,13 @@
       });
     })();
 
-    document.getElementById('columns').onclick = (e) => {
-      const expandBtn = e.target.closest('[data-col-expand]');
-      if (expandBtn) {
+    document.getElementById('ordersBoard').onclick = (e) => {
+      const sectionBtn = e.target.closest('[data-section-toggle]');
+      if (sectionBtn) {
         e.preventDefault();
-        expandedCols.add(expandBtn.dataset.colExpand);
-        saveExpandedCols();
-        lastColumnsFingerprint = '';
-        scheduleRenderColumns();
+        toggleSectionCollapsed(sectionBtn.dataset.sectionToggle);
+        lastBoardFingerprint = '';
+        scheduleRenderBoard();
         return;
       }
       const quickBtn = e.target.closest('[data-quick-next]');
@@ -2542,25 +2311,14 @@
       if (k === 'payme' && viewFilters.payme) viewFilters.cash = false;
       if (k === 'cash' && viewFilters.cash) viewFilters.payme = false;
       renderFilterChips();
-      lastColumnsFingerprint = '';
-      scheduleRenderColumns();
+      lastBoardFingerprint = '';
+      scheduleRenderBoard();
     });
 
     document.getElementById('langUzBtn').onclick = () => { currentLang = 'uz'; localStorage.setItem(langKey, currentLang); applyLang(); };
     document.getElementById('langRuBtn').onclick = () => { currentLang = 'ru'; localStorage.setItem(langKey, currentLang); applyLang(); };
-    let boardResizeRaf = 0;
     window.addEventListener('resize', () => {
-      if (boardResizeRaf) return;
-      boardResizeRaf = requestAnimationFrame(() => {
-        boardResizeRaf = 0;
-        syncViewportChrome();
-        const base = getFilteredOrders();
-        const grouped = statusGroups.map((group) => ({
-          ...group,
-          items: sortColumnOrders(base.filter((o) => group.statuses.includes(normalizeStatus(o.status))))
-        }));
-        applyBoardGridColumns(grouped);
-      });
+      syncViewportChrome();
     });
     applyLang();
     syncViewportChrome();
