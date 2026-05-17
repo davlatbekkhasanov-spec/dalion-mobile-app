@@ -104,6 +104,8 @@ model Order {
   courierRunId             String?
   /// `courierRunId` ichidagi yetkazish tartibi (1, 2, 3…)
   courierStopSeq           Int?
+  /// TSD / 1C integration state (external ids, webhook dedupe, timestamps)
+  integrationMeta          Json?
   items                    OrderItem[]
 
   @@index([courierRunId])

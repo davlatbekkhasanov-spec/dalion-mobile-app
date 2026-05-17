@@ -11,6 +11,10 @@ const r2Service = require('./src/services/r2.service');
 const dalionExcelImportService = require('./src/services/dalion-excel-import.service');
 const { paymeRpc } = require('./src/controllers/payme.controller');
 const { normalizeOrderStatus } = require('./src/order-status');
+const { integrationConfig } = require('./src/integrations/integration.config');
+const tsdService = require('./src/integrations/tsd.service');
+const { orderTsdSent } = require('./src/integrations/integration-meta');
+const integrationOrders = require('./src/controllers/integration-orders.controller');
 
 process.on('uncaughtException', (error) => {
   console.error('[PROCESS] uncaughtException', { message: error?.message });
@@ -860,6 +864,38 @@ function canTransitionOrderStatus(currentStatus, requestedStatus) {
   return Boolean(allowed && allowed.has(to));
 }
 
+function scheduleAutoTsdSend(order, trigger) {
+  if (!integrationConfig.tsdEnabled || !order?.id) return;
+  if (orderTsdSent(order.integrationMeta)) return;
+  if (trigger === 'create' && !integrationConfig.tsdAutoOnCreate) return;
+  if (trigger === 'preparing' && !integrationConfig.tsdAutoOnPreparing) return;
+  void (async () => {
+    try {
+      const fresh = await marketplaceRepo.loadOrderLegacyById(order.id);
+      if (!fresh || orderTsdSent(fresh.integrationMeta)) return;
+      const result = await tsdService.sendOrderToTsd(fresh);
+      if (!result.ok) {
+        console.warn('[TSD] auto-send skipped', { orderId: order.id, trigger, error: result.error });
+        return;
+      }
+      const patch = { integrationMeta: result.integrationMeta, updatedAt: new Date() };
+      const cur = normalizeOrderStatus(fresh.status);
+      if (!['preparing', 'ready_for_courier', 'courier_assigned', 'out_for_delivery', 'delivered', 'cancelled'].includes(cur)) {
+        patch.status = 'preparing';
+        patch.deliveryStatus = 'preparing';
+      }
+      await marketplaceRepo.patchOrderScalars(order.id, patch);
+      console.log('[TSD] auto-send ok', { orderId: order.id, trigger, externalId: result.externalId });
+    } catch (err) {
+      console.warn('[TSD] auto-send failed', {
+        orderId: order.id,
+        trigger,
+        message: err instanceof Error ? err.message : String(err)
+      });
+    }
+  })();
+}
+
 function orderStatusLabel(status) {
   const normalized = normalizeOrderStatus(status);
   return ORDER_STATUS_LABELS[normalized] || normalized || '-';
@@ -1344,6 +1380,8 @@ app.post('/api/v1/orders', async (req, res) => {
     itemCreates
   );
   await marketplaceRepo.clearCart(phone);
+  const createdLegacy = await marketplaceRepo.loadOrderLegacyById(created.id);
+  if (createdLegacy) scheduleAutoTsdSend(createdLegacy, 'create');
   return res.json({
     ok: true,
     orderNumber,
@@ -2587,8 +2625,11 @@ app.put('/api/v1/admin/orders/:id/status', requireAdmin, async (req, res) => {
     trackingUpdatedAt: new Date(o.trackingUpdatedAt || o.updated_at),
     updatedAt: new Date(o.updated_at)
   });
+  if (requestedStatus === 'preparing') scheduleAutoTsdSend(next, 'preparing');
   return res.json({ ok: true, order: orderPublic(next) });
 });
+
+app.post('/api/v1/admin/orders/:id/send-to-tsd', requireAdmin, integrationOrders.sendOrderToTsdAdmin);
 
 app.get('/api/v1/admin/orders/:id/qr', requireAdmin, async (req, res) => {
   const order = await marketplaceRepo.loadOrderLegacyById(req.params.id);
@@ -2728,6 +2769,14 @@ app.get('/api/v1/admin/store/summary', requireAdmin, async (req, res) => {
   return res.json({ ok: true, summary });
 });
 
+app.post('/api/v1/integrations/tsd/webhook', integrationOrders.tsdWebhook);
+app.post('/api/v1/integrations/onec/order-picked', integrationOrders.onecOrderPicked);
+app.post('/api/v1/integrations/datamobile/orders/:id/send', requireAdmin, integrationOrders.sendOrderToTsdAdmin);
+app.post('/api/v1/integrations/dalion/orders/:id/picked', requireAdmin, async (req, res) => {
+  req.body = { ...(req.body || {}), orderId: req.params.id };
+  return integrationOrders.onecOrderPickedAdmin(req, res);
+});
+
 app.get('/api/v1/integrations/status', requireAdmin, (req, res) => {
   const tg = Boolean(
     String(process.env.TELEGRAM_BOT_TOKEN || '').trim() &&
@@ -2735,7 +2784,22 @@ app.get('/api/v1/integrations/status', requireAdmin, (req, res) => {
   );
   res.json({
     ok: true,
-    integrations: { dalionTrend1C: { enabled: false }, telegramCourierNotify: { enabled: tg } },
+    integrations: {
+      tsd: {
+        enabled: integrationConfig.tsdEnabled,
+        mode: integrationConfig.tsdMode,
+        autoOnPreparing: integrationConfig.tsdAutoOnPreparing,
+        autoOnCreate: integrationConfig.tsdAutoOnCreate,
+        webhookConfigured: Boolean(integrationConfig.tsdWebhookSecret)
+      },
+      onecOrders: {
+        enabled: integrationConfig.onecOrdersEnabled,
+        pickTargetStatus: integrationConfig.onecPickTargetStatus,
+        webhookConfigured: Boolean(integrationConfig.onecWebhookSecret)
+      },
+      dalionTrend1C: { enabled: integrationConfig.onecOrdersEnabled, mode: 'webhook-stub' },
+      telegramCourierNotify: { enabled: tg }
+    },
     stats: { storageMode: 'postgresql' }
   });
 });

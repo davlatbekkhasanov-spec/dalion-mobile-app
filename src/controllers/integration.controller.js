@@ -89,15 +89,18 @@ exports.importProductsXlsx = async (req, res) => {
   }
 };
 
+/** @deprecated Use index.js route → integration-orders.controller */
 exports.sendOrderToDataMobile = (req, res) => {
-  const out = store.sendOrderToTsd(req.params.id);
-  if (!out) return res.status(404).json({ ok: false, message: 'Order not found' });
-  // TODO: connect real Data Mobile API call here.
-  return res.json({ ok: true, message: "Order TSD queue ga qo‘shildi", order: out.order });
+  return res.status(410).json({
+    ok: false,
+    message: 'Use POST /api/v1/admin/orders/:id/send-to-tsd or /integrations/datamobile/orders/:id/send'
+  });
 };
 
+/** @deprecated Use integration-orders.controller onecOrderPickedAdmin */
 exports.markDalionOrderPicked = (req, res) => {
-  const order = store.markDalionPicked(req.params.id);
-  if (!order) return res.status(404).json({ ok: false, message: 'Order not found' });
-  return res.json({ ok: true, order });
+  return res.status(410).json({
+    ok: false,
+    message: 'Use POST /api/v1/integrations/dalion/orders/:id/picked'
+  });
 };

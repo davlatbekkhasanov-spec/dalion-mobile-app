@@ -164,7 +164,20 @@ function orderToLegacy(order, items) {
     feedbackAt: order.feedbackAt ? order.feedbackAt.toISOString() : undefined,
     trackingUpdatedAt: order.trackingUpdatedAt ? order.trackingUpdatedAt.toISOString() : undefined,
     courierRunId: order.courierRunId || null,
-    courierStopSeq: order.courierStopSeq != null ? Number(order.courierStopSeq) : null
+    courierStopSeq: order.courierStopSeq != null ? Number(order.courierStopSeq) : null,
+    integrationMeta: order.integrationMeta || null,
+    tsdSent: Boolean(
+      order.integrationMeta &&
+        typeof order.integrationMeta === 'object' &&
+        !Array.isArray(order.integrationMeta) &&
+        (order.integrationMeta.tsd?.sentAt || order.integrationMeta.tsd?.externalId)
+    ),
+    tsdExternalId:
+      order.integrationMeta &&
+      typeof order.integrationMeta === 'object' &&
+      !Array.isArray(order.integrationMeta)
+        ? order.integrationMeta.tsd?.externalId || null
+        : null
   };
 }
 

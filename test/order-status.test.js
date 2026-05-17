@@ -27,3 +27,8 @@ test('normalizeOrderStatus: known snake_case unchanged', () => {
   assert.strictEqual(normalizeOrderStatus('preparing'), 'preparing');
   assert.strictEqual(normalizeOrderStatus('payment_confirmed'), 'payment_confirmed');
 });
+
+test('normalizeOrderStatus: sent_to_tsd alias', () => {
+  assert.strictEqual(normalizeOrderStatus('sent_to_tsd'), 'preparing');
+  assert.strictEqual(normalizeOrderStatus('SENT_TO_TSD'), 'preparing');
+});

@@ -859,6 +859,19 @@
       margin-bottom: 4px;
     }
     .ops-card__id { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .ops-tsd-badge {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 6px;
+      padding: 1px 6px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #0d1f14;
+      background: linear-gradient(135deg, #6ee7a8, #34d399);
+      vertical-align: middle;
+    }
     .ops-card__sum { font-weight: 600; font-variant-numeric: tabular-nums; }
     .ops-card__meta {
       font-size: var(--font-xs);
@@ -1446,7 +1459,10 @@
         thAddr: 'Manzil',
         thPay: "To'lov",
         thSla: 'SLA',
-        thAct: 'Harakat'
+        thAct: 'Harakat',
+        tsdSend: 'TSD ga yuborish',
+        tsdSent: 'TSD ga yuborilgan',
+        tsdBadge: 'TSD'
       },
       ru: {
         opsTitle: 'GlobusMarket · Ops',
@@ -1527,7 +1543,10 @@
         thAddr: 'Адрес',
         thPay: 'Оплата',
         thSla: 'SLA',
-        thAct: 'Действие'
+        thAct: 'Действие',
+        tsdSend: 'Отправить в TSD',
+        tsdSent: 'Отправлено в TSD',
+        tsdBadge: 'TSD'
       }
     };
     function t(key) {
@@ -1694,6 +1713,24 @@
 
     function normalizeStatus(status) {
       return String(status || '').trim().toLowerCase();
+    }
+
+    function isTsdSent(order) {
+      if (!order) return false;
+      if (order.tsdSent) return true;
+      const tsd = order.integrationMeta && typeof order.integrationMeta === 'object' ? order.integrationMeta.tsd : null;
+      return Boolean(tsd && (tsd.sentAt || tsd.externalId));
+    }
+
+    function canSendOrderToTsd(order) {
+      if (!order || isTsdSent(order)) return false;
+      const s = normalizeStatus(order.status);
+      return ['created', 'payment_confirmed', 'preparing'].includes(s);
+    }
+
+    function tsdBadgeHtml(order) {
+      if (!isTsdSent(order)) return '';
+      return `<span class="ops-tsd-badge" title="${escapeHtml(t('tsdSent'))}">${escapeHtml(t('tsdBadge'))} ✓</span>`;
     }
 
     const SOUND_LS = 'gm_orders_sound_on';
@@ -2543,7 +2580,7 @@
       const timeFull = escapeHtml(fmt(o.created_at));
       return `<tr data-order-id="${id}" tabindex="0">
         <td class="col-status"><span class="status-dot status-dot--${mod}" title="${statusLbl}" aria-label="${statusLbl}"></span></td>
-        <td class="col-num">#${num}</td>
+        <td class="col-num">#${num}${tsdBadgeHtml(o)}</td>
         <td class="col-sum">${escapeHtml(moneyFmt(o.total))}</td>
         <td class="col-time" title="${timeFull}"><span class="ops-time"><span class="ops-time__ico" aria-hidden="true">${iconSvg('clock', 13)}</span><span data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span></span></td>
         <td class="col-name"><span class="ops-name" title="${name}">${name}</span></td>
@@ -2565,7 +2602,7 @@
       const btn = quickNextBtnHtml(o);
       const btnHtml = btn ? btn.replace('class="ops-row__btn', 'class="ops-card__btn ops-row__btn') : '';
       return `<article class="ops-card ops-card--${mod}" data-order-id="${id}" tabindex="0">
-        <p class="ops-card__top"><span class="ops-card__id">#${num}</span><span class="ops-card__sum">${escapeHtml(moneyFmt(o.total))}</span></p>
+        <p class="ops-card__top"><span class="ops-card__id">#${num}${tsdBadgeHtml(o)}</span><span class="ops-card__sum">${escapeHtml(moneyFmt(o.total))}</span></p>
         <p class="ops-card__meta"><span data-rel-ts="${escapeHtml(String(o.created_at || ''))}">${escapeHtml(relTime(o.created_at))}</span> · <span class="ops-card__name">${name}</span></p>
         <p class="ops-card__meta">${phoneTxt} · ${addr}</p>
         <div class="ops-card__foot">${paymentPillsCompact(o)}${sla}${btnHtml}</div>
@@ -2745,6 +2782,15 @@
           `<button type="button" class="primary" data-next="${escapeHtml(String(next.to))}">${escapeHtml(
             String(next.label)
           )}</button>`
+        );
+      }
+      if (canSendOrderToTsd(order)) {
+        actions.push(
+          `<button type="button" class="full" data-tsd="1">${escapeHtml(t('tsdSend'))}</button>`
+        );
+      } else if (isTsdSent(order)) {
+        actions.push(
+          `<button type="button" disabled class="full">${escapeHtml(t('tsdSent'))}</button>`
         );
       }
       if (status !== 'delivered' && status !== 'cancelled') {
@@ -3004,7 +3050,8 @@
           await api(`/admin/orders/${activeOrder.id}/cancel`, { method: 'POST' });
           showToast('Buyurtma bekor qilindi');
         } else if (btn.dataset.tsd) {
-          await api(`/admin/orders/${activeOrder.id}/send-to-tsd`, { method: 'POST' });
+          const tsdOut = await api(`/admin/orders/${activeOrder.id}/send-to-tsd`, { method: 'POST' });
+          showToast(tsdOut.message || t('tsdSent'));
         } else if (btn.dataset.print) {
           await printReceipt(activeOrder);
         }
