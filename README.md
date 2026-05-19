@@ -250,7 +250,21 @@ A professional native Android courier app project is included in `android-courie
 - Current backend: `https://dalion-mobile-app-production.up.railway.app`
 - Future domain (for easy switch): `https://globusmarket.org`
 
-### Build APK locally
+### Customer app — Capacitor (iOS / Android, dizayn buzilmaydi)
+
+Mijoz ilovasi vebdagi `index.html` dan yuklanadi (nusxa emas). Reja: `docs/MOBILE-SAFE-PLAN.md`, tekshiruv: `docs/MOBILE-TEST-CHECKLIST.md`.
+
+```bash
+npm install
+set CAPACITOR_SERVER_URL=https://dalion-mobile-app-production.up.railway.app
+npm run cap:add:android
+npm run cap:sync
+npm run cap:open:android
+```
+
+`index.html` / `styles.css` o‘zgartirilmaydi. iOS: macOS + `npm run cap:add:ios`.
+
+### Build APK locally (courier native)
 1. Install Android Studio (latest stable).
 2. Open folder: `android-courier/`.
 3. Let Gradle sync complete.

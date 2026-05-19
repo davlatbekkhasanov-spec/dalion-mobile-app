@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>GlobusMarket</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+      font-family: Inter, system-ui, sans-serif;
+      background: #050b18;
+      color: #e8f2ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .card {
+      max-width: 420px;
+      border: 1px solid #2e436a;
+      border-radius: 14px;
+      padding: 20px;
+      background: #0f1d34;
+    }
+    h1 { margin: 0 0 12px; font-size: 22px; }
+    p { margin: 8px 0; color: #9ab3d6; font-size: 14px; line-height: 1.5; }
+    code { background: #0a1730; padding: 2px 6px; border-radius: 6px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>GlobusMarket</h1>
+    <p>Mobil ilova qobig‘i tayyor. Asosiy interfeys serverdan yuklanadi.</p>
+    <p>Build uchun o‘rnating: <code>CAPACITOR_SERVER_URL</code> (HTTPS Railway manzilingiz), so‘ng <code>npm run cap:sync</code>.</p>
+    <p>Veb versiya brauzerda o‘zgarmagan holda ishlaydi.</p>
+  </div>
+</body>
+</html>
