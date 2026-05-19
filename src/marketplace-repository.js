@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { Prisma } = require('@prisma/client');
 const prisma = require('./prisma-client');
 
@@ -608,6 +609,38 @@ async function deleteSmsChallenge(phone) {
   try {
     await prisma.smsOtpChallenge.delete({ where: { phone } });
   } catch (_) {}
+}
+
+/** GDPR-style account removal: user + cart + OTP; orders anonymized for bookkeeping. */
+async function deleteCustomerAccount(phone) {
+  const normalized = String(phone || '').trim();
+  if (!normalized) return { ok: false, deleted: false };
+  const user = await prisma.user.findUnique({ where: { phone: normalized } });
+  if (!user) return { ok: true, deleted: false };
+  const anonPhone = `deleted_${crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 20)}`;
+  await prisma.$transaction(async (tx) => {
+    await tx.cartLine.deleteMany({ where: { userPhone: normalized } });
+    try {
+      await tx.smsOtpChallenge.delete({ where: { phone: normalized } });
+    } catch (_) {}
+    await tx.order.updateMany({
+      where: { customerPhone: normalized },
+      data: {
+        customerPhone: anonPhone,
+        customerName: 'Deleted account',
+        deliveryAddress: '',
+        addressText: '',
+        landmarkText: '',
+        location: '',
+        locationLat: null,
+        locationLng: null,
+        locationAccuracy: null,
+        feedbackComment: null
+      }
+    });
+    await tx.user.delete({ where: { phone: normalized } });
+  });
+  return { ok: true, deleted: true, biometric: user.biometric || null };
 }
 
 async function touchSmsAttempt(phone, attempts) {
@@ -1670,6 +1703,7 @@ module.exports = {
   readSmsChallenge,
   writeSmsChallenge,
   deleteSmsChallenge,
+  deleteCustomerAccount,
   touchSmsAttempt,
   nextOrderNumber,
   createOrderWithItems,

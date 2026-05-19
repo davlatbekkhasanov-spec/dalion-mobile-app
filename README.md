@@ -235,6 +235,8 @@ See **Railway variables for SMS (DevSMS)** above; also `SMS_OTP_PEPPER`, `SMS_OT
 
 **Customer JWT (production):** set `CUSTOMER_SESSION_SECRET` (strong random string). Optional: `CUSTOMER_JWT_TTL_SEC` (default 30 days).
 
+**Legal / store:** `SUPPORT_EMAIL` (default `support@globusmarket.org`). Pages: `/privacy`, `/terms`. Account deletion: `DELETE /api/v1/profile/account` (Bearer JWT).
+
 ## Android Courier App (Native Kotlin)
 
 A professional native Android courier app project is included in `android-courier/`.

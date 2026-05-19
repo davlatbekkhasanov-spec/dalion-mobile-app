@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Maxfiylik siyosati — GlobusMarket</title>
+  <style>
+    body{margin:0;padding:24px;font-family:Inter,system-ui,sans-serif;background:#050b18;color:#e8f2ff;line-height:1.55}
+    .wrap{max-width:720px;margin:0 auto}
+    h1{font-size:22px}
+    h2{font-size:16px;margin-top:20px}
+    p,li{color:#9ab3d6;font-size:14px}
+    a{color:#5af5b4}
+    .muted{font-size:13px;margin-top:24px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Maxfiylik siyosati</h1>
+    <p><strong>GlobusMarket</strong> mobil ilova va veb-xizmati orqali buyurtma berishda quyidagi ma’lumotlarni qayta ishlaymiz:</p>
+    <ul>
+      <li>Telefon raqami (SMS tasdiqlash)</li>
+      <li>Ism, yetkazish manzili va joylashuv (ixtiyoriy GPS)</li>
+      <li>Buyurtma tarkibi, to‘lov usuli va holati</li>
+      <li>Biometrik selfie (faqat siz rozilik bergan bo‘lsangiz)</li>
+    </ul>
+    <h2>Maqsad</h2>
+    <p>Buyurtmani qabul qilish, yetkazish, to‘lov (Payme/naqd) va mijoz bilan bog‘lanish.</p>
+    <h2>Saqlash muddati</h2>
+    <p>Buyurtmalar hisob-kitob uchun saqlanishi mumkin; hisobni o‘chirganda profil o‘chiriladi, buyurtmalar anonimlashtiriladi.</p>
+    <h2>Hisobni o‘chirish</h2>
+    <p>Ilovada <strong>Profil → Hisobni o‘chirish</strong> yoki email orqali so‘rov yuboring.</p>
+    <h2>Aloqa</h2>
+    <p id="supportLine">Email: —</p>
+    <p class="muted">Oxirgi yangilanish: 2026. Production oldidan yuridik tekshiruv tavsiya etiladi.</p>
+    <p><a href="/">← Ilovaga qaytish</a></p>
+  </div>
+  <script>
+    fetch('/api/v1/legal/config').then(r => r.json()).then(d => {
+      const email = (d && d.supportEmail) || 'support@globusmarket.org';
+      const el = document.getElementById('supportLine');
+      if (el) el.innerHTML = 'Email: <a href="mailto:' + email + '">' + email + '</a>';
+    }).catch(() => {});
+  </script>
+</body>
+</html>

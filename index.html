@@ -2458,7 +2458,10 @@
           <div class="menu-item"><span>Xabarnomalar</span><small>Tez orada</small></div>
           <div class="menu-item"><span>Sozlamalar</span><small>Tez orada</small></div>
           <div class="menu-item"><span>Yordam / Biz bilan bog‘lanish</span><small>24/7</small></div>
-          <button class="btn gm-btn gm-btn-secondary btn-secondary" id="logoutBtn" style="margin-top:12px;">Chiqish</button>
+          <div class="menu-item" style="cursor:pointer;" id="legalPrivacyLink"><span id="legalPrivacyLabel">Maxfiylik siyosati</span><small>›</small></div>
+          <div class="menu-item" style="cursor:pointer;" id="legalTermsLink"><span id="legalTermsLabel">Foydalanish shartlari</span><small>›</small></div>
+          <button class="btn gm-btn gm-btn-secondary btn-secondary" id="deleteAccountBtn" style="margin-top:12px;border-color:#d96f8a;color:#ffd7e1;">Hisobni o'chirish</button>
+          <button class="btn gm-btn gm-btn-secondary btn-secondary" id="logoutBtn" style="margin-top:8px;">Chiqish</button>
         </div>
         <div class="list-card gm-card" id="courierApplyCard" style="display:none;">
           <h3 style="margin-bottom:6px;" id="profileCourierCardTitle">Kuryer bo‘lish</h3>
@@ -3680,6 +3683,12 @@ Oq fonli foto</div>
         profileCourierToastErr: 'Ariza yuborilmadi',
         profileSoon: 'Tez orada',
         profileLogout: 'Chiqish',
+        profilePrivacy: 'Maxfiylik siyosati',
+        profileTerms: 'Foydalanish shartlari',
+        profileDeleteAccount: "Hisobni o'chirish",
+        profileDeleteConfirm: "Hisobingiz va profil ma'lumotlari o'chiriladi. Buyurtmalar tarix anonim qoladi. Davom etasizmi?",
+        profileDeleteOk: 'Hisob o\'chirildi',
+        profileDeleteFail: 'Hisobni o\'chirishda xatolik',
         profileGuestTitle: 'Mehmon foydalanuvchi',
         profileGuestBody: "Avval ro'yxatdan o'ting",
         profileGuestCta: "Ro'yxatdan o'tish",
@@ -3919,6 +3928,12 @@ Oq fonli foto</div>
         profileCourierToastErr: 'Не удалось отправить заявку',
         profileSoon: 'Скоро',
         profileLogout: 'Выйти',
+        profilePrivacy: 'Политика конфиденциальности',
+        profileTerms: 'Условия использования',
+        profileDeleteAccount: 'Удалить аккаунт',
+        profileDeleteConfirm: 'Профиль будет удалён. История заказов останется анонимной. Продолжить?',
+        profileDeleteOk: 'Аккаунт удалён',
+        profileDeleteFail: 'Ошибка удаления аккаунта',
         profileGuestTitle: 'Гостевой пользователь',
         profileGuestBody: 'Сначала зарегистрируйтесь',
         profileGuestCta: 'Зарегистрироваться',
@@ -4123,6 +4138,12 @@ Oq fonli foto</div>
       document.getElementById('profileGuestBody').textContent = t('profileGuestBody');
       document.getElementById('profileRegisterBtn').textContent = t('profileGuestCta');
       document.getElementById('logoutBtn').textContent = t('profileLogout');
+      const legalPrivacyLabel = document.getElementById('legalPrivacyLabel');
+      const legalTermsLabel = document.getElementById('legalTermsLabel');
+      const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+      if (legalPrivacyLabel) legalPrivacyLabel.textContent = t('profilePrivacy');
+      if (legalTermsLabel) legalTermsLabel.textContent = t('profileTerms');
+      if (deleteAccountBtn) deleteAccountBtn.textContent = t('profileDeleteAccount');
       const elCourierTitle = document.getElementById('profileCourierCardTitle');
       if (elCourierTitle) elCourierTitle.textContent = t('profileCourierCardTitle');
       const elCourierBody = document.getElementById('profileCourierCardBody');
@@ -6484,6 +6505,37 @@ Oq fonli foto</div>
     });
     sendSmsBtn?.addEventListener('click', async () => {
       await sendSmsCode();
+    });
+
+    document.getElementById('legalPrivacyLink')?.addEventListener('click', () => {
+      window.open('/privacy', '_blank', 'noopener');
+    });
+    document.getElementById('legalTermsLink')?.addEventListener('click', () => {
+      window.open('/terms', '_blank', 'noopener');
+    });
+    document.getElementById('deleteAccountBtn')?.addEventListener('click', async () => {
+      if (!isAuthed()) {
+        showToast(t('toastAuthFirst'));
+        return;
+      }
+      if (!window.confirm(t('profileDeleteConfirm'))) return;
+      try {
+        await api('/profile/account', { method: 'DELETE' });
+        localStorage.removeItem('globusUser');
+        localStorage.removeItem('activeOrderNumber');
+        localStorage.removeItem('orders_history');
+        persistCustomerSession('');
+        resetSmsAuthState();
+        currentUser = null;
+        cart = {};
+        renderCartBadge();
+        showToast(t('profileDeleteOk'));
+        phone.classList.remove('show-app');
+        authSheetOverlay.classList.add('show');
+        setView('homeView', { push: true });
+      } catch (err) {
+        showToast(err.message || t('profileDeleteFail'));
+      }
     });
 
     logoutBtn?.addEventListener('click', () => {

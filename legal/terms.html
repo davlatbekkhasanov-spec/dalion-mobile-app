@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Foydalanish shartlari — GlobusMarket</title>
+  <style>
+    body{margin:0;padding:24px;font-family:Inter,system-ui,sans-serif;background:#050b18;color:#e8f2ff;line-height:1.55}
+    .wrap{max-width:720px;margin:0 auto}
+    h1{font-size:22px}
+    h2{font-size:16px;margin-top:20px}
+    p,li{color:#9ab3d6;font-size:14px}
+    a{color:#5af5b4}
+    .muted{font-size:13px;margin-top:24px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Foydalanish shartlari</h1>
+    <p><strong>GlobusMarket</strong> orqali mahsulot buyurtma qilish va yetkazib olish xizmatidan foydalanish ushbu shartlarga bo‘ysunadi.</p>
+    <h2>Buyurtma va to‘lov</h2>
+    <ul>
+      <li>Narxlar va qoldiqlar o‘zgarishi mumkin.</li>
+      <li>Payme — onlayn to‘lov provayderi orqali; naqd — yetkazishda.</li>
+      <li>Bekor qilish qoidalari operator bilan kelishiladi.</li>
+    </ul>
+    <h2>Yetkazish</h2>
+    <p>Manzil va aloqa raqamingiz to‘g‘ri bo‘lishi shart. GPS ixtiyoriy, lekin aniq manzil uchun tavsiya etiladi.</p>
+    <h2>Mas’uliyat</h2>
+    <p>Xizmat «boricha» taqdim etiladi; force majeure holatlari qoidalarga muvofiq ko‘rib chiqiladi.</p>
+    <h2>Aloqa</h2>
+    <p id="supportLine">Email: —</p>
+    <p class="muted">Oxirgi yangilanish: 2026. Production oldidan yuridik tekshiruv tavsiya etiladi.</p>
+    <p><a href="/">← Ilovaga qaytish</a> · <a href="/privacy">Maxfiylik</a></p>
+  </div>
+  <script>
+    fetch('/api/v1/legal/config').then(r => r.json()).then(d => {
+      const email = (d && d.supportEmail) || 'support@globusmarket.org';
+      const el = document.getElementById('supportLine');
+      if (el) el.innerHTML = 'Email: <a href="mailto:' + email + '">' + email + '</a>';
+    }).catch(() => {});
+  </script>
+</body>
+</html>

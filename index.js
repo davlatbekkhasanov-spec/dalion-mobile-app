@@ -88,6 +88,7 @@ const SMS_OTP_TTL_MS = Math.min(
 );
 /** Yandex Geosuggest (manzil tavsiyasi). MapKit kaliti veb serverda ishlatilmaydi — faqat mobil loyihada. */
 const GEO_SUGGEST_API_KEY = String(process.env.GEO_SUGGEST_API_KEY || '').trim();
+const SUPPORT_EMAIL = String(process.env.SUPPORT_EMAIL || 'support@globusmarket.org').trim();
 /** Do‘kon — marshrut greedy optimallashtirish va narx hisobi bilan bir xil */
 const STORE_LAT_DEFAULT = Number(process.env.STORE_LAT || 39.654722) || 39.654722;
 const STORE_LNG_DEFAULT = Number(process.env.STORE_LNG || 66.958972) || 66.958972;
@@ -1020,6 +1021,32 @@ app.get('/track/:orderNumber', (req, res) => {
   res.sendFile(path.join(__dirname, 'track.html'));
 });
 
+app.get('/privacy', (req, res) => {
+  res.sendFile(path.join(__dirname, 'legal', 'privacy.html'));
+});
+
+app.get('/terms', (req, res) => {
+  res.sendFile(path.join(__dirname, 'legal', 'terms.html'));
+});
+
+app.get('/api/v1/legal/config', (req, res) => {
+  res.json({
+    ok: true,
+    supportEmail: SUPPORT_EMAIL,
+    privacyUrl: '/privacy',
+    termsUrl: '/terms'
+  });
+});
+
+function tryDeleteStoredBiometricFile(biometric) {
+  const url = biometric && typeof biometric === 'object' ? String(biometric.imageUrl || '').trim() : '';
+  if (!url.startsWith('/uploads/biometric/')) return;
+  const filePath = path.join(__dirname, url.replace(/^\//, ''));
+  try {
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  } catch (_) {}
+}
+
 app.get('/api/payme', (req, res) => {
   res.status(200).json({ ok: true, message: 'Payme Merchant API: POST JSON-RPC 2.0' });
 });
@@ -1301,6 +1328,19 @@ app.put('/api/v1/profile', async (req, res) => {
     biometric
   });
   return res.json({ ok: true, profile: await marketplaceRepo.profileToApi(saved) });
+});
+
+app.delete('/api/v1/profile/account', async (req, res) => {
+  const phone = requireCustomerPhone(req, res);
+  if (!phone) return;
+  try {
+    const result = await marketplaceRepo.deleteCustomerAccount(phone);
+    tryDeleteStoredBiometricFile(result.biometric);
+    return res.json({ ok: true, deleted: Boolean(result.deleted) });
+  } catch (err) {
+    logStructured('error', 'account_delete_failed', { message: err?.message });
+    return res.status(500).json({ ok: false, message: 'Hisobni o‘chirishda xatolik' });
+  }
 });
 
 app.post('/api/v1/auth/sms/send', (req, res) => {

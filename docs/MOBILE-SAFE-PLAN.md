@@ -40,9 +40,11 @@
 - Noto‘g‘ri JWT + boshqa telefon header — qabul qilinmaydi
 - Production: `CUSTOMER_SESSION_SECRET` o‘rnating (Railway)
 
-### Bosqich 4 — Store
+### Bosqich 4 — Store (hujjatlar) ✅
 
-- Privacy Policy, icon, screenshot, account delete
+- `/privacy`, `/terms` sahifalar
+- `DELETE /api/v1/profile/account` — hisob o‘chirish
+- Profilda havolalar + `SUPPORT_EMAIL` (Railway)
 
 ## Capacitor: ishga tushirish
 
