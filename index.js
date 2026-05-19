@@ -589,8 +589,15 @@ function isValidLongitude(value) {
   return n !== null && n >= -180 && n <= 180;
 }
 
+function isNullIslandCoords(lat, lng) {
+  const la = toFiniteNumber(lat);
+  const lo = toFiniteNumber(lng);
+  if (la === null || lo === null) return false;
+  return Math.abs(la) < 0.0001 && Math.abs(lo) < 0.0001;
+}
+
 function isValidLatLng(lat, lng) {
-  return isValidLatitude(lat) && isValidLongitude(lng);
+  return isValidLatitude(lat) && isValidLongitude(lng) && !isNullIslandCoords(lat, lng);
 }
 
 function normalizeDistanceKm(distanceKm) {
@@ -625,10 +632,24 @@ function computeDeliveryPriceByDistance(distanceKm) {
   return Math.min(MAX_DELIVERY_FEE, toMoney(18000 + (normalizedKm - 3) * 5000));
 }
 
+function sanitizeOrderCoords(order) {
+  const lat = toFiniteNumber(order?.locationLat);
+  const lng = toFiniteNumber(order?.locationLng);
+  const cLat = toFiniteNumber(order?.courierLocationLat);
+  const cLng = toFiniteNumber(order?.courierLocationLng);
+  return {
+    locationLat: isValidLatLng(lat, lng) ? lat : null,
+    locationLng: isValidLatLng(lat, lng) ? lng : null,
+    courierLocationLat: isValidLatLng(cLat, cLng) ? cLat : null,
+    courierLocationLng: isValidLatLng(cLat, cLng) ? cLng : null
+  };
+}
+
 function normalizeStoredOrder(order) {
   if (!order) return order;
   const normalizedStatus = normalizeOrderStatus(order.status);
   const hasCourierTerminalStatus = ['delivered', 'cancelled'].includes(normalizedStatus);
+  const coords = sanitizeOrderCoords(order);
   return {
     ...order,
     status: normalizedStatus,
@@ -636,8 +657,10 @@ function normalizeStoredOrder(order) {
     updated_at: order.updated_at || order.created_at || nowIso(),
     courierToken: order.courierToken || randomId('crt'),
     courierTokenUsed: order.courierTokenUsed === undefined ? hasCourierTerminalStatus : Boolean(order.courierTokenUsed),
-    courierLocationLat: toFiniteNumber(order.courierLocationLat),
-    courierLocationLng: toFiniteNumber(order.courierLocationLng),
+    locationLat: coords.locationLat,
+    locationLng: coords.locationLng,
+    courierLocationLat: coords.courierLocationLat,
+    courierLocationLng: coords.courierLocationLng,
     courierLocationAccuracy: toFiniteNumber(order.courierLocationAccuracy),
     courierLocationUpdatedAt: order.courierLocationUpdatedAt || null
   };

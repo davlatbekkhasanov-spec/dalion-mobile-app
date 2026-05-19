@@ -562,9 +562,16 @@
     });
   }
 
+  function isNullIsland(lat, lng){
+    return Math.abs(lat) < 0.0001 && Math.abs(lng) < 0.0001;
+  }
+
   function hasCoord(a, b){
     var lat = Number(a), lng = Number(b);
-    return Number.isFinite(lat) && Number.isFinite(lng) && lat>=-90 && lat<=90 && lng>=-180 && lng<=180;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+    if (isNullIsland(lat, lng)) return false;
+    return true;
   }
 
   function resolveOrderCoord(pointKeys){
