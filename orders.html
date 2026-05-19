@@ -365,6 +365,22 @@
       margin-left: 6px;
       font-weight: 600;
     }
+    .cstaff-chip .cstaff-status {
+      display: inline-block;
+      margin-right: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .cstaff-chip.status-pending { border-color: #fed7aa; background: #fff7ed; }
+    .cstaff-chip.status-pending .cstaff-status { color: #c2410c; }
+    .cstaff-chip.status-approved { border-color: #a7f3d0; background: #ecfdf3; }
+    .cstaff-chip.status-approved .cstaff-status { color: #047857; }
+    .cstaff-chip.status-rejected { border-color: #fecaca; background: #fef2f2; opacity: 0.85; }
+    .cstaff-chip.status-rejected .cstaff-status { color: #b91c1c; }
+    .cstaff-chip.is-actionable { cursor: pointer; }
+    .cstaff-chip.is-actionable:hover { filter: brightness(0.97); }
     .stats-inner { display: contents; }
     .stat-chip { display: none; }
     .sla {
@@ -1434,7 +1450,12 @@
         slaMins: 'SLA {n} daq',
         slaHours: 'SLA {n} soat',
         slaDays: 'SLA {n} kun',
-        courierStaffTitle: 'Ro‘yxatdan kuryerlar (portallar)',
+        courierStaffTitle: 'Kuryer arizalari',
+        courierStatusPending: 'Yangi',
+        courierStatusApproved: 'Tasdiq',
+        courierStatusRejected: 'Rad',
+        courierApproveConfirm: 'Ushbu arizani tasdiqlaysizmi?',
+        courierRejectConfirm: 'Ushbu arizani rad etasizmi?',
         focusOn: 'Fokus ✓',
         focusOff: 'Fokus',
         settingsTitle: 'Sozlamalar',
@@ -1518,7 +1539,12 @@
         slaMins: 'SLA {n} мин',
         slaHours: 'SLA {n} ч',
         slaDays: 'SLA {n} дн',
-        courierStaffTitle: 'Курьеры (регистрация / портал)',
+        courierStaffTitle: 'Заявки курьеров',
+        courierStatusPending: 'Новая',
+        courierStatusApproved: 'Одобр.',
+        courierStatusRejected: 'Откл.',
+        courierApproveConfirm: 'Одобрить эту заявку?',
+        courierRejectConfirm: 'Отклонить эту заявку?',
         focusOn: 'Фокус ✓',
         focusOff: 'Фокус',
         settingsTitle: 'Настройки',
@@ -2150,6 +2176,27 @@
       el.innerHTML = `<div class="stats-inline">${parts.join('')}</div>`;
     }
 
+    function courierAppStatusKey(status) {
+      const s = String(status || 'pending').toLowerCase();
+      if (s === 'approved' || s === 'rejected') return s;
+      return 'pending';
+    }
+
+    function courierAppStatusLabel(status) {
+      const sk = courierAppStatusKey(status);
+      if (sk === 'approved') return t('courierStatusApproved');
+      if (sk === 'rejected') return t('courierStatusRejected');
+      return t('courierStatusPending');
+    }
+
+    async function patchCourierApplicationStatus(id, status) {
+      await api(`/admin/courier-applications/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status })
+      });
+      await loadCourierStaff();
+    }
+
     function renderCourierStaffBar() {
       const el = document.getElementById('courierStaffBar');
       if (!el) return;
@@ -2162,17 +2209,55 @@
       }
       const list = Array.isArray(courierApplications) ? courierApplications : [];
       el.hidden = false;
+      const pendingN = list.filter((a) => courierAppStatusKey(a.status) === 'pending').length;
       const chips = list
-        .map(
-          (a) =>
-            `<span class="cstaff-chip" title="${escapeHtml(String(a.note || '').trim())}">${escapeHtml(
-              String(a.fullName || '—')
-            )}<small>${escapeHtml(String(a.phone || '—'))}</small></span>`
-        )
+        .map((a) => {
+          const sk = courierAppStatusKey(a.status);
+          const note = String(a.note || '').trim();
+          const title = [
+            courierAppStatusLabel(a.status),
+            a.fullName,
+            a.phone,
+            note,
+            a.createdAt ? new Date(a.createdAt).toLocaleString() : ''
+          ]
+            .filter(Boolean)
+            .join(' · ');
+          const actionable = sk === 'pending' ? ' is-actionable' : '';
+          return `<span class="cstaff-chip status-${sk}${actionable}" data-app-id="${escapeHtml(
+            String(a.id || '')
+          )}" title="${escapeHtml(title)}"><span class="cstaff-status">${escapeHtml(
+            courierAppStatusLabel(a.status)
+          )}</span>${escapeHtml(String(a.fullName || '—'))}<small>${escapeHtml(
+            String(a.phone || '—')
+          )}</small></span>`;
+        })
         .join('');
+      const labelExtra = pendingN > 0 ? ` · ${pendingN} ${t('courierStatusPending').toLowerCase()}` : '';
       el.innerHTML = `<div class="cstaff-inner"><span class="cstaff-label">${escapeHtml(
         t('courierStaffTitle')
-      )} (${list.length})</span>${chips || `<span class="muted">—</span>`}</div>`;
+      )} (${list.length}${labelExtra})</span>${chips || `<span class="muted">—</span>`}</div>`;
+      el.querySelectorAll('.cstaff-chip.is-actionable').forEach((chip) => {
+        chip.addEventListener('click', async () => {
+          const id = chip.getAttribute('data-app-id');
+          if (!id) return;
+          if (!window.confirm(t('courierApproveConfirm'))) return;
+          try {
+            await patchCourierApplicationStatus(id, 'approved');
+          } catch (err) {
+            alert(err.message || t('refreshError'));
+          }
+        });
+        chip.addEventListener('contextmenu', (ev) => {
+          ev.preventDefault();
+          const id = chip.getAttribute('data-app-id');
+          if (!id) return;
+          if (!window.confirm(t('courierRejectConfirm'))) return;
+          patchCourierApplicationStatus(id, 'rejected').catch((err) => {
+            alert(err.message || t('refreshError'));
+          });
+        });
+      });
       syncCourierBarToggle();
     }
 

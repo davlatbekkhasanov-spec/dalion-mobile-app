@@ -1595,20 +1595,25 @@ app.get('/api/v1/customer/orders', async (req, res) => {
   return res.json({ ok: true, orders });
 });
 
+function courierApplicationPublic(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    fullName: row.fullName,
+    phone: row.phone,
+    status: String(row.status || 'pending').toLowerCase(),
+    note: String(row.note || ''),
+    createdAt: row.createdAt ? row.createdAt.toISOString() : null,
+    updatedAt: row.updatedAt ? row.updatedAt.toISOString() : null
+  };
+}
+
 app.get('/api/v1/courier-applications/me', async (req, res) => {
   const phone = requireCustomerPhone(req, res);
   if (!phone) return;
   const row = await marketplaceRepo.getCourierApplicationByPhone(phone);
   if (!row) return res.json({ ok: true, application: null });
-  return res.json({
-    ok: true,
-    application: {
-      fullName: row.fullName,
-      phone: row.phone,
-      status: row.status,
-      createdAt: row.createdAt ? row.createdAt.toISOString() : null
-    }
-  });
+  return res.json({ ok: true, application: courierApplicationPublic(row) });
 });
 
 app.post('/api/v1/courier-applications', async (req, res) => {
@@ -1618,16 +1623,8 @@ app.post('/api/v1/courier-applications', async (req, res) => {
   const note = String(req.body?.note || '').trim();
   if (!fullName) return res.status(400).json({ ok: false, message: 'Ism-sharif kiriting' });
   try {
-    const row = await marketplaceRepo.upsertApprovedCourierApplication({ phone, fullName, note });
-    return res.json({
-      ok: true,
-      application: {
-        fullName: row.fullName,
-        phone: row.phone,
-        status: row.status,
-        createdAt: row.createdAt ? row.createdAt.toISOString() : null
-      }
-    });
+    const row = await marketplaceRepo.submitCourierApplication({ phone, fullName, note });
+    return res.json({ ok: true, application: courierApplicationPublic(row) });
   } catch (err) {
     const msg = err && err.message === 'fullName_required' ? 'Ism-sharif kiriting' : err?.message || 'Ariza saqlanmadi';
     return res.status(400).json({ ok: false, message: msg });
@@ -1736,16 +1733,27 @@ app.get('/api/v1/admin/courier-applications', requireAdmin, async (req, res) => 
   const rows = await marketplaceRepo.listCourierApplicationsAdmin();
   return res.json({
     ok: true,
-    applications: rows.map((r) => ({
-      id: r.id,
-      phone: r.phone,
-      fullName: r.fullName,
-      status: r.status,
-      note: r.note || '',
-      createdAt: r.createdAt ? r.createdAt.toISOString() : null,
-      updatedAt: r.updatedAt ? r.updatedAt.toISOString() : null
-    }))
+    applications: rows.map((r) => courierApplicationPublic(r))
   });
+});
+
+app.patch('/api/v1/admin/courier-applications/:id', requireAdmin, async (req, res) => {
+  const status = String(req.body?.status || '').trim().toLowerCase();
+  if (!['approved', 'rejected', 'pending'].includes(status)) {
+    return res.status(400).json({ ok: false, message: 'status: approved | rejected | pending' });
+  }
+  try {
+    const row = await marketplaceRepo.updateCourierApplicationStatusAdmin({
+      id: req.params.id,
+      status
+    });
+    return res.json({ ok: true, application: courierApplicationPublic(row) });
+  } catch (err) {
+    if (err && err.code === 'P2025') {
+      return res.status(404).json({ ok: false, message: 'Ariza topilmadi' });
+    }
+    return res.status(400).json({ ok: false, message: err?.message || 'Saqlanmadi' });
+  }
 });
 
 async function buildOrdersDisplayFeedPayload() {

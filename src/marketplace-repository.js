@@ -1233,7 +1233,7 @@ function normalizeCourierPortalToken(raw) {
   return t.slice(0, COURIER_TOKEN_LEN);
 }
 
-async function upsertApprovedCourierApplication({ phone, fullName, note }) {
+async function submitCourierApplication({ phone, fullName, note }) {
   const p = String(phone || '').trim();
   if (!p) throw new Error('phone_required');
   const fn = String(fullName || '').trim().slice(0, 160);
@@ -1245,12 +1245,14 @@ async function upsertApprovedCourierApplication({ phone, fullName, note }) {
     orderBy: { createdAt: 'desc' }
   });
   if (existing) {
+    const prev = String(existing.status || '').toLowerCase();
+    const nextStatus = prev === 'rejected' ? 'pending' : existing.status || 'pending';
     return prisma.courierApplication.update({
       where: { id: existing.id },
       data: {
         fullName: fn,
         note: nt,
-        status: 'approved'
+        status: nextStatus
       }
     });
   }
@@ -1260,9 +1262,20 @@ async function upsertApprovedCourierApplication({ phone, fullName, note }) {
       phone: p,
       fullName: fn,
       note: nt,
-      status: 'approved',
+      status: 'pending',
       accessToken
     }
+  });
+}
+
+async function updateCourierApplicationStatusAdmin({ id, status }) {
+  const appId = String(id || '').trim();
+  if (!appId) throw new Error('id_required');
+  const st = String(status || '').trim().toLowerCase();
+  if (!['approved', 'rejected', 'pending'].includes(st)) throw new Error('invalid_status');
+  return prisma.courierApplication.update({
+    where: { id: appId },
+    data: { status: st }
   });
 }
 
@@ -1684,7 +1697,8 @@ module.exports = {
   getUserProfile,
   upsertUserProfile,
   profileToApi,
-  upsertApprovedCourierApplication,
+  submitCourierApplication,
+  updateCourierApplicationStatusAdmin,
   getCourierApplicationByPhone,
   getCourierApplicationByAccessToken,
   listCourierPortalOrders,

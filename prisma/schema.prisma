@@ -193,8 +193,8 @@ model CourierApplication {
   phone       String
   fullName    String
   note        String   @default("")
-  /// hozircha: approved; keyin pending + admin tasdiq
-  status      String   @default("approved")
+  /// pending | approved | rejected
+  status      String   @default("pending")
   accessToken String   @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
