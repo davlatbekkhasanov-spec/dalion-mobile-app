@@ -2465,10 +2465,9 @@
         </div>
         <div class="list-card gm-card" id="courierApplyCard" style="display:none;">
           <h3 style="margin-bottom:6px;" id="profileCourierCardTitle">Kuryer bo‘lish</h3>
-          <p class="muted" id="profileCourierCardBody" style="margin-top:0;">Ariza yuboring — hozircha darhol onlayn kuryer portali ochiladi.</p>
+          <p class="muted" id="profileCourierCardBody" style="margin-top:0;">Kuryer bo‘lish uchun ariza qoldiring.</p>
           <div id="courierApplyExistingWrap" style="display:none;margin-top:10px;">
             <p class="muted" id="profileCourierAlready"></p>
-            <a class="btn gm-btn gm-btn-primary btn-primary" id="courierPortalLink" href="#" target="_blank" rel="noopener" style="margin-top:8px;text-align:center;">Kuryer portali</a>
           </div>
           <div id="courierApplyFormWrap">
             <label class="muted" style="display:block;margin-top:8px;" id="profileCourierNameLabel" for="courierApplyFullName">Ism</label>
@@ -3670,16 +3669,15 @@ Oq fonli foto</div>
         profileHelp: "Yordam / Biz bilan bog'lanish",
         profileCourierCardTitle: 'Kuryer bo‘lish',
         profileCourierCardBody:
-          'Ariza qoldiring. Hozircha tasdiq avtomatik: yuborganingizdan keyin kuryer portali ochiladi. Keyinroq arizalar Telegram orqali keladi va login/parol beriladi.',
+          'Kuryer bo‘lish uchun ariza qoldiring. Tasdiqlangach alohida kuryer dasturi orqali ishlay siz (tez orada).',
         profileCourierNameLabel: 'Ism va familiya',
         profileCourierNamePlaceholder: 'Masalan: Ali Valiyev',
         profileCourierNoteLabel: 'Izoh (ixtiyoriy)',
         profileCourierNotePlaceholder: 'Avto, tajriba, hudud…',
         profileCourierSubmit: 'Ariza yuborish',
         profileCourierSubmitting: 'Yuborilmoqda…',
-        profileCourierOpenPortal: 'Kuryer portali',
-        profileCourierAlready: 'Sizning arizangiz qabul qilingan. Portaldan foydalaning.',
-        profileCourierToastOk: 'Kuryer portali ochildi',
+        profileCourierAlready: 'Arizangiz qabul qilindi. Kuryer dasturi tez orada alohida ilova sifatida chiqadi.',
+        profileCourierToastOk: 'Ariza qabul qilindi',
         profileCourierToastErr: 'Ariza yuborilmadi',
         profileSoon: 'Tez orada',
         profileLogout: 'Chiqish',
@@ -3915,16 +3913,15 @@ Oq fonli foto</div>
         profileHelp: 'Помощь / Связаться с нами',
         profileCourierCardTitle: 'Стать курьером',
         profileCourierCardBody:
-          'Оставьте заявку. Сейчас подтверждение автоматическое: после отправки откроется портал курьера. Позже заявки пойдут в Telegram и выдадут логин/пароль.',
+          'Оставьте заявку на работу курьером. После одобрения — отдельное приложение курьера (скоро).',
         profileCourierNameLabel: 'Имя и фамилия',
         profileCourierNamePlaceholder: 'Например: Иван Иванов',
         profileCourierNoteLabel: 'Комментарий (необязательно)',
         profileCourierNotePlaceholder: 'Авто, опыт, район…',
         profileCourierSubmit: 'Отправить заявку',
         profileCourierSubmitting: 'Отправка…',
-        profileCourierOpenPortal: 'Портал курьера',
-        profileCourierAlready: 'Заявка принята. Откройте портал.',
-        profileCourierToastOk: 'Открыт портал курьера',
+        profileCourierAlready: 'Заявка принята. Приложение курьера скоро будет отдельно.',
+        profileCourierToastOk: 'Заявка принята',
         profileCourierToastErr: 'Не удалось отправить заявку',
         profileSoon: 'Скоро',
         profileLogout: 'Выйти',
@@ -4160,8 +4157,6 @@ Oq fonli foto</div>
       if (caBtn && !caBtn.dataset.submitting) caBtn.textContent = t('profileCourierSubmit');
       const elCourierAlready = document.getElementById('profileCourierAlready');
       if (elCourierAlready) elCourierAlready.textContent = t('profileCourierAlready');
-      const elPortalLink = document.getElementById('courierPortalLink');
-      if (elPortalLink) elPortalLink.textContent = t('profileCourierOpenPortal');
       document.getElementById('successTitle').textContent = t('successTitle');
       document.getElementById('successBody').textContent = t('successBody');
       document.getElementById('successPaymentPending').textContent = t('successPaymentPending');
@@ -5948,9 +5943,8 @@ Oq fonli foto</div>
       const card = document.getElementById('courierApplyCard');
       const ex = document.getElementById('courierApplyExistingWrap');
       const fw = document.getElementById('courierApplyFormWrap');
-      const link = document.getElementById('courierPortalLink');
       const nameInp = document.getElementById('courierApplyFullName');
-      if (!card || !ex || !fw || !link) return;
+      if (!card || !ex || !fw) return;
       if (!isAuthed() || !currentUser?.phone) {
         card.style.display = 'none';
         return;
@@ -5959,10 +5953,9 @@ Oq fonli foto</div>
       try {
         const out = await api('/courier-applications/me');
         const app = out && out.application;
-        if (app && app.portalUrl) {
+        if (app) {
           ex.style.display = 'block';
           fw.style.display = 'none';
-          link.href = app.portalUrl;
         } else {
           ex.style.display = 'none';
           fw.style.display = 'block';
@@ -6579,8 +6572,9 @@ Oq fonli foto</div>
           method: 'POST',
           body: JSON.stringify({ fullName, note })
         });
-        if (out && out.portalUrl) {
-          window.location.href = out.portalUrl;
+        if (out && out.ok) {
+          showToast(t('profileCourierToastOk'), 2000);
+          await refreshCourierApplicationPanel();
           return;
         }
         showToast(t('profileCourierToastErr'), 2000);

@@ -1600,14 +1600,12 @@ app.get('/api/v1/courier-applications/me', async (req, res) => {
   if (!phone) return;
   const row = await marketplaceRepo.getCourierApplicationByPhone(phone);
   if (!row) return res.json({ ok: true, application: null });
-  const portalUrl = `${req.protocol}://${req.get('host')}/courier-portal?t=${encodeURIComponent(row.accessToken)}`;
   return res.json({
     ok: true,
     application: {
       fullName: row.fullName,
       phone: row.phone,
       status: row.status,
-      portalUrl,
       createdAt: row.createdAt ? row.createdAt.toISOString() : null
     }
   });
@@ -1621,8 +1619,15 @@ app.post('/api/v1/courier-applications', async (req, res) => {
   if (!fullName) return res.status(400).json({ ok: false, message: 'Ism-sharif kiriting' });
   try {
     const row = await marketplaceRepo.upsertApprovedCourierApplication({ phone, fullName, note });
-    const portalUrl = `${req.protocol}://${req.get('host')}/courier-portal?t=${encodeURIComponent(row.accessToken)}`;
-    return res.json({ ok: true, portalUrl, application: { fullName: row.fullName, phone: row.phone, status: row.status } });
+    return res.json({
+      ok: true,
+      application: {
+        fullName: row.fullName,
+        phone: row.phone,
+        status: row.status,
+        createdAt: row.createdAt ? row.createdAt.toISOString() : null
+      }
+    });
   } catch (err) {
     const msg = err && err.message === 'fullName_required' ? 'Ism-sharif kiriting' : err?.message || 'Ariza saqlanmadi';
     return res.status(400).json({ ok: false, message: msg });
