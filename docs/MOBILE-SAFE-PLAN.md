@@ -26,11 +26,12 @@
 - `CAPACITOR_SERVER_URL` o‘rnatilganda ilova **production veb**ni yuklaydi — `index.html` nusxalanmaydi
 - Veb `/` brauzerda **o‘zgarmaydi**
 
-### Bosqich 2 — Payme (keyin, rozilikdan keyin)
+### Bosqich 2 — Payme ✅
 
-- `@capacitor/browser` yoki in-app browser
-- Minimal patch `index.html` (faqat to‘lov URL ochilishi)
-- Eski `window.location` yo‘li feature-flag bilan qoladi
+- `@capacitor/browser` + `@capacitor/app` (native loyihada `cap sync`)
+- `public/mobile-native-bridge.js` — faqat `Capacitor.isNativePlatform()` da ishlaydi
+- `index.html`: Payme uchun `GlobusNative.openPaymentUrl`, aks holda `window.location.assign` (veb o‘sha)
+- To‘lovdan keyin: `browserFinished` → `/track/:orderNumber`
 
 ### Bosqich 3 — JWT (keyin)
 

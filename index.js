@@ -141,6 +141,11 @@ function logStructured(level, event, details = {}) {
 app.use(express.json({ limit: '3mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+app.get('/mobile-native-bridge.js', (req, res) => {
+  res.type('application/javascript');
+  res.sendFile(path.join(__dirname, 'public', 'mobile-native-bridge.js'));
+});
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   maxAge: '30d',
   immutable: true

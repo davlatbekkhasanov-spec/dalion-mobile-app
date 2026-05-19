@@ -264,6 +264,8 @@ npm run cap:open:android
 
 `index.html` / `styles.css` o‘zgartirilmaydi. iOS: macOS + `npm run cap:add:ios`.
 
+**Bosqich 2 (Payme):** native ilovada Payme in-app browser orqali ochiladi; brauzerda avvalgidek `window.location`. Pluginlar: `npm install` → `CAPACITOR_SERVER_URL` o‘rnating → `npm run cap:sync`.
+
 ### Build APK locally (courier native)
 1. Install Android Studio (latest stable).
 2. Open folder: `android-courier/`.

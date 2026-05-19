@@ -2643,6 +2643,7 @@ Oq fonli foto</div>
     </div>
   </main>
 
+  <script src="/mobile-native-bridge.js"></script>
   <script>
     let products = [];
     /** id → row; rebuilt when catalog mutates (avoid scanning thousands of rows on checkout/cart). */
@@ -6980,7 +6981,15 @@ Oq fonli foto</div>
               `/payments/payme/url?orderNumber=${encodeURIComponent(order.orderNumber)}&lang=${encodeURIComponent(langQ)}`
             );
             if (pay.url) {
-              window.location.assign(pay.url);
+              let openedInApp = false;
+              if (window.GlobusNative && typeof window.GlobusNative.openPaymentUrl === 'function') {
+                try {
+                  openedInApp = await window.GlobusNative.openPaymentUrl(pay.url, order.orderNumber);
+                } catch (nativePayErr) {
+                  openedInApp = false;
+                }
+              }
+              if (!openedInApp) window.location.assign(pay.url);
               return;
             }
             showToast(t('paymeUrlMissing'));

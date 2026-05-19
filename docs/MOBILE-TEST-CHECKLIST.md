@@ -22,11 +22,12 @@ Har bosqichdan keyin belgilang. Keyingi bosqichga o‘tish — faqat **veb OK** 
 - [ ] Scroll, safe area (notch), pastki panel
 - [ ] `CAPACITOR_SERVER_URL` o‘chirilgan build — sozlash ekrani (server buzilmagan)
 
-## Bosqich 2 — Payme (keyin)
+## Bosqich 2 — Payme
 
-- [ ] Payme to‘lov ochiladi
-- [ ] To‘lovdan keyin ilovaga qaytish
-- [ ] Vebda Payme hali ishlaydi
+- [ ] `npm install` + `npm run cap:sync:prod` (yoki `CAPACITOR_SERVER_URL` + `cap sync`)
+- [ ] Native: Payme in-app browser ochiladi (sahifa almashmaydi)
+- [ ] Browser yopilganda `/track/...` ga o‘tadi
+- [ ] Desktop/mobil Safari: `window.location` (veb yo‘l) ishlaydi
 
 ## Bosqich 3 — JWT (keyin)
 
