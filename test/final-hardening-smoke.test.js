@@ -88,13 +88,16 @@ test('final hardening critical flow smoke', { skip: !DATABASE_URL }, async () =>
       code: String(otpRequest.payload.devHint)
     });
     assert.equal(otpVerify.payload.ok, true);
+    const accessToken = otpVerify.payload.accessToken || otpVerify.payload.token || '';
+    assert.ok(accessToken, 'accessToken expected after OTP verify');
+    const authHeaders = { Authorization: `Bearer ${accessToken}` };
 
     const products = await api(baseUrl, 'GET', '/api/v1/products');
     assert.equal(products.payload.ok, true);
     assert.ok(Array.isArray(products.payload.items) && products.payload.items.length > 0);
     const productId = products.payload.items[0].id;
 
-    const cart = await api(baseUrl, 'PUT', '/api/v1/cart/items', { productId, quantity: 2 }, { 'x-user-phone': PHONE });
+    const cart = await api(baseUrl, 'PUT', '/api/v1/cart/items', { productId, quantity: 2 }, authHeaders);
     assert.equal(cart.payload.ok, true);
     assert.equal(cart.payload.totalQty, 2);
 
@@ -102,7 +105,7 @@ test('final hardening critical flow smoke', { skip: !DATABASE_URL }, async () =>
       paymentMethod: 'cash',
       paymentStatus: 'pending',
       addressText: 'Samarqand test manzil'
-    }, { 'x-user-phone': PHONE });
+    }, authHeaders);
     assert.equal(createdOrder.payload.ok, true);
     const orderNumber = createdOrder.payload.orderNumber;
     assert.ok(orderNumber);

@@ -223,13 +223,17 @@ Adapter: `src/services/sms.service.js` (`sendSmsOtp`). Default gateway mode is *
 
 - `POST /api/v1/auth/request-otp` or `POST /api/v1/auth/sms/send` — body `{ "phone": "+998..." }`
 - `POST /api/v1/auth/verify-otp` or `POST /api/v1/auth/sms/verify` — body `{ "phone": "+998...", "code": "..." }`
-  - success: `phoneVerified=true` on profile, returns `verificationToken` and `user`.
+  - success: `phoneVerified=true` on profile, returns `accessToken` (JWT), `verificationToken`, and `user`.
+
+Customer API auth: `Authorization: Bearer <accessToken>` (preferred). Legacy header `x-user-phone` still works for older clients.
 
 Non-production (or `ALLOW_OTP_DEV_UI=true` in production): responses may include `devHint` with the OTP for UI/testing.
 
 ### Environment variables
 
 See **Railway variables for SMS (DevSMS)** above; also `SMS_OTP_PEPPER`, `SMS_OTP_DIGITS`, `SMS_OTP_TTL_MS`, `ALLOW_OTP_DEV_UI`, `SMS_LOG_OTP_CODE`.
+
+**Customer JWT (production):** set `CUSTOMER_SESSION_SECRET` (strong random string). Optional: `CUSTOMER_JWT_TTL_SEC` (default 30 days).
 
 ## Android Courier App (Native Kotlin)
 

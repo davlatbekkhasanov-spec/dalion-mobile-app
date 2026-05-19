@@ -29,10 +29,12 @@ Har bosqichdan keyin belgilang. Keyingi bosqichga o‘tish — faqat **veb OK** 
 - [ ] Browser yopilganda `/track/...` ga o‘tadi
 - [ ] Desktop/mobil Safari: `window.location` (veb yo‘l) ishlaydi
 
-## Bosqich 3 — JWT (keyin)
+## Bosqich 3 — JWT
 
-- [ ] Eski mijozlar (x-user-phone) ishlaydi
-- [ ] Yangi token bilan login
+- [ ] OTP → `accessToken` qaytadi
+- [ ] Savat/buyurtma Bearer bilan ishlaydi
+- [ ] Chiqish → token o‘chadi
+- [ ] Eski brauzer (faqat x-user-phone) hali ishlaydi
 
 ---
 

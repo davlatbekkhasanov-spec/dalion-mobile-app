@@ -2761,6 +2761,12 @@ Oq fonli foto</div>
     const OTP_LENGTH = 6;
     let smsPhoneVerified = false;
     let smsVerificationToken = '';
+    let customerAccessToken = '';
+    try {
+      customerAccessToken = localStorage.getItem('gm_access_token') || '';
+    } catch (_) {
+      customerAccessToken = '';
+    }
     let otpAutoVerifyTimer = null;
     let otpAutoVerifyInFlight = false;
 
@@ -2984,6 +2990,7 @@ Oq fonli foto</div>
         });
         smsPhoneVerified = true;
         smsVerificationToken = data.verificationToken || '';
+        persistCustomerSession(data.accessToken || data.token || '');
         if (smsVerifiedSuccess) smsVerifiedSuccess.classList.add('show');
         if (authOtpInput) authOtpInput.classList.add('is-valid');
         if (submitAuthBtn) {
@@ -3388,8 +3395,7 @@ Oq fonli foto</div>
       const id = String(shortId || '').trim();
       if (!id) return;
       try {
-        const headers = { 'Content-Type': 'application/json' };
-        if (currentUser?.phone) headers['x-user-phone'] = currentUser.phone;
+        const headers = { 'Content-Type': 'application/json', ...customerAuthHeaders() };
         fetch(`/api/v1/shorts/${encodeURIComponent(id)}/view`, {
           method: 'POST',
           headers,
@@ -4658,12 +4664,33 @@ Oq fonli foto</div>
       };
     }
 
+    function persistCustomerSession(token) {
+      const next = String(token || '').trim();
+      customerAccessToken = next;
+      try {
+        if (next) localStorage.setItem('gm_access_token', next);
+        else localStorage.removeItem('gm_access_token');
+      } catch (_) {}
+      if (currentUser) {
+        if (next) currentUser.accessToken = next;
+        else delete currentUser.accessToken;
+        try { localStorage.setItem('globusUser', JSON.stringify(currentUser)); } catch (_) {}
+      }
+    }
+
+    function customerAuthHeaders() {
+      const headers = {};
+      const token = customerAccessToken || currentUser?.accessToken || '';
+      if (token) headers.Authorization = `Bearer ${token}`;
+      else if (currentUser?.phone) headers['x-user-phone'] = currentUser.phone;
+      return headers;
+    }
+
     async function api(path, options = {}) {
-      const headers = { ...(options.headers || {}) };
+      const headers = { ...customerAuthHeaders(), ...(options.headers || {}) };
       const hasBody = options.body !== undefined && options.body !== null;
       const isFormData = typeof FormData !== 'undefined' && hasBody && options.body instanceof FormData;
       if (!isFormData && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
-      if (currentUser?.phone) headers['x-user-phone'] = currentUser.phone;
       const res = await fetch(`/api/v1${path}`, {
         cache: 'no-store',
         headers,
@@ -4998,6 +5025,7 @@ Oq fonli foto</div>
         local.address = String(local.address || '').trim() || DEFAULT_LOCATION_ADDRESS;
         if (local.phoneVerified === undefined) local.phoneVerified = true;
         currentUser = local;
+        if (local.accessToken) persistCustomerSession(local.accessToken);
         localStorage.setItem('globusUser', JSON.stringify(currentUser));
         return;
       }
@@ -6462,6 +6490,7 @@ Oq fonli foto</div>
       stopProductsBackfill();
       stopShortsRevisionPolling();
       localStorage.removeItem('globusUser');
+      persistCustomerSession('');
       resetSmsAuthState();
       currentUser = null;
       activeOrderNumber = '';

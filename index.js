@@ -11,6 +11,7 @@ const r2Service = require('./src/services/r2.service');
 const dalionExcelImportService = require('./src/services/dalion-excel-import.service');
 const { paymeRpc } = require('./src/controllers/payme.controller');
 const { normalizeOrderStatus } = require('./src/order-status');
+const { issueCustomerToken, resolveCustomerAuth } = require('./src/customer-session');
 const { shouldShowOnOpsBoards } = require('./src/order-board-filter');
 const { buildOrderChannelReports } = require('./src/order-reports');
 const { integrationConfig } = require('./src/integrations/integration.config');
@@ -356,10 +357,13 @@ async function handleSmsOtpVerify(req, res) {
   };
 
   const verificationToken = randomId('smsv');
+  const accessToken = issueCustomerToken(phone);
   return res.json({
     ok: true,
     phoneVerified: true,
     verificationToken,
+    accessToken,
+    token: accessToken,
     user: profile
   });
 }
@@ -690,7 +694,25 @@ async function getAdminAmbientTracksOrdered() {
 }
 
 function getUserPhone(req) {
-  return normalizePhone(req.headers['x-user-phone']);
+  const { phone, jwtInvalid } = resolveCustomerAuth(req, normalizePhone);
+  if (jwtInvalid) return null;
+  return phone || null;
+}
+
+function customerAuthErrorResponse(res, jwtInvalid) {
+  if (jwtInvalid) {
+    return res.status(401).json({ ok: false, message: 'Sessiya yaroqsiz, qayta kiring' });
+  }
+  return res.status(401).json({ ok: false, message: 'Avtorizatsiya kerak' });
+}
+
+function requireCustomerPhone(req, res) {
+  const auth = resolveCustomerAuth(req, normalizePhone);
+  if (auth.jwtInvalid || !auth.phone) {
+    customerAuthErrorResponse(res, auth.jwtInvalid);
+    return null;
+  }
+  return auth.phone;
 }
 
 function requireAdmin(req, res, next) {
@@ -1010,8 +1032,8 @@ app.post('/api/payme', (req, res) => paymeRpc(req, res));
  */
 app.get('/api/v1/payments/payme/url', async (req, res) => {
   try {
-    const phone = getUserPhone(req);
-    if (!phone) return res.status(401).json({ ok: false, message: 'Avtorizatsiya kerak' });
+    const phone = requireCustomerPhone(req, res);
+    if (!phone) return;
     const orderNumber = String(req.query.orderNumber || '').trim();
     if (!orderNumber) return res.status(400).json({ ok: false, message: 'orderNumber kerak' });
     const orderRow = await marketplaceRepo.findOrderWithItems({
@@ -1206,7 +1228,13 @@ app.get('/api/v1/products/:id', async (req, res) => {
 });
 
 app.put('/api/v1/profile', async (req, res) => {
-  const phone = normalizePhone(req.body.phone);
+  const auth = resolveCustomerAuth(req, normalizePhone);
+  if (auth.jwtInvalid) return customerAuthErrorResponse(res, true);
+  const bodyPhone = normalizePhone(req.body.phone);
+  const phone = auth.phone || bodyPhone;
+  if (auth.phone && bodyPhone && auth.phone !== bodyPhone) {
+    return res.status(403).json({ ok: false, message: 'Telefon sessiya bilan mos emas' });
+  }
   const firstNameRaw = req.body.firstName !== undefined ? String(req.body.firstName || '').trim() : '';
   const lastNameRaw = req.body.lastName !== undefined ? String(req.body.lastName || '').trim() : '';
   const combinedName = `${firstNameRaw} ${lastNameRaw}`.trim();
@@ -1306,8 +1334,8 @@ app.get('/api/v1/cart', async (req, res) => {
 });
 
 app.put('/api/v1/cart/items', async (req, res) => {
-  const phone = getUserPhone(req);
-  if (!phone) return res.status(401).json({ ok: false, message: 'x-user-phone yuboring' });
+  const phone = requireCustomerPhone(req, res);
+  if (!phone) return;
   const productId = String(req.body.productId || '');
   const quantity = Math.max(0, Math.round(Number(req.body.quantity || 0)));
   const product = await findProductById(productId);
@@ -1320,8 +1348,8 @@ app.put('/api/v1/cart/items', async (req, res) => {
 });
 
 app.post('/api/v1/orders', async (req, res) => {
-  const phone = getUserPhone(req);
-  if (!phone) return res.status(401).json({ ok: false, message: 'Foydalanuvchi tasdiqlanmagan' });
+  const phone = requireCustomerPhone(req, res);
+  if (!phone) return;
   const cartSummary = await buildCartSummary(phone);
   if (!cartSummary.items.length) return res.status(400).json({ ok: false, message: 'Savat bo‘sh' });
   const profileRow = await marketplaceRepo.getUserProfile(phone);
@@ -1483,8 +1511,8 @@ app.get('/api/v1/notifications', async (req, res) => {
 });
 
 app.post('/api/v1/notifications/read-all', async (req, res) => {
-  const phone = getUserPhone(req);
-  if (!phone) return res.status(401).json({ ok: false, message: 'x-user-phone yuboring' });
+  const phone = requireCustomerPhone(req, res);
+  if (!phone) return;
   const existing = await marketplaceRepo.getUserProfile(phone);
   const baseName = existing?.name || phone;
   const read = { ...(existing?.notificationsRead && typeof existing.notificationsRead === 'object' ? existing.notificationsRead : {}) };
@@ -1528,8 +1556,8 @@ app.get('/api/v1/customer/orders', async (req, res) => {
 });
 
 app.get('/api/v1/courier-applications/me', async (req, res) => {
-  const phone = normalizePhone(getUserPhone(req));
-  if (!phone) return res.status(401).json({ ok: false, message: 'Telefon orqali kiring' });
+  const phone = requireCustomerPhone(req, res);
+  if (!phone) return;
   const row = await marketplaceRepo.getCourierApplicationByPhone(phone);
   if (!row) return res.json({ ok: true, application: null });
   const portalUrl = `${req.protocol}://${req.get('host')}/courier-portal?t=${encodeURIComponent(row.accessToken)}`;
@@ -1546,8 +1574,8 @@ app.get('/api/v1/courier-applications/me', async (req, res) => {
 });
 
 app.post('/api/v1/courier-applications', async (req, res) => {
-  const phone = normalizePhone(getUserPhone(req));
-  if (!phone) return res.status(401).json({ ok: false, message: 'Telefon orqali kiring' });
+  const phone = requireCustomerPhone(req, res);
+  if (!phone) return;
   const fullName = String(req.body?.fullName || '').trim();
   const note = String(req.body?.note || '').trim();
   if (!fullName) return res.status(400).json({ ok: false, message: 'Ism-sharif kiriting' });

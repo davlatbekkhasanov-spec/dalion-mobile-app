@@ -33,10 +33,12 @@
 - `index.html`: Payme uchun `GlobusNative.openPaymentUrl`, aks holda `window.location.assign` (veb o‘sha)
 - To‘lovdan keyin: `browserFinished` → `/track/:orderNumber`
 
-### Bosqich 3 — JWT (keyin)
+### Bosqich 3 — JWT sessiya ✅
 
-- Backend: session token
-- `x-user-phone` vaqtincha qo‘llab-quvvatlanadi (orqaga moslik)
+- `src/customer-session.js` — OTP dan keyin `accessToken` (JWT)
+- `Authorization: Bearer` — asosiy; `x-user-phone` — eski mijozlar uchun
+- Noto‘g‘ri JWT + boshqa telefon header — qabul qilinmaydi
+- Production: `CUSTOMER_SESSION_SECRET` o‘rnating (Railway)
 
 ### Bosqich 4 — Store
 
