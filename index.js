@@ -1715,17 +1715,19 @@ app.post('/api/v1/courier-auth/register', async (req, res) => {
     return res.json({
       ok: true,
       application: courierApplicationPublic(row),
-      message: 'SMS kod yuborish uchun «Kirish» bo‘limidan foydalaning'
+      message: 'SMS kod yuborildi. Tasdiqlash ekraniga o‘ting'
     });
   } catch (err) {
     const map = {
       fullName_required: 'Ism-sharif kiriting',
       vehicle_plate_required: 'Avtomobil davlat raqamini kiriting',
-      phone_registered: 'Bu raqam ro‘yxatdan o‘tgan. Parol bilan kiring yoki parolni tiklang'
+      phone_registered: 'Bu raqam ro‘yxatdan o‘tgan. Parol bilan kiring yoki parolni tiklang',
+      phone_use_login: 'Bu raqam ro‘yxatdan o‘tgan. Kirish yoki parolni tiklash bo‘limidan foydalaning'
     };
     const msg = map[err?.message] || err?.message || 'Ro‘yxatdan o‘tishda xato';
-    const status = err?.message === 'phone_registered' ? 409 : 400;
-    return res.status(status).json({ ok: false, message: msg });
+    const code = String(err?.message || '');
+    const status = code === 'phone_registered' || code === 'phone_use_login' ? 409 : 400;
+    return res.status(status).json({ ok: false, code, message: msg });
   }
 });
 
@@ -1875,7 +1877,7 @@ app.get('/api/v1/courier-portal/feed', async (req, res) => {
     return res.status(403).json({ ok: false, message: 'Avval parol o‘rnating', needsPassword: true });
   }
   if (String(row.status || '') !== 'approved') {
-    return res.status(403).json({ ok: false, message: 'Ariza tasdiqlanmagan' });
+    return res.json({ ok: true, orders: [], pendingApproval: true });
   }
   const orders = await marketplaceRepo.listCourierPortalOrders();
   const courierPhone = normalizePhone(row.phone);
@@ -1903,7 +1905,7 @@ app.get('/api/v1/courier-portal/my-route', async (req, res) => {
     return res.status(403).json({ ok: false, message: 'Avval parol o‘rnating', needsPassword: true });
   }
   if (String(row.status || '') !== 'approved') {
-    return res.status(403).json({ ok: false, message: 'Ariza tasdiqlanmagan' });
+    return res.json({ ok: true, orders: [], routeEtaHintMinutes: 0, pendingApproval: true });
   }
   const tok = getCourierPortalToken(req);
   const route = await marketplaceRepo.listCourierRouteOrders({ accessToken: tok });

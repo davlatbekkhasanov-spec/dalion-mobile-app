@@ -766,6 +766,7 @@
         </div>
       </div>
       <div id="authViewSetPassword" style="display:none;">
+        <p class="muted" id="setPasswordWho" style="display:none;margin:0 0 12px;"></p>
         <div class="auth-field">
           <label for="setPassword" id="lblSetPassword">Yangi parol</label>
           <input id="setPassword" type="password" autocomplete="new-password" />
@@ -944,7 +945,7 @@
         brand: 'GlobusMarket',
         brandSub: 'Kuryer · taksi uslubi',
         feedTitle: 'Faol buyurtmalar',
-        feedHint: '«Kuryer kutilmoqda» holatidagi buyurtmani bosing va qabul qiling. Bir nechtasini ketma-ket olishingiz mumkin (navbat raqami). Keyin kuryer sahifasidan yo‘lga chiqasiz.',
+        feedHint: '«Kuryer kutilmoqda» buyurtmani bosing va «O‘zimga biriktirish» ni bosing — ism qayta kiritilmaydi. Keyin «Marshrut va yetkazish» orqali xarita va GPS.',
         routePill: 'Navbat',
         activeStops: 'Faol yetkazishingiz',
         myRouteTitle: 'Mening marshrutim',
@@ -954,9 +955,10 @@
         gate: 'Havola yaroqsiz. Marketplace profilidan qayta ariza yuboring.',
         shop: 'Bosh sahifa',
         claim: 'O‘zimga biriktirish',
-        startDelivery: 'Yo‘lga chiqish (buyurtmani qabul qilish)',
-        courierPage: 'Kuryer sahifasi (QR)',
-        courierPageShort: 'Kuryer sahifasi',
+        startDelivery: 'Marshrut va yetkazish',
+        acceptRequired: 'Yo‘lga chiqish uchun avval biriktiring yoki qayta urinib ko‘ring',
+        courierPage: 'Marshrut sahifasi',
+        courierPageShort: 'Marshrut',
         dist: 'Masofa',
         eta: 'Taxminiy vaqt',
         km: 'km',
@@ -979,6 +981,9 @@
         authHintSms: 'Telefoningizga kelgan SMS kodni kiriting',
         authHintSetPw: 'Keyingi kirishlar uchun parol o‘rnating',
         authHintForgot: 'Telefon orqali parolni tiklang',
+        authHintForgotCode: 'SMS kod va yangi parolni kiriting',
+        setPasswordWho: '{name} · {phone}',
+        pendingFeed: 'Buyurtmalar admin tasdiqlagach shu yerda ko‘rinadi.',
         fullName: 'F.I.O.',
         vehiclePlate: 'Avtomobil davlat raqami',
         register: 'Ro‘yxatdan o‘tish',
@@ -1031,7 +1036,7 @@
         brand: 'GlobusMarket',
         brandSub: 'Курьер · такси-стиль',
         feedTitle: 'Активные заказы',
-        feedHint: 'Нажмите заказ в статусе «курьер ожидается» и примите. Можно взять несколько по очереди (номер в маршруте). Затем откройте страницу курьера для выезда.',
+        feedHint: 'Нажмите заказ «курьер ожидается» и «Забрать себе» — имя вводить снова не нужно. Затем «Маршрут и доставка» для карты и GPS.',
         routePill: 'Очередь',
         activeStops: 'Активных доставок',
         myRouteTitle: 'Мой маршрут',
@@ -1041,9 +1046,10 @@
         gate: 'Ссылка недействительна. Подайте заявку снова из профиля.',
         shop: 'На главную',
         claim: 'Забрать себе',
-        startDelivery: 'Выехать (принять заказ)',
-        courierPage: 'Страница курьера (QR)',
-        courierPageShort: 'Страница курьера',
+        startDelivery: 'Маршрут и доставка',
+        acceptRequired: 'Сначала привяжите заказ или повторите попытку',
+        courierPage: 'Страница маршрута',
+        courierPageShort: 'Маршрут',
         dist: 'Дистанция',
         eta: 'Время',
         km: 'км',
@@ -1066,6 +1072,9 @@
         authHintSms: 'Введите код из SMS',
         authHintSetPw: 'Задайте пароль для следующих входов',
         authHintForgot: 'Восстановление пароля по SMS',
+        authHintForgotCode: 'Введите код из SMS и новый пароль',
+        setPasswordWho: '{name} · {phone}',
+        pendingFeed: 'Заказы появятся после одобрения заявки администратором.',
         fullName: 'Ф.И.О.',
         vehiclePlate: 'Гос. номер авто',
         register: 'Зарегистрироваться',
@@ -1367,7 +1376,7 @@
                 const ct = String(o.courierToken || '').trim();
                 const href = ct ? `${location.origin}/courier/${encodeURIComponent(ct)}` : '#';
                 const link = ct
-                  ? `<a class="route-row-link" href="${esc(href)}" target="_blank" rel="noopener">${esc(tr('openCourierShort'))} #${esc(
+                  ? `<a class="route-row-link" href="${esc(href)}">${esc(tr('openCourierShort'))} #${esc(
                       o.orderNumber || ''
                     )}</a>`
                   : '';
@@ -1455,6 +1464,7 @@
         const map = { today: 'periodToday', week: 'periodWeek', month: 'periodMonth', all: 'periodAll' };
         if (map[k]) btn.textContent = tr(map[k]);
       });
+      if (!document.body.classList.contains('mode-app')) return;
       renderAppChrome();
       if (activePanel === 'wallet') renderWalletPanel();
       if (activePanel === 'rating') renderRatingPanel();
@@ -1462,6 +1472,21 @@
       renderFeed();
       void loadRouteHint();
       if (selected) openSheet(selected);
+    }
+
+    function updateSetPasswordWho() {
+      const el = document.getElementById('setPasswordWho');
+      if (!el) return;
+      if (!profile || !profile.fullName) {
+        el.style.display = 'none';
+        el.textContent = '';
+        return;
+      }
+      el.textContent = trFmt('setPasswordWho', {
+        name: profile.fullName || '—',
+        phone: profile.phone || ''
+      });
+      el.style.display = 'block';
     }
 
     function showAuthErr(msg) {
@@ -1521,6 +1546,7 @@
       if (hintEl) hintEl.textContent = tr(hintKeys[name] || 'authHintLogin');
       showAuthErr('');
       applyAuthLang();
+      if (name === 'setPassword') updateSetPasswordWho();
     }
 
     function persistCourierToken(tok) {
@@ -1550,6 +1576,7 @@
       if (!res.ok) {
         const err = new Error(data.message || 'Error');
         err.payload = data;
+        err.status = res.status;
         throw err;
       }
       return data;
@@ -1557,11 +1584,13 @@
 
     async function enterPortalFromAuth(data) {
       persistCourierToken(data.accessToken || data.token);
+      if (data.application) profile = data.application;
       if (data.needsPassword) {
+        updateSetPasswordWho();
         showAuthView('setPassword');
         return;
       }
-      await openMainApp(data.application);
+      await openMainApp(profile);
     }
 
     const panelIds = {
@@ -1777,6 +1806,37 @@
       }
     }
 
+    /** Portalda biriktirilgach — alohida sahifada ism qayta so‘ralmasin: accept shu yerda. */
+    async function portalCourierAccept(orderRow) {
+      const o = orderRow;
+      if (!o || !profile) return o;
+      const ct = String(o.courierToken || '').trim();
+      const st = normPortalStatus(o.status);
+      if (!ct || st !== 'courier_assigned') return o;
+      const name = String(profile.fullName || o.courierName || '').trim();
+      const phone = String(profile.phone || o.courierPhone || '').trim();
+      if (!name || !phone) return o;
+      try {
+        const res = await fetch(`/api/v1/courier/${encodeURIComponent(ct)}/accept`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ courierName: name, courierPhone: phone })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.order) {
+          lastFeedFingerprint = '';
+          return data.order;
+        }
+      } catch (_) {}
+      return o;
+    }
+
+    function openCourierDeliveryPage(courierToken) {
+      const ct = String(courierToken || '').trim();
+      if (!ct) return;
+      location.href = `${location.origin}/courier/${encodeURIComponent(ct)}?from=portal`;
+    }
+
     async function api(path, opt) {
       const res = await fetch('/api/v1' + path, {
         headers: {
@@ -1786,7 +1846,15 @@
         ...opt
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || 'Error');
+      if (!res.ok) {
+        if (data.needsPassword && document.body.classList.contains('mode-app')) {
+          updateSetPasswordWho();
+          showAuthView('setPassword');
+        }
+        const err = new Error(data.message || 'Error');
+        err.payload = data;
+        throw err;
+      }
       return data;
     }
 
@@ -1794,7 +1862,9 @@
       const el = document.getElementById('feed');
       if (!el) return;
       if (!orders.length) {
-        el.innerHTML = `<p class="muted">${esc(tr('emptyFeed'))}</p>`;
+        const st = String(profile?.status || '').toLowerCase();
+        const msg = st === 'pending' ? tr('pendingFeed') : tr('emptyFeed');
+        el.innerHTML = `<p class="muted">${esc(msg)}</p>`;
         return;
       }
       const sorted = [...orders].sort((a, b) => {
@@ -2035,6 +2105,13 @@
         if (!silent && el) el.innerHTML = `<p class="muted">${esc(tr('loading'))}</p>`;
         const data = await api('/courier-portal/feed');
         const next = Array.isArray(data.orders) ? data.orders : [];
+        if (data.pendingApproval) {
+          orders = [];
+          lastFeedFingerprint = '';
+          lastClaimableIds = new Set();
+          renderFeed();
+          return;
+        }
         const fp = feedFingerprint(next);
         const sheetOpen = document.getElementById('sheet')?.classList.contains('on');
         const prevClaimable = lastClaimableIds;
@@ -2084,6 +2161,7 @@
         }
         profile = data.application;
         if (data.needsPassword) {
+          updateSetPasswordWho();
           showAuthView('setPassword');
           return;
         }
@@ -2096,42 +2174,66 @@
     document.getElementById('backdrop').onclick = closeSheet;
     document.getElementById('claimBtn').onclick = async () => {
       if (!selected) return;
+      const btn = document.getElementById('claimBtn');
+      const err = document.getElementById('sheetErr');
       if (sheetPrimaryAction === 'start') {
         const ct = String(selected.courierToken || '').trim();
-        if (ct) location.href = `${location.origin}/courier/${encodeURIComponent(ct)}`;
+        if (!ct) return;
+        err.style.display = 'none';
+        btn.disabled = true;
+        btn.textContent = tr('loading');
+        try {
+          let o = selected;
+          if (normPortalStatus(o.status) === 'courier_assigned') {
+            o = await portalCourierAccept(o);
+            selected = o;
+          }
+          if (normPortalStatus(o.status) === 'out_for_delivery') {
+            openCourierDeliveryPage(ct);
+            return;
+          }
+          err.textContent = tr('acceptRequired');
+          err.style.display = 'block';
+        } finally {
+          btn.disabled = false;
+          if (selected) patchSheetMeta(selected);
+        }
         return;
       }
       if (sheetPrimaryAction !== 'claim') return;
-      const btn = document.getElementById('claimBtn');
-      const err = document.getElementById('sheetErr');
       err.style.display = 'none';
       btn.disabled = true;
       btn.textContent = tr('loading');
       try {
-        await api(`/courier-portal/orders/${encodeURIComponent(selected.id)}/claim`, { method: 'POST', body: '{}' });
+        const claimData = await api(`/courier-portal/orders/${encodeURIComponent(selected.id)}/claim`, {
+          method: 'POST',
+          body: '{}'
+        });
         lastFeedFingerprint = '';
         await loadFeed({ silent: true });
         void loadDashboard();
-        const fresh = orders.find((x) => String(x.id) === String(selected.id));
-        if (fresh) openSheet(fresh, { redrawMap: true });
-        else closeSheet();
+        let fresh = claimData.order || orders.find((x) => String(x.id) === String(selected.id));
+        if (fresh) {
+          fresh = await portalCourierAccept(fresh);
+          selected = fresh;
+          openSheet(fresh, { redrawMap: true });
+        } else {
+          closeSheet();
+        }
       } catch (e) {
         err.textContent = e.message || tr('busy');
         err.style.display = 'block';
       } finally {
         btn.disabled = false;
-        btn.textContent = tr('claim');
+        if (selected) patchSheetMeta(selected);
       }
     };
 
     document.getElementById('openCourierBtn').onclick = (e) => {
-      const href = document.getElementById('openCourierBtn').getAttribute('href');
-      if (!href || href === '#') {
-        e.preventDefault();
-        return;
-      }
       e.preventDefault();
-      location.href = href;
+      const ct = String(selected?.courierToken || '').trim();
+      if (!ct) return;
+      openCourierDeliveryPage(ct);
     };
 
     function doLogout() {
@@ -2169,7 +2271,7 @@
       document.getElementById('forgotCodeWrap').style.display = 'none';
       document.getElementById('forgotPassWrap').style.display = 'none';
       document.getElementById('forgotPassConfirmWrap').style.display = 'none';
-      document.getElementById('tabLogin').click();
+      showAuthView('login');
     };
 
     document.getElementById('loginBtn').onclick = async () => {
@@ -2232,20 +2334,41 @@
       }
     };
 
+    function goLoginWithPhone(phone, msg) {
+      const p = String(phone || '').trim();
+      if (p) {
+        const lp = document.getElementById('loginPhone');
+        if (lp) lp.value = p;
+      }
+      showAuthView('login');
+      if (msg) showAuthErr(msg);
+    }
+
     document.getElementById('registerBtn').onclick = async () => {
+      const btn = document.getElementById('registerBtn');
+      showAuthErr('');
+      if (btn) btn.disabled = true;
       try {
         await authJson('/courier-auth/register', {
           phone: document.getElementById('regPhone').value,
           fullName: document.getElementById('regFullName').value,
           vehiclePlate: document.getElementById('regPlate').value
         });
-        authSmsPhone = document.getElementById('regPhone').value;
+        authSmsPhone = document.getElementById('regPhone').value.trim();
         await authJson('/courier-auth/sms/send', { phone: authSmsPhone });
+        document.getElementById('smsCode').value = '';
         showAuthView('sms');
         document.getElementById('smsPhoneDisplay').textContent = authSmsPhone;
         showAuthErr('');
       } catch (e) {
+        const code = e.payload && e.payload.code;
+        if (code === 'phone_registered' || code === 'phone_use_login') {
+          goLoginWithPhone(document.getElementById('regPhone').value, e.message);
+          return;
+        }
         showAuthErr(e.message);
+      } finally {
+        if (btn) btn.disabled = false;
       }
     };
 
@@ -2283,7 +2406,9 @@
           document.getElementById('forgotCodeWrap').style.display = 'block';
           document.getElementById('forgotPassWrap').style.display = 'block';
           document.getElementById('forgotPassConfirmWrap').style.display = 'block';
-          applyLang();
+          const hintEl = document.getElementById('authHint');
+          if (hintEl) hintEl.textContent = tr('authHintForgotCode');
+          applyAuthLang();
           showAuthErr('');
         } catch (e) {
           showAuthErr(e.message);
@@ -2298,6 +2423,9 @@
           confirm: document.getElementById('forgotPasswordConfirm').value
         });
         forgotStep = 'phone';
+        document.getElementById('forgotCodeWrap').style.display = 'none';
+        document.getElementById('forgotPassWrap').style.display = 'none';
+        document.getElementById('forgotPassConfirmWrap').style.display = 'none';
         await enterPortalFromAuth(data);
       } catch (e) {
         showAuthErr(e.message);

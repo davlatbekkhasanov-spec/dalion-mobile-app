@@ -483,8 +483,12 @@
       if (st === 'ready_for_courier' || st === 'courier_assigned') {
         nameInput.style.display = 'block';
         phoneInput.style.display = 'block';
-        nameInput.readOnly = false;
-        phoneInput.readOnly = false;
+        nameInput.value = String(order.courierName || '').trim();
+        phoneInput.value = String(order.courierPhone || '').trim();
+        const fromPortal = new URLSearchParams(location.search).get('from') === 'portal';
+        const prefilled = nameInput.value && phoneInput.value;
+        nameInput.readOnly = fromPortal && prefilled;
+        phoneInput.readOnly = fromPortal && prefilled;
         acceptBtn.style.display = 'block';
         deliverBtn.style.display = 'none';
         stopTracking();
@@ -510,6 +514,8 @@
         deliverBtn.style.display = 'none';
         nameInput.style.display = 'block';
         phoneInput.style.display = 'block';
+        nameInput.value = String(order.courierName || '').trim();
+        phoneInput.value = String(order.courierPhone || '').trim();
         nameInput.readOnly = false;
         phoneInput.readOnly = false;
         stopTracking();
@@ -1130,8 +1136,35 @@
       }
     });
 
+    let portalAutoAcceptDone = false;
+    async function maybeAutoAcceptFromPortal() {
+      if (portalAutoAcceptDone) return;
+      if (new URLSearchParams(location.search).get('from') !== 'portal') return;
+      if (!order) return;
+      const st = normCourierStatus(order.status);
+      if (st !== 'courier_assigned') return;
+      const nameInput = document.getElementById('courierName');
+      const phoneInput = document.getElementById('courierPhone');
+      const name = String(nameInput.value || order.courierName || '').trim();
+      const phone = String(phoneInput.value || order.courierPhone || '').trim();
+      if (!name || !phone) return;
+      portalAutoAcceptDone = true;
+      try {
+        const data = await api('/courier/' + token + '/accept', {
+          method: 'POST',
+          body: JSON.stringify({ courierName: name, courierPhone: phone })
+        });
+        order = data.order;
+        render();
+        ensureTracking();
+        void maybeUpdateRoute(true);
+      } catch (_) {
+        portalAutoAcceptDone = false;
+      }
+    }
+
     applyLang();
-    refresh();
+    refresh().then(() => maybeAutoAcceptFromPortal());
     prepareGeolocationPermission();
     setInterval(refresh, 5000);
   </script>

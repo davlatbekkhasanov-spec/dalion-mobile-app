@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { Prisma } = require('@prisma/client');
 const prisma = require('./prisma-client');
+const courierAuth = require('./courier-auth');
 
 const APP_ID = 'main';
 
@@ -1255,19 +1256,25 @@ async function registerCourierPartner({ phone, fullName, vehiclePlate }) {
   });
   if (existing) {
     const prev = String(existing.status || '').toLowerCase();
-    if (prev === 'approved' || prev === 'pending') {
-      throw new Error('phone_registered');
+    if (prev === 'approved' && courierAuth.courierHasPassword(existing)) {
+      throw new Error('phone_use_login');
+    }
+    if (prev === 'rejected') {
+      return prisma.courierApplication.update({
+        where: { id: existing.id },
+        data: {
+          fullName: fn,
+          vehiclePlate: plate,
+          note: '',
+          status: 'pending',
+          passwordHash: null,
+          passwordSetAt: null
+        }
+      });
     }
     return prisma.courierApplication.update({
       where: { id: existing.id },
-      data: {
-        fullName: fn,
-        vehiclePlate: plate,
-        note: '',
-        status: 'pending',
-        passwordHash: null,
-        passwordSetAt: null
-      }
+      data: { fullName: fn, vehiclePlate: plate }
     });
   }
   const accessToken = crypto.randomBytes(32).toString('hex');
