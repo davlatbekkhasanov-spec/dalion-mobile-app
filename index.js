@@ -1018,6 +1018,10 @@ app.get('/courier-portal', (req, res) => {
   return res.status(404).send('Courier portal');
 });
 
+app.get(['/courier-app', '/courier-login', '/kuryer'], (req, res) => {
+  res.redirect(302, '/courier-portal');
+});
+
 app.get('/track/:orderNumber', (req, res) => {
   res.sendFile(path.join(__dirname, 'track.html'));
 });

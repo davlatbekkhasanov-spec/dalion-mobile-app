@@ -407,7 +407,7 @@
     </div>
   </div>
 
-  <div id="auth" class="wrap auth-wrap" style="display:none;">
+  <div id="auth" class="wrap auth-wrap">
     <div class="auth-card">
       <h2 id="authTitle">Kuryer</h2>
       <p class="muted" id="authHint" style="margin:0;"></p>
@@ -827,49 +827,58 @@
         if (panel) panel.style.display = 'none';
       }
     }
-    function applyLang() {
+    function setText(id, key) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = tr(key);
+    }
+
+    function applyAuthLang() {
       document.documentElement.lang = lang;
-      document.getElementById('brand').textContent = tr('brand');
-      document.getElementById('brandSub').textContent = tr('brandSub');
-      document.getElementById('feedTitle').textContent = tr('feedTitle');
-      document.getElementById('feedHint').textContent = tr('feedHint');
-      document.getElementById('logoutBtn').textContent = tr('logout');
-      document.getElementById('authTitle').textContent = tr('authTitle');
-      document.getElementById('authHint').textContent = tr('authHintLogin');
-      document.getElementById('tabLogin').textContent = tr('tabLogin');
-      document.getElementById('tabRegister').textContent = tr('tabRegister');
-      document.getElementById('lblLoginPhone').textContent = tr('phone');
-      document.getElementById('lblLoginPassword').textContent = tr('password');
-      document.getElementById('loginBtn').textContent = tr('login');
-      document.getElementById('smsLoginLink').textContent = tr('smsLogin');
-      document.getElementById('forgotLink').textContent = tr('forgot');
-      document.getElementById('lblRegName').textContent = tr('fullName');
-      document.getElementById('lblRegPhone').textContent = tr('phone');
-      document.getElementById('lblRegPlate').textContent = tr('vehiclePlate');
-      document.getElementById('registerBtn').textContent = tr('register');
-      document.getElementById('backToLoginFromReg').textContent = tr('backLogin');
-      document.getElementById('lblSmsCode').textContent = tr('smsCode');
-      document.getElementById('smsVerifyBtn').textContent = tr('smsVerify');
-      document.getElementById('smsResendBtn').textContent = tr('smsResend');
-      document.getElementById('backFromSms').textContent = tr('back');
-      document.getElementById('lblSetPassword').textContent = tr('newPassword');
-      document.getElementById('lblSetPasswordConfirm').textContent = tr('confirmPassword');
-      document.getElementById('setPasswordBtn').textContent = tr('savePassword');
-      document.getElementById('lblForgotPhone').textContent = tr('phone');
-      document.getElementById('lblForgotCode').textContent = tr('smsCode');
-      document.getElementById('lblForgotPassword').textContent = tr('newPassword');
-      document.getElementById('lblForgotPasswordConfirm').textContent = tr('confirmPassword');
-      document.getElementById('backFromForgot').textContent = tr('backLogin');
-      document.getElementById('gateShop').textContent = tr('shop');
+      setText('brand', 'brand');
+      setText('brandSub', 'brandSub');
+      setText('authTitle', 'authTitle');
+      setText('authHint', 'authHintLogin');
+      setText('tabLogin', 'tabLogin');
+      setText('tabRegister', 'tabRegister');
+      setText('lblLoginPhone', 'phone');
+      setText('lblLoginPassword', 'password');
+      setText('loginBtn', 'login');
+      setText('smsLoginLink', 'smsLogin');
+      setText('forgotLink', 'forgot');
+      setText('lblRegName', 'fullName');
+      setText('lblRegPhone', 'phone');
+      setText('lblRegPlate', 'vehiclePlate');
+      setText('registerBtn', 'register');
+      setText('backToLoginFromReg', 'backLogin');
+      setText('lblSmsCode', 'smsCode');
+      setText('smsVerifyBtn', 'smsVerify');
+      setText('smsResendBtn', 'smsResend');
+      setText('backFromSms', 'back');
+      setText('lblSetPassword', 'newPassword');
+      setText('lblSetPasswordConfirm', 'confirmPassword');
+      setText('setPasswordBtn', 'savePassword');
+      setText('lblForgotPhone', 'phone');
+      setText('lblForgotCode', 'smsCode');
+      setText('lblForgotPassword', 'newPassword');
+      setText('lblForgotPasswordConfirm', 'confirmPassword');
+      setText('backFromForgot', 'backLogin');
+      setText('gateShop', 'shop');
       const fb = document.getElementById('forgotActionBtn');
       if (fb) {
         fb.textContent =
           forgotStep === 'phone' ? tr('forgotSend') : forgotStep === 'code' ? tr('smsVerify') : tr('forgotReset');
       }
-      document.getElementById('claimBtn').textContent = tr('claim');
-      document.getElementById('openCourierBtn').textContent = tr('courierPage');
-      document.getElementById('lblDist').textContent = tr('dist');
-      document.getElementById('lblEta').textContent = tr('eta');
+    }
+
+    function applyLang() {
+      applyAuthLang();
+      setText('feedTitle', 'feedTitle');
+      setText('feedHint', 'feedHint');
+      setText('logoutBtn', 'logout');
+      setText('claimBtn', 'claim');
+      setText('openCourierBtn', 'courierPage');
+      setText('lblDist', 'dist');
+      setText('lblEta', 'eta');
       renderFeed();
       void loadRouteHint();
       if (selected) openSheet(selected);
@@ -905,7 +914,7 @@
       const target = document.getElementById(map[name] || 'authViewLogin');
       if (target) target.style.display = 'block';
       showAuthErr('');
-      applyLang();
+      applyAuthLang();
     }
 
     function persistCourierToken(tok) {
@@ -1264,7 +1273,7 @@
     }
 
     async function boot() {
-      applyLang();
+      applyAuthLang();
       token = readToken();
       if (!token) {
         showAuthView('login');
