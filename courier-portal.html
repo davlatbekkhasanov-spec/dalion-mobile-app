@@ -327,62 +327,161 @@
       font-weight: 800;
       cursor: pointer;
     }
-    .auth-wrap { padding-top: 8px; }
-    .auth-card {
-      border-radius: var(--radius);
-      border: 1px solid var(--line);
-      padding: 18px 16px;
-      background: linear-gradient(155deg, rgba(255, 204, 0, 0.08), rgba(18, 18, 24, 0.98));
-      box-shadow: var(--shadow);
+    body.mode-auth {
+      background:
+        radial-gradient(ellipse 120% 80% at 50% -20%, rgba(255, 204, 0, 0.12), transparent 55%),
+        linear-gradient(165deg, #14141c 0%, var(--black) 50%, #060608 100%);
     }
-    .auth-card h2 { margin: 0 0 6px; font-size: 20px; color: var(--gold); }
-    .auth-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+    body.mode-auth .bar {
+      border-bottom-color: rgba(255, 255, 255, 0.06);
+      background: rgba(8, 8, 10, 0.82);
+    }
+    .lang button.on {
+      color: var(--black);
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      border-color: transparent;
+    }
+    .auth-wrap {
+      padding: 20px 16px 28px;
+      min-height: calc(100dvh - 64px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      max-width: 420px;
+    }
+    .auth-hero {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+    .auth-hero-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 12px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      font-size: 26px;
+      background: linear-gradient(145deg, rgba(255, 204, 0, 0.22), rgba(255, 204, 0, 0.06));
+      border: 1px solid rgba(255, 204, 0, 0.35);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+    }
+    .auth-hero h2 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--txt);
+    }
+    .auth-hero p { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.45; }
+    .auth-card {
+      border-radius: 22px;
+      border: 1px solid rgba(255, 204, 0, 0.18);
+      padding: 20px 18px 18px;
+      background: linear-gradient(180deg, rgba(24, 24, 32, 0.95), rgba(10, 10, 14, 0.98));
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .auth-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 18px;
+      padding: 4px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
     .auth-tabs button {
       flex: 1;
-      border: 1px solid var(--line);
-      background: var(--ink);
+      border: none;
+      background: transparent;
       color: var(--muted);
-      border-radius: 12px;
-      padding: 10px;
+      border-radius: 11px;
+      padding: 11px 10px;
       font-weight: 800;
+      font-size: 13px;
       cursor: pointer;
+      transition: background 0.2s, color 0.2s;
     }
-    .auth-tabs button.on { color: var(--gold); border-color: rgba(255, 204, 0, 0.45); background: rgba(255, 204, 0, 0.1); }
-    .auth-field { margin-top: 12px; }
-    .auth-field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 700; }
+    .auth-tabs button.on {
+      color: var(--black);
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      box-shadow: 0 4px 14px rgba(255, 204, 0, 0.25);
+    }
+    .auth-field { margin-top: 14px; }
+    .auth-field label {
+      display: block;
+      font-size: 11px;
+      color: #a8b0bd;
+      margin-bottom: 7px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
     .auth-field input {
       width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 12px 14px;
-      background: var(--surface);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 14px 15px;
+      background: rgba(0, 0, 0, 0.35);
       color: var(--txt);
       font-size: 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .auth-field input::placeholder { color: #6b7280; }
+    .auth-field input:focus {
+      outline: none;
+      border-color: rgba(255, 204, 0, 0.55);
+      box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.12);
     }
     .auth-main {
       width: 100%;
-      margin-top: 16px;
+      margin-top: 18px;
       border: none;
       border-radius: 14px;
-      padding: 14px;
+      padding: 15px 16px;
       font-weight: 800;
       font-size: 15px;
+      letter-spacing: 0.02em;
       cursor: pointer;
-      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      background: linear-gradient(135deg, var(--gold) 0%, #f5b800 48%, var(--gold2) 100%);
       color: #1a1200;
+      box-shadow: 0 8px 24px rgba(255, 204, 0, 0.28);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .auth-main:active { transform: scale(0.98); }
+    .auth-links {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
     .auth-link {
-      display: inline-block;
-      margin-top: 12px;
-      color: var(--gold);
+      display: block;
+      width: 100%;
+      text-align: center;
+      color: #d4d4d8;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
       background: none;
       border: none;
-      padding: 0;
+      padding: 4px 0;
+      transition: color 0.15s;
     }
-    .auth-err { color: #fca5a5; font-size: 13px; margin-top: 10px; display: none; }
+    .auth-link:hover { color: var(--gold); }
+    .auth-link.accent { color: var(--gold); font-weight: 700; }
+    .auth-err {
+      color: #fecaca;
+      font-size: 13px;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      display: none;
+      line-height: 1.4;
+    }
     .pending-banner {
       margin-bottom: 12px;
       padding: 12px 14px;
@@ -408,41 +507,50 @@
   </div>
 
   <div id="auth" class="wrap auth-wrap">
+    <div class="auth-hero">
+      <div class="auth-hero-icon" aria-hidden="true">🚕</div>
+      <h2 id="authTitle">Kuryer kabineti</h2>
+      <p id="authHint">Telefon va parol bilan kiring</p>
+    </div>
     <div class="auth-card">
-      <h2 id="authTitle">Kuryer</h2>
-      <p class="muted" id="authHint" style="margin:0;"></p>
-      <div id="authViewLogin">
+      <div id="authTabsWrap">
         <div class="auth-tabs">
           <button type="button" class="on" id="tabLogin" data-tab="login">Kirish</button>
           <button type="button" id="tabRegister" data-tab="register">Ro‘yxatdan o‘tish</button>
         </div>
+      </div>
+      <div id="authViewLogin">
         <div class="auth-field">
           <label for="loginPhone" id="lblLoginPhone">Telefon</label>
-          <input id="loginPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+998901234567" />
+          <input id="loginPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+998 90 123 45 67" />
         </div>
         <div class="auth-field">
           <label for="loginPassword" id="lblLoginPassword">Parol</label>
-          <input id="loginPassword" type="password" autocomplete="current-password" />
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••" />
         </div>
         <button type="button" class="auth-main" id="loginBtn">Kirish</button>
-        <button type="button" class="auth-link" id="smsLoginLink">SMS orqali kirish</button>
-        <button type="button" class="auth-link" id="forgotLink">Parolni unutdingizmi?</button>
+        <div class="auth-links">
+          <button type="button" class="auth-link accent" id="smsLoginLink">SMS orqali kirish</button>
+          <button type="button" class="auth-link" id="forgotLink">Parolni unutdingizmi?</button>
+        </div>
       </div>
       <div id="authViewRegister" style="display:none;">
         <div class="auth-field">
           <label for="regFullName" id="lblRegName">F.I.O.</label>
-          <input id="regFullName" type="text" autocomplete="name" />
+          <input id="regFullName" type="text" autocomplete="name" placeholder="Ali Valiyev" />
         </div>
         <div class="auth-field">
           <label for="regPhone" id="lblRegPhone">Telefon</label>
-          <input id="regPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+998901234567" />
+          <input id="regPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+998 90 123 45 67" />
         </div>
         <div class="auth-field">
           <label for="regPlate" id="lblRegPlate">Avtomobil davlat raqami</label>
           <input id="regPlate" type="text" autocomplete="off" placeholder="01 A 123 BC" />
         </div>
         <button type="button" class="auth-main" id="registerBtn">Ro‘yxatdan o‘tish</button>
-        <button type="button" class="auth-link" id="backToLoginFromReg">Kirish</button>
+        <div class="auth-links">
+          <button type="button" class="auth-link" id="backToLoginFromReg">Allaqachon ro‘yxatdan o‘tganmisiz? Kirish</button>
+        </div>
       </div>
       <div id="authViewSms" style="display:none;">
         <p class="muted" id="smsPhoneDisplay"></p>
@@ -451,8 +559,10 @@
           <input id="smsCode" type="text" inputmode="numeric" maxlength="8" autocomplete="one-time-code" />
         </div>
         <button type="button" class="auth-main" id="smsVerifyBtn">Tasdiqlash</button>
-        <button type="button" class="auth-link" id="smsResendBtn">Kodni qayta yuborish</button>
-        <button type="button" class="auth-link" id="backFromSms">Orqaga</button>
+        <div class="auth-links">
+          <button type="button" class="auth-link accent" id="smsResendBtn">Kodni qayta yuborish</button>
+          <button type="button" class="auth-link" id="backFromSms">Orqaga</button>
+        </div>
       </div>
       <div id="authViewSetPassword" style="display:none;">
         <div class="auth-field">
@@ -483,11 +593,12 @@
           <input id="forgotPasswordConfirm" type="password" autocomplete="new-password" />
         </div>
         <button type="button" class="auth-main" id="forgotActionBtn">SMS yuborish</button>
-        <button type="button" class="auth-link" id="backFromForgot">Kirish</button>
+        <div class="auth-links">
+          <button type="button" class="auth-link" id="backFromForgot">Kirishga qaytish</button>
+        </div>
       </div>
       <p class="auth-err" id="authErr"></p>
     </div>
-    <p style="margin-top:16px;"><a href="/" id="gateShop" class="auth-link" style="text-decoration:none;">Bosh sahifa</a></p>
   </div>
 
   <div id="app" class="wrap" style="display:none;">
@@ -600,8 +711,14 @@
         phone: 'Telefon',
         password: 'Parol',
         login: 'Kirish',
-        smsLogin: 'SMS orqali kirish (birinchi kirish)',
+        smsLogin: 'SMS orqali kirish',
         forgot: 'Parolni unutdingizmi?',
+        backLoginReg: 'Allaqachon ro‘yxatdan o‘tganmisiz? Kirish',
+        backForgot: 'Kirishga qaytish',
+        authHintRegister: 'F.I.O., telefon va mashina raqami bilan ro‘yxatdan o‘ting',
+        authHintSms: 'Telefoningizga kelgan SMS kodni kiriting',
+        authHintSetPw: 'Keyingi kirishlar uchun parol o‘rnating',
+        authHintForgot: 'Telefon orqali parolni tiklang',
         fullName: 'F.I.O.',
         vehiclePlate: 'Avtomobil davlat raqami',
         register: 'Ro‘yxatdan o‘tish',
@@ -651,8 +768,14 @@
         phone: 'Телефон',
         password: 'Пароль',
         login: 'Войти',
-        smsLogin: 'Вход по SMS (первый раз)',
+        smsLogin: 'Вход по SMS',
         forgot: 'Забыли пароль?',
+        backLoginReg: 'Уже зарегистрированы? Войти',
+        backForgot: 'Вернуться ко входу',
+        authHintRegister: 'Регистрация: ФИО, телефон и гос. номер',
+        authHintSms: 'Введите код из SMS',
+        authHintSetPw: 'Задайте пароль для следующих входов',
+        authHintForgot: 'Восстановление пароля по SMS',
         fullName: 'Ф.И.О.',
         vehiclePlate: 'Гос. номер авто',
         register: 'Зарегистрироваться',
@@ -861,8 +984,10 @@
       setText('lblForgotCode', 'smsCode');
       setText('lblForgotPassword', 'newPassword');
       setText('lblForgotPasswordConfirm', 'confirmPassword');
-      setText('backFromForgot', 'backLogin');
-      setText('gateShop', 'shop');
+      setText('backToLoginFromReg', 'backLoginReg');
+      setText('backFromForgot', 'backForgot');
+      document.getElementById('langUz')?.classList.toggle('on', lang === 'uz');
+      document.getElementById('langRu')?.classList.toggle('on', lang === 'ru');
       const fb = document.getElementById('forgotActionBtn');
       if (fb) {
         fb.textContent =
@@ -897,22 +1022,45 @@
     }
 
     function showAuthView(name) {
-      document.getElementById('auth').style.display = 'block';
+      document.body.classList.add('mode-auth');
+      document.getElementById('auth').style.display = 'flex';
       document.getElementById('app').style.display = 'none';
       document.getElementById('logoutBtn').style.display = 'none';
+      const tabsWrap = document.getElementById('authTabsWrap');
+      const showTabs = name === 'login' || name === 'register';
+      if (tabsWrap) tabsWrap.style.display = showTabs ? 'block' : 'none';
       ['authViewLogin', 'authViewRegister', 'authViewSms', 'authViewSetPassword', 'authViewForgot'].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
-      const map = {
-        login: 'authViewLogin',
-        register: 'authViewRegister',
-        sms: 'authViewSms',
-        setPassword: 'authViewSetPassword',
-        forgot: 'authViewForgot'
+      if (name === 'login') {
+        document.getElementById('tabLogin')?.classList.add('on');
+        document.getElementById('tabRegister')?.classList.remove('on');
+        const lv = document.getElementById('authViewLogin');
+        if (lv) lv.style.display = 'block';
+      } else if (name === 'register') {
+        document.getElementById('tabRegister')?.classList.add('on');
+        document.getElementById('tabLogin')?.classList.remove('on');
+        const rv = document.getElementById('authViewRegister');
+        if (rv) rv.style.display = 'block';
+      } else {
+        const map = {
+          sms: 'authViewSms',
+          setPassword: 'authViewSetPassword',
+          forgot: 'authViewForgot'
+        };
+        const target = document.getElementById(map[name]);
+        if (target) target.style.display = 'block';
+      }
+      const hintKeys = {
+        login: 'authHintLogin',
+        register: 'authHintRegister',
+        sms: 'authHintSms',
+        setPassword: 'authHintSetPw',
+        forgot: 'authHintForgot'
       };
-      const target = document.getElementById(map[name] || 'authViewLogin');
-      if (target) target.style.display = 'block';
+      const hintEl = document.getElementById('authHint');
+      if (hintEl) hintEl.textContent = tr(hintKeys[name] || 'authHintLogin');
       showAuthErr('');
       applyAuthLang();
     }
@@ -961,6 +1109,7 @@
     async function openMainApp(app) {
       profile = app || profile;
       if (!profile) return;
+      document.body.classList.remove('mode-auth');
       document.getElementById('auth').style.display = 'none';
       document.getElementById('app').style.display = 'block';
       document.getElementById('logoutBtn').style.display = 'block';
@@ -1349,20 +1498,10 @@
       showAuthView('login');
     };
 
-    document.getElementById('tabLogin').onclick = () => {
-      document.getElementById('tabLogin').classList.add('on');
-      document.getElementById('tabRegister').classList.remove('on');
-      document.getElementById('authViewLogin').style.display = 'block';
-      document.getElementById('authViewRegister').style.display = 'none';
-    };
-    document.getElementById('tabRegister').onclick = () => {
-      document.getElementById('tabRegister').classList.add('on');
-      document.getElementById('tabLogin').classList.remove('on');
-      document.getElementById('authViewLogin').style.display = 'none';
-      document.getElementById('authViewRegister').style.display = 'block';
-    };
-    document.getElementById('backToLoginFromReg').onclick = () => document.getElementById('tabLogin').click();
-    document.getElementById('backFromSms').onclick = () => document.getElementById('tabLogin').click();
+    document.getElementById('tabLogin').onclick = () => showAuthView('login');
+    document.getElementById('tabRegister').onclick = () => showAuthView('register');
+    document.getElementById('backToLoginFromReg').onclick = () => showAuthView('login');
+    document.getElementById('backFromSms').onclick = () => showAuthView('login');
     document.getElementById('backFromForgot').onclick = () => {
       forgotStep = 'phone';
       document.getElementById('forgotCodeWrap').style.display = 'none';
