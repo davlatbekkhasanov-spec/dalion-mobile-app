@@ -53,6 +53,19 @@
       font-weight: 700;
       cursor: pointer;
     }
+    .bar-tools { display: flex; align-items: center; gap: 8px; }
+    #soundToggle {
+      border: 1px solid var(--line);
+      background: var(--ink);
+      color: var(--gold);
+      border-radius: 10px;
+      padding: 8px 11px;
+      font-weight: 800;
+      font-size: 16px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    #soundToggle.off { color: var(--muted); opacity: 0.65; }
     .wrap { max-width: 560px; margin: 0 auto; padding: 14px 16px max(100px, calc(88px + env(safe-area-inset-bottom))); }
     .driver-card {
       border-radius: var(--radius);
@@ -685,9 +698,12 @@
       <strong id="brand">GlobusMarket</strong>
       <small id="brandSub">Kuryer</small>
     </div>
-    <div class="lang">
-      <button type="button" id="langUz">UZ</button>
-      <button type="button" id="langRu">RU</button>
+    <div class="bar-tools">
+      <button type="button" id="soundToggle" class="on" aria-pressed="true" title="">🔔</button>
+      <div class="lang">
+        <button type="button" id="langUz">UZ</button>
+        <button type="button" id="langRu">RU</button>
+      </div>
     </div>
   </div>
 
@@ -917,6 +933,10 @@
     let dashboard = null;
     let earnPeriod = 'today';
     let activePanel = 'orders';
+    const SOUND_LS = 'gm_courier_sound_on';
+    let webAudioCtx = null;
+    let lastClaimableIds = new Set();
+    let feedAlertsReady = false;
 
     const STORE = { lat: 39.654572, lng: 66.958871 };
     const T = {
@@ -1002,7 +1022,10 @@
         statusPending: 'Tasdiq kutilmoqda',
         topToday: 'Bugun',
         emptyHistory: 'Hali yetkazilgan buyurtma yo‘q',
-        deliveryShort: 'yetkazish'
+        deliveryShort: 'yetkazish',
+        voiceNewOrder: 'Yangi buyurtma',
+        soundOn: 'Ovoz yoqilgan',
+        soundOff: 'Ovoz o‘chiq'
       },
       ru: {
         brand: 'GlobusMarket',
@@ -1086,7 +1109,10 @@
         statusPending: 'Ожидает одобрения',
         topToday: 'Сегодня',
         emptyHistory: 'Доставок пока нет',
-        deliveryShort: 'дост.'
+        deliveryShort: 'дост.',
+        voiceNewOrder: 'Новый заказ',
+        soundOn: 'Звук включён',
+        soundOff: 'Звук выключен'
       }
     };
     function tr(k) {
@@ -1156,6 +1182,106 @@
     }
     function mineByPhone(o) {
       return isMine(o) && Boolean(String(o.courierPhone || '').trim());
+    }
+
+    function getSoundOn() {
+      return localStorage.getItem(SOUND_LS) !== '0';
+    }
+    function setSoundOn(on) {
+      localStorage.setItem(SOUND_LS, on ? '1' : '0');
+    }
+    function syncSoundToggle() {
+      const btn = document.getElementById('soundToggle');
+      if (!btn) return;
+      const on = getSoundOn();
+      btn.classList.toggle('on', on);
+      btn.classList.toggle('off', !on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.title = on ? tr('soundOn') : tr('soundOff');
+    }
+    function getAudioContext() {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      if (!webAudioCtx) webAudioCtx = new AC();
+      return webAudioCtx;
+    }
+    function unlockAudio() {
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+    }
+    function playNewOrderBeep() {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      try {
+        const t0 = ctx.currentTime;
+        const g = ctx.createGain();
+        g.gain.value = 2.2;
+        g.connect(ctx.destination);
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = 7000;
+        lp.connect(g);
+        function tone(start, freq, dur, peak) {
+          const osc = ctx.createOscillator();
+          const gn = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, t0 + start);
+          const a = t0 + start;
+          const b = a + dur;
+          gn.gain.setValueAtTime(0.0001, a);
+          gn.gain.exponentialRampToValueAtTime(peak, a + 0.01);
+          gn.gain.exponentialRampToValueAtTime(0.0001, b);
+          osc.connect(gn);
+          gn.connect(lp);
+          osc.start(a);
+          osc.stop(b + 0.02);
+        }
+        tone(0, 523, 0.12, 0.5);
+        tone(0.08, 784, 0.35, 1);
+        tone(0.18, 988, 0.28, 0.7);
+      } catch (_) {}
+    }
+    function speakNewOrderVoice() {
+      try {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(tr('voiceNewOrder'));
+        u.lang = lang === 'ru' ? 'ru-RU' : 'uz-UZ';
+        u.rate = 1.05;
+        u.pitch = 1;
+        u.volume = 1;
+        window.speechSynthesis.speak(u);
+      } catch (_) {}
+    }
+    function hapticNewOrder() {
+      try {
+        if (navigator.vibrate) navigator.vibrate([120, 60, 120, 60, 200]);
+      } catch (_) {}
+    }
+    function alertNewOrders(count) {
+      if (!getSoundOn() || count < 1) return;
+      unlockAudio();
+      playNewOrderBeep();
+      speakNewOrderVoice();
+      hapticNewOrder();
+    }
+    function claimableOrders(arr) {
+      return (Array.isArray(arr) ? arr : []).filter((o) => {
+        const st = normPortalStatus(o.status);
+        return st === 'ready_for_courier' && !String(o.courierPhone || '').trim();
+      });
+    }
+    function claimableIdSet(arr) {
+      return new Set(claimableOrders(arr).map((o) => String(o.id)));
+    }
+    function detectNewClaimableOrders(prevIds, nextArr) {
+      if (!feedAlertsReady) return 0;
+      const list = claimableOrders(nextArr);
+      let n = 0;
+      for (const o of list) {
+        if (!prevIds.has(String(o.id))) n += 1;
+      }
+      return n;
     }
 
     function feedFingerprint(arr) {
@@ -1298,6 +1424,7 @@
       setText('backFromForgot', 'backForgot');
       document.getElementById('langUz')?.classList.toggle('on', lang === 'uz');
       document.getElementById('langRu')?.classList.toggle('on', lang === 'ru');
+      syncSoundToggle();
       const fb = document.getElementById('forgotActionBtn');
       if (fb) {
         fb.textContent =
@@ -1619,6 +1746,9 @@
     async function openMainApp(app) {
       profile = app || profile;
       if (!profile) return;
+      feedAlertsReady = false;
+      lastClaimableIds = new Set();
+      unlockAudio();
       document.body.classList.remove('mode-auth');
       document.body.classList.add('mode-app');
       document.getElementById('auth').style.display = 'none';
@@ -1907,13 +2037,19 @@
         const next = Array.isArray(data.orders) ? data.orders : [];
         const fp = feedFingerprint(next);
         const sheetOpen = document.getElementById('sheet')?.classList.contains('on');
+        const prevClaimable = lastClaimableIds;
         if (fp !== lastFeedFingerprint) {
+          const newCount = detectNewClaimableOrders(prevClaimable, next);
           orders = next;
           lastFeedFingerprint = fp;
+          lastClaimableIds = claimableIdSet(next);
           renderFeed();
+          if (newCount > 0) alertNewOrders(newCount);
         } else {
           orders = next;
+          lastClaimableIds = claimableIdSet(next);
         }
+        if (!feedAlertsReady) feedAlertsReady = true;
         if (selected) {
           const fresh = orders.find((x) => String(x.id) === String(selected.id));
           if (fresh) {
@@ -2182,6 +2318,21 @@
       localStorage.setItem(langKey, lang);
       applyLang();
     };
+    document.getElementById('soundToggle')?.addEventListener('click', () => {
+      const next = !getSoundOn();
+      setSoundOn(next);
+      syncSoundToggle();
+      unlockAudio();
+      if (next) {
+        playNewOrderBeep();
+        speakNewOrderVoice();
+      }
+    });
+    document.addEventListener(
+      'click',
+      () => unlockAudio(),
+      { once: true, capture: true }
+    );
 
     boot();
   </script>
