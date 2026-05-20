@@ -54,6 +54,17 @@
       cursor: pointer;
     }
     .bar-tools { display: flex; align-items: center; gap: 8px; }
+    .sound-tools {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sound-tools input[type="range"]#soundVolume {
+      width: 72px;
+      height: 6px;
+      accent-color: var(--gold);
+    }
+    .sound-tools input[type="range"]#soundVolume:disabled { opacity: 0.45; }
     #soundToggle {
       border: 1px solid var(--line);
       background: var(--ink);
@@ -699,7 +710,10 @@
       <small id="brandSub">Kuryer</small>
     </div>
     <div class="bar-tools">
-      <button type="button" id="soundToggle" class="on" aria-pressed="true" title="">🔔</button>
+      <span class="sound-tools" id="soundToolsWrap" title="">
+        <button type="button" id="soundToggle" class="on" aria-pressed="true" title="">🔔</button>
+        <input type="range" id="soundVolume" min="0" max="200" step="1" value="200" aria-label="" />
+      </span>
       <div class="lang">
         <button type="button" id="langUz">UZ</button>
         <button type="button" id="langRu">RU</button>
@@ -908,6 +922,7 @@
     </div>
   </div>
 
+  <script src="/order-board-sound.js"></script>
   <script>
     const LS = 'gm_courier_portal_token';
     const langKey = 'gm_courier_portal_lang';
@@ -937,11 +952,12 @@
     let dashboard = null;
     let earnPeriod = 'today';
     let activePanel = 'orders';
-    const SOUND_LS = 'gm_courier_sound_on';
     const FEED_BUMP_LS = 'gm_courier_feed_bump';
-    let webAudioCtx = null;
+    const orderSound = OrderBoardSound.create({
+      soundKey: 'gm_courier_sound_on',
+      volKey: 'gm_courier_sound_vol'
+    });
     let lastClaimableIds = new Set();
-    let feedAlertsReady = false;
 
     const STORE = { lat: 39.654572, lng: 66.958871 };
     const T = {
@@ -1037,6 +1053,7 @@
         voiceNewOrder: 'Yangi buyurtma',
         soundOn: 'Signal yoqilgan',
         soundOff: 'Signal o‘chiq',
+        soundVol: 'Signal balandligi (0–200%)',
         myOrdersTitle: 'Mening buyurtmalarim',
         myOrdersMore: 'Barcha yetkazishlar (Pul bo‘limi)',
         statusDelivered: 'Topshirildi'
@@ -1133,6 +1150,7 @@
         voiceNewOrder: 'Новый заказ',
         soundOn: 'Сигнал включён',
         soundOff: 'Сигнал выключен',
+        soundVol: 'Громкость сигнала (0–200%)',
         myOrdersTitle: 'Мои заказы',
         myOrdersMore: 'Все доставки (раздел «Деньги»)',
         statusDelivered: 'Доставлен'
@@ -1207,164 +1225,29 @@
       return isMine(o) && Boolean(String(o.courierPhone || '').trim());
     }
 
-    function getSoundOn() {
-      return localStorage.getItem(SOUND_LS) !== '0';
-    }
-    function setSoundOn(on) {
-      localStorage.setItem(SOUND_LS, on ? '1' : '0');
+    function syncSoundVolumeUi() {
+      const range = document.getElementById('soundVolume');
+      const wrap = document.getElementById('soundToolsWrap');
+      if (range) {
+        range.value = String(orderSound.getSoundVolume());
+        range.disabled = !orderSound.getSoundOn();
+        range.setAttribute('aria-label', tr('soundVol'));
+      }
+      if (wrap) wrap.title = tr('soundVol');
     }
     function syncSoundToggle() {
       const btn = document.getElementById('soundToggle');
       if (!btn) return;
-      const on = getSoundOn();
+      const on = orderSound.getSoundOn();
       btn.classList.toggle('on', on);
       btn.classList.toggle('off', !on);
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       btn.title = on ? tr('soundOn') : tr('soundOff');
-    }
-    function getAudioContext() {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return null;
-      if (!webAudioCtx) webAudioCtx = new AC();
-      return webAudioCtx;
-    }
-    let hornFallbackUrl = null;
-
-    function unlockAudio() {
-      const ctx = getAudioContext();
-      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
-      try {
-        getHornFallbackUrl();
-      } catch (_) {}
-    }
-
-    function encodeWavPcm16(samples, sampleRate) {
-      const buf = new ArrayBuffer(44 + samples.length * 2);
-      const v = new DataView(buf);
-      const writeStr = (o, s) => {
-        for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i));
-      };
-      writeStr(0, 'RIFF');
-      v.setUint32(4, 36 + samples.length * 2, true);
-      writeStr(8, 'WAVE');
-      writeStr(12, 'fmt ');
-      v.setUint32(16, 16, true);
-      v.setUint16(20, 1, true);
-      v.setUint16(22, 1, true);
-      v.setUint32(24, sampleRate, true);
-      v.setUint32(28, sampleRate * 2, true);
-      v.setUint16(32, 2, true);
-      v.setUint16(34, 16, true);
-      writeStr(36, 'data');
-      v.setUint32(40, samples.length * 2, true);
-      let off = 44;
-      for (let i = 0; i < samples.length; i++, off += 2) v.setInt16(off, samples[i], true);
-      return buf;
-    }
-
-    function getHornFallbackUrl() {
-      if (hornFallbackUrl) return hornFallbackUrl;
-      const sr = 11025;
-      const burst = Math.floor(sr * 0.26);
-      const gap = Math.floor(sr * 0.1);
-      const total = burst * 3 + gap * 2;
-      const pcm = new Int16Array(total);
-      let pos = 0;
-      for (let b = 0; b < 3; b++) {
-        for (let j = 0; j < burst; j++) {
-          const t = j / sr;
-          const env = j < 50 ? j / 50 : j > burst - 50 ? (burst - j) / 50 : 1;
-          const v =
-            (Math.sin(2 * Math.PI * 435 * t) + Math.sin(2 * Math.PI * 525 * t) + Math.sin(2 * Math.PI * 660 * t) * 0.35) *
-            0.42 *
-            env;
-          pcm[pos++] = Math.max(-32767, Math.min(32767, Math.floor(v * 32767)));
-        }
-        if (b < 2) pos += gap;
-      }
-      hornFallbackUrl = URL.createObjectURL(new Blob([encodeWavPcm16(pcm, sr)], { type: 'audio/wav' }));
-      return hornFallbackUrl;
-    }
-
-    function playHornAudioElement() {
-      try {
-        const url = getHornFallbackUrl();
-        let el = document.getElementById('hornFallbackAudio');
-        if (!el) {
-          el = document.createElement('audio');
-          el.id = 'hornFallbackAudio';
-          el.setAttribute('playsinline', '');
-          el.preload = 'auto';
-          document.body.appendChild(el);
-        }
-        el.src = url;
-        el.volume = 1;
-        el.currentTime = 0;
-        const p = el.play();
-        if (p && typeof p.catch === 'function') p.catch(() => {});
-      } catch (_) {}
-    }
-
-    function playCarHornBurst() {
-      const ctx = getAudioContext();
-      if (!ctx) {
-        playHornAudioElement();
-        return;
-      }
-      try {
-        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-        const t0 = ctx.currentTime;
-        const g = ctx.createGain();
-        g.gain.value = 3.5;
-        g.connect(ctx.destination);
-        const dur = 0.32;
-        [435, 525].forEach((freq) => {
-          const osc = ctx.createOscillator();
-          const gn = ctx.createGain();
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(freq, t0);
-          gn.gain.setValueAtTime(0.0001, t0);
-          gn.gain.exponentialRampToValueAtTime(0.55, t0 + 0.02);
-          gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-          osc.connect(gn);
-          gn.connect(g);
-          osc.start(t0);
-          osc.stop(t0 + dur + 0.03);
-        });
-      } catch (_) {
-        playHornAudioElement();
-      }
-    }
-
-    function playCarHornAlert() {
-      playCarHornBurst();
-      setTimeout(playCarHornBurst, 420);
-      setTimeout(playCarHornBurst, 880);
-    }
-    function speakNewOrderVoice() {
-      try {
-        if (!window.speechSynthesis) return;
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(tr('voiceNewOrder'));
-        u.lang = lang === 'ru' ? 'ru-RU' : 'uz-UZ';
-        u.rate = 1.05;
-        u.pitch = 1;
-        u.volume = 1;
-        window.speechSynthesis.speak(u);
-      } catch (_) {}
-    }
-    function hapticNewOrder() {
-      try {
-        if (navigator.vibrate) navigator.vibrate([120, 60, 120, 60, 200]);
-      } catch (_) {}
+      syncSoundVolumeUi();
     }
     function alertNewOrders(count) {
-      if (!getSoundOn() || count < 1) return;
-      unlockAudio();
-      if (getAudioContext()) playCarHornAlert();
-      else playHornAudioElement();
-      hapticNewOrder();
-      setTimeout(() => speakNewOrderVoice(), 1200);
+      if (!orderSound.getSoundOn() || count < 1) return;
+      orderSound.playNewOrderAlert();
     }
     function isMineActiveOrder(o) {
       const st = normPortalStatus(o.status);
@@ -1419,7 +1302,7 @@
       return new Set(claimableOrders(arr).map((o) => String(o.id)));
     }
     function detectNewClaimableOrders(prevIds, nextArr) {
-      if (!feedAlertsReady) return 0;
+      if (!prevIds || prevIds.size === 0) return 0;
       const list = claimableOrders(nextArr);
       let n = 0;
       for (const o of list) {
@@ -1897,9 +1780,8 @@
     async function openMainApp(app) {
       profile = app || profile;
       if (!profile) return;
-      feedAlertsReady = false;
       lastClaimableIds = new Set();
-      unlockAudio();
+      orderSound.unlockAudio();
       document.body.classList.remove('mode-auth');
       document.body.classList.add('mode-app');
       document.getElementById('auth').style.display = 'none';
@@ -2272,7 +2154,6 @@
           lastClaimableIds = claimableIdSet(next);
           renderFeed();
         }
-        if (!feedAlertsReady) feedAlertsReady = true;
         if (selected) {
           const fresh = display.find((x) => String(x.id) === String(selected.id));
           if (fresh) {
@@ -2602,19 +2483,21 @@
       applyLang();
     };
     document.getElementById('soundToggle')?.addEventListener('click', () => {
-      const next = !getSoundOn();
-      setSoundOn(next);
+      orderSound.setSoundOn(!orderSound.getSoundOn());
       syncSoundToggle();
-      unlockAudio();
-      if (next) {
-        unlockAudio();
-        if (getAudioContext()) playCarHornAlert();
-        else playHornAudioElement();
-      }
+      if (orderSound.getSoundOn()) orderSound.playNewOrderAlert();
     });
+    (function bindSoundVolume() {
+      const el = document.getElementById('soundVolume');
+      if (!el) return;
+      el.addEventListener('input', (e) => orderSound.setSoundVolume(e.target.value));
+      el.addEventListener('change', () => {
+        if (orderSound.getSoundOn()) orderSound.playNewOrderAlert();
+      });
+    })();
     document.addEventListener(
       'click',
-      () => unlockAudio(),
+      () => orderSound.unlockAudio(),
       { once: true, capture: true }
     );
 

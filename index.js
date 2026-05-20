@@ -996,6 +996,15 @@ app.get('/admin-v2.css', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin-v2.css'));
 });
 
+app.get('/order-board-sound.js', (req, res) => {
+  const filePath = path.join(__dirname, 'order-board-sound.js');
+  if (fs.existsSync(filePath)) {
+    res.type('application/javascript');
+    return res.sendFile(filePath);
+  }
+  return res.status(404).send('// missing');
+});
+
 app.get('/orders-display', (req, res) => {
   const filePath = path.join(__dirname, 'orders.html');
   if (fs.existsSync(filePath)) return res.sendFile(filePath);
