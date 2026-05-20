@@ -1905,6 +1905,7 @@ app.get('/api/v1/courier-portal/my-route', async (req, res) => {
   if (String(row.status || '') !== 'approved') {
     return res.status(403).json({ ok: false, message: 'Ariza tasdiqlanmagan' });
   }
+  const tok = getCourierPortalToken(req);
   const route = await marketplaceRepo.listCourierRouteOrders({ accessToken: tok });
   if (route === null) return res.status(401).json({ ok: false, message: 'Havola yaroqsiz' });
   const n = route.length;
@@ -1914,6 +1915,20 @@ app.get('/api/v1/courier-portal/my-route', async (req, res) => {
     orders: route.map(orderPublic),
     routeEtaHintMinutes
   });
+});
+
+app.get('/api/v1/courier-portal/dashboard', async (req, res) => {
+  const row = await requireCourierPortalRow(req, res);
+  if (!row) return;
+  if (!courierAuth.courierHasPassword(row)) {
+    return res.status(403).json({ ok: false, message: 'Avval parol o‘rnating', needsPassword: true });
+  }
+  try {
+    const dash = await marketplaceRepo.getCourierPortalDashboard(row.phone);
+    return res.json({ ok: true, dashboard: dash });
+  } catch (err) {
+    return res.status(500).json({ ok: false, message: err?.message || 'Statistika yuklanmadi' });
+  }
 });
 
 app.post('/api/v1/courier-portal/orders/:id/claim', async (req, res) => {

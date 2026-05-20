@@ -492,6 +492,191 @@
       font-size: 13px;
       line-height: 1.45;
     }
+    body.mode-app { padding-bottom: 0; }
+    body.mode-app .wrap { padding-bottom: calc(78px + env(safe-area-inset-bottom)); max-width: 560px; }
+    .app-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: linear-gradient(135deg, rgba(255, 204, 0, 0.12), rgba(12, 12, 18, 0.95));
+    }
+    .app-top .who { min-width: 0; flex: 1; }
+    .app-top .who b { display: block; font-size: 15px; color: var(--txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .app-top .who small { color: var(--muted); font-size: 12px; }
+    .earn-chip {
+      flex-shrink: 0;
+      text-align: right;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 204, 0, 0.25);
+    }
+    .earn-chip span { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+    .earn-chip strong { font-size: 15px; color: var(--gold); font-weight: 800; }
+    .courier-panel { display: none; }
+    .courier-panel.on { display: block; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .stat-card {
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 14px 12px;
+      background: rgba(0, 0, 0, 0.3);
+    }
+    .stat-card.wide { grid-column: 1 / -1; }
+    .stat-card .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+    .stat-card .val { margin-top: 6px; font-size: 22px; font-weight: 800; color: var(--gold); line-height: 1.1; }
+    .stat-card .sub { margin-top: 4px; font-size: 12px; color: #a1a1aa; }
+    .period-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+    .period-chips button {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.35);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .period-chips button.on {
+      color: var(--black);
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      border-color: transparent;
+    }
+    .earn-list { display: flex; flex-direction: column; gap: 8px; }
+    .earn-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(0, 0, 0, 0.28);
+    }
+    .earn-row b { font-size: 14px; color: var(--txt); }
+    .earn-row small { display: block; color: var(--muted); font-size: 11px; margin-top: 3px; }
+    .earn-row .amt { font-size: 15px; font-weight: 800; color: #86efac; white-space: nowrap; }
+    .rank-hero {
+      text-align: center;
+      padding: 20px 16px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+      border: 1px solid rgba(255, 204, 0, 0.28);
+      background: linear-gradient(160deg, rgba(255, 204, 0, 0.15), rgba(8, 8, 12, 0.9));
+    }
+    .rank-hero .pos { font-size: 42px; font-weight: 900; color: var(--gold); line-height: 1; }
+    .rank-hero .stars { margin-top: 8px; font-size: 18px; letter-spacing: 2px; color: #fde68a; }
+    .lb-list { display: flex; flex-direction: column; gap: 8px; }
+    .lb-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(0, 0, 0, 0.28);
+    }
+    .lb-row.me { border-color: rgba(255, 204, 0, 0.45); background: rgba(255, 204, 0, 0.08); }
+    .lb-rank {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      font-size: 14px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .lb-row:nth-child(1) .lb-rank { background: linear-gradient(135deg, #fde047, #ca8a04); color: #1a1200; }
+    .lb-row:nth-child(2) .lb-rank { background: linear-gradient(135deg, #e5e7eb, #9ca3af); color: #1f2937; }
+    .lb-row:nth-child(3) .lb-rank { background: linear-gradient(135deg, #fdba74, #c2410c); color: #1a1200; }
+    .lb-main { flex: 1; min-width: 0; }
+    .lb-main b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lb-main small { color: var(--muted); font-size: 11px; }
+    .lb-meta { text-align: right; flex-shrink: 0; }
+    .lb-meta .e { font-size: 13px; font-weight: 800; color: #86efac; }
+    .lb-meta .d { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .profile-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 22px;
+      margin: 0 auto 12px;
+      display: grid;
+      place-items: center;
+      font-size: 28px;
+      font-weight: 900;
+      color: #1a1200;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      box-shadow: 0 12px 28px rgba(255, 204, 0, 0.25);
+    }
+    .profile-head { text-align: center; margin-bottom: 18px; }
+    .profile-head h2 { margin: 0; font-size: 20px; font-weight: 800; }
+    .profile-head p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    .status-pill-app {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .status-pill-app.approved { background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.35); }
+    .status-pill-app.pending { background: rgba(255, 204, 0, 0.12); color: #fde68a; border: 1px solid rgba(255, 204, 0, 0.35); }
+    .profile-actions { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .profile-actions button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.35);
+      color: var(--txt);
+    }
+    .profile-actions button.danger { border-color: rgba(239, 68, 68, 0.35); color: #fecaca; }
+    .courier-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 25;
+      display: flex;
+      justify-content: space-around;
+      gap: 4px;
+      padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+      background: rgba(8, 8, 10, 0.96);
+      border-top: 1px solid rgba(255, 204, 0, 0.15);
+      backdrop-filter: blur(12px);
+    }
+    .courier-nav button {
+      flex: 1;
+      max-width: 88px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 6px 4px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .courier-nav button .ico { font-size: 20px; line-height: 1; }
+    .courier-nav button.on { color: var(--gold); background: rgba(255, 204, 0, 0.1); }
+    body.mode-app .fab-logout { display: none !important; }
   </style>
 </head>
 <body>
@@ -603,25 +788,75 @@
 
   <div id="app" class="wrap" style="display:none;">
     <div class="pending-banner" id="pendingBanner" style="display:none;"></div>
-    <header class="driver-card">
-      <h1 id="whoName">—</h1>
-      <p class="muted" id="whoPhone">—</p>
-      <p class="muted" id="whoPlate" style="margin-top:4px;"></p>
+    <div class="app-top">
+      <div class="who">
+        <b id="topName">—</b>
+        <small id="topPlate">—</small>
+      </div>
+      <div class="earn-chip">
+        <span id="topEarnLbl">Bugun</span>
+        <strong id="topEarnVal">0</strong>
+      </div>
+    </div>
+
+    <div id="panelOrders" class="courier-panel on">
       <p class="route-active-badge" id="routeActiveHint" style="display:none;"></p>
-    </header>
-    <section id="myRoutePanel" class="route-drawer" style="display:none;">
-      <h2 class="route-panel-title" id="myRouteHeading">Mening marshrutim</h2>
-      <p class="muted" id="myRouteEta" style="margin:0 0 8px;"></p>
-      <div id="myRouteList" class="route-list"></div>
-    </section>
-    <section class="feed-section">
-      <h2 class="section-title" id="feedTitle">Buyurtmalar</h2>
-      <div id="feed"></div>
-      <p class="muted" id="feedHint" style="margin-top:12px;"></p>
-    </section>
+      <section id="myRoutePanel" class="route-drawer" style="display:none;">
+        <h2 class="route-panel-title" id="myRouteHeading">Mening marshrutim</h2>
+        <p class="muted" id="myRouteEta" style="margin:0 0 8px;"></p>
+        <div id="myRouteList" class="route-list"></div>
+      </section>
+      <section class="feed-section">
+        <h2 class="section-title" id="feedTitle">Buyurtmalar</h2>
+        <div id="feed"></div>
+        <p class="muted" id="feedHint" style="margin-top:12px;"></p>
+      </section>
+    </div>
+
+    <div id="panelWallet" class="courier-panel">
+      <h2 class="section-title" id="walletTitle">Daromad</h2>
+      <div class="period-chips" id="periodChips">
+        <button type="button" class="on" data-period="today">Bugun</button>
+        <button type="button" data-period="week">Hafta</button>
+        <button type="button" data-period="month">Oy</button>
+        <button type="button" data-period="all">Hammasi</button>
+      </div>
+      <div class="stat-grid" id="walletStats"></div>
+      <h2 class="section-title" id="walletHistoryTitle">So‘nggi yetkazishlar</h2>
+      <div class="earn-list" id="earnHistory"></div>
+    </div>
+
+    <div id="panelRating" class="courier-panel">
+      <div class="rank-hero" id="rankHero"></div>
+      <h2 class="section-title" id="ratingTitle">Kuryerlar reytingi</h2>
+      <div class="lb-list" id="leaderboard"></div>
+    </div>
+
+    <div id="panelProfile" class="courier-panel">
+      <div class="profile-head">
+        <div class="profile-avatar" id="profileAvatar">—</div>
+        <h2 id="profileName">—</h2>
+        <p id="profilePhone">—</p>
+        <p id="profileVehicle">—</p>
+        <span class="status-pill-app pending" id="profileStatus">—</span>
+      </div>
+      <div class="stat-grid" id="profileStats"></div>
+      <p class="muted" id="earnShareHint" style="margin:0 0 12px;"></p>
+      <div class="profile-actions">
+        <button type="button" id="profileRefreshBtn">Yangilash</button>
+        <button type="button" class="danger" id="logoutBtn">Chiqish</button>
+      </div>
+    </div>
   </div>
 
-  <button type="button" class="fab-logout" id="logoutBtn" style="display:none;">Chiqish</button>
+  <nav class="courier-nav" id="courierNav" style="display:none;">
+    <button type="button" class="on" data-panel="orders"><span class="ico">📦</span><span id="navOrders">Buyurtma</span></button>
+    <button type="button" data-panel="wallet"><span class="ico">💰</span><span id="navWallet">Pul</span></button>
+    <button type="button" data-panel="rating"><span class="ico">🏆</span><span id="navRating">Reyting</span></button>
+    <button type="button" data-panel="profile"><span class="ico">👤</span><span id="navProfile">Profil</span></button>
+  </nav>
+
+  <button type="button" class="fab-logout" id="logoutBtnFab" style="display:none;">Chiqish</button>
 
   <div id="backdrop" class="sheet-backdrop"></div>
   <div id="sheet" class="sheet" role="dialog" aria-modal="true">
@@ -677,6 +912,11 @@
     let yEnd = null;
     let ymapsReadyPromise = null;
     let sheetPrimaryAction = 'none';
+    let authSmsPhone = '';
+    let forgotStep = 'phone';
+    let dashboard = null;
+    let earnPeriod = 'today';
+    let activePanel = 'orders';
 
     const STORE = { lat: 39.654572, lng: 66.958871 };
     const T = {
@@ -735,7 +975,34 @@
         forgotReset: 'Parolni yangilash',
         shop: 'Bosh sahifa',
         pendingBanner: 'Arizangiz ko‘rib chiqilmoqda. Admin tasdiqlagach buyurtmalar chiqadi.',
-        plateLabel: 'Raqam'
+        plateLabel: 'Raqam',
+        navOrders: 'Buyurtma',
+        navWallet: 'Pul',
+        navRating: 'Reyting',
+        navProfile: 'Profil',
+        walletTitle: 'Daromad',
+        walletHistory: 'So‘nggi yetkazishlar',
+        periodToday: 'Bugun',
+        periodWeek: 'Hafta',
+        periodMonth: 'Oy',
+        periodAll: 'Hammasi',
+        statEarned: 'Ishlab topilgan',
+        statPending: 'Kutilmoqda',
+        statDeliveries: 'Yetkazishlar',
+        statDistance: 'Masofa',
+        statRating: 'Reyting',
+        statRank: 'O‘rningiz',
+        ratingTitle: 'Kuryerlar reytingi',
+        rankOf: '{pos} / {total} kuryer',
+        noRating: 'Hali baho yo‘q',
+        stars: 'yulduz',
+        earnShareHint: 'Yetkazish to‘lovining {n}% sizga tushadi',
+        profileRefresh: 'Yangilash',
+        statusApproved: 'Faol kuryer',
+        statusPending: 'Tasdiq kutilmoqda',
+        topToday: 'Bugun',
+        emptyHistory: 'Hali yetkazilgan buyurtma yo‘q',
+        deliveryShort: 'yetkazish'
       },
       ru: {
         brand: 'GlobusMarket',
@@ -792,7 +1059,34 @@
         forgotReset: 'Обновить пароль',
         shop: 'На главную',
         pendingBanner: 'Заявка на рассмотрении. Заказы появятся после одобрения.',
-        plateLabel: 'Номер'
+        plateLabel: 'Номер',
+        navOrders: 'Заказы',
+        navWallet: 'Деньги',
+        navRating: 'Рейтинг',
+        navProfile: 'Профиль',
+        walletTitle: 'Доход',
+        walletHistory: 'Последние доставки',
+        periodToday: 'Сегодня',
+        periodWeek: 'Неделя',
+        periodMonth: 'Месяц',
+        periodAll: 'Всё',
+        statEarned: 'Заработано',
+        statPending: 'Ожидается',
+        statDeliveries: 'Доставки',
+        statDistance: 'Км',
+        statRating: 'Рейтинг',
+        statRank: 'Ваше место',
+        ratingTitle: 'Рейтинг курьеров',
+        rankOf: '{pos} из {total}',
+        noRating: 'Пока нет оценок',
+        stars: 'звёзд',
+        earnShareHint: '{n}% от оплаты доставки — вам',
+        profileRefresh: 'Обновить',
+        statusApproved: 'Активный курьер',
+        statusPending: 'Ожидает одобрения',
+        topToday: 'Сегодня',
+        emptyHistory: 'Доставок пока нет',
+        deliveryShort: 'дост.'
       }
     };
     function tr(k) {
@@ -800,6 +1094,22 @@
     }
     function money(n) {
       return `${Number(n || 0).toLocaleString('ru-RU')} so'm`;
+    }
+    function trFmt(key, vars) {
+      let s = tr(key);
+      if (vars) Object.keys(vars).forEach((k) => { s = s.replace(`{${k}}`, String(vars[k])); });
+      return s;
+    }
+    function initials(name) {
+      const p = String(name || '').trim().split(/\s+/).filter(Boolean);
+      if (!p.length) return '?';
+      return (p[0][0] + (p[1] ? p[1][0] : '')).toUpperCase();
+    }
+    function starsText(avg) {
+      const a = Number(avg) || 0;
+      if (a < 0.1) return '☆☆☆☆☆';
+      const full = Math.round(a);
+      return '★'.repeat(Math.min(5, full)) + '☆'.repeat(Math.max(0, 5 - full));
     }
     function esc(s) {
       return String(s ?? '')
@@ -1004,6 +1314,24 @@
       setText('openCourierBtn', 'courierPage');
       setText('lblDist', 'dist');
       setText('lblEta', 'eta');
+      setText('navOrders', 'navOrders');
+      setText('navWallet', 'navWallet');
+      setText('navRating', 'navRating');
+      setText('navProfile', 'navProfile');
+      setText('walletTitle', 'walletTitle');
+      setText('walletHistoryTitle', 'walletHistory');
+      setText('ratingTitle', 'ratingTitle');
+      setText('topEarnLbl', 'topToday');
+      setText('profileRefreshBtn', 'profileRefresh');
+      document.querySelectorAll('#periodChips button').forEach((btn) => {
+        const k = btn.dataset.period;
+        const map = { today: 'periodToday', week: 'periodWeek', month: 'periodMonth', all: 'periodAll' };
+        if (map[k]) btn.textContent = tr(map[k]);
+      });
+      renderAppChrome();
+      if (activePanel === 'wallet') renderWalletPanel();
+      if (activePanel === 'rating') renderRatingPanel();
+      if (activePanel === 'profile') renderProfilePanel();
       renderFeed();
       void loadRouteHint();
       if (selected) openSheet(selected);
@@ -1022,7 +1350,10 @@
     }
 
     function showAuthView(name) {
+      document.body.classList.remove('mode-app');
       document.body.classList.add('mode-auth');
+      const nav = document.getElementById('courierNav');
+      if (nav) nav.style.display = 'none';
       document.getElementById('auth').style.display = 'flex';
       document.getElementById('app').style.display = 'none';
       document.getElementById('logoutBtn').style.display = 'none';
@@ -1106,21 +1437,195 @@
       await openMainApp(data.application);
     }
 
+    const panelIds = {
+      orders: 'panelOrders',
+      wallet: 'panelWallet',
+      rating: 'panelRating',
+      profile: 'panelProfile'
+    };
+
+    function switchPanel(name) {
+      activePanel = name;
+      Object.keys(panelIds).forEach((k) => {
+        const el = document.getElementById(panelIds[k]);
+        if (el) el.classList.toggle('on', k === name);
+      });
+      document.querySelectorAll('.courier-nav button').forEach((b) => {
+        b.classList.toggle('on', b.dataset.panel === name);
+      });
+      if (name === 'wallet') renderWalletPanel();
+      if (name === 'rating') renderRatingPanel();
+      if (name === 'profile') renderProfilePanel();
+    }
+
+    function renderAppChrome() {
+      if (!profile) return;
+      const topName = document.getElementById('topName');
+      const topPlate = document.getElementById('topPlate');
+      if (topName) topName.textContent = profile.fullName || '—';
+      if (topPlate) {
+        const pl = String(profile.vehiclePlate || '').trim();
+        topPlate.textContent = pl ? `${tr('plateLabel')}: ${pl}` : profile.phone || '';
+      }
+      const topEarnLbl = document.getElementById('topEarnLbl');
+      const topEarnVal = document.getElementById('topEarnVal');
+      if (topEarnLbl) topEarnLbl.textContent = tr('topToday');
+      if (topEarnVal && dashboard?.periods?.today) {
+        topEarnVal.textContent = money(dashboard.periods.today.earned);
+      }
+    }
+
+    function renderWalletPanel() {
+      if (!dashboard) return;
+      const p = dashboard.periods[earnPeriod] || dashboard.periods.all;
+      const grid = document.getElementById('walletStats');
+      if (grid) {
+        grid.innerHTML = `
+          <div class="stat-card wide">
+            <div class="lbl">${tr('statEarned')}</div>
+            <div class="val">${money(p.earned)}</div>
+            <div class="sub">${tr('statPending')}: ${money(p.pending)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="lbl">${tr('statDeliveries')}</div>
+            <div class="val">${p.deliveries}</div>
+          </div>
+          <div class="stat-card">
+            <div class="lbl">${tr('statDistance')}</div>
+            <div class="val">${Math.round(p.distanceKm * 10) / 10} ${tr('km')}</div>
+          </div>`;
+      }
+      const hist = document.getElementById('earnHistory');
+      if (!hist) return;
+      const list = dashboard.recentEarnings || [];
+      if (!list.length) {
+        hist.innerHTML = `<p class="muted">${esc(tr('emptyHistory'))}</p>`;
+        return;
+      }
+      hist.innerHTML = list
+        .map((row) => {
+          const dt = row.deliveredAt
+            ? new Date(row.deliveredAt).toLocaleString(lang === 'ru' ? 'ru-RU' : 'uz-UZ', {
+                day: '2-digit',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit'
+              })
+            : '';
+          const rat = row.rating ? ` · ${starsText(row.rating)}` : '';
+          return `<div class="earn-row">
+            <div><b>#${esc(row.orderNumber || '')}</b><small>${esc(dt)}${rat}</small></div>
+            <span class="amt">+${esc(money(row.courierEarned))}</span>
+          </div>`;
+        })
+        .join('');
+    }
+
+    function renderRatingPanel() {
+      if (!dashboard) return;
+      const hero = document.getElementById('rankHero');
+      const r = dashboard.rank || { position: 0, total: 0 };
+      const pos = r.position || '—';
+      const avg = dashboard.avgRating || 0;
+      if (hero) {
+        hero.innerHTML = `
+          <div class="pos">#${esc(String(pos))}</div>
+          <p class="muted" style="margin:8px 0 0;">${esc(trFmt('rankOf', { pos, total: r.total || 0 }))}</p>
+          <div class="stars">${starsText(avg)}</div>
+          <p class="muted" style="margin:8px 0 0;font-size:13px;">${
+            dashboard.ratingCount ? `${avg} · ${dashboard.ratingCount} ${tr('stars')}` : tr('noRating')
+          }</p>`;
+      }
+      const lb = document.getElementById('leaderboard');
+      if (!lb) return;
+      const list = dashboard.leaderboard || [];
+      lb.innerHTML = list
+        .map(
+          (row) => `
+        <div class="lb-row${row.isMe ? ' me' : ''}">
+          <span class="lb-rank">${row.rank}</span>
+          <div class="lb-main">
+            <b>${esc(row.fullName || '—')}</b>
+            <small>${esc(row.deliveries)} ${tr('deliveryShort')} · ${
+              row.avgRating ? `${row.avgRating} ★` : '—'
+            }</small>
+          </div>
+          <div class="lb-meta">
+            <div class="e">${esc(money(row.earned))}</div>
+            <div class="d">${esc(row.phoneMasked || '')}</div>
+          </div>
+        </div>`
+        )
+        .join('');
+    }
+
+    function renderProfilePanel() {
+      if (!profile) return;
+      const av = document.getElementById('profileAvatar');
+      if (av) av.textContent = initials(profile.fullName);
+      const pn = document.getElementById('profileName');
+      if (pn) pn.textContent = profile.fullName || '—';
+      const pp = document.getElementById('profilePhone');
+      if (pp) pp.textContent = profile.phone || '—';
+      const pv = document.getElementById('profileVehicle');
+      if (pv) {
+        const pl = String(profile.vehiclePlate || '').trim();
+        pv.textContent = pl ? `${tr('plateLabel')}: ${pl}` : '';
+      }
+      const st = document.getElementById('profileStatus');
+      if (st) {
+        const sk = String(profile.status || 'pending').toLowerCase();
+        st.className = 'status-pill-app ' + (sk === 'approved' ? 'approved' : 'pending');
+        st.textContent = sk === 'approved' ? tr('statusApproved') : tr('statusPending');
+      }
+      const hint = document.getElementById('earnShareHint');
+      if (hint && dashboard) {
+        hint.textContent = trFmt('earnShareHint', { n: dashboard.sharePercent || 80 });
+      }
+      const grid = document.getElementById('profileStats');
+      if (grid && dashboard) {
+        const a = dashboard.periods.all;
+        grid.innerHTML = `
+          <div class="stat-card">
+            <div class="lbl">${tr('statEarned')}</div>
+            <div class="val">${money(a.earned)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="lbl">${tr('statDeliveries')}</div>
+            <div class="val">${a.deliveries}</div>
+          </div>
+          <div class="stat-card">
+            <div class="lbl">${tr('statRating')}</div>
+            <div class="val">${dashboard.avgRating || '—'}</div>
+          </div>
+          <div class="stat-card">
+            <div class="lbl">${tr('statRank')}</div>
+            <div class="val">#${dashboard.rank?.position || '—'}</div>
+          </div>`;
+      }
+    }
+
+    async function loadDashboard() {
+      try {
+        const d = await api('/courier-portal/dashboard');
+        dashboard = d.dashboard;
+        renderAppChrome();
+        if (activePanel === 'wallet') renderWalletPanel();
+        if (activePanel === 'rating') renderRatingPanel();
+        if (activePanel === 'profile') renderProfilePanel();
+      } catch (_) {}
+    }
+
     async function openMainApp(app) {
       profile = app || profile;
       if (!profile) return;
       document.body.classList.remove('mode-auth');
+      document.body.classList.add('mode-app');
       document.getElementById('auth').style.display = 'none';
       document.getElementById('app').style.display = 'block';
-      document.getElementById('logoutBtn').style.display = 'block';
-      document.getElementById('whoName').textContent = profile.fullName || '—';
-      document.getElementById('whoPhone').textContent = profile.phone || '—';
-      const plateEl = document.getElementById('whoPlate');
-      if (plateEl) {
-        const pl = String(profile.vehiclePlate || '').trim();
-        plateEl.textContent = pl ? `${tr('plateLabel')}: ${pl}` : '';
-        plateEl.style.display = pl ? 'block' : 'none';
-      }
+      const nav = document.getElementById('courierNav');
+      if (nav) nav.style.display = 'flex';
+      switchPanel('orders');
       const pending = document.getElementById('pendingBanner');
       if (pending) {
         const st = String(profile.status || '').toLowerCase();
@@ -1131,6 +1636,8 @@
           pending.style.display = 'none';
         }
       }
+      renderAppChrome();
+      void loadDashboard();
       try {
         await loadFeed({ silent: false });
         schedulePoll();
@@ -1468,6 +1975,7 @@
         await api(`/courier-portal/orders/${encodeURIComponent(selected.id)}/claim`, { method: 'POST', body: '{}' });
         lastFeedFingerprint = '';
         await loadFeed({ silent: true });
+        void loadDashboard();
         const fresh = orders.find((x) => String(x.id) === String(selected.id));
         if (fresh) openSheet(fresh, { redrawMap: true });
         else closeSheet();
@@ -1490,13 +1998,31 @@
       location.href = href;
     };
 
-    document.getElementById('logoutBtn').onclick = () => {
+    function doLogout() {
       localStorage.removeItem(LS);
       token = '';
       profile = null;
+      dashboard = null;
+      document.body.classList.remove('mode-app');
       clearTimeout(pollTimer);
       showAuthView('login');
-    };
+    }
+    document.getElementById('logoutBtn')?.addEventListener('click', doLogout);
+
+    document.querySelectorAll('.courier-nav button').forEach((btn) => {
+      btn.addEventListener('click', () => switchPanel(btn.dataset.panel || 'orders'));
+    });
+    document.querySelectorAll('#periodChips button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        earnPeriod = btn.dataset.period || 'today';
+        document.querySelectorAll('#periodChips button').forEach((b) => b.classList.toggle('on', b === btn));
+        renderWalletPanel();
+      });
+    });
+    document.getElementById('profileRefreshBtn')?.addEventListener('click', async () => {
+      await loadDashboard();
+      await loadFeed({ silent: true });
+    });
 
     document.getElementById('tabLogin').onclick = () => showAuthView('login');
     document.getElementById('tabRegister').onclick = () => showAuthView('register');

@@ -1708,6 +1708,78 @@ async function getCourierOpsMetricsSummary() {
   };
 }
 
+async function listCourierOrdersForStats() {
+  return prisma.order.findMany({
+    where: {
+      courierPhone: { not: '' },
+      status: { in: ['delivered', 'out_for_delivery', 'courier_assigned'] }
+    },
+    orderBy: { updatedAt: 'desc' },
+    take: 2000,
+    select: {
+      id: true,
+      orderNumber: true,
+      status: true,
+      deliveryPrice: true,
+      courierPhone: true,
+      feedbackRating: true,
+      updatedAt: true,
+      createdAt: true,
+      distanceKm: true
+    }
+  });
+}
+
+async function getCourierPortalDashboard(phone) {
+  const courierStats = require('./courier-stats');
+  const { phonesEqual: pe } = require('./phone');
+  const rows = await listCourierOrdersForStats();
+  const apps = await prisma.courierApplication.findMany({
+    where: { status: 'approved' },
+    select: { phone: true, fullName: true, vehiclePlate: true }
+  });
+  const agg = courierStats.aggregateCourierOrders(rows, phone);
+  const leaderboard = [];
+  for (const a of apps) {
+    const aagg = courierStats.aggregateCourierOrders(rows, a.phone);
+    leaderboard.push({
+      phone: a.phone,
+      fullName: a.fullName,
+      vehiclePlate: a.vehiclePlate || '',
+      deliveries: aagg.buckets.all.deliveries,
+      earned: aagg.buckets.all.earned,
+      avgRating: aagg.avgRating,
+      ratingCount: aagg.ratingCount
+    });
+  }
+  leaderboard.sort((x, y) => courierStats.scoreForLeaderboard(y) - courierStats.scoreForLeaderboard(x));
+  let position = 0;
+  leaderboard.forEach((e, i) => {
+    e.rank = i + 1;
+    if (pe(e.phone, phone)) position = i + 1;
+  });
+  return {
+    sharePercent: Math.round(courierStats.courierEarnShare() * 100),
+    periods: agg.buckets,
+    avgRating: agg.avgRating,
+    ratingCount: agg.ratingCount,
+    activeDeliveries: agg.activeCount,
+    recentEarnings: agg.recent,
+    rank: { position, total: leaderboard.length },
+    leaderboard: leaderboard.slice(0, 50).map((e) => ({
+      rank: e.rank,
+      fullName: e.fullName,
+      phoneMasked: courierStats.maskPhone(e.phone),
+      vehiclePlate: e.vehiclePlate,
+      deliveries: e.deliveries,
+      earned: e.earned,
+      avgRating: e.avgRating,
+      ratingCount: e.ratingCount,
+      isMe: pe(e.phone, phone)
+    }))
+  };
+}
+
 async function listCourierApplicationsAdmin() {
   return prisma.courierApplication.findMany({
     orderBy: { createdAt: 'desc' },
@@ -1779,6 +1851,7 @@ module.exports = {
   findNextActiveCourierTokenForPhone,
   greedyOrderIdsFromStore,
   getCourierOpsMetricsSummary,
+  getCourierPortalDashboard,
   listCourierApplicationsAdmin,
   readSmsChallenge,
   writeSmsChallenge,
