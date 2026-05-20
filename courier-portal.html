@@ -54,29 +54,6 @@
       cursor: pointer;
     }
     .bar-tools { display: flex; align-items: center; gap: 8px; }
-    .sound-tools {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .sound-tools input[type="range"]#soundVolume {
-      width: 72px;
-      height: 6px;
-      accent-color: var(--gold);
-    }
-    .sound-tools input[type="range"]#soundVolume:disabled { opacity: 0.45; }
-    #soundToggle {
-      border: 1px solid var(--line);
-      background: var(--ink);
-      color: var(--gold);
-      border-radius: 10px;
-      padding: 8px 11px;
-      font-weight: 800;
-      font-size: 16px;
-      cursor: pointer;
-      line-height: 1;
-    }
-    #soundToggle.off { color: var(--muted); opacity: 0.65; }
     .wrap { max-width: 560px; margin: 0 auto; padding: 14px 16px max(100px, calc(88px + env(safe-area-inset-bottom))); }
     .driver-card {
       border-radius: var(--radius);
@@ -710,10 +687,6 @@
       <small id="brandSub">Kuryer</small>
     </div>
     <div class="bar-tools">
-      <span class="sound-tools" id="soundToolsWrap" title="">
-        <button type="button" id="soundToggle" class="on" aria-pressed="true" title="">🔔</button>
-        <input type="range" id="soundVolume" min="0" max="200" step="1" value="200" aria-label="" />
-      </span>
       <div class="lang">
         <button type="button" id="langUz">UZ</button>
         <button type="button" id="langRu">RU</button>
@@ -957,6 +930,7 @@
       soundKey: 'gm_courier_sound_on',
       volKey: 'gm_courier_sound_vol'
     });
+    let feedSoundPrimed = false;
     let lastClaimableIds = new Set();
 
     const STORE = { lat: 39.654572, lng: 66.958871 };
@@ -1050,10 +1024,6 @@
         topToday: 'Bugun',
         emptyHistory: 'Hali yetkazilgan buyurtma yo‘q',
         deliveryShort: 'yetkazish',
-        voiceNewOrder: 'Yangi buyurtma',
-        soundOn: 'Signal yoqilgan',
-        soundOff: 'Signal o‘chiq',
-        soundVol: 'Signal balandligi (0–200%)',
         myOrdersTitle: 'Mening buyurtmalarim',
         myOrdersMore: 'Barcha yetkazishlar (Pul bo‘limi)',
         statusDelivered: 'Topshirildi'
@@ -1147,10 +1117,6 @@
         topToday: 'Сегодня',
         emptyHistory: 'Доставок пока нет',
         deliveryShort: 'дост.',
-        voiceNewOrder: 'Новый заказ',
-        soundOn: 'Сигнал включён',
-        soundOff: 'Сигнал выключен',
-        soundVol: 'Громкость сигнала (0–200%)',
         myOrdersTitle: 'Мои заказы',
         myOrdersMore: 'Все доставки (раздел «Деньги»)',
         statusDelivered: 'Доставлен'
@@ -1225,28 +1191,9 @@
       return isMine(o) && Boolean(String(o.courierPhone || '').trim());
     }
 
-    function syncSoundVolumeUi() {
-      const range = document.getElementById('soundVolume');
-      const wrap = document.getElementById('soundToolsWrap');
-      if (range) {
-        range.value = String(orderSound.getSoundVolume());
-        range.disabled = !orderSound.getSoundOn();
-        range.setAttribute('aria-label', tr('soundVol'));
-      }
-      if (wrap) wrap.title = tr('soundVol');
-    }
-    function syncSoundToggle() {
-      const btn = document.getElementById('soundToggle');
-      if (!btn) return;
-      const on = orderSound.getSoundOn();
-      btn.classList.toggle('on', on);
-      btn.classList.toggle('off', !on);
-      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-      btn.title = on ? tr('soundOn') : tr('soundOff');
-      syncSoundVolumeUi();
-    }
     function alertNewOrders(count) {
-      if (!orderSound.getSoundOn() || count < 1) return;
+      if (!feedSoundPrimed || document.hidden || count < 1) return;
+      if (!orderSound.getSoundOn()) return;
       orderSound.playNewOrderAlert();
     }
     function isMineActiveOrder(o) {
@@ -1451,7 +1398,6 @@
       setText('backFromForgot', 'backForgot');
       document.getElementById('langUz')?.classList.toggle('on', lang === 'uz');
       document.getElementById('langRu')?.classList.toggle('on', lang === 'ru');
-      syncSoundToggle();
       const fb = document.getElementById('forgotActionBtn');
       if (fb) {
         fb.textContent =
@@ -1781,6 +1727,7 @@
       profile = app || profile;
       if (!profile) return;
       lastClaimableIds = new Set();
+      feedSoundPrimed = false;
       orderSound.unlockAudio();
       document.body.classList.remove('mode-auth');
       document.body.classList.add('mode-app');
@@ -2142,7 +2089,13 @@
         const fp = feedFingerprint(next);
         const sheetOpen = document.getElementById('sheet')?.classList.contains('on');
         const prevClaimable = lastClaimableIds;
-        const newCount = detectNewClaimableOrders(prevClaimable, next);
+        let newCount = 0;
+        if (!feedSoundPrimed) {
+          lastClaimableIds = claimableIdSet(next);
+          feedSoundPrimed = true;
+        } else {
+          newCount = detectNewClaimableOrders(prevClaimable, next);
+        }
         if (fp !== lastFeedFingerprint) {
           orders = display;
           lastFeedFingerprint = fp;
@@ -2270,6 +2223,8 @@
       token = '';
       profile = null;
       dashboard = null;
+      feedSoundPrimed = false;
+      lastClaimableIds = new Set();
       document.body.classList.remove('mode-app');
       clearTimeout(pollTimer);
       showAuthView('login');
@@ -2482,19 +2437,6 @@
       localStorage.setItem(langKey, lang);
       applyLang();
     };
-    document.getElementById('soundToggle')?.addEventListener('click', () => {
-      orderSound.setSoundOn(!orderSound.getSoundOn());
-      syncSoundToggle();
-      if (orderSound.getSoundOn()) orderSound.playNewOrderAlert();
-    });
-    (function bindSoundVolume() {
-      const el = document.getElementById('soundVolume');
-      if (!el) return;
-      el.addEventListener('input', (e) => orderSound.setSoundVolume(e.target.value));
-      el.addEventListener('change', () => {
-        if (orderSound.getSoundOn()) orderSound.playNewOrderAlert();
-      });
-    })();
     document.addEventListener(
       'click',
       () => orderSound.unlockAudio(),
