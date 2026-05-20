@@ -1046,6 +1046,9 @@
       try {
         const data = await api('/courier/' + token + '/deliver', { method: 'POST' });
         order = data.order;
+        try {
+          localStorage.setItem('gm_courier_feed_bump', String(Date.now()));
+        } catch (_) {}
         stopTracking(true);
         const bar = document.getElementById('nextOrderBar');
         const link = document.getElementById('nextOrderLink');

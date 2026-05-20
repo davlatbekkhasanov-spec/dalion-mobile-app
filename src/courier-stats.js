@@ -117,7 +117,7 @@ function aggregateCourierOrders(rows, phone) {
     buckets,
     avgRating,
     ratingCount,
-    recent: recent.slice(0, 25),
+    recent: recent.slice(0, 50),
     activeCount: mine.filter((o) => ACTIVE.has(String(o.status || '').toLowerCase())).length
   };
 }

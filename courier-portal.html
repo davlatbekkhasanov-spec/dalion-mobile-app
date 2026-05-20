@@ -859,6 +859,9 @@
       </div>
       <div class="stat-grid" id="profileStats"></div>
       <p class="muted" id="earnShareHint" style="margin:0 0 12px;"></p>
+      <h2 class="section-title" id="myOrdersTitle" style="margin-top:4px;">Mening buyurtmalarim</h2>
+      <div class="earn-list" id="myOrdersHistory"></div>
+      <button type="button" class="auth-link" id="myOrdersWalletBtn" style="display:none;margin:0 0 12px;width:100%;text-align:center;">Barcha yetkazishlar</button>
       <div class="profile-actions">
         <button type="button" id="profileRefreshBtn">Yangilash</button>
         <button type="button" class="danger" id="logoutBtn">Chiqish</button>
@@ -935,6 +938,7 @@
     let earnPeriod = 'today';
     let activePanel = 'orders';
     const SOUND_LS = 'gm_courier_sound_on';
+    const FEED_BUMP_LS = 'gm_courier_feed_bump';
     let webAudioCtx = null;
     let lastClaimableIds = new Set();
     let feedAlertsReady = false;
@@ -945,6 +949,8 @@
         brand: 'GlobusMarket',
         brandSub: 'Kuryer · taksi uslubi',
         feedTitle: 'Faol buyurtmalar',
+        feedActiveMine: 'Sizning faol yetkazishlaringiz',
+        feedNewOrders: 'Yangi buyurtmalar (qabul qilish)',
         feedHint: '«Kuryer kutilmoqda» buyurtmani bosing va «O‘zimga biriktirish» ni bosing — ism qayta kiritilmaydi. Keyin «Marshrut va yetkazish» orqali xarita va GPS.',
         routePill: 'Navbat',
         activeStops: 'Faol yetkazishingiz',
@@ -1029,13 +1035,18 @@
         emptyHistory: 'Hali yetkazilgan buyurtma yo‘q',
         deliveryShort: 'yetkazish',
         voiceNewOrder: 'Yangi buyurtma',
-        soundOn: 'Ovoz yoqilgan',
-        soundOff: 'Ovoz o‘chiq'
+        soundOn: 'Signal yoqilgan',
+        soundOff: 'Signal o‘chiq',
+        myOrdersTitle: 'Mening buyurtmalarim',
+        myOrdersMore: 'Barcha yetkazishlar (Pul bo‘limi)',
+        statusDelivered: 'Topshirildi'
       },
       ru: {
         brand: 'GlobusMarket',
         brandSub: 'Курьер · такси-стиль',
         feedTitle: 'Активные заказы',
+        feedActiveMine: 'Ваши активные доставки',
+        feedNewOrders: 'Новые заказы (забрать)',
         feedHint: 'Нажмите заказ «курьер ожидается» и «Забрать себе» — имя вводить снова не нужно. Затем «Маршрут и доставка» для карты и GPS.',
         routePill: 'Очередь',
         activeStops: 'Активных доставок',
@@ -1120,8 +1131,11 @@
         emptyHistory: 'Доставок пока нет',
         deliveryShort: 'дост.',
         voiceNewOrder: 'Новый заказ',
-        soundOn: 'Звук включён',
-        soundOff: 'Звук выключен'
+        soundOn: 'Сигнал включён',
+        soundOff: 'Сигнал выключен',
+        myOrdersTitle: 'Мои заказы',
+        myOrdersMore: 'Все доставки (раздел «Деньги»)',
+        statusDelivered: 'Доставлен'
       }
     };
     function tr(k) {
@@ -1214,41 +1228,118 @@
       if (!webAudioCtx) webAudioCtx = new AC();
       return webAudioCtx;
     }
+    let hornFallbackUrl = null;
+
     function unlockAudio() {
       const ctx = getAudioContext();
       if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
-    }
-    function playNewOrderBeep() {
-      const ctx = getAudioContext();
-      if (!ctx) return;
       try {
+        getHornFallbackUrl();
+      } catch (_) {}
+    }
+
+    function encodeWavPcm16(samples, sampleRate) {
+      const buf = new ArrayBuffer(44 + samples.length * 2);
+      const v = new DataView(buf);
+      const writeStr = (o, s) => {
+        for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i));
+      };
+      writeStr(0, 'RIFF');
+      v.setUint32(4, 36 + samples.length * 2, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      v.setUint32(16, 16, true);
+      v.setUint16(20, 1, true);
+      v.setUint16(22, 1, true);
+      v.setUint32(24, sampleRate, true);
+      v.setUint32(28, sampleRate * 2, true);
+      v.setUint16(32, 2, true);
+      v.setUint16(34, 16, true);
+      writeStr(36, 'data');
+      v.setUint32(40, samples.length * 2, true);
+      let off = 44;
+      for (let i = 0; i < samples.length; i++, off += 2) v.setInt16(off, samples[i], true);
+      return buf;
+    }
+
+    function getHornFallbackUrl() {
+      if (hornFallbackUrl) return hornFallbackUrl;
+      const sr = 11025;
+      const burst = Math.floor(sr * 0.26);
+      const gap = Math.floor(sr * 0.1);
+      const total = burst * 3 + gap * 2;
+      const pcm = new Int16Array(total);
+      let pos = 0;
+      for (let b = 0; b < 3; b++) {
+        for (let j = 0; j < burst; j++) {
+          const t = j / sr;
+          const env = j < 50 ? j / 50 : j > burst - 50 ? (burst - j) / 50 : 1;
+          const v =
+            (Math.sin(2 * Math.PI * 435 * t) + Math.sin(2 * Math.PI * 525 * t) + Math.sin(2 * Math.PI * 660 * t) * 0.35) *
+            0.42 *
+            env;
+          pcm[pos++] = Math.max(-32767, Math.min(32767, Math.floor(v * 32767)));
+        }
+        if (b < 2) pos += gap;
+      }
+      hornFallbackUrl = URL.createObjectURL(new Blob([encodeWavPcm16(pcm, sr)], { type: 'audio/wav' }));
+      return hornFallbackUrl;
+    }
+
+    function playHornAudioElement() {
+      try {
+        const url = getHornFallbackUrl();
+        let el = document.getElementById('hornFallbackAudio');
+        if (!el) {
+          el = document.createElement('audio');
+          el.id = 'hornFallbackAudio';
+          el.setAttribute('playsinline', '');
+          el.preload = 'auto';
+          document.body.appendChild(el);
+        }
+        el.src = url;
+        el.volume = 1;
+        el.currentTime = 0;
+        const p = el.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      } catch (_) {}
+    }
+
+    function playCarHornBurst() {
+      const ctx = getAudioContext();
+      if (!ctx) {
+        playHornAudioElement();
+        return;
+      }
+      try {
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
         const t0 = ctx.currentTime;
         const g = ctx.createGain();
-        g.gain.value = 2.2;
+        g.gain.value = 3.5;
         g.connect(ctx.destination);
-        const lp = ctx.createBiquadFilter();
-        lp.type = 'lowpass';
-        lp.frequency.value = 7000;
-        lp.connect(g);
-        function tone(start, freq, dur, peak) {
+        const dur = 0.32;
+        [435, 525].forEach((freq) => {
           const osc = ctx.createOscillator();
           const gn = ctx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(freq, t0 + start);
-          const a = t0 + start;
-          const b = a + dur;
-          gn.gain.setValueAtTime(0.0001, a);
-          gn.gain.exponentialRampToValueAtTime(peak, a + 0.01);
-          gn.gain.exponentialRampToValueAtTime(0.0001, b);
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(freq, t0);
+          gn.gain.setValueAtTime(0.0001, t0);
+          gn.gain.exponentialRampToValueAtTime(0.55, t0 + 0.02);
+          gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
           osc.connect(gn);
-          gn.connect(lp);
-          osc.start(a);
-          osc.stop(b + 0.02);
-        }
-        tone(0, 523, 0.12, 0.5);
-        tone(0.08, 784, 0.35, 1);
-        tone(0.18, 988, 0.28, 0.7);
-      } catch (_) {}
+          gn.connect(g);
+          osc.start(t0);
+          osc.stop(t0 + dur + 0.03);
+        });
+      } catch (_) {
+        playHornAudioElement();
+      }
+    }
+
+    function playCarHornAlert() {
+      playCarHornBurst();
+      setTimeout(playCarHornBurst, 420);
+      setTimeout(playCarHornBurst, 880);
     }
     function speakNewOrderVoice() {
       try {
@@ -1270,10 +1361,54 @@
     function alertNewOrders(count) {
       if (!getSoundOn() || count < 1) return;
       unlockAudio();
-      playNewOrderBeep();
-      speakNewOrderVoice();
+      if (getAudioContext()) playCarHornAlert();
+      else playHornAudioElement();
       hapticNewOrder();
+      setTimeout(() => speakNewOrderVoice(), 1200);
     }
+    function isMineActiveOrder(o) {
+      const st = normPortalStatus(o.status);
+      return isMine(o) && (st === 'courier_assigned' || st === 'out_for_delivery');
+    }
+
+    function feedOrdersForDisplay(arr) {
+      return (Array.isArray(arr) ? arr : []).filter((o) => {
+        const st = normPortalStatus(o.status);
+        const open = st === 'ready_for_courier' && !String(o.courierPhone || '').trim();
+        return open || isMineActiveOrder(o);
+      });
+    }
+
+    function onExternalFeedBump() {
+      if (!document.body.classList.contains('mode-app')) return;
+      lastFeedFingerprint = '';
+      closeSheet();
+      void loadFeed({ silent: true });
+      void loadDashboard();
+    }
+
+    function renderOrderHistoryRows(list, limit) {
+      const rows = (Array.isArray(list) ? list : []).slice(0, limit);
+      if (!rows.length) return `<p class="muted">${esc(tr('emptyHistory'))}</p>`;
+      return rows
+        .map((row) => {
+          const dt = row.deliveredAt
+            ? new Date(row.deliveredAt).toLocaleString(lang === 'ru' ? 'ru-RU' : 'uz-UZ', {
+                day: '2-digit',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit'
+              })
+            : '';
+          const rat = row.rating ? ` · ${starsText(row.rating)}` : '';
+          return `<div class="earn-row">
+            <div><b>#${esc(row.orderNumber || '')}</b><small>${esc(tr('statusDelivered'))} · ${esc(dt)}${rat}</small></div>
+            <span class="amt">+${esc(money(row.courierEarned))}</span>
+          </div>`;
+        })
+        .join('');
+    }
+
     function claimableOrders(arr) {
       return (Array.isArray(arr) ? arr : []).filter((o) => {
         const st = normPortalStatus(o.status);
@@ -1459,6 +1594,8 @@
       setText('ratingTitle', 'ratingTitle');
       setText('topEarnLbl', 'topToday');
       setText('profileRefreshBtn', 'profileRefresh');
+      setText('myOrdersTitle', 'myOrdersTitle');
+      setText('myOrdersWalletBtn', 'myOrdersMore');
       document.querySelectorAll('#periodChips button').forEach((btn) => {
         const k = btn.dataset.period;
         const map = { today: 'periodToday', week: 'periodWeek', month: 'periodMonth', all: 'periodAll' };
@@ -1652,29 +1789,7 @@
           </div>`;
       }
       const hist = document.getElementById('earnHistory');
-      if (!hist) return;
-      const list = dashboard.recentEarnings || [];
-      if (!list.length) {
-        hist.innerHTML = `<p class="muted">${esc(tr('emptyHistory'))}</p>`;
-        return;
-      }
-      hist.innerHTML = list
-        .map((row) => {
-          const dt = row.deliveredAt
-            ? new Date(row.deliveredAt).toLocaleString(lang === 'ru' ? 'ru-RU' : 'uz-UZ', {
-                day: '2-digit',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit'
-              })
-            : '';
-          const rat = row.rating ? ` · ${starsText(row.rating)}` : '';
-          return `<div class="earn-row">
-            <div><b>#${esc(row.orderNumber || '')}</b><small>${esc(dt)}${rat}</small></div>
-            <span class="amt">+${esc(money(row.courierEarned))}</span>
-          </div>`;
-        })
-        .join('');
+      if (hist) hist.innerHTML = renderOrderHistoryRows(dashboard.recentEarnings || [], 25);
     }
 
     function renderRatingPanel() {
@@ -1737,6 +1852,13 @@
       const hint = document.getElementById('earnShareHint');
       if (hint && dashboard) {
         hint.textContent = trFmt('earnShareHint', { n: dashboard.sharePercent || 80 });
+      }
+      const histEl = document.getElementById('myOrdersHistory');
+      const moreBtn = document.getElementById('myOrdersWalletBtn');
+      if (histEl && dashboard) {
+        const list = dashboard.recentEarnings || [];
+        histEl.innerHTML = renderOrderHistoryRows(list, 12);
+        if (moreBtn) moreBtn.style.display = list.length ? 'block' : 'none';
       }
       const grid = document.getElementById('profileStats');
       if (grid && dashboard) {
@@ -1858,18 +1980,10 @@
       return data;
     }
 
-    function renderFeed() {
-      const el = document.getElementById('feed');
-      if (!el) return;
-      if (!orders.length) {
-        const st = String(profile?.status || '').toLowerCase();
-        const msg = st === 'pending' ? tr('pendingFeed') : tr('emptyFeed');
-        el.innerHTML = `<p class="muted">${esc(msg)}</p>`;
-        return;
-      }
-      const sorted = [...orders].sort((a, b) => {
-        const ma = isMine(a);
-        const mb = isMine(b);
+    function sortFeedOrders(arr) {
+      return [...arr].sort((a, b) => {
+        const ma = isMineActiveOrder(a);
+        const mb = isMineActiveOrder(b);
         if (ma && !mb) return -1;
         if (!ma && mb) return 1;
         if (ma && mb) {
@@ -1881,8 +1995,9 @@
         }
         return String(b.updated_at || '').localeCompare(String(a.updated_at || ''));
       });
-      el.innerHTML = sorted
-        .map((o) => {
+    }
+
+    function renderFeedCard(o) {
           const addr = [o.addressText, o.customerAddress, o.location].map((x) => String(x || '').trim()).find(Boolean) || '—';
           const mine = isMine(o);
           const st = normPortalStatus(o.status);
@@ -1904,8 +2019,37 @@
               ${mine ? `<div class="muted" style="margin-top:6px;font-size:12px;">✓ ${lang === 'ru' ? 'Ваш заказ' : 'Sizning buyurtmangiz'}</div>` : ''}
             </article>
           `;
-        })
-        .join('');
+    }
+
+    function renderFeed() {
+      const el = document.getElementById('feed');
+      if (!el) return;
+      if (!orders.length) {
+        const st = String(profile?.status || '').toLowerCase();
+        const msg = st === 'pending' ? tr('pendingFeed') : tr('emptyFeed');
+        el.innerHTML = `<p class="muted">${esc(msg)}</p>`;
+        return;
+      }
+      const sorted = sortFeedOrders(orders);
+      const mineActive = sorted.filter((o) => isMineActiveOrder(o));
+      const claimable = sorted.filter((o) => {
+        const st = normPortalStatus(o.status);
+        return st === 'ready_for_courier' && !String(o.courierPhone || '').trim();
+      });
+      let html = '';
+      if (mineActive.length) {
+        html += `<p class="muted" style="margin:0 0 8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">${esc(
+          tr('feedActiveMine')
+        )}</p>`;
+        html += mineActive.map((o) => renderFeedCard(o)).join('');
+      }
+      if (claimable.length) {
+        html += `<p class="muted" style="margin:${mineActive.length ? '14px' : '0'} 0 8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">${esc(
+          tr('feedNewOrders')
+        )}</p>`;
+        html += claimable.map((o) => renderFeedCard(o)).join('');
+      }
+      el.innerHTML = html || `<p class="muted">${esc(tr('emptyFeed'))}</p>`;
       el.querySelectorAll('.card').forEach((c) => {
         c.onclick = () => {
           const id = c.getAttribute('data-id');
@@ -2112,26 +2256,30 @@
           renderFeed();
           return;
         }
+        const display = feedOrdersForDisplay(next);
         const fp = feedFingerprint(next);
         const sheetOpen = document.getElementById('sheet')?.classList.contains('on');
         const prevClaimable = lastClaimableIds;
+        const newCount = detectNewClaimableOrders(prevClaimable, next);
         if (fp !== lastFeedFingerprint) {
-          const newCount = detectNewClaimableOrders(prevClaimable, next);
-          orders = next;
+          orders = display;
           lastFeedFingerprint = fp;
           lastClaimableIds = claimableIdSet(next);
           renderFeed();
           if (newCount > 0) alertNewOrders(newCount);
         } else {
-          orders = next;
+          orders = display;
           lastClaimableIds = claimableIdSet(next);
+          renderFeed();
         }
         if (!feedAlertsReady) feedAlertsReady = true;
         if (selected) {
-          const fresh = orders.find((x) => String(x.id) === String(selected.id));
+          const fresh = display.find((x) => String(x.id) === String(selected.id));
           if (fresh) {
             if (sheetOpen) openSheet(fresh, { redrawMap: false });
             else selected = fresh;
+          } else {
+            closeSheet();
           }
         }
         routePollSkip += 1;
@@ -2432,8 +2580,15 @@
       }
     };
 
+    document.getElementById('myOrdersWalletBtn')?.addEventListener('click', () => switchPanel('wallet'));
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === FEED_BUMP_LS) onExternalFeedBump();
+    });
+    window.addEventListener('pageshow', () => onExternalFeedBump());
+
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) void loadFeed({ silent: true });
+      if (!document.hidden) onExternalFeedBump();
       schedulePoll();
     });
     document.getElementById('langUz').onclick = () => {
@@ -2452,8 +2607,9 @@
       syncSoundToggle();
       unlockAudio();
       if (next) {
-        playNewOrderBeep();
-        speakNewOrderVoice();
+        unlockAudio();
+        if (getAudioContext()) playCarHornAlert();
+        else playHornAudioElement();
       }
     });
     document.addEventListener(
