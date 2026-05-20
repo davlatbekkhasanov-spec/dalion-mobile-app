@@ -12,6 +12,7 @@ const dalionExcelImportService = require('./src/services/dalion-excel-import.ser
 const { paymeRpc } = require('./src/controllers/payme.controller');
 const { normalizeOrderStatus } = require('./src/order-status');
 const { issueCustomerToken, resolveCustomerAuth } = require('./src/customer-session');
+const courierAuth = require('./src/courier-auth');
 const { shouldShowOnOpsBoards } = require('./src/order-board-filter');
 const { buildOrderChannelReports } = require('./src/order-reports');
 const { integrationConfig } = require('./src/integrations/integration.config');
@@ -1601,12 +1602,236 @@ function courierApplicationPublic(row) {
     id: row.id,
     fullName: row.fullName,
     phone: row.phone,
+    vehiclePlate: String(row.vehiclePlate || ''),
     status: String(row.status || 'pending').toLowerCase(),
     note: String(row.note || ''),
+    passwordSet: courierAuth.courierHasPassword(row),
     createdAt: row.createdAt ? row.createdAt.toISOString() : null,
     updatedAt: row.updatedAt ? row.updatedAt.toISOString() : null
   };
 }
+
+function courierAuthSessionPayload(row) {
+  const app = courierApplicationPublic(row);
+  return {
+    ok: true,
+    accessToken: row.accessToken,
+    token: row.accessToken,
+    needsPassword: !courierAuth.courierHasPassword(row),
+    application: app
+  };
+}
+
+async function handleCourierSmsOtpSend(req, res) {
+  const phone = normalizeSmsPhone(req.body.phone);
+  if (!phone) {
+    return res.status(400).json({ ok: false, message: 'Telefon +998 formatida kiriting' });
+  }
+  const row = await marketplaceRepo.getCourierApplicationByPhone(phone);
+  if (!row) {
+    return res.status(404).json({ ok: false, message: 'Avval ro‘yxatdan o‘ting' });
+  }
+  const challengePhone = courierAuth.courierSmsChallengePhone(phone);
+  const ip = clientIp(req);
+  const tp = smsThrottleTouch(smsThrottlePhone, challengePhone, 45000);
+  if (!tp.ok) {
+    return res.status(429).json({
+      ok: false,
+      message: 'Kodni qayta yuborishdan oldin kuting',
+      retryAfterMs: tp.retryAfterMs
+    });
+  }
+  const ti = smsThrottleTouch(smsThrottleIp, ip || 'unknown', 12000);
+  if (!ti.ok) {
+    return res.status(429).json({
+      ok: false,
+      message: 'So‘rovlar juda tez',
+      retryAfterMs: ti.retryAfterMs
+    });
+  }
+  const code = generateSmsOtpCode();
+  const codeHash = hashSmsOtp(challengePhone, code);
+  const expiresAt = Date.now() + SMS_OTP_TTL_MS;
+  await marketplaceRepo.writeSmsChallenge(challengePhone, {
+    codeHash,
+    expiresAt,
+    attempts: 0,
+    createdAt: nowIso()
+  });
+  const sendResult = await smsService.sendSmsOtp(phone, code);
+  if (!sendResult.ok) {
+    await marketplaceRepo.deleteSmsChallenge(challengePhone);
+    return res.status(502).json({ ok: false, message: sendResult.message || 'SMS yuborilmadi' });
+  }
+  return res.json({ ok: true, ...smsOtpDevHint(code) });
+}
+
+async function verifyCourierSmsCode(phone, code) {
+  const challengePhone = courierAuth.courierSmsChallengePhone(phone);
+  const ch = await marketplaceRepo.readSmsChallenge(challengePhone);
+  if (!ch || Date.now() > ch.expiresAt.getTime()) {
+    return { ok: false, status: 400, message: 'Kod eskirgan yoki yuborilmagan' };
+  }
+  const nextAttempts = Math.min(99, Number(ch.attempts || 0) + 1);
+  await marketplaceRepo.touchSmsAttempt(challengePhone, nextAttempts);
+  if (nextAttempts > 10) {
+    await marketplaceRepo.deleteSmsChallenge(challengePhone);
+    return { ok: false, status: 429, message: 'Urinishlar limiti' };
+  }
+  if (hashSmsOtp(challengePhone, code) !== ch.codeHash) {
+    return { ok: false, status: 400, message: 'Kod noto‘g‘ri' };
+  }
+  await marketplaceRepo.deleteSmsChallenge(challengePhone);
+  return { ok: true };
+}
+
+async function requireCourierPortalRow(req, res) {
+  const tok = getCourierPortalToken(req);
+  if (!tok) {
+    res.status(401).json({ ok: false, message: 'Kirish kerak' });
+    return null;
+  }
+  const row = await marketplaceRepo.getCourierApplicationByAccessToken(tok);
+  if (!row) {
+    res.status(401).json({ ok: false, message: 'Sessiya yaroqsiz' });
+    return null;
+  }
+  return row;
+}
+
+app.post('/api/v1/courier-auth/register', async (req, res) => {
+  const phone = normalizeSmsPhone(req.body.phone);
+  const fullName = String(req.body.fullName || '').trim();
+  const vehiclePlate = courierAuth.normalizeVehiclePlate(req.body.vehiclePlate);
+  if (!phone) {
+    return res.status(400).json({ ok: false, message: 'Telefon +998 formatida kiriting' });
+  }
+  try {
+    const row = await marketplaceRepo.registerCourierPartner({ phone, fullName, vehiclePlate });
+    return res.json({
+      ok: true,
+      application: courierApplicationPublic(row),
+      message: 'SMS kod yuborish uchun «Kirish» bo‘limidan foydalaning'
+    });
+  } catch (err) {
+    const map = {
+      fullName_required: 'Ism-sharif kiriting',
+      vehicle_plate_required: 'Avtomobil davlat raqamini kiriting',
+      phone_registered: 'Bu raqam ro‘yxatdan o‘tgan. Parol bilan kiring yoki parolni tiklang'
+    };
+    const msg = map[err?.message] || err?.message || 'Ro‘yxatdan o‘tishda xato';
+    const status = err?.message === 'phone_registered' ? 409 : 400;
+    return res.status(status).json({ ok: false, message: msg });
+  }
+});
+
+app.post('/api/v1/courier-auth/sms/send', (req, res) => {
+  handleCourierSmsOtpSend(req, res).catch((err) => {
+    logStructured('error', 'courier_sms_send', { err: String(err?.message || err) });
+    res.status(500).json({ ok: false, message: 'Server xatosi' });
+  });
+});
+
+app.post('/api/v1/courier-auth/sms/verify', async (req, res) => {
+  const phone = normalizeSmsPhone(req.body.phone);
+  const code = String(req.body.code || '').replace(/\D/g, '').trim();
+  if (!phone || !code) {
+    return res.status(400).json({ ok: false, message: 'Telefon va kod kiriting' });
+  }
+  const ip = clientIp(req);
+  const tv = smsThrottleTouch(smsVerifyThrottleIp, `c|${ip}|${phone}`, 600);
+  if (!tv.ok) {
+    return res.status(429).json({ ok: false, message: 'Urinishlar juda tez', retryAfterMs: tv.retryAfterMs });
+  }
+  const row = await marketplaceRepo.getCourierApplicationByPhone(phone);
+  if (!row) {
+    return res.status(404).json({ ok: false, message: 'Avval ro‘yxatdan o‘ting' });
+  }
+  const verified = await verifyCourierSmsCode(phone, code);
+  if (!verified.ok) {
+    return res.status(verified.status || 400).json({ ok: false, message: verified.message });
+  }
+  return res.json(courierAuthSessionPayload(row));
+});
+
+app.post('/api/v1/courier-auth/login', async (req, res) => {
+  const phone = normalizeSmsPhone(req.body.phone);
+  const password = String(req.body.password || '');
+  if (!phone || !password) {
+    return res.status(400).json({ ok: false, message: 'Telefon va parol kiriting' });
+  }
+  const row = await marketplaceRepo.getCourierApplicationByPhone(phone);
+  if (!row || !courierAuth.courierHasPassword(row)) {
+    return res.status(401).json({
+      ok: false,
+      message: 'Parol o‘rnatilmagan. SMS orqali kiring',
+      needsSmsLogin: true
+    });
+  }
+  if (!courierAuth.verifyCourierPassword(password, row.passwordHash)) {
+    return res.status(401).json({ ok: false, message: 'Telefon yoki parol noto‘g‘ri' });
+  }
+  return res.json(courierAuthSessionPayload(row));
+});
+
+app.post('/api/v1/courier-auth/password/set', async (req, res) => {
+  const row = await requireCourierPortalRow(req, res);
+  if (!row) return;
+  const password = String(req.body.password || '');
+  const confirm = String(req.body.confirm || req.body.passwordConfirm || password);
+  const v = courierAuth.validateCourierPassword(password);
+  if (!v.ok) return res.status(400).json({ ok: false, message: v.message });
+  if (password !== confirm) {
+    return res.status(400).json({ ok: false, message: 'Parollar mos emas' });
+  }
+  try {
+    const updated = await marketplaceRepo.setCourierPartnerPassword({
+      phone: row.phone,
+      passwordHash: courierAuth.hashCourierPassword(password)
+    });
+    return res.json(courierAuthSessionPayload(updated));
+  } catch (err) {
+    return res.status(400).json({ ok: false, message: err?.message || 'Parol saqlanmadi' });
+  }
+});
+
+app.post('/api/v1/courier-auth/password/forgot/send', (req, res) => {
+  handleCourierSmsOtpSend(req, res).catch(() => {
+    res.status(500).json({ ok: false, message: 'Server xatosi' });
+  });
+});
+
+app.post('/api/v1/courier-auth/password/forgot/reset', async (req, res) => {
+  const phone = normalizeSmsPhone(req.body.phone);
+  const code = String(req.body.code || '').replace(/\D/g, '').trim();
+  const password = String(req.body.password || '');
+  const confirm = String(req.body.confirm || req.body.passwordConfirm || password);
+  if (!phone || !code) {
+    return res.status(400).json({ ok: false, message: 'Telefon va kod kiriting' });
+  }
+  const v = courierAuth.validateCourierPassword(password);
+  if (!v.ok) return res.status(400).json({ ok: false, message: v.message });
+  if (password !== confirm) {
+    return res.status(400).json({ ok: false, message: 'Parollar mos emas' });
+  }
+  const row = await marketplaceRepo.getCourierApplicationByPhone(phone);
+  if (!row) {
+    return res.status(404).json({ ok: false, message: 'Kuryer topilmadi' });
+  }
+  const verified = await verifyCourierSmsCode(phone, code);
+  if (!verified.ok) {
+    return res.status(verified.status || 400).json({ ok: false, message: verified.message });
+  }
+  try {
+    const updated = await marketplaceRepo.setCourierPartnerPassword({
+      phone,
+      passwordHash: courierAuth.hashCourierPassword(password)
+    });
+    return res.json(courierAuthSessionPayload(updated));
+  } catch (err) {
+    return res.status(400).json({ ok: false, message: err?.message || 'Parol yangilanmadi' });
+  }
+});
 
 app.get('/api/v1/courier-applications/me', async (req, res) => {
   const phone = requireCustomerPhone(req, res);
@@ -1636,22 +1861,15 @@ app.get('/api/v1/courier-portal/session', async (req, res) => {
   if (!tok) return res.status(400).json({ ok: false, message: 'token kerak' });
   const row = await marketplaceRepo.getCourierApplicationByAccessToken(tok);
   if (!row) return res.status(404).json({ ok: false, message: 'Havola yaroqsiz' });
-  return res.json({
-    ok: true,
-    application: {
-      fullName: row.fullName,
-      phone: row.phone,
-      status: row.status,
-      createdAt: row.createdAt ? row.createdAt.toISOString() : null
-    }
-  });
+  return res.json(courierAuthSessionPayload(row));
 });
 
 app.get('/api/v1/courier-portal/feed', async (req, res) => {
-  const tok = getCourierPortalToken(req);
-  if (!tok) return res.status(401).json({ ok: false, message: 'token kerak' });
-  const row = await marketplaceRepo.getCourierApplicationByAccessToken(tok);
-  if (!row) return res.status(401).json({ ok: false, message: 'Havola yaroqsiz' });
+  const row = await requireCourierPortalRow(req, res);
+  if (!row) return;
+  if (!courierAuth.courierHasPassword(row)) {
+    return res.status(403).json({ ok: false, message: 'Avval parol o‘rnating', needsPassword: true });
+  }
   if (String(row.status || '') !== 'approved') {
     return res.status(403).json({ ok: false, message: 'Ariza tasdiqlanmagan' });
   }
@@ -1675,10 +1893,11 @@ app.get('/api/v1/courier-portal/feed', async (req, res) => {
 });
 
 app.get('/api/v1/courier-portal/my-route', async (req, res) => {
-  const tok = getCourierPortalToken(req);
-  if (!tok) return res.status(401).json({ ok: false, message: 'token kerak' });
-  const row = await marketplaceRepo.getCourierApplicationByAccessToken(tok);
-  if (!row) return res.status(401).json({ ok: false, message: 'Havola yaroqsiz' });
+  const row = await requireCourierPortalRow(req, res);
+  if (!row) return;
+  if (!courierAuth.courierHasPassword(row)) {
+    return res.status(403).json({ ok: false, message: 'Avval parol o‘rnating', needsPassword: true });
+  }
   if (String(row.status || '') !== 'approved') {
     return res.status(403).json({ ok: false, message: 'Ariza tasdiqlanmagan' });
   }
@@ -1694,10 +1913,12 @@ app.get('/api/v1/courier-portal/my-route', async (req, res) => {
 });
 
 app.post('/api/v1/courier-portal/orders/:id/claim', async (req, res) => {
+  const row = await requireCourierPortalRow(req, res);
+  if (!row) return;
   const tok = getCourierPortalToken(req);
-  if (!tok) return res.status(401).json({ ok: false, message: 'token kerak' });
-  const row = await marketplaceRepo.getCourierApplicationByAccessToken(tok);
-  if (!row) return res.status(401).json({ ok: false, message: 'Havola yaroqsiz' });
+  if (!courierAuth.courierHasPassword(row)) {
+    return res.status(403).json({ ok: false, message: 'Avval parol o‘rnating', needsPassword: true });
+  }
   if (String(row.status || '') !== 'approved') {
     return res.status(403).json({ ok: false, message: 'Ariza tasdiqlanmagan' });
   }

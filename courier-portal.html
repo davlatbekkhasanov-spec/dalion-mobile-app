@@ -327,6 +327,72 @@
       font-weight: 800;
       cursor: pointer;
     }
+    .auth-wrap { padding-top: 8px; }
+    .auth-card {
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      padding: 18px 16px;
+      background: linear-gradient(155deg, rgba(255, 204, 0, 0.08), rgba(18, 18, 24, 0.98));
+      box-shadow: var(--shadow);
+    }
+    .auth-card h2 { margin: 0 0 6px; font-size: 20px; color: var(--gold); }
+    .auth-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+    .auth-tabs button {
+      flex: 1;
+      border: 1px solid var(--line);
+      background: var(--ink);
+      color: var(--muted);
+      border-radius: 12px;
+      padding: 10px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .auth-tabs button.on { color: var(--gold); border-color: rgba(255, 204, 0, 0.45); background: rgba(255, 204, 0, 0.1); }
+    .auth-field { margin-top: 12px; }
+    .auth-field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 700; }
+    .auth-field input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: var(--surface);
+      color: var(--txt);
+      font-size: 16px;
+    }
+    .auth-main {
+      width: 100%;
+      margin-top: 16px;
+      border: none;
+      border-radius: 14px;
+      padding: 14px;
+      font-weight: 800;
+      font-size: 15px;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      color: #1a1200;
+    }
+    .auth-link {
+      display: inline-block;
+      margin-top: 12px;
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    .auth-err { color: #fca5a5; font-size: 13px; margin-top: 10px; display: none; }
+    .pending-banner {
+      margin-bottom: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 204, 0, 0.35);
+      background: rgba(255, 204, 0, 0.1);
+      color: #fde68a;
+      font-size: 13px;
+      line-height: 1.45;
+    }
   </style>
 </head>
 <body>
@@ -341,15 +407,95 @@
     </div>
   </div>
 
-  <div id="gate" class="wrap gate" style="display:none;">
-    <p class="muted" id="gateMsg"></p>
-    <a href="/" id="gateShop">Bosh sahifa</a>
+  <div id="auth" class="wrap auth-wrap" style="display:none;">
+    <div class="auth-card">
+      <h2 id="authTitle">Kuryer</h2>
+      <p class="muted" id="authHint" style="margin:0;"></p>
+      <div id="authViewLogin">
+        <div class="auth-tabs">
+          <button type="button" class="on" id="tabLogin" data-tab="login">Kirish</button>
+          <button type="button" id="tabRegister" data-tab="register">Ro‘yxatdan o‘tish</button>
+        </div>
+        <div class="auth-field">
+          <label for="loginPhone" id="lblLoginPhone">Telefon</label>
+          <input id="loginPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+998901234567" />
+        </div>
+        <div class="auth-field">
+          <label for="loginPassword" id="lblLoginPassword">Parol</label>
+          <input id="loginPassword" type="password" autocomplete="current-password" />
+        </div>
+        <button type="button" class="auth-main" id="loginBtn">Kirish</button>
+        <button type="button" class="auth-link" id="smsLoginLink">SMS orqali kirish</button>
+        <button type="button" class="auth-link" id="forgotLink">Parolni unutdingizmi?</button>
+      </div>
+      <div id="authViewRegister" style="display:none;">
+        <div class="auth-field">
+          <label for="regFullName" id="lblRegName">F.I.O.</label>
+          <input id="regFullName" type="text" autocomplete="name" />
+        </div>
+        <div class="auth-field">
+          <label for="regPhone" id="lblRegPhone">Telefon</label>
+          <input id="regPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+998901234567" />
+        </div>
+        <div class="auth-field">
+          <label for="regPlate" id="lblRegPlate">Avtomobil davlat raqami</label>
+          <input id="regPlate" type="text" autocomplete="off" placeholder="01 A 123 BC" />
+        </div>
+        <button type="button" class="auth-main" id="registerBtn">Ro‘yxatdan o‘tish</button>
+        <button type="button" class="auth-link" id="backToLoginFromReg">Kirish</button>
+      </div>
+      <div id="authViewSms" style="display:none;">
+        <p class="muted" id="smsPhoneDisplay"></p>
+        <div class="auth-field">
+          <label for="smsCode" id="lblSmsCode">SMS kod</label>
+          <input id="smsCode" type="text" inputmode="numeric" maxlength="8" autocomplete="one-time-code" />
+        </div>
+        <button type="button" class="auth-main" id="smsVerifyBtn">Tasdiqlash</button>
+        <button type="button" class="auth-link" id="smsResendBtn">Kodni qayta yuborish</button>
+        <button type="button" class="auth-link" id="backFromSms">Orqaga</button>
+      </div>
+      <div id="authViewSetPassword" style="display:none;">
+        <div class="auth-field">
+          <label for="setPassword" id="lblSetPassword">Yangi parol</label>
+          <input id="setPassword" type="password" autocomplete="new-password" />
+        </div>
+        <div class="auth-field">
+          <label for="setPasswordConfirm" id="lblSetPasswordConfirm">Parolni takrorlang</label>
+          <input id="setPasswordConfirm" type="password" autocomplete="new-password" />
+        </div>
+        <button type="button" class="auth-main" id="setPasswordBtn">Parolni saqlash</button>
+      </div>
+      <div id="authViewForgot" style="display:none;">
+        <div class="auth-field">
+          <label for="forgotPhone" id="lblForgotPhone">Telefon</label>
+          <input id="forgotPhone" type="tel" inputmode="tel" />
+        </div>
+        <div class="auth-field" id="forgotCodeWrap" style="display:none;">
+          <label for="forgotCode" id="lblForgotCode">SMS kod</label>
+          <input id="forgotCode" type="text" inputmode="numeric" maxlength="8" />
+        </div>
+        <div class="auth-field" id="forgotPassWrap" style="display:none;">
+          <label for="forgotPassword" id="lblForgotPassword">Yangi parol</label>
+          <input id="forgotPassword" type="password" autocomplete="new-password" />
+        </div>
+        <div class="auth-field" id="forgotPassConfirmWrap" style="display:none;">
+          <label for="forgotPasswordConfirm" id="lblForgotPasswordConfirm">Parolni takrorlang</label>
+          <input id="forgotPasswordConfirm" type="password" autocomplete="new-password" />
+        </div>
+        <button type="button" class="auth-main" id="forgotActionBtn">SMS yuborish</button>
+        <button type="button" class="auth-link" id="backFromForgot">Kirish</button>
+      </div>
+      <p class="auth-err" id="authErr"></p>
+    </div>
+    <p style="margin-top:16px;"><a href="/" id="gateShop" class="auth-link" style="text-decoration:none;">Bosh sahifa</a></p>
   </div>
 
   <div id="app" class="wrap" style="display:none;">
+    <div class="pending-banner" id="pendingBanner" style="display:none;"></div>
     <header class="driver-card">
       <h1 id="whoName">—</h1>
       <p class="muted" id="whoPhone">—</p>
+      <p class="muted" id="whoPlate" style="margin-top:4px;"></p>
       <p class="route-active-badge" id="routeActiveHint" style="display:none;"></p>
     </header>
     <section id="myRoutePanel" class="route-drawer" style="display:none;">
@@ -446,7 +592,33 @@
         min: 'daq',
         busy: 'Boshqa kuryer oldin qabul qilgan',
         loading: 'Yuklanmoqda...',
-        emptyFeed: 'Hozircha yetkazish buyurtmalari yo‘q'
+        emptyFeed: 'Hozircha yetkazish buyurtmalari yo‘q',
+        authTitle: 'Kuryer kabineti',
+        authHintLogin: 'Telefon va parol bilan kiring',
+        tabLogin: 'Kirish',
+        tabRegister: 'Ro‘yxatdan o‘tish',
+        phone: 'Telefon',
+        password: 'Parol',
+        login: 'Kirish',
+        smsLogin: 'SMS orqali kirish (birinchi kirish)',
+        forgot: 'Parolni unutdingizmi?',
+        fullName: 'F.I.O.',
+        vehiclePlate: 'Avtomobil davlat raqami',
+        register: 'Ro‘yxatdan o‘tish',
+        backLogin: 'Kirish',
+        smsCode: 'SMS kod',
+        smsVerify: 'Tasdiqlash',
+        smsResend: 'Kodni qayta yuborish',
+        back: 'Orqaga',
+        setPassword: 'Parol o‘rnating',
+        newPassword: 'Yangi parol',
+        confirmPassword: 'Parolni takrorlang',
+        savePassword: 'Parolni saqlash',
+        forgotSend: 'SMS yuborish',
+        forgotReset: 'Parolni yangilash',
+        shop: 'Bosh sahifa',
+        pendingBanner: 'Arizangiz ko‘rib chiqilmoqda. Admin tasdiqlagach buyurtmalar chiqadi.',
+        plateLabel: 'Raqam'
       },
       ru: {
         brand: 'GlobusMarket',
@@ -471,7 +643,33 @@
         min: 'мин',
         busy: 'Уже принят другим курьером',
         loading: 'Загрузка...',
-        emptyFeed: 'Пока нет заказов для доставки'
+        emptyFeed: 'Пока нет заказов для доставки',
+        authTitle: 'Кабинет курьера',
+        authHintLogin: 'Войдите по телефону и паролю',
+        tabLogin: 'Вход',
+        tabRegister: 'Регистрация',
+        phone: 'Телефон',
+        password: 'Пароль',
+        login: 'Войти',
+        smsLogin: 'Вход по SMS (первый раз)',
+        forgot: 'Забыли пароль?',
+        fullName: 'Ф.И.О.',
+        vehiclePlate: 'Гос. номер авто',
+        register: 'Зарегистрироваться',
+        backLogin: 'Вход',
+        smsCode: 'Код из SMS',
+        smsVerify: 'Подтвердить',
+        smsResend: 'Отправить код снова',
+        back: 'Назад',
+        setPassword: 'Задайте пароль',
+        newPassword: 'Новый пароль',
+        confirmPassword: 'Повторите пароль',
+        savePassword: 'Сохранить пароль',
+        forgotSend: 'Отправить SMS',
+        forgotReset: 'Обновить пароль',
+        shop: 'На главную',
+        pendingBanner: 'Заявка на рассмотрении. Заказы появятся после одобрения.',
+        plateLabel: 'Номер'
       }
     };
     function tr(k) {
@@ -636,8 +834,38 @@
       document.getElementById('feedTitle').textContent = tr('feedTitle');
       document.getElementById('feedHint').textContent = tr('feedHint');
       document.getElementById('logoutBtn').textContent = tr('logout');
-      document.getElementById('gateMsg').textContent = tr('gate');
+      document.getElementById('authTitle').textContent = tr('authTitle');
+      document.getElementById('authHint').textContent = tr('authHintLogin');
+      document.getElementById('tabLogin').textContent = tr('tabLogin');
+      document.getElementById('tabRegister').textContent = tr('tabRegister');
+      document.getElementById('lblLoginPhone').textContent = tr('phone');
+      document.getElementById('lblLoginPassword').textContent = tr('password');
+      document.getElementById('loginBtn').textContent = tr('login');
+      document.getElementById('smsLoginLink').textContent = tr('smsLogin');
+      document.getElementById('forgotLink').textContent = tr('forgot');
+      document.getElementById('lblRegName').textContent = tr('fullName');
+      document.getElementById('lblRegPhone').textContent = tr('phone');
+      document.getElementById('lblRegPlate').textContent = tr('vehiclePlate');
+      document.getElementById('registerBtn').textContent = tr('register');
+      document.getElementById('backToLoginFromReg').textContent = tr('backLogin');
+      document.getElementById('lblSmsCode').textContent = tr('smsCode');
+      document.getElementById('smsVerifyBtn').textContent = tr('smsVerify');
+      document.getElementById('smsResendBtn').textContent = tr('smsResend');
+      document.getElementById('backFromSms').textContent = tr('back');
+      document.getElementById('lblSetPassword').textContent = tr('newPassword');
+      document.getElementById('lblSetPasswordConfirm').textContent = tr('confirmPassword');
+      document.getElementById('setPasswordBtn').textContent = tr('savePassword');
+      document.getElementById('lblForgotPhone').textContent = tr('phone');
+      document.getElementById('lblForgotCode').textContent = tr('smsCode');
+      document.getElementById('lblForgotPassword').textContent = tr('newPassword');
+      document.getElementById('lblForgotPasswordConfirm').textContent = tr('confirmPassword');
+      document.getElementById('backFromForgot').textContent = tr('backLogin');
       document.getElementById('gateShop').textContent = tr('shop');
+      const fb = document.getElementById('forgotActionBtn');
+      if (fb) {
+        fb.textContent =
+          forgotStep === 'phone' ? tr('forgotSend') : forgotStep === 'code' ? tr('smsVerify') : tr('forgotReset');
+      }
       document.getElementById('claimBtn').textContent = tr('claim');
       document.getElementById('openCourierBtn').textContent = tr('courierPage');
       document.getElementById('lblDist').textContent = tr('dist');
@@ -647,6 +875,45 @@
       if (selected) openSheet(selected);
     }
 
+    function showAuthErr(msg) {
+      const el = document.getElementById('authErr');
+      if (!el) return;
+      if (!msg) {
+        el.style.display = 'none';
+        el.textContent = '';
+        return;
+      }
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    function showAuthView(name) {
+      document.getElementById('auth').style.display = 'block';
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('logoutBtn').style.display = 'none';
+      ['authViewLogin', 'authViewRegister', 'authViewSms', 'authViewSetPassword', 'authViewForgot'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+      const map = {
+        login: 'authViewLogin',
+        register: 'authViewRegister',
+        sms: 'authViewSms',
+        setPassword: 'authViewSetPassword',
+        forgot: 'authViewForgot'
+      };
+      const target = document.getElementById(map[name] || 'authViewLogin');
+      if (target) target.style.display = 'block';
+      showAuthErr('');
+      applyLang();
+    }
+
+    function persistCourierToken(tok) {
+      token = String(tok || '').trim();
+      if (token) localStorage.setItem(LS, token);
+      else localStorage.removeItem(LS);
+    }
+
     function readToken() {
       const q = new URLSearchParams(location.search).get('t');
       if (q) {
@@ -654,6 +921,65 @@
         history.replaceState({}, '', '/courier-portal');
       }
       return localStorage.getItem(LS) || '';
+    }
+
+    async function authJson(path, body, useToken) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (useToken && token) headers['X-Courier-Portal-Token'] = token;
+      const res = await fetch('/api/v1' + path, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body || {})
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const err = new Error(data.message || 'Error');
+        err.payload = data;
+        throw err;
+      }
+      return data;
+    }
+
+    async function enterPortalFromAuth(data) {
+      persistCourierToken(data.accessToken || data.token);
+      if (data.needsPassword) {
+        showAuthView('setPassword');
+        return;
+      }
+      await openMainApp(data.application);
+    }
+
+    async function openMainApp(app) {
+      profile = app || profile;
+      if (!profile) return;
+      document.getElementById('auth').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('logoutBtn').style.display = 'block';
+      document.getElementById('whoName').textContent = profile.fullName || '—';
+      document.getElementById('whoPhone').textContent = profile.phone || '—';
+      const plateEl = document.getElementById('whoPlate');
+      if (plateEl) {
+        const pl = String(profile.vehiclePlate || '').trim();
+        plateEl.textContent = pl ? `${tr('plateLabel')}: ${pl}` : '';
+        plateEl.style.display = pl ? 'block' : 'none';
+      }
+      const pending = document.getElementById('pendingBanner');
+      if (pending) {
+        const st = String(profile.status || '').toLowerCase();
+        if (st === 'pending') {
+          pending.textContent = tr('pendingBanner');
+          pending.style.display = 'block';
+        } else {
+          pending.style.display = 'none';
+        }
+      }
+      try {
+        await loadFeed({ silent: false });
+        schedulePoll();
+      } catch (e) {
+        const feed = document.getElementById('feed');
+        if (feed) feed.innerHTML = `<p class="muted">${esc(e.message || tr('emptyFeed'))}</p>`;
+      }
     }
 
     async function api(path, opt) {
@@ -941,26 +1267,28 @@
       applyLang();
       token = readToken();
       if (!token) {
-        document.getElementById('gate').style.display = 'block';
+        showAuthView('login');
         return;
       }
       try {
-        const res = await fetch('/api/v1/courier-portal/session?token=' + encodeURIComponent(token), { cache: 'no-store' });
+        const res = await fetch('/api/v1/courier-portal/session?token=' + encodeURIComponent(token), {
+          cache: 'no-store'
+        });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok || !data.application) {
           localStorage.removeItem(LS);
-          document.getElementById('gate').style.display = 'block';
+          token = '';
+          showAuthView('login');
           return;
         }
         profile = data.application;
-        document.getElementById('whoName').textContent = profile.fullName || '—';
-        document.getElementById('whoPhone').textContent = profile.phone || '—';
-        document.getElementById('app').style.display = 'block';
-        document.getElementById('logoutBtn').style.display = 'block';
-        await loadFeed({ silent: false });
-        schedulePoll();
+        if (data.needsPassword) {
+          showAuthView('setPassword');
+          return;
+        }
+        await openMainApp(profile);
       } catch (_) {
-        document.getElementById('gate').style.display = 'block';
+        showAuthView('login');
       }
     }
 
@@ -1006,8 +1334,164 @@
 
     document.getElementById('logoutBtn').onclick = () => {
       localStorage.removeItem(LS);
+      token = '';
+      profile = null;
       clearTimeout(pollTimer);
-      location.href = '/';
+      showAuthView('login');
+    };
+
+    document.getElementById('tabLogin').onclick = () => {
+      document.getElementById('tabLogin').classList.add('on');
+      document.getElementById('tabRegister').classList.remove('on');
+      document.getElementById('authViewLogin').style.display = 'block';
+      document.getElementById('authViewRegister').style.display = 'none';
+    };
+    document.getElementById('tabRegister').onclick = () => {
+      document.getElementById('tabRegister').classList.add('on');
+      document.getElementById('tabLogin').classList.remove('on');
+      document.getElementById('authViewLogin').style.display = 'none';
+      document.getElementById('authViewRegister').style.display = 'block';
+    };
+    document.getElementById('backToLoginFromReg').onclick = () => document.getElementById('tabLogin').click();
+    document.getElementById('backFromSms').onclick = () => document.getElementById('tabLogin').click();
+    document.getElementById('backFromForgot').onclick = () => {
+      forgotStep = 'phone';
+      document.getElementById('forgotCodeWrap').style.display = 'none';
+      document.getElementById('forgotPassWrap').style.display = 'none';
+      document.getElementById('forgotPassConfirmWrap').style.display = 'none';
+      document.getElementById('tabLogin').click();
+    };
+
+    document.getElementById('loginBtn').onclick = async () => {
+      showAuthErr('');
+      try {
+        const data = await authJson('/courier-auth/login', {
+          phone: document.getElementById('loginPhone').value,
+          password: document.getElementById('loginPassword').value
+        });
+        await enterPortalFromAuth(data);
+      } catch (e) {
+        if (e.payload && e.payload.needsSmsLogin) {
+          authSmsPhone = document.getElementById('loginPhone').value;
+          showAuthView('sms');
+          document.getElementById('smsPhoneDisplay').textContent = authSmsPhone;
+          try {
+            await authJson('/courier-auth/sms/send', { phone: authSmsPhone });
+          } catch (err) {
+            showAuthErr(err.message);
+          }
+          return;
+        }
+        showAuthErr(e.message);
+      }
+    };
+
+    document.getElementById('smsLoginLink').onclick = async () => {
+      authSmsPhone = document.getElementById('loginPhone').value.trim();
+      if (!authSmsPhone) {
+        showAuthErr(tr('phone'));
+        return;
+      }
+      showAuthView('sms');
+      document.getElementById('smsPhoneDisplay').textContent = authSmsPhone;
+      try {
+        await authJson('/courier-auth/sms/send', { phone: authSmsPhone });
+      } catch (e) {
+        showAuthErr(e.message);
+      }
+    };
+
+    document.getElementById('smsResendBtn').onclick = async () => {
+      try {
+        await authJson('/courier-auth/sms/send', { phone: authSmsPhone });
+        showAuthErr('');
+      } catch (e) {
+        showAuthErr(e.message);
+      }
+    };
+
+    document.getElementById('smsVerifyBtn').onclick = async () => {
+      try {
+        const data = await authJson('/courier-auth/sms/verify', {
+          phone: authSmsPhone,
+          code: document.getElementById('smsCode').value
+        });
+        await enterPortalFromAuth(data);
+      } catch (e) {
+        showAuthErr(e.message);
+      }
+    };
+
+    document.getElementById('registerBtn').onclick = async () => {
+      try {
+        await authJson('/courier-auth/register', {
+          phone: document.getElementById('regPhone').value,
+          fullName: document.getElementById('regFullName').value,
+          vehiclePlate: document.getElementById('regPlate').value
+        });
+        authSmsPhone = document.getElementById('regPhone').value;
+        await authJson('/courier-auth/sms/send', { phone: authSmsPhone });
+        showAuthView('sms');
+        document.getElementById('smsPhoneDisplay').textContent = authSmsPhone;
+        showAuthErr('');
+      } catch (e) {
+        showAuthErr(e.message);
+      }
+    };
+
+    document.getElementById('setPasswordBtn').onclick = async () => {
+      try {
+        const data = await authJson(
+          '/courier-auth/password/set',
+          {
+            password: document.getElementById('setPassword').value,
+            confirm: document.getElementById('setPasswordConfirm').value
+          },
+          true
+        );
+        await enterPortalFromAuth(data);
+      } catch (e) {
+        showAuthErr(e.message);
+      }
+    };
+
+    document.getElementById('forgotLink').onclick = () => {
+      forgotStep = 'phone';
+      document.getElementById('forgotCodeWrap').style.display = 'none';
+      document.getElementById('forgotPassWrap').style.display = 'none';
+      document.getElementById('forgotPassConfirmWrap').style.display = 'none';
+      showAuthView('forgot');
+    };
+
+    document.getElementById('forgotActionBtn').onclick = async () => {
+      const phone = document.getElementById('forgotPhone').value.trim();
+      if (forgotStep === 'phone') {
+        try {
+          await authJson('/courier-auth/password/forgot/send', { phone });
+          authSmsPhone = phone;
+          forgotStep = 'code';
+          document.getElementById('forgotCodeWrap').style.display = 'block';
+          document.getElementById('forgotPassWrap').style.display = 'block';
+          document.getElementById('forgotPassConfirmWrap').style.display = 'block';
+          applyLang();
+          showAuthErr('');
+        } catch (e) {
+          showAuthErr(e.message);
+        }
+        return;
+      }
+      try {
+        const data = await authJson('/courier-auth/password/forgot/reset', {
+          phone: authSmsPhone || phone,
+          code: document.getElementById('forgotCode').value,
+          password: document.getElementById('forgotPassword').value,
+          confirm: document.getElementById('forgotPasswordConfirm').value
+        });
+        forgotStep = 'phone';
+        await enterPortalFromAuth(data);
+      } catch (e) {
+        showAuthErr(e.message);
+      }
     };
 
     document.addEventListener('visibilitychange', () => {

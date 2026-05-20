@@ -2213,11 +2213,13 @@
       const chips = list
         .map((a) => {
           const sk = courierAppStatusKey(a.status);
+          const plate = String(a.vehiclePlate || '').trim();
           const note = String(a.note || '').trim();
           const title = [
             courierAppStatusLabel(a.status),
             a.fullName,
             a.phone,
+            plate,
             note,
             a.createdAt ? new Date(a.createdAt).toLocaleString() : ''
           ]
@@ -2230,7 +2232,7 @@
             courierAppStatusLabel(a.status)
           )}</span>${escapeHtml(String(a.fullName || '—'))}<small>${escapeHtml(
             String(a.phone || '—')
-          )}</small></span>`;
+          )}${plate ? ' · ' + escapeHtml(plate) : ''}</small></span>`;
         })
         .join('');
       const labelExtra = pendingN > 0 ? ` · ${pendingN} ${t('courierStatusPending').toLowerCase()}` : '';
