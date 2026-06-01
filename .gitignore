@@ -1,6 +1,8 @@
 node_modules/
 .env
 .env.mobile
+.env.face-bot
+scripts/face-attendance-bot/.state.json
 # Capacitor native projects (generated via npm run cap:add:*)
 /android/
 /ios/

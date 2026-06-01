@@ -15,7 +15,8 @@
     "cap:open:android": "cap open android",
     "cap:open:ios": "cap open ios",
     "cap:add:android": "cap add android",
-    "cap:add:ios": "cap add ios"
+    "cap:add:ios": "cap add ios",
+    "face-bot": "node scripts/face-attendance-bot/run.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
