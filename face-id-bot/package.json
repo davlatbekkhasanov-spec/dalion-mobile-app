@@ -1,0 +1,13 @@
+{
+  "name": "face-id-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "@ai_davlat_agent_pro_bot — Hikvision Face ID davomat (alohida loyiha)",
+  "scripts": {
+    "start": "node run.js",
+    "reset-bot": "node reset-bot.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
