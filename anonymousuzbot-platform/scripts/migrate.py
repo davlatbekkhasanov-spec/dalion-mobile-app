@@ -12,8 +12,8 @@ from app.database.session import engine
 
 
 REVISIONS = [
-    ("admin_users", "20260702_0004"),
     ("moderation_signals", "20260702_0005"),
+    ("admin_users", "20260702_0004"),
     ("secret_matches", "20260702_0003"),
     ("users", "20260702_0002"),
 ]
@@ -38,34 +38,32 @@ async def detect_stamp_revision() -> str | None:
     return None
 
 
-async def alembic_version_exists() -> bool:
-    return await table_exists("alembic_version")
-
-
 def run_alembic(*args: str) -> int:
     result = subprocess.run(["alembic", *args], check=False)
     return result.returncode
 
 
 async def main() -> int:
-    if await alembic_version_exists():
-        return run_alembic("upgrade", "head")
+    code = run_alembic("upgrade", "head")
+    if code == 0:
+        return 0
 
-    if await table_exists("users"):
-        revision = await detect_stamp_revision()
-        if revision:
-            print(f"Legacy schema detected — stamping {revision}")
-            code = run_alembic("stamp", revision)
-            if code != 0:
-                return code
+    if not await table_exists("users"):
+        print("Migration failed on empty database", file=sys.stderr)
+        return code
 
+    revision = await detect_stamp_revision()
+    if revision is None:
+        print("Migration failed and no legacy schema detected", file=sys.stderr)
+        return code
+
+    print(f"Migration recovery: stamping {revision}")
+    if run_alembic("stamp", revision) != 0:
+        return 1
     return run_alembic("upgrade", "head")
 
 
 if __name__ == "__main__":
     import asyncio
 
-    code = asyncio.run(main())
-    if code != 0:
-        print(f"Migration failed with exit code {code}", file=sys.stderr)
-    sys.exit(code)
+    sys.exit(asyncio.run(main()))
