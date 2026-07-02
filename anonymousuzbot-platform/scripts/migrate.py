@@ -10,7 +10,7 @@ from sqlalchemy import text
 
 from app.database.session import engine
 
-REQUIRED_TABLES = ["users", "admin_users", "moderation_signals"]
+CORE_TABLES = ["users", "admin_users"]
 
 
 async def table_exists(name: str) -> bool:
@@ -25,15 +25,30 @@ async def table_exists(name: str) -> bool:
         return bool(result.scalar())
 
 
-async def alembic_version_exists() -> bool:
-    return await table_exists("alembic_version")
+async def orphan_enums_exist() -> bool:
+    async with engine.connect() as conn:
+        result = await conn.execute(
+            text(
+                "SELECT EXISTS (SELECT FROM pg_type t "
+                "JOIN pg_namespace n ON n.oid = t.typnamespace "
+                "WHERE n.nspname = 'public' AND t.typtype = 'e')"
+            )
+        )
+        return bool(result.scalar())
 
 
-async def schema_is_complete() -> bool:
-    for name in REQUIRED_TABLES:
-        if not await table_exists(name):
-            return False
-    return True
+async def schema_needs_reset() -> bool:
+    has_users = await table_exists("users")
+    has_alembic = await table_exists("alembic_version")
+
+    if has_users:
+        return False
+
+    # Broken partial state: enums or alembic history without core tables.
+    if has_alembic or await orphan_enums_exist():
+        return True
+
+    return False
 
 
 async def reset_public_schema() -> None:
@@ -49,7 +64,7 @@ def run_alembic(*args: str) -> int:
 
 
 async def main() -> int:
-    if not await schema_is_complete():
+    if await schema_needs_reset():
         await reset_public_schema()
 
     code = run_alembic("upgrade", "head")
@@ -57,9 +72,10 @@ async def main() -> int:
         print(f"Migration failed with exit code {code}", file=sys.stderr)
         return code
 
-    if not await schema_is_complete():
-        print("Database schema incomplete after migration", file=sys.stderr)
-        return 1
+    for name in CORE_TABLES:
+        if not await table_exists(name):
+            print(f"Database schema incomplete: missing table {name}", file=sys.stderr)
+            return 1
 
     print("Database schema ready")
     return 0

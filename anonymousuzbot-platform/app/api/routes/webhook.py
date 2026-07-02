@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from aiogram.types import Update
+import logging
 
 from app.bot.setup import process_update
 from app.core.config import settings
 
 router = APIRouter(tags=["webhook"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/webhook/telegram")
@@ -17,5 +19,8 @@ async def telegram_webhook(
 
     payload = await request.json()
     update = Update.model_validate(payload)
-    await process_update(update)
+    try:
+        await process_update(update)
+    except Exception:
+        logger.exception("Telegram update processing failed")
     return {"ok": True}

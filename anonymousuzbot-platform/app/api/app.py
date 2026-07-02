@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
+import logging
 
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
@@ -19,26 +20,40 @@ from app.services.moderation_config_service import ModerationConfigService
 
 
 ADMIN_STATIC = Path(__file__).resolve().parent.parent / "admin" / "static"
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with SessionLocal() as session:
-        auth = AdminAuthService(session)
-        await auth.bootstrap_owner_if_needed()
-        await ModerationConfigService(session).ensure_defaults()
-        await _ensure_platform_settings(session)
+    try:
+        async with SessionLocal() as session:
+            auth = AdminAuthService(session)
+            await auth.bootstrap_owner_if_needed()
+            await ModerationConfigService(session).ensure_defaults()
+            await _ensure_platform_settings(session)
+    except Exception:
+        logger.exception("Startup bootstrap failed; continuing without admin bootstrap")
 
+    app.state.bot_username = settings.bot_username or "your_bot"
     if settings.use_webhook:
-        await setup_webhook()
-        app.state.bot_username = await resolve_bot_username()
+        try:
+            await setup_webhook()
+            app.state.bot_username = await resolve_bot_username()
+        except Exception:
+            logger.exception("Webhook setup failed; bot updates may not work until restart")
     else:
-        app.state.bot_username = settings.bot_username or (await resolve_bot_username())
+        try:
+            app.state.bot_username = settings.bot_username or (await resolve_bot_username())
+        except Exception:
+            logger.exception("Failed to resolve bot username")
 
     yield
 
     if settings.use_webhook:
-        await shutdown_webhook()
+        try:
+            await shutdown_webhook()
+        except Exception:
+            logger.exception("Webhook shutdown failed")
 
 
 async def _ensure_platform_settings(session) -> None:

@@ -1,7 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from passlib.context import CryptContext
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,22 +22,16 @@ from app.repositories.report_repository import ReportRepository
 from app.repositories.setting_repository import SettingRepository
 from app.repositories.user_repository import UserRepository
 from app.core.config import settings
+from app.core.passwords import hash_password, verify_password
 from app.database.redis import redis_client
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class AdminAuthService:
     def __init__(self, session: AsyncSession) -> None:
         self.repo = AdminUserRepository(session)
 
-    @staticmethod
-    def hash_password(password: str) -> str:
-        return pwd_context.hash(password)
-
-    @staticmethod
-    def verify_password(password: str, password_hash: str) -> bool:
-        return pwd_context.verify(password, password_hash)
+    hash_password = staticmethod(hash_password)
+    verify_password = staticmethod(verify_password)
 
     async def authenticate(self, username: str, password: str) -> AdminUser | None:
         admin = await self.repo.get_by_username(username)

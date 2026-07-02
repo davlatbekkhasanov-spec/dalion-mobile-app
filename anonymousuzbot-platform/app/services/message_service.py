@@ -1,4 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+import logging
 
 from app.models.chat_session import ChatSession
 from app.models.enums import MessageTypeEnum
@@ -7,6 +8,8 @@ from app.services.ai_moderator_service import AIModeratorService
 from app.repositories.chat_session_repository import ChatSessionRepository
 from app.repositories.message_repository import MessageRepository
 from app.repositories.user_repository import UserRepository
+
+logger = logging.getLogger(__name__)
 
 
 class MessageService:
@@ -38,7 +41,10 @@ class MessageService:
             text=text,
             telegram_file_id=telegram_file_id,
         )
-        await AIModeratorService(self.session).analyze_saved_message(message)
+        try:
+            await AIModeratorService(self.session).analyze_saved_message(message)
+        except Exception:
+            logger.exception("AI moderation failed for message %s", message.id)
         return message
 
     async def relay_message(
