@@ -10,6 +10,7 @@ from app.database.redis import redis_client
 from app.models.chat_session import ChatSession
 from app.models.enums import ChatStatusEnum, GenderEnum
 from app.models.user import User
+from app.repositories.blocked_user_repository import BlockedUserRepository
 from app.repositories.chat_session_repository import ChatSessionRepository
 from app.repositories.user_repository import UserRepository
 
@@ -25,6 +26,7 @@ class MatchmakingService:
         self.bot = bot
         self.user_repo = UserRepository(session)
         self.chat_repo = ChatSessionRepository(session)
+        self.blocked_repo = BlockedUserRepository(session)
 
     def _queue_for_gender(self, gender: GenderEnum) -> str:
         return self.MALE_QUEUE if gender == GenderEnum.male else self.FEMALE_QUEUE
@@ -46,17 +48,19 @@ class MatchmakingService:
         await lock.acquire()
         return lock
 
-    async def _pop_waiting_user(self, queue_key: str, current_user_id) -> User | None:
+    async def _pop_waiting_user(self, queue_key: str, current_user: User) -> User | None:
         while True:
             peer_id = await redis_client.lpop(queue_key)
             if not peer_id:
                 return None
-            if str(peer_id) == str(current_user_id):
+            if str(peer_id) == str(current_user.id):
                 continue
             peer = await self.user_repo.get_by_id(UUID(str(peer_id)))
             if peer is None:
                 continue
             if peer.is_banned or not peer.is_registered:
+                continue
+            if await self.blocked_repo.is_blocked_between(current_user.id, peer.id):
                 continue
             if await self.chat_repo.get_active_for_user(peer.id) is not None:
                 continue
@@ -95,13 +99,12 @@ class MatchmakingService:
 
     async def find_match(self, user: User) -> User | None:
         opposite_queue = self._opposite_queue_for_gender(user.gender)
-        return await self._pop_waiting_user(opposite_queue, user.id)
+        return await self._pop_waiting_user(opposite_queue, user)
 
     async def create_chat(self, user1: User, user2: User) -> ChatSession:
         male_user = user1 if user1.gender == GenderEnum.male else user2
         female_user = user2 if user1.gender == GenderEnum.male else user1
 
-        # Defensive guard to avoid invalid pairing.
         if male_user.gender != GenderEnum.male or female_user.gender != GenderEnum.female:
             raise ValueError("Noto‘g‘ri juftlik")
 

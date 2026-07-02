@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,7 +24,11 @@ class ChatSession(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    male_liked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    female_liked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
     male_user = relationship("User", foreign_keys=[male_user_id], back_populates="male_chats")
     female_user = relationship("User", foreign_keys=[female_user_id], back_populates="female_chats")
     messages = relationship("Message", back_populates="chat", cascade="all, delete-orphan")
     reports = relationship("Report", back_populates="chat", cascade="all, delete-orphan")
+    secret_match = relationship("SecretMatch", back_populates="chat", uselist=False)

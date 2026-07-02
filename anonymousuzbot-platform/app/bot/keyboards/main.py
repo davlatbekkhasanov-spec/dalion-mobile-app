@@ -54,3 +54,15 @@ def chat_control_keyboard() -> InlineKeyboardMarkup:
     kb.button(text="❌ Tugatish", callback_data="chat:end")
     kb.adjust(2, 2, 1)
     return kb.as_markup()
+
+
+def report_reasons_keyboard() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    kb.button(text="🔞 Nomaqbul xatti-harakat", callback_data="report:reason:nomaqbul")
+    kb.button(text="💰 Firibgarlik", callback_data="report:reason:firibgarlik")
+    kb.button(text="😡 Haqorat", callback_data="report:reason:haqorat")
+    kb.button(text="⚠️ Tahdid", callback_data="report:reason:tahdid")
+    kb.button(text="📛 Spam", callback_data="report:reason:spam")
+    kb.button(text="📝 Boshqa", callback_data="report:reason:boshqa")
+    kb.adjust(1)
+    return kb.as_markup()

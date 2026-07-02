@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enums import ReportStatusEnum
@@ -26,6 +26,18 @@ class ReportRepository:
     async def list_by_status(self, status: ReportStatusEnum) -> list[Report]:
         result = await self.session.execute(select(Report).where(Report.status == status))
         return list(result.scalars().all())
+
+    async def has_open_report_for_chat(self, chat_id, reporter_id) -> bool:
+        result = await self.session.execute(
+            select(Report.id).where(
+                and_(
+                    Report.chat_id == chat_id,
+                    Report.reporter_id == reporter_id,
+                    Report.status.in_([ReportStatusEnum.new, ReportStatusEnum.reviewing]),
+                )
+            )
+        )
+        return result.scalar_one_or_none() is not None
 
     async def update_status(self, report: Report, status: ReportStatusEnum) -> Report:
         report.status = status
