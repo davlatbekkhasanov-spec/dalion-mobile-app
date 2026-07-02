@@ -12,6 +12,7 @@ from app.models.enums import SignalSeverityEnum, SignalStatusEnum
 from app.models.referral import Referral
 from app.models.report import Report
 from app.models.user import User
+from app.services.nickname_service import generate_premium_nickname
 from app.repositories.admin_user_repository import AdminUserRepository
 from app.repositories.audit_log_repository import AuditLogRepository
 from app.repositories.ban_repository import BanRepository
@@ -227,7 +228,11 @@ class ModerationService:
             return None
         now = datetime.now(UTC)
         base = user.premium_until if user.premium_until and user.premium_until > now else now
-        return await self.user_repo.update(user, premium_until=base + timedelta(days=days))
+        return await self.user_repo.update(
+            user,
+            premium_until=base + timedelta(days=days),
+            anonymous_nick=generate_premium_nickname(),
+        )
 
     async def remove_premium(self, user_id: UUID) -> User | None:
         user = await self.user_repo.get_by_id(user_id)

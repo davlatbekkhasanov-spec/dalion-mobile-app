@@ -1,5 +1,5 @@
 from aiogram import Router
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
@@ -12,10 +12,20 @@ from app.services.user_service import UserService
 router = Router()
 
 
+def _parse_referrer_id(args: str | None) -> str | None:
+    if not args:
+        return None
+    if args.startswith("ref_"):
+        return args.removeprefix("ref_")
+    return None
+
+
 @router.message(CommandStart())
-async def start_handler(message: Message, state: FSMContext) -> None:
+async def start_handler(message: Message, state: FSMContext, command: CommandObject) -> None:
     if message.from_user is None:
         return
+
+    referrer_id = _parse_referrer_id(command.args)
 
     async with SessionLocal() as session:
         repo = UserRepository(session)
@@ -30,5 +40,7 @@ async def start_handler(message: Message, state: FSMContext) -> None:
         service = UserService(session)
         await service.get_or_create_unregistered(message.from_user.id)
 
+    if referrer_id:
+        await state.update_data(referrer_id=referrer_id)
     await state.set_state(RegistrationStates.choosing_gender)
     await message.answer("Jinsni tanlang", reply_markup=gender_keyboard(prefix="reg"))

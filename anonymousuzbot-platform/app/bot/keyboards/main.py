@@ -28,6 +28,13 @@ def main_menu_keyboard() -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
+def premium_keyboard() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    kb.button(text="⬅️ Orqaga", callback_data="settings:back")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
 def settings_keyboard() -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     kb.button(text="👤 Mening profilim", callback_data="settings:profile")

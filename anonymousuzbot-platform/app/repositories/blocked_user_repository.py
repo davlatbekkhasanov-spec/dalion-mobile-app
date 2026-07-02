@@ -33,3 +33,11 @@ class BlockedUserRepository:
             )
         )
         return result.scalar_one_or_none() is not None
+
+    async def count_for_blocker(self, blocker_id) -> int:
+        from sqlalchemy import func
+
+        result = await self.session.execute(
+            select(func.count(BlockedUser.id)).where(BlockedUser.blocker_id == blocker_id)
+        )
+        return int(result.scalar_one() or 0)

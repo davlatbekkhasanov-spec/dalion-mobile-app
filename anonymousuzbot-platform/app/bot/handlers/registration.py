@@ -7,6 +7,7 @@ from app.bot.states.registration import RegistrationStates
 from app.database.session import SessionLocal
 from app.models.enums import GenderEnum
 from app.repositories.user_repository import UserRepository
+from app.services.referral_service import ReferralService
 from app.services.user_service import UserService
 
 router = Router()
@@ -36,6 +37,9 @@ async def choose_age(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.answer("Avval jinsni tanlang", show_alert=False)
         return
 
+    inviter_telegram_id = None
+    reward_days = None
+
     async with SessionLocal() as session:
         repo = UserRepository(session)
         user = await repo.get_by_telegram_id(callback.from_user.id)
@@ -46,13 +50,28 @@ async def choose_age(callback: CallbackQuery, state: FSMContext) -> None:
         service = UserService(session)
         user = await service.complete_registration(user, GenderEnum(gender_value), age)
 
+        referrer_id = data.get("referrer_id")
+        if referrer_id:
+            reward_result = await ReferralService(session).process_new_registration(user, referrer_id)
+            if reward_result:
+                inviter = await repo.get_by_id(reward_result["inviter_id"])
+                if inviter:
+                    inviter_telegram_id = inviter.telegram_id
+                    reward_days = reward_result["days"]
+
     await state.clear()
     gender_emoji = "💙" if user.gender == GenderEnum.male else "🩷"
-    await callback.message.edit_text(
+    text = (
         f"✅ Tayyor\n"
         f"👤 {user.anonymous_nick}\n"
         f"{gender_emoji} {'Yigit' if user.gender == GenderEnum.male else 'Qiz'}\n"
-        f"🎂 {user.age}",
-        reply_markup=main_menu_keyboard(),
+        f"🎂 {user.age}"
     )
+    await callback.message.edit_text(text, reply_markup=main_menu_keyboard())
+
+    if inviter_telegram_id and reward_days:
+        await callback.bot.send_message(
+            inviter_telegram_id,
+            f"🎁 Tabriklaymiz! {reward_days} kun Premium mukofoti faollashtirildi.",
+        )
     await callback.answer()

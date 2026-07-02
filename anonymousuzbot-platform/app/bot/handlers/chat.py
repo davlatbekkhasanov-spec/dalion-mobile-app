@@ -188,8 +188,12 @@ async def like_chat(callback: CallbackQuery) -> None:
             await callback.answer("Faol chat yo‘q", show_alert=False)
             return
 
-        is_mutual = await LikeService(session).add_like(chat, user.id)
+        is_mutual, error = await LikeService(session).add_like(chat, user)
         partner = await msg_service.get_partner(chat, user.id)
+
+    if error:
+        await callback.answer(error, show_alert=True)
+        return
 
     if not is_mutual:
         await callback.answer("❤️ Yoqtirildi", show_alert=False)

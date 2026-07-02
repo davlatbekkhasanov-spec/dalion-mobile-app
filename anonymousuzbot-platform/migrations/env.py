@@ -7,11 +7,13 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.database.base import Base
 from app.models import (  # noqa: F401
+    admin_user,
     audit_log,
     ban,
     blocked_user,
     chat_session,
     message,
+    moderation_signal,
     referral,
     report,
     secret_match,

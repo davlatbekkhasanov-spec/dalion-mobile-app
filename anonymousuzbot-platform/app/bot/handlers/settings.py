@@ -6,6 +6,7 @@ from app.bot.keyboards.main import age_keyboard, gender_keyboard, main_menu_keyb
 from app.bot.states.registration import SettingsStates
 from app.database.session import SessionLocal
 from app.models.enums import GenderEnum
+from app.repositories.blocked_user_repository import BlockedUserRepository
 from app.repositories.user_repository import UserRepository
 from app.services.user_service import UserService
 
@@ -30,10 +31,12 @@ async def my_profile(callback: CallbackQuery) -> None:
         return
 
     emoji = "💙" if user.gender == GenderEnum.male else "🩷"
+    premium_line = "💎 Premium faol" if user.is_premium else "⭐️ Premium yo‘q"
     await callback.message.edit_text(
         f"👤 {user.anonymous_nick}\n"
         f"{emoji} {_gender_label(user.gender)}\n"
-        f"🎂 {user.age}",
+        f"🎂 {user.age}\n"
+        f"{premium_line}",
         reply_markup=settings_keyboard(),
     )
     await callback.answer()
@@ -97,9 +100,18 @@ async def set_age(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.callback_query(F.data == "settings:blocked")
 async def blocked_users(callback: CallbackQuery) -> None:
-    if callback.message is None:
+    if callback.from_user is None or callback.message is None:
         return
-    await callback.message.edit_text("🚫 Bloklanganlar: 0", reply_markup=settings_keyboard())
+
+    async with SessionLocal() as session:
+        user_repo = UserRepository(session)
+        user = await user_repo.get_by_telegram_id(callback.from_user.id)
+        if user is None:
+            await callback.answer("/start bosing", show_alert=True)
+            return
+        count = await BlockedUserRepository(session).count_for_blocker(user.id)
+
+    await callback.message.edit_text(f"🚫 Bloklanganlar: {count}", reply_markup=settings_keyboard())
     await callback.answer()
 
 

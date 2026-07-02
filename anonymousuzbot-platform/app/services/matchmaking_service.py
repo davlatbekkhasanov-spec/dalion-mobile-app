@@ -13,11 +13,14 @@ from app.models.user import User
 from app.repositories.blocked_user_repository import BlockedUserRepository
 from app.repositories.chat_session_repository import ChatSessionRepository
 from app.repositories.user_repository import UserRepository
+from app.services.premium_service import PremiumService
 
 
 class MatchmakingService:
     MALE_QUEUE = "queue:male"
     FEMALE_QUEUE = "queue:female"
+    PREMIUM_MALE_QUEUE = "queue:premium:male"
+    PREMIUM_FEMALE_QUEUE = "queue:premium:female"
     ONLINE_PREFIX = "online:user:"
     LOCK_KEY = "lock:matchmaking"
 
@@ -27,12 +30,23 @@ class MatchmakingService:
         self.user_repo = UserRepository(session)
         self.chat_repo = ChatSessionRepository(session)
         self.blocked_repo = BlockedUserRepository(session)
+        self.premium_service = PremiumService(session)
 
-    def _queue_for_gender(self, gender: GenderEnum) -> str:
+    def _queue_for_gender(self, gender: GenderEnum, premium: bool = False) -> str:
+        if premium:
+            return self.PREMIUM_MALE_QUEUE if gender == GenderEnum.male else self.PREMIUM_FEMALE_QUEUE
         return self.MALE_QUEUE if gender == GenderEnum.male else self.FEMALE_QUEUE
 
-    def _opposite_queue_for_gender(self, gender: GenderEnum) -> str:
-        return self.FEMALE_QUEUE if gender == GenderEnum.male else self.MALE_QUEUE
+    def _opposite_queues_for_gender(self, gender: GenderEnum) -> list[str]:
+        if gender == GenderEnum.male:
+            return [self.PREMIUM_FEMALE_QUEUE, self.FEMALE_QUEUE]
+        return [self.PREMIUM_MALE_QUEUE, self.MALE_QUEUE]
+
+    def _own_queues_for_user(self, user: User) -> list[str]:
+        premium = PremiumService.is_premium(user)
+        if premium:
+            return [self._queue_for_gender(user.gender, premium=True)]
+        return [self._queue_for_gender(user.gender, premium=False)]
 
     def _online_key(self, user_id) -> str:
         return f"{self.ONLINE_PREFIX}{user_id}"
@@ -69,6 +83,7 @@ class MatchmakingService:
             return peer
 
     async def start_search(self, user: User) -> ChatSession | None:
+        user = await self.premium_service.refresh_premium_state(user)
         if not user.is_registered:
             raise ValueError("Avval ro‘yxatdan o‘ting")
         if user.is_banned:
@@ -83,7 +98,12 @@ class MatchmakingService:
         try:
             peer = await self.find_match(user)
             if peer is None:
-                await redis_client.rpush(self._queue_for_gender(user.gender), str(user.id))
+                premium = PremiumService.is_premium(user)
+                queue = self._queue_for_gender(user.gender, premium=premium)
+                if premium:
+                    await redis_client.lpush(queue, str(user.id))
+                else:
+                    await redis_client.rpush(queue, str(user.id))
                 return None
 
             chat = await self.create_chat(user, peer)
@@ -93,13 +113,21 @@ class MatchmakingService:
             await lock.release()
 
     async def cancel_search(self, user: User) -> None:
-        await redis_client.lrem(self.MALE_QUEUE, 0, str(user.id))
-        await redis_client.lrem(self.FEMALE_QUEUE, 0, str(user.id))
+        for queue in (
+            self.MALE_QUEUE,
+            self.FEMALE_QUEUE,
+            self.PREMIUM_MALE_QUEUE,
+            self.PREMIUM_FEMALE_QUEUE,
+        ):
+            await redis_client.lrem(queue, 0, str(user.id))
         await redis_client.delete(self._online_key(user.id))
 
     async def find_match(self, user: User) -> User | None:
-        opposite_queue = self._opposite_queue_for_gender(user.gender)
-        return await self._pop_waiting_user(opposite_queue, user)
+        for queue in self._opposite_queues_for_gender(user.gender):
+            peer = await self._pop_waiting_user(queue, user)
+            if peer is not None:
+                return peer
+        return None
 
     async def create_chat(self, user1: User, user2: User) -> ChatSession:
         male_user = user1 if user1.gender == GenderEnum.male else user2
@@ -125,7 +153,17 @@ class MatchmakingService:
         if male_user is None or female_user is None:
             return
 
-        text = "🔔 PING!\n\n🎭 Match topildi\n\n💙 Yigit  ⚡️  🩷 Qiz\n\nSuhbat boshlandi..."
+        premium_match = PremiumService.is_premium(male_user) or PremiumService.is_premium(female_user)
+        if premium_match:
+            text = (
+                "✨💎 PREMIUM MATCH ✨\n\n"
+                "🔔 PING!\n\n"
+                "🎭 Match topildi\n\n"
+                "💙 Yigit  ⚡️  🩷 Qiz\n\n"
+                "Suhbat boshlandi..."
+            )
+        else:
+            text = "🔔 PING!\n\n🎭 Match topildi\n\n💙 Yigit  ⚡️  🩷 Qiz\n\nSuhbat boshlandi..."
         kb = chat_control_keyboard()
         await self.bot.send_message(chat_id=male_user.telegram_id, text=text, reply_markup=kb)
         await self.bot.send_message(chat_id=female_user.telegram_id, text=text, reply_markup=kb)

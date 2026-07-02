@@ -10,6 +10,5 @@ SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=
 
 
 async def get_db_session() -> AsyncIterator[AsyncSession]:
-    # FastAPI dependency for future repository/service layer.
     async with SessionLocal() as session:
         yield session
