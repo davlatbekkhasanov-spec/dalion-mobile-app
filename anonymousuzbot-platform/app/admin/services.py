@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.admin_user import AdminUser
 from app.models.ban import Ban
 from app.models.enums import AdminRoleEnum, BanTypeEnum, ChatStatusEnum, GenderEnum, ReportStatusEnum
+from app.models.enums import SignalSeverityEnum, SignalStatusEnum
 from app.models.referral import Referral
 from app.models.report import Report
 from app.models.user import User
@@ -15,6 +16,7 @@ from app.repositories.admin_user_repository import AdminUserRepository
 from app.repositories.audit_log_repository import AuditLogRepository
 from app.repositories.ban_repository import BanRepository
 from app.repositories.chat_session_repository import ChatSessionRepository
+from app.repositories.moderation_signal_repository import ModerationSignalRepository
 from app.repositories.message_repository import MessageRepository
 from app.repositories.report_repository import ReportRepository
 from app.repositories.setting_repository import SettingRepository
@@ -381,6 +383,12 @@ class AdminStatsService:
         )
 
         online_users = await self._count_online_users()
+        signal_repo = ModerationSignalRepository(self.session)
+        critical_signals = await signal_repo.count_by_status_severity(
+            status=SignalStatusEnum.new,
+            severity=SignalSeverityEnum.critical,
+        )
+        new_signals = await signal_repo.count_by_status_severity(status=SignalStatusEnum.new)
 
         return {
             "total_users": total_users,
@@ -392,6 +400,8 @@ class AdminStatsService:
             "today_reports": today_reports,
             "bans_today": bans_today,
             "referrals_today": referrals_today,
+            "critical_signals": critical_signals,
+            "new_signals": new_signals,
         }
 
     async def _scalar(self, stmt) -> int:
@@ -414,3 +424,60 @@ class AdminSettingService:
 
     async def update_setting(self, key: str, value: str):
         return await self.repo.upsert(key, value)
+
+
+class AdminSignalService:
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+        self.signal_repo = ModerationSignalRepository(session)
+        self.chat_service = AdminChatService(session)
+        self.message_repo = MessageRepository(session)
+
+    async def list_signals(
+        self,
+        *,
+        severity: SignalSeverityEnum | None = None,
+        status: SignalStatusEnum | None = None,
+        page: int = 1,
+        limit: int = 100,
+    ) -> list:
+        offset = max(page - 1, 0) * limit
+        return await self.signal_repo.list_signals(
+            severity=severity,
+            status=status,
+            limit=limit,
+            offset=offset,
+        )
+
+    async def get_signal_detail(self, signal_id: UUID) -> dict | None:
+        signal = await self.signal_repo.get_by_id(signal_id)
+        if signal is None:
+            return None
+        if signal.status == SignalStatusEnum.new:
+            await self.signal_repo.update_status(signal, SignalStatusEnum.reviewing)
+
+        chat_detail = None
+        if signal.chat_id:
+            chat_detail = await self.chat_service.get_chat_detail(signal.chat_id)
+
+        trigger_message = None
+        if signal.message_id:
+            trigger_message = await self.message_repo.get_by_id(signal.message_id)
+
+        return {
+            "signal": signal,
+            "chat_detail": chat_detail,
+            "trigger_message": trigger_message,
+        }
+
+    async def ignore_signal(self, signal_id: UUID):
+        signal = await self.signal_repo.get_by_id(signal_id)
+        if signal is None:
+            return None
+        return await self.signal_repo.update_status(signal, SignalStatusEnum.ignored)
+
+    async def resolve_signal(self, signal_id: UUID):
+        signal = await self.signal_repo.get_by_id(signal_id)
+        if signal is None:
+            return None
+        return await self.signal_repo.update_status(signal, SignalStatusEnum.resolved)

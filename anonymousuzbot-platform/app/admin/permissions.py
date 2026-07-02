@@ -16,6 +16,8 @@ class Permission(str, Enum):
     CHATS_VIEW = "chats_view"
     CHATS_EXPORT = "chats_export"
     AUDIT_VIEW = "audit_view"
+    SIGNALS_VIEW = "signals_view"
+    SIGNALS_MANAGE = "signals_manage"
     SETTINGS_MANAGE = "settings_manage"
     ADMINS_MANAGE = "admins_manage"
 
@@ -24,10 +26,14 @@ ROLE_PERMISSIONS: dict[AdminRoleEnum, set[Permission]] = {
     AdminRoleEnum.moderator: {
         Permission.REPORTS_VIEW,
         Permission.REPORTS_MANAGE,
+        Permission.SIGNALS_VIEW,
+        Permission.SIGNALS_MANAGE,
     },
     AdminRoleEnum.admin: {
         Permission.REPORTS_VIEW,
         Permission.REPORTS_MANAGE,
+        Permission.SIGNALS_VIEW,
+        Permission.SIGNALS_MANAGE,
         Permission.USERS_VIEW,
         Permission.USERS_MANAGE,
         Permission.BANS_VIEW,
@@ -48,6 +54,8 @@ ROLE_PERMISSIONS: dict[AdminRoleEnum, set[Permission]] = {
         Permission.CHATS_VIEW,
         Permission.CHATS_EXPORT,
         Permission.AUDIT_VIEW,
+        Permission.SIGNALS_VIEW,
+        Permission.SIGNALS_MANAGE,
     },
     AdminRoleEnum.owner: set(Permission),
 }
@@ -57,6 +65,7 @@ MENU_ITEMS: list[tuple[str, str, Permission]] = [
     ("👥 Users", "/admin/users", Permission.USERS_VIEW),
     ("💬 Chat Sessions", "/admin/chats", Permission.CHATS_VIEW),
     ("🚩 Reports", "/admin/reports", Permission.REPORTS_VIEW),
+    ("🤖 AI Moderator", "/admin/signals", Permission.SIGNALS_VIEW),
     ("🚫 Bans", "/admin/bans", Permission.BANS_VIEW),
     ("⭐️ Premium", "/admin/premium", Permission.PREMIUM_MANAGE),
     ("📊 Statistics", "/admin/statistics", Permission.STATS_VIEW),

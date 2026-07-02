@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<form class="filters" method="get">
+  <div>
+    <label>Severity</label>
+    <select name="severity">
+      <option value="">All</option>
+      {% for s in SignalSeverityEnum %}
+      <option value="{{ s.value }}" {% if severity == s.value %}selected{% endif %}>{{ s.value }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>Status</label>
+    <select name="status">
+      <option value="">All</option>
+      {% for s in SignalStatusEnum %}
+      <option value="{{ s.value }}" {% if status == s.value %}selected{% endif %}>{{ s.value }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn btn-primary">Filter</button>
+</form>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Severity</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th>User UUID</th>
+        <th>Chat UUID</th>
+        <th>Reason</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for signal in signals %}
+      <tr>
+        <td><span class="badge badge-sev-{{ signal.severity.value }}">{{ signal.severity.value }}</span></td>
+        <td>{{ signal.signal_type.value }}</td>
+        <td><span class="badge badge-new">{{ signal.status.value }}</span></td>
+        <td class="uuid">{{ signal.user_id }}</td>
+        <td class="uuid">{{ signal.chat_id or '—' }}</td>
+        <td>{{ signal.reason[:100] }}{% if signal.reason|length > 100 %}…{% endif %}</td>
+        <td>{{ signal.created_at | format_dt }}</td>
+        <td><a href="/admin/signals/{{ signal.id }}" class="btn btn-sm">View</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" style="color:var(--text-dim);">No moderation signals</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="actions" style="margin-top:1rem;">
+    {% if page > 1 %}
+    <a href="/admin/signals?page={{ page - 1 }}&severity={{ severity }}&status={{ status }}" class="btn btn-sm">← Prev</a>
+    {% endif %}
+    <a href="/admin/signals?page={{ page + 1 }}&severity={{ severity }}&status={{ status }}" class="btn btn-sm">Next →</a>
+  </div>
+</div>
+{% endblock %}

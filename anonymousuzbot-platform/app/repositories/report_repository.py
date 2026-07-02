@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enums import ReportStatusEnum
@@ -46,3 +46,12 @@ class ReportRepository:
         await self.session.commit()
         await self.session.refresh(report)
         return report
+
+    async def count_recent_for_reported_user(self, reported_user_id, since: datetime) -> int:
+        result = await self.session.execute(
+            select(func.count(Report.id)).where(
+                Report.reported_user_id == reported_user_id,
+                Report.created_at >= since,
+            )
+        )
+        return int(result.scalar_one() or 0)

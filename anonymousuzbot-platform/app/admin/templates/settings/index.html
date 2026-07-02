@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card">
+  <div class="card-title">AI Moderator Settings</div>
+  <p style="color:var(--text-dim);margin-bottom:1rem;font-size:0.8rem;">
+    Configure detection via keys prefixed with <code>ai_moderator.</code> — enabled, spam thresholds, keyword lists, mass report limits.
+  </p>
+</div>
+
+<div class="card">
   <div class="card-title">Add / Update Setting</div>
   <form class="filters" method="post">
     <div>

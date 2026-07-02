@@ -39,3 +39,25 @@ class AdminRoleEnum(str, enum.Enum):
     mega_admin = "mega_admin"
     admin = "admin"
     moderator = "moderator"
+
+
+class SignalTypeEnum(str, enum.Enum):
+    spam = "spam"
+    scam = "scam"
+    threat = "threat"
+    mass_reports = "mass_reports"
+    illegal_content = "illegal_content"
+
+
+class SignalSeverityEnum(str, enum.Enum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+    critical = "critical"
+
+
+class SignalStatusEnum(str, enum.Enum):
+    new = "new"
+    reviewing = "reviewing"
+    resolved = "resolved"
+    ignored = "ignored"

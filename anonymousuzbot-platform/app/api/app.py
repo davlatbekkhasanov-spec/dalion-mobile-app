@@ -13,6 +13,7 @@ from app.api.routes.health import router as health_router
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.database.session import SessionLocal
+from app.services.moderation_config_service import ModerationConfigService
 
 
 ADMIN_STATIC = Path(__file__).resolve().parent.parent / "admin" / "static"
@@ -23,6 +24,7 @@ async def lifespan(app: FastAPI):
     async with SessionLocal() as session:
         auth = AdminAuthService(session)
         await auth.bootstrap_owner_if_needed()
+        await ModerationConfigService(session).ensure_defaults()
     yield
 
 
