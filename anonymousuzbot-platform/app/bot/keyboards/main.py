@@ -37,3 +37,20 @@ def settings_keyboard() -> InlineKeyboardMarkup:
     kb.button(text="⬅️ Orqaga", callback_data="settings:back")
     kb.adjust(1)
     return kb.as_markup()
+
+
+def search_wait_keyboard() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    kb.button(text="❌ Qidiruvni bekor qilish", callback_data="menu:cancel_search")
+    return kb.as_markup()
+
+
+def chat_control_keyboard() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    kb.button(text="⏭️ Keyingisi", callback_data="chat:next")
+    kb.button(text="❤️ Yoqdi", callback_data="chat:like")
+    kb.button(text="🚩 Shikoyat", callback_data="chat:report")
+    kb.button(text="🚫 Bloklash", callback_data="chat:block")
+    kb.button(text="❌ Tugatish", callback_data="chat:end")
+    kb.adjust(2, 2, 1)
+    return kb.as_markup()
