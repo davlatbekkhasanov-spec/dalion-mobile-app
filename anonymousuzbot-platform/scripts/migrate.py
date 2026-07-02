@@ -10,24 +10,7 @@ from sqlalchemy import text
 
 from app.database.session import engine
 
-ENUM_TYPES = [
-    "signal_status_enum",
-    "signal_severity_enum",
-    "signal_type_enum",
-    "admin_role_enum",
-    "ban_type_enum",
-    "report_status_enum",
-    "message_type_enum",
-    "chat_status_enum",
-    "gender_enum",
-]
-
-REVISIONS = [
-    ("moderation_signals", "20260702_0005"),
-    ("admin_users", "20260702_0004"),
-    ("secret_matches", "20260702_0003"),
-    ("users", "20260702_0002"),
-]
+REQUIRED_TABLES = ["users", "admin_users", "moderation_signals"]
 
 
 async def table_exists(name: str) -> bool:
@@ -42,27 +25,20 @@ async def table_exists(name: str) -> bool:
         return bool(result.scalar())
 
 
-async def type_exists(name: str) -> bool:
-    async with engine.connect() as conn:
-        result = await conn.execute(
-            text("SELECT EXISTS (SELECT FROM pg_type WHERE typname = :name)"),
-            {"name": name},
-        )
-        return bool(result.scalar())
+async def alembic_version_exists() -> bool:
+    return await table_exists("alembic_version")
 
 
-async def reset_broken_enums() -> None:
+async def schema_is_complete() -> bool:
+    return all(await table_exists(name) for name in REQUIRED_TABLES)
+
+
+async def reset_public_schema() -> None:
+    print("Resetting public schema for clean migration")
     async with engine.begin() as conn:
-        await conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
-        for enum_name in ENUM_TYPES:
-            await conn.execute(text(f"DROP TYPE IF EXISTS {enum_name} CASCADE"))
-
-
-async def detect_stamp_revision() -> str | None:
-    for table, revision in REVISIONS:
-        if await table_exists(table):
-            return revision
-    return None
+        await conn.execute(text("DROP SCHEMA public CASCADE"))
+        await conn.execute(text("CREATE SCHEMA public"))
+        await conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
 
 
 def run_alembic(*args: str) -> int:
@@ -70,23 +46,21 @@ def run_alembic(*args: str) -> int:
 
 
 async def main() -> int:
-    if await type_exists("gender_enum") and not await table_exists("users"):
-        print("Broken schema detected (enums without tables) — resetting enums")
-        await reset_broken_enums()
+    if await alembic_version_exists() and not await schema_is_complete():
+        await reset_public_schema()
 
-    code = run_alembic("upgrade", "head")
-    if code == 0:
-        return 0
+    if not await schema_is_complete():
+        code = run_alembic("upgrade", "head")
+        if code != 0:
+            print(f"Migration failed with exit code {code}", file=sys.stderr)
+            return code
 
-    revision = await detect_stamp_revision()
-    if revision is None:
-        print("Migration failed with no recoverable schema", file=sys.stderr)
-        return code
-
-    print(f"Migration recovery: stamping {revision}")
-    if run_alembic("stamp", revision) != 0:
+    if not await schema_is_complete():
+        print("Database schema incomplete after migration", file=sys.stderr)
         return 1
-    return run_alembic("upgrade", "head")
+
+    print("Database schema ready")
+    return 0
 
 
 if __name__ == "__main__":
