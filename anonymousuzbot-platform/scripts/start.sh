@@ -2,7 +2,7 @@
 set -euo pipefail
 
 echo "Running database migrations..."
-alembic upgrade head
+python3 scripts/migrate.py
 
 echo "Starting application..."
 exec python main.py
