@@ -1,3 +1,3 @@
-from app.bot.handlers import menu, registration, settings, start
+from app.bot.handlers import chat, menu, registration, settings, start
 
-__all__ = ["start", "registration", "menu", "settings"]
+__all__ = ["start", "registration", "menu", "settings", "chat"]

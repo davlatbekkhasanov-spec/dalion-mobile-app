@@ -1,7 +1,7 @@
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 
-from app.bot.handlers import menu, registration, settings, start
+from app.bot.handlers import chat, menu, registration, settings, start
 from app.core.config import settings as app_settings
 
 
@@ -13,4 +13,5 @@ async def run_bot() -> None:
     dp.include_router(registration.router)
     dp.include_router(menu.router)
     dp.include_router(settings.router)
+    dp.include_router(chat.router)
     await dp.start_polling(bot)
