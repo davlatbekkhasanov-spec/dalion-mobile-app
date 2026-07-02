@@ -16,16 +16,30 @@ depends_on = None
 
 
 def upgrade() -> None:
-    signal_type_enum = sa.Enum(
+    bind = op.get_bind()
+
+    signal_type_enum = postgresql.ENUM(
         "spam", "scam", "threat", "mass_reports", "illegal_content", name="signal_type_enum"
     )
-    signal_severity_enum = sa.Enum("low", "medium", "high", "critical", name="signal_severity_enum")
-    signal_status_enum = sa.Enum("new", "reviewing", "resolved", "ignored", name="signal_status_enum")
-
-    bind = op.get_bind()
+    signal_severity_enum = postgresql.ENUM(
+        "low", "medium", "high", "critical", name="signal_severity_enum"
+    )
+    signal_status_enum = postgresql.ENUM(
+        "new", "reviewing", "resolved", "ignored", name="signal_status_enum"
+    )
     signal_type_enum.create(bind, checkfirst=True)
     signal_severity_enum.create(bind, checkfirst=True)
     signal_status_enum.create(bind, checkfirst=True)
+    signal_type_enum = postgresql.ENUM(
+        "spam", "scam", "threat", "mass_reports", "illegal_content",
+        name="signal_type_enum", create_type=False,
+    )
+    signal_severity_enum = postgresql.ENUM(
+        "low", "medium", "high", "critical", name="signal_severity_enum", create_type=False
+    )
+    signal_status_enum = postgresql.ENUM(
+        "new", "reviewing", "resolved", "ignored", name="signal_status_enum", create_type=False
+    )
 
     op.create_table(
         "moderation_signals",

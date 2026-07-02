@@ -16,9 +16,12 @@ depends_on = None
 
 
 def upgrade() -> None:
-    admin_role_enum = sa.Enum("owner", "mega_admin", "admin", "moderator", name="admin_role_enum")
     bind = op.get_bind()
+    admin_role_enum = postgresql.ENUM("owner", "mega_admin", "admin", "moderator", name="admin_role_enum")
     admin_role_enum.create(bind, checkfirst=True)
+    admin_role_enum = postgresql.ENUM(
+        "owner", "mega_admin", "admin", "moderator", name="admin_role_enum", create_type=False
+    )
 
     op.add_column(
         "users",

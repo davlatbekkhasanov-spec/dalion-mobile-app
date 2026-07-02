@@ -49,14 +49,13 @@ def run_alembic(*args: str) -> int:
 
 
 async def main() -> int:
-    if await alembic_version_exists() and not await schema_is_complete():
+    if not await schema_is_complete():
         await reset_public_schema()
 
-    if not await schema_is_complete():
-        code = run_alembic("upgrade", "head")
-        if code != 0:
-            print(f"Migration failed with exit code {code}", file=sys.stderr)
-            return code
+    code = run_alembic("upgrade", "head")
+    if code != 0:
+        print(f"Migration failed with exit code {code}", file=sys.stderr)
+        return code
 
     if not await schema_is_complete():
         print("Database schema incomplete after migration", file=sys.stderr)

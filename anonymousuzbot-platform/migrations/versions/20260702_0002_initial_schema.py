@@ -16,26 +16,26 @@ depends_on = None
 
 
 def upgrade() -> None:
-    gender_enum = sa.Enum("male", "female", name="gender_enum")
-    chat_status_enum = sa.Enum("searching", "active", "ended", "reported", name="chat_status_enum")
-    message_type_enum = sa.Enum(
+    bind = op.get_bind()
+
+    def enum_type(name: str, *values: str):
+        created = postgresql.ENUM(*values, name=name)
+        created.create(bind, checkfirst=True)
+        return postgresql.ENUM(*values, name=name, create_type=False)
+
+    gender_enum = enum_type("gender_enum", "male", "female")
+    chat_status_enum = enum_type("chat_status_enum", "searching", "active", "ended", "reported")
+    message_type_enum = enum_type(
+        "message_type_enum",
         "text",
         "photo",
         "video",
         "voice",
         "sticker",
         "document",
-        name="message_type_enum",
     )
-    report_status_enum = sa.Enum("new", "reviewing", "resolved", "rejected", name="report_status_enum")
-    ban_type_enum = sa.Enum("temporary", "permanent", name="ban_type_enum")
-
-    bind = op.get_bind()
-    gender_enum.create(bind, checkfirst=True)
-    chat_status_enum.create(bind, checkfirst=True)
-    message_type_enum.create(bind, checkfirst=True)
-    report_status_enum.create(bind, checkfirst=True)
-    ban_type_enum.create(bind, checkfirst=True)
+    report_status_enum = enum_type("report_status_enum", "new", "reviewing", "resolved", "rejected")
+    ban_type_enum = enum_type("ban_type_enum", "temporary", "permanent")
 
     op.create_table(
         "users",
