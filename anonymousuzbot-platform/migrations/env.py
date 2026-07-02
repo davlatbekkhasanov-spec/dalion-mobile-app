@@ -6,6 +6,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.database.base import Base
+from app.models import audit_log, ban, chat_session, message, referral, report, setting, user  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

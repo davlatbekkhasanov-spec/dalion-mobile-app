@@ -1,0 +1,36 @@
+from datetime import UTC, datetime
+from uuid import UUID
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.enums import ReportStatusEnum
+from app.models.report import Report
+
+
+class ReportRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def create(self, **kwargs) -> Report:
+        report = Report(**kwargs)
+        self.session.add(report)
+        await self.session.commit()
+        await self.session.refresh(report)
+        return report
+
+    async def get_by_id(self, report_id: UUID) -> Report | None:
+        result = await self.session.execute(select(Report).where(Report.id == report_id))
+        return result.scalar_one_or_none()
+
+    async def list_by_status(self, status: ReportStatusEnum) -> list[Report]:
+        result = await self.session.execute(select(Report).where(Report.status == status))
+        return list(result.scalars().all())
+
+    async def update_status(self, report: Report, status: ReportStatusEnum) -> Report:
+        report.status = status
+        if status in {ReportStatusEnum.resolved, ReportStatusEnum.rejected}:
+            report.resolved_at = datetime.now(UTC)
+        await self.session.commit()
+        await self.session.refresh(report)
+        return report
