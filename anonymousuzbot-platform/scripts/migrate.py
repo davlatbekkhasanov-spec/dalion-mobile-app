@@ -30,7 +30,10 @@ async def alembic_version_exists() -> bool:
 
 
 async def schema_is_complete() -> bool:
-    return all(await table_exists(name) for name in REQUIRED_TABLES)
+    for name in REQUIRED_TABLES:
+        if not await table_exists(name):
+            return False
+    return True
 
 
 async def reset_public_schema() -> None:
