@@ -31,10 +31,21 @@ async def table_exists(name: str) -> bool:
         return bool(result.scalar())
 
 
+async def type_exists(name: str) -> bool:
+    async with engine.connect() as conn:
+        result = await conn.execute(
+            text("SELECT EXISTS (SELECT FROM pg_type WHERE typname = :name)"),
+            {"name": name},
+        )
+        return bool(result.scalar())
+
+
 async def detect_stamp_revision() -> str | None:
     for table, revision in REVISIONS:
         if await table_exists(table):
             return revision
+    if await type_exists("gender_enum"):
+        return "20260702_0002"
     return None
 
 
@@ -48,13 +59,9 @@ async def main() -> int:
     if code == 0:
         return 0
 
-    if not await table_exists("users"):
-        print("Migration failed on empty database", file=sys.stderr)
-        return code
-
     revision = await detect_stamp_revision()
     if revision is None:
-        print("Migration failed and no legacy schema detected", file=sys.stderr)
+        print("Migration failed with no recoverable schema", file=sys.stderr)
         return code
 
     print(f"Migration recovery: stamping {revision}")
