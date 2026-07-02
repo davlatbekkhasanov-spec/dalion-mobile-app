@@ -1,52 +1,39 @@
-# AnonymousUzBot Platform
+# Telegram Anonymous Chat (Architecture Skeleton)
 
-Enterprise-grade anonymous Telegram chat platform (Uzbekistan market) with:
+Production-oriented architecture skeleton for an anonymous Telegram chat platform.
 
-- Aiogram 3.x Telegram bot
-- FastAPI admin and ops API
-- PostgreSQL + SQLAlchemy 2 + Alembic
-- Redis queue for high-throughput matchmaking
-- Docker / Railway deployment ready
+## Stack
+- Python 3.12
+- aiogram 3.x
+- FastAPI
+- PostgreSQL
+- Redis
+- SQLAlchemy 2 (async)
+- Alembic
+- Docker / Railway
 
-## Security model
+## Included in this stage
+- Clean folder structure
+- Environment configuration
+- Async PostgreSQL and Redis connections
+- Telegram bot startup skeleton
+- FastAPI startup skeleton
+- Health endpoint: `GET /health`
 
-Users never see Telegram profile metadata. Public identity contains only:
-
-- Random anonymous nickname
-- Gender
-- Age
-
-All internal data uses UUID primary identifiers. Telegram IDs are encrypted at rest.
+Response:
+```json
+{"ok": true, "service": "anonymous-chat"}
+```
 
 ## Quick start
-
 ```bash
 cp .env.example .env
-# set BOT_TOKEN and other secrets
 docker compose up --build
 ```
 
-## Run migrations
-
+## Railway
+Set all variables from `.env.example` in Railway service settings.
+Use the same start command:
 ```bash
-alembic upgrade head
+python main.py
 ```
-
-## Run locally
-
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-python -m app.bot.runner
-```
-
-## Railway notes
-
-Set these variables in Railway project:
-
-- `BOT_TOKEN`
-- `DATABASE_URL`
-- `REDIS_URL`
-- `ADMIN_API_KEY`
-- `TELEGRAM_ID_ENCRYPTION_KEY`
-
-Then deploy from this folder.
