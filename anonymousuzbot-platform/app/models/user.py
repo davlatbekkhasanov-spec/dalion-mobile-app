@@ -4,7 +4,7 @@ from sqlalchemy import BigInteger, Boolean, DateTime, Enum, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
-from app.models.enums import GenderEnum
+from app.models.enums import GenderEnum, LanguageEnum
 
 
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -12,6 +12,11 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
     gender: Mapped[GenderEnum] = mapped_column(Enum(GenderEnum, name="gender_enum"), index=True)
+    language: Mapped[LanguageEnum] = mapped_column(
+        Enum(LanguageEnum, name="language_enum"),
+        default=LanguageEnum.uz,
+        nullable=False,
+    )
     age: Mapped[int] = mapped_column(Integer)
     anonymous_nick: Mapped[str] = mapped_column(String(64), index=True)
 

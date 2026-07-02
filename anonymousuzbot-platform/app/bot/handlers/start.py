@@ -3,7 +3,8 @@ from aiogram.filters import CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from app.bot.keyboards.main import gender_keyboard, main_menu_keyboard
+from app.bot.i18n import normalize_lang, t
+from app.bot.keyboards.main import language_keyboard, main_menu_keyboard
 from app.bot.states.registration import RegistrationStates
 from app.database.session import SessionLocal
 from app.repositories.user_repository import UserRepository
@@ -34,7 +35,8 @@ async def start_handler(message: Message, state: FSMContext, command: CommandObj
         if user is not None and user.is_registered:
             await repo.update_last_seen(user.id)
             await state.clear()
-            await message.answer("Asosiy menyu", reply_markup=main_menu_keyboard())
+            lang = normalize_lang(user.language)
+            await message.answer(t("main_menu", lang), reply_markup=main_menu_keyboard(lang))
             return
 
         service = UserService(session)
@@ -42,5 +44,8 @@ async def start_handler(message: Message, state: FSMContext, command: CommandObj
 
     if referrer_id:
         await state.update_data(referrer_id=referrer_id)
-    await state.set_state(RegistrationStates.choosing_gender)
-    await message.answer("Jinsni tanlang", reply_markup=gender_keyboard(prefix="reg"))
+    await state.set_state(RegistrationStates.choosing_language)
+    await message.answer(
+        f"{t('choose_language', 'uz')}\n{t('choose_language', 'ru')}",
+        reply_markup=language_keyboard(prefix="reg"),
+    )

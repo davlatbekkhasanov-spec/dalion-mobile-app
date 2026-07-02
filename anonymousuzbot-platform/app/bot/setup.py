@@ -1,8 +1,11 @@
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import Update
+from aiogram.utils.callback_answer import CallbackAnswerMiddleware
 
 from app.bot.handlers import chat, menu, registration, settings, start
+from app.bot.middlewares.user_context import UserContextMiddleware
 from app.core.config import settings as app_settings
 
 _bot: Bot | None = None
@@ -22,7 +25,10 @@ def get_bot() -> Bot:
 def get_dispatcher() -> Dispatcher:
     global _dp
     if _dp is None:
-        _dp = Dispatcher()
+        storage = RedisStorage.from_url(app_settings.redis_url)
+        _dp = Dispatcher(storage=storage)
+        _dp.update.middleware(UserContextMiddleware())
+        _dp.callback_query.middleware(CallbackAnswerMiddleware(pre=True))
         _dp.include_router(start.router)
         _dp.include_router(registration.router)
         _dp.include_router(menu.router)
@@ -52,6 +58,7 @@ async def setup_webhook() -> None:
         url=app_settings.effective_webhook_path,
         secret_token=app_settings.webhook_secret,
         drop_pending_updates=True,
+        allowed_updates=["message", "callback_query", "my_chat_member"],
     )
 
 

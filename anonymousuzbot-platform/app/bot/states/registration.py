@@ -2,6 +2,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 
 class RegistrationStates(StatesGroup):
+    choosing_language = State()
     choosing_gender = State()
     choosing_age = State()
 
@@ -9,3 +10,4 @@ class RegistrationStates(StatesGroup):
 class SettingsStates(StatesGroup):
     changing_gender = State()
     changing_age = State()
+    changing_language = State()

@@ -5,6 +5,7 @@ from aiogram import Bot
 from redis.asyncio.client import Lock
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.i18n import normalize_lang, t
 from app.bot.keyboards.main import chat_control_keyboard
 from app.database.redis import redis_client
 from app.models.chat_session import ChatSession
@@ -82,14 +83,14 @@ class MatchmakingService:
                 continue
             return peer
 
-    async def start_search(self, user: User) -> ChatSession | None:
+    async def start_search(self, user: User, lang: str = "uz") -> ChatSession | None:
         user = await self.premium_service.refresh_premium_state(user)
         if not user.is_registered:
-            raise ValueError("Avval ro‘yxatdan o‘ting")
+            raise ValueError(t("register_first", lang))
         if user.is_banned:
-            raise ValueError("Siz bloklangansiz")
+            raise ValueError(t("you_are_banned", lang))
         if await self.chat_repo.get_active_for_user(user.id) is not None:
-            raise ValueError("Siz allaqachon suhbatdasiz")
+            raise ValueError(t("already_in_chat", lang))
 
         await self.cancel_search(user)
         await self._set_online(user)
@@ -154,16 +155,8 @@ class MatchmakingService:
             return
 
         premium_match = PremiumService.is_premium(male_user) or PremiumService.is_premium(female_user)
-        if premium_match:
-            text = (
-                "✨💎 PREMIUM MATCH ✨\n\n"
-                "🔔 PING!\n\n"
-                "🎭 Match topildi\n\n"
-                "💙 Yigit  ⚡️  🩷 Qiz\n\n"
-                "Suhbat boshlandi..."
-            )
-        else:
-            text = "🔔 PING!\n\n🎭 Match topildi\n\n💙 Yigit  ⚡️  🩷 Qiz\n\nSuhbat boshlandi..."
-        kb = chat_control_keyboard()
-        await self.bot.send_message(chat_id=male_user.telegram_id, text=text, reply_markup=kb)
-        await self.bot.send_message(chat_id=female_user.telegram_id, text=text, reply_markup=kb)
+        for user in (male_user, female_user):
+            lang = normalize_lang(user.language)
+            text = t("premium_match_found" if premium_match else "match_found", lang)
+            kb = chat_control_keyboard(lang)
+            await self.bot.send_message(chat_id=user.telegram_id, text=text, reply_markup=kb)

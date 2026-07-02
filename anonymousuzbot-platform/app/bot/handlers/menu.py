@@ -1,6 +1,7 @@
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
+from app.bot.i18n import normalize_lang, t
 from app.bot.keyboards.main import (
     chat_control_keyboard,
     main_menu_keyboard,
@@ -8,6 +9,7 @@ from app.bot.keyboards.main import (
     search_wait_keyboard,
     settings_keyboard,
 )
+from app.bot.utils.messages import safe_edit_message
 from app.database.session import SessionLocal
 from app.repositories.user_repository import UserRepository
 from app.services.matchmaking_service import MatchmakingService
@@ -26,20 +28,25 @@ async def _get_bot_username(bot) -> str:
     return me.username or "your_bot"
 
 
-def _match_text(premium: bool = False) -> str:
-    if premium:
+def _match_text(lang: str, premium: bool = False) -> str:
+    key = "premium_match_found" if premium else "match_found"
+    return t(key, lang)
+
+
+def _premium_status_text(user, lang: str) -> str:
+    if PremiumService.is_premium(user):
+        until = user.premium_until
+        date_str = until.strftime("%Y-%m-%d") if until else "—"
         return (
-            "✨💎 PREMIUM MATCH ✨\n\n"
-            "🔔 PING!\n\n"
-            "🎭 Match topildi\n\n"
-            "💙 Yigit  ⚡️  🩷 Qiz\n\n"
-            "Suhbat boshlandi..."
+            f"{t('premium_active', lang)}\n"
+            f"{t('premium_valid_until', lang, date=date_str)}\n\n"
+            f"{t('premium_features', lang)}"
         )
-    return "🔔 PING!\n\n🎭 Match topildi\n\n💙 Yigit  ⚡️  🩷 Qiz\n\nSuhbat boshlandi..."
+    return f"{t('premium_inactive', lang)}\n\n{t('premium_benefits_title', lang)}\n{t('premium_features', lang)}"
 
 
 @router.callback_query(F.data == "menu:find")
-async def find_chat(callback: CallbackQuery) -> None:
+async def find_chat(callback: CallbackQuery, lang: str = "uz") -> None:
     if callback.from_user is None or callback.message is None:
         return
 
@@ -47,34 +54,35 @@ async def find_chat(callback: CallbackQuery) -> None:
         user_repo = UserRepository(session)
         user = await user_repo.get_by_telegram_id(callback.from_user.id)
         if user is None:
-            await callback.answer("/start bosing", show_alert=True)
+            await callback.message.answer(t("press_start", lang))
             return
 
+        lang = normalize_lang(user.language)
         user = await PremiumService(session).refresh_premium_state(user)
         service = MatchmakingService(session, bot=callback.bot)
         try:
-            chat = await service.start_search(user)
+            chat = await service.start_search(user, lang)
         except ValueError as exc:
-            await callback.answer(str(exc), show_alert=True)
+            await callback.message.answer(str(exc))
             return
 
     if chat is None:
-        await callback.message.edit_text(
-            "⚡️ Mos suhbatdosh qidirilmoqda...",
-            reply_markup=search_wait_keyboard(),
+        await safe_edit_message(
+            callback.message,
+            t("searching", lang),
+            reply_markup=search_wait_keyboard(lang),
         )
-        await callback.answer()
         return
 
-    await callback.message.edit_text(
-        _match_text(PremiumService.is_premium(user)),
-        reply_markup=chat_control_keyboard(),
+    await safe_edit_message(
+        callback.message,
+        _match_text(lang, PremiumService.is_premium(user)),
+        reply_markup=chat_control_keyboard(lang),
     )
-    await callback.answer()
 
 
 @router.callback_query(F.data == "menu:cancel_search")
-async def cancel_search(callback: CallbackQuery) -> None:
+async def cancel_search(callback: CallbackQuery, lang: str = "uz") -> None:
     if callback.from_user is None or callback.message is None:
         return
 
@@ -82,18 +90,18 @@ async def cancel_search(callback: CallbackQuery) -> None:
         user_repo = UserRepository(session)
         user = await user_repo.get_by_telegram_id(callback.from_user.id)
         if user is None:
-            await callback.answer("/start bosing", show_alert=True)
+            await callback.message.answer(t("press_start", lang))
             return
 
+        lang = normalize_lang(user.language)
         service = MatchmakingService(session, bot=callback.bot)
         await service.cancel_search(user)
 
-    await callback.message.edit_text("Asosiy menyu", reply_markup=main_menu_keyboard())
-    await callback.answer("Qidiruv bekor qilindi")
+    await safe_edit_message(callback.message, t("main_menu", lang), reply_markup=main_menu_keyboard(lang))
 
 
 @router.callback_query(F.data == "menu:premium")
-async def premium(callback: CallbackQuery) -> None:
+async def premium(callback: CallbackQuery, lang: str = "uz") -> None:
     if callback.from_user is None or callback.message is None:
         return
 
@@ -101,13 +109,14 @@ async def premium(callback: CallbackQuery) -> None:
         user_repo = UserRepository(session)
         user = await user_repo.get_by_telegram_id(callback.from_user.id)
         if user is None:
-            await callback.answer("/start bosing", show_alert=True)
+            await callback.message.answer(t("press_start", lang))
             return
 
+        lang = normalize_lang(user.language)
         premium_service = PremiumService(session)
         referral_service = ReferralService(session)
         user = await premium_service.refresh_premium_state(user)
-        status = await premium_service.get_status_text(user)
+        status = _premium_status_text(user, lang)
         stats = await referral_service.get_stats(user)
         bot_username = await _get_bot_username(callback.bot)
         link = referral_service.build_referral_link(user, bot_username)
@@ -115,19 +124,20 @@ async def premium(callback: CallbackQuery) -> None:
     text = (
         f"{status}\n\n"
         "━━━━━━━━━━━━━━\n"
-        "🎁 3 ta do‘st taklif qiling\n"
-        "💎 7 kun Premium oling\n\n"
-        f"📊 Jarayon: {stats['progress']}/{stats['required']}\n"
-        f"👥 Jami takliflar: {stats['total']}\n\n"
-        f"🔗 Sizning havolangiz:\n{link}"
+        f"{t('referral_title', lang)}\n\n"
+        f"{t('referral_progress', lang, progress=stats['progress'], required=stats['required'])}\n"
+        f"{t('referral_total', lang, total=stats['total'])}\n\n"
+        f"{t('referral_link', lang, link=link)}"
     )
-    await callback.message.edit_text(text, reply_markup=premium_keyboard())
-    await callback.answer()
+    await safe_edit_message(callback.message, text, reply_markup=premium_keyboard(lang))
 
 
 @router.callback_query(F.data == "menu:settings")
-async def settings(callback: CallbackQuery) -> None:
+async def settings(callback: CallbackQuery, lang: str = "uz") -> None:
     if callback.message is None:
         return
-    await callback.message.edit_text("⚙️ Sozlamalar", reply_markup=settings_keyboard())
-    await callback.answer()
+    await safe_edit_message(
+        callback.message,
+        t("settings_title", lang),
+        reply_markup=settings_keyboard(lang),
+    )

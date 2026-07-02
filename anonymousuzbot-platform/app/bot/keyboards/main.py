@@ -1,11 +1,21 @@
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from app.bot.i18n import t
 
-def gender_keyboard(prefix: str = "reg") -> InlineKeyboardMarkup:
+
+def language_keyboard(prefix: str = "reg") -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    kb.button(text="💙 Men yigitman", callback_data=f"{prefix}:gender:male")
-    kb.button(text="🩷 Men qizman", callback_data=f"{prefix}:gender:female")
+    kb.button(text=t("btn_uzbek", "uz"), callback_data=f"{prefix}:lang:uz")
+    kb.button(text=t("btn_russian", "ru"), callback_data=f"{prefix}:lang:ru")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def gender_keyboard(prefix: str = "reg", lang: str = "uz") -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    kb.button(text=t("btn_male", lang), callback_data=f"{prefix}:gender:male")
+    kb.button(text=t("btn_female", lang), callback_data=f"{prefix}:gender:female")
     kb.adjust(1)
     return kb.as_markup()
 
@@ -19,57 +29,58 @@ def age_keyboard(prefix: str = "reg") -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def main_menu_keyboard() -> InlineKeyboardMarkup:
+def main_menu_keyboard(lang: str = "uz") -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    kb.button(text="🔎 Chat qidirish", callback_data="menu:find")
-    kb.button(text="⭐️ Premium", callback_data="menu:premium")
-    kb.button(text="⚙️ Sozlamalar", callback_data="menu:settings")
+    kb.button(text=t("btn_find_chat", lang), callback_data="menu:find")
+    kb.button(text=t("btn_premium", lang), callback_data="menu:premium")
+    kb.button(text=t("btn_settings", lang), callback_data="menu:settings")
     kb.adjust(1)
     return kb.as_markup()
 
 
-def premium_keyboard() -> InlineKeyboardMarkup:
+def premium_keyboard(lang: str = "uz") -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    kb.button(text="⬅️ Orqaga", callback_data="settings:back")
+    kb.button(text=t("btn_back", lang), callback_data="settings:back")
     kb.adjust(1)
     return kb.as_markup()
 
 
-def settings_keyboard() -> InlineKeyboardMarkup:
+def settings_keyboard(lang: str = "uz") -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    kb.button(text="👤 Mening profilim", callback_data="settings:profile")
-    kb.button(text="🔁 Jinsni o‘zgartirish", callback_data="settings:gender")
-    kb.button(text="🎂 Yoshni o‘zgartirish", callback_data="settings:age")
-    kb.button(text="🚫 Bloklanganlar", callback_data="settings:blocked")
-    kb.button(text="⬅️ Orqaga", callback_data="settings:back")
+    kb.button(text=t("btn_profile", lang), callback_data="settings:profile")
+    kb.button(text=t("btn_change_gender", lang), callback_data="settings:gender")
+    kb.button(text=t("btn_change_age", lang), callback_data="settings:age")
+    kb.button(text=t("btn_change_language", lang), callback_data="settings:language")
+    kb.button(text=t("btn_blocked", lang), callback_data="settings:blocked")
+    kb.button(text=t("btn_back", lang), callback_data="settings:back")
     kb.adjust(1)
     return kb.as_markup()
 
 
-def search_wait_keyboard() -> InlineKeyboardMarkup:
+def search_wait_keyboard(lang: str = "uz") -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    kb.button(text="❌ Qidiruvni bekor qilish", callback_data="menu:cancel_search")
+    kb.button(text=t("btn_cancel_search", lang), callback_data="menu:cancel_search")
     return kb.as_markup()
 
 
-def chat_control_keyboard() -> InlineKeyboardMarkup:
+def chat_control_keyboard(lang: str = "uz") -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    kb.button(text="⏭️ Keyingisi", callback_data="chat:next")
-    kb.button(text="❤️ Yoqdi", callback_data="chat:like")
-    kb.button(text="🚩 Shikoyat", callback_data="chat:report")
-    kb.button(text="🚫 Bloklash", callback_data="chat:block")
-    kb.button(text="❌ Tugatish", callback_data="chat:end")
+    kb.button(text=t("btn_next", lang), callback_data="chat:next")
+    kb.button(text=t("btn_like", lang), callback_data="chat:like")
+    kb.button(text=t("btn_report", lang), callback_data="chat:report")
+    kb.button(text=t("btn_block", lang), callback_data="chat:block")
+    kb.button(text=t("btn_end", lang), callback_data="chat:end")
     kb.adjust(2, 2, 1)
     return kb.as_markup()
 
 
-def report_reasons_keyboard() -> InlineKeyboardMarkup:
+def report_reasons_keyboard(lang: str = "uz") -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    kb.button(text="🔞 Nomaqbul xatti-harakat", callback_data="report:reason:nomaqbul")
-    kb.button(text="💰 Firibgarlik", callback_data="report:reason:firibgarlik")
-    kb.button(text="😡 Haqorat", callback_data="report:reason:haqorat")
-    kb.button(text="⚠️ Tahdid", callback_data="report:reason:tahdid")
-    kb.button(text="📛 Spam", callback_data="report:reason:spam")
-    kb.button(text="📝 Boshqa", callback_data="report:reason:boshqa")
+    kb.button(text=t("report_nomaqbul", lang), callback_data="report:reason:nomaqbul")
+    kb.button(text=t("report_firibgarlik", lang), callback_data="report:reason:firibgarlik")
+    kb.button(text=t("report_haqorat", lang), callback_data="report:reason:haqorat")
+    kb.button(text=t("report_tahdid", lang), callback_data="report:reason:tahdid")
+    kb.button(text=t("report_spam", lang), callback_data="report:reason:spam")
+    kb.button(text=t("report_boshqa", lang), callback_data="report:reason:boshqa")
     kb.adjust(1)
     return kb.as_markup()

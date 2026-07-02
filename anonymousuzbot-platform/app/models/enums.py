@@ -6,6 +6,11 @@ class GenderEnum(str, enum.Enum):
     female = "female"
 
 
+class LanguageEnum(str, enum.Enum):
+    uz = "uz"
+    ru = "ru"
+
+
 class ChatStatusEnum(str, enum.Enum):
     searching = "searching"
     active = "active"
