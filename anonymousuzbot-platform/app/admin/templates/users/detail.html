@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% set u = detail.user %}
+{% block content %}
+<div class="card">
+  <div class="card-title">User Profile</div>
+  <table>
+    <tr><th>Internal UUID</th><td class="uuid">{{ u.id }}</td></tr>
+    {% if can_telegram_search %}
+    <tr><th>Telegram ID</th><td>{{ u.telegram_id }}</td></tr>
+    {% endif %}
+    <tr><th>Gender</th><td>{{ u.gender.value }}</td></tr>
+    <tr><th>Age</th><td>{{ u.age }}</td></tr>
+    <tr><th>Nick</th><td>{{ u.anonymous_nick }}</td></tr>
+    <tr><th>Premium</th><td>{% if detail.is_premium %}<span class="badge badge-premium">Active</span>{% else %}No{% endif %}</td></tr>
+    <tr><th>Banned</th><td>{% if u.is_banned %}<span class="badge badge-banned">Yes</span>{% else %}No{% endif %}</td></tr>
+    <tr><th>Muted</th><td>{% if u.is_muted %}<span class="badge badge-muted">Yes</span>{% else %}No{% endif %}</td></tr>
+    <tr><th>Last Seen</th><td>{{ u.last_seen_at | format_dt }}</td></tr>
+    <tr><th>Reports</th><td>{{ detail.reports_count }}</td></tr>
+    <tr><th>Created</th><td>{{ u.created_at | format_dt }}</td></tr>
+  </table>
+</div>
+
+{% if can_manage %}
+<div class="card">
+  <div class="card-title">Moderation Actions</div>
+  <div class="actions">
+    <form method="post" action="/admin/users/{{ u.id }}/warn" style="display:inline;">
+      <input type="hidden" name="reason" value="Policy violation">
+      <button type="submit" class="btn btn-warn btn-sm">Warn</button>
+    </form>
+    <form method="post" action="/admin/users/{{ u.id }}/mute" style="display:inline;">
+      <button type="submit" class="btn btn-sm">Mute</button>
+    </form>
+    <form method="post" action="/admin/users/{{ u.id }}/temp-ban" style="display:inline;">
+      <input type="hidden" name="reason" value="Policy violation">
+      <input type="hidden" name="days" value="7">
+      <button type="submit" class="btn btn-danger btn-sm">Temp Ban (7d)</button>
+    </form>
+    <form method="post" action="/admin/users/{{ u.id }}/perm-ban" style="display:inline;">
+      <input type="hidden" name="reason" value="Policy violation">
+      <button type="submit" class="btn btn-danger btn-sm">Permanent Ban</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<a href="/admin/users" class="btn">← Back to Users</a>
+{% endblock %}

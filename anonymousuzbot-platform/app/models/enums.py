@@ -32,3 +32,10 @@ class ReportStatusEnum(str, enum.Enum):
 class BanTypeEnum(str, enum.Enum):
     temporary = "temporary"
     permanent = "permanent"
+
+
+class AdminRoleEnum(str, enum.Enum):
+    owner = "owner"
+    mega_admin = "mega_admin"
+    admin = "admin"
+    moderator = "moderator"

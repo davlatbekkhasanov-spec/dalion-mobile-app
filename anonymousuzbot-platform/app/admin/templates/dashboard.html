@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-value">{{ stats.total_users }}</div><div class="stat-label">Total Users</div></div>
+  <div class="stat-card"><div class="stat-value">{{ stats.online_users }}</div><div class="stat-label">Online Now</div></div>
+  <div class="stat-card"><div class="stat-value">{{ stats.male_count }}</div><div class="stat-label">Male</div></div>
+  <div class="stat-card"><div class="stat-value">{{ stats.female_count }}</div><div class="stat-label">Female</div></div>
+  <div class="stat-card"><div class="stat-value">{{ stats.active_chats }}</div><div class="stat-label">Active Chats</div></div>
+  <div class="stat-card"><div class="stat-value">{{ stats.today_chats }}</div><div class="stat-label">Chats Today</div></div>
+  <div class="stat-card"><div class="stat-value">{{ stats.today_reports }}</div><div class="stat-label">Reports Today</div></div>
+  <div class="stat-card"><div class="stat-value">{{ stats.bans_today }}</div><div class="stat-label">Bans Today</div></div>
+  <div class="stat-card"><div class="stat-value">{{ stats.referrals_today }}</div><div class="stat-label">Referrals Today</div></div>
+</div>
+{% endblock %}

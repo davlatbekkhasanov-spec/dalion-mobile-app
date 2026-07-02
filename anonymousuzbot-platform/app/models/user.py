@@ -18,36 +18,16 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     is_registered: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_banned: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_muted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     premium_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
 
-    male_chats = relationship(
-        "ChatSession",
-        foreign_keys="ChatSession.male_user_id",
-        back_populates="male_user",
-    )
-    female_chats = relationship(
-        "ChatSession",
-        foreign_keys="ChatSession.female_user_id",
-        back_populates="female_user",
-    )
+    male_chats = relationship("ChatSession", foreign_keys="ChatSession.male_user_id", back_populates="male_user")
+    female_chats = relationship("ChatSession", foreign_keys="ChatSession.female_user_id", back_populates="female_user")
     sent_messages = relationship("Message", back_populates="sender")
     reports_made = relationship("Report", foreign_keys="Report.reporter_id", back_populates="reporter")
-    reports_received = relationship(
-        "Report",
-        foreign_keys="Report.reported_user_id",
-        back_populates="reported_user",
-    )
-    referrals_invited = relationship(
-        "Referral",
-        foreign_keys="Referral.inviter_id",
-        back_populates="inviter",
-    )
-    referral_joined = relationship(
-        "Referral",
-        foreign_keys="Referral.invited_id",
-        back_populates="invited",
-        uselist=False,
-    )
+    reports_received = relationship("Report", foreign_keys="Report.reported_user_id", back_populates="reported_user")
+    referrals_invited = relationship("Referral", foreign_keys="Referral.inviter_id", back_populates="inviter")
+    referral_joined = relationship("Referral", foreign_keys="Referral.invited_id", back_populates="invited", uselist=False)
     bans = relationship("Ban", back_populates="user")

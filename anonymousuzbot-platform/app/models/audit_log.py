@@ -12,3 +12,4 @@ class AuditLog(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     action: Mapped[str] = mapped_column(String(128), index=True)
     target_type: Mapped[str] = mapped_column(String(64), index=True)
     target_id: Mapped[str | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)

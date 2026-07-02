@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     database_url: str = Field(alias="DATABASE_URL")
     redis_url: str = Field(alias="REDIS_URL")
 
+    admin_session_secret: str = Field(default="change-me-in-production", alias="ADMIN_SESSION_SECRET")
+    admin_bootstrap_username: str | None = Field(default=None, alias="ADMIN_BOOTSTRAP_USERNAME")
+    admin_bootstrap_password: str | None = Field(default=None, alias="ADMIN_BOOTSTRAP_PASSWORD")
+    admin_bootstrap_role: str = Field(default="owner", alias="ADMIN_BOOTSTRAP_ROLE")
+
 
 @lru_cache
 def get_settings() -> Settings:
