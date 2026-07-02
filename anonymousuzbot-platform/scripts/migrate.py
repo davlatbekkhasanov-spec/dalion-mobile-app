@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run Alembic migrations with legacy-schema recovery for Railway."""
+"""Run Alembic migrations with broken-schema recovery for Railway."""
 
 from __future__ import annotations
 
@@ -10,6 +10,17 @@ from sqlalchemy import text
 
 from app.database.session import engine
 
+ENUM_TYPES = [
+    "signal_status_enum",
+    "signal_severity_enum",
+    "signal_type_enum",
+    "admin_role_enum",
+    "ban_type_enum",
+    "report_status_enum",
+    "message_type_enum",
+    "chat_status_enum",
+    "gender_enum",
+]
 
 REVISIONS = [
     ("moderation_signals", "20260702_0005"),
@@ -40,21 +51,29 @@ async def type_exists(name: str) -> bool:
         return bool(result.scalar())
 
 
+async def reset_broken_enums() -> None:
+    async with engine.begin() as conn:
+        await conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
+        for enum_name in ENUM_TYPES:
+            await conn.execute(text(f"DROP TYPE IF EXISTS {enum_name} CASCADE"))
+
+
 async def detect_stamp_revision() -> str | None:
     for table, revision in REVISIONS:
         if await table_exists(table):
             return revision
-    if await type_exists("gender_enum"):
-        return "20260702_0002"
     return None
 
 
 def run_alembic(*args: str) -> int:
-    result = subprocess.run(["alembic", *args], check=False)
-    return result.returncode
+    return subprocess.run(["alembic", *args], check=False).returncode
 
 
 async def main() -> int:
+    if await type_exists("gender_enum") and not await table_exists("users"):
+        print("Broken schema detected (enums without tables) — resetting enums")
+        await reset_broken_enums()
+
     code = run_alembic("upgrade", "head")
     if code == 0:
         return 0
