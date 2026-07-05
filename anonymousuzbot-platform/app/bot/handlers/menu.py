@@ -10,11 +10,13 @@ from app.bot.keyboards.main import (
     settings_keyboard,
 )
 from app.bot.utils.messages import safe_edit_message
+from app.core.config import settings
 from app.database.session import SessionLocal
 from app.repositories.user_repository import UserRepository
 from app.services.matchmaking_service import MatchmakingService
 from app.services.premium_service import PremiumService
 from app.services.referral_service import ReferralService
+from app.services.payment_service import PaymentService
 
 router = Router()
 
@@ -115,21 +117,32 @@ async def premium(callback: CallbackQuery, lang: str = "uz") -> None:
         lang = normalize_lang(user.language)
         premium_service = PremiumService(session)
         referral_service = ReferralService(session)
+        payment_service = PaymentService(session)
         user = await premium_service.refresh_premium_state(user)
         status = _premium_status_text(user, lang)
         stats = await referral_service.get_stats(user)
         bot_username = await _get_bot_username(callback.bot)
         link = referral_service.build_referral_link(user, bot_username)
+        prices = await payment_service.get_prices()
+        ton_7 = payment_service.format_ton_amount(prices["ton_7"])
+        ton_30 = payment_service.format_ton_amount(prices["ton_30"])
 
     text = (
         f"{status}\n\n"
+        "━━━━━━━━━━━━━━\n"
+        f"{t('payment_section_title', lang)}\n"
+        f"{t('payment_choose_plan', lang, stars_7=prices['stars_7'], stars_30=prices['stars_30'], ton_7=ton_7, ton_30=ton_30)}\n\n"
         "━━━━━━━━━━━━━━\n"
         f"{t('referral_title', lang)}\n\n"
         f"{t('referral_progress', lang, progress=stats['progress'], required=stats['required'])}\n"
         f"{t('referral_total', lang, total=stats['total'])}\n\n"
         f"{t('referral_link', lang, link=link)}"
     )
-    await safe_edit_message(callback.message, text, reply_markup=premium_keyboard(lang))
+    await safe_edit_message(
+        callback.message,
+        text,
+        reply_markup=premium_keyboard(lang, ton_enabled=bool(settings.ton_wallet_address)),
+    )
 
 
 @router.callback_query(F.data == "menu:settings")

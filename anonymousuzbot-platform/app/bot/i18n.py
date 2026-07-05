@@ -181,6 +181,90 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "uz": "🎁 Tabriklaymiz! {days} kun Premium mukofoti faollashtirildi.",
         "ru": "🎁 Поздравляем! Награда Premium на {days} дней активирована.",
     },
+    "btn_buy_premium": {
+        "uz": "💳 Premium sotib olish",
+        "ru": "💳 Купить Premium",
+    },
+    "btn_pay_stars_7": {
+        "uz": "⭐ 7 kun — Stars",
+        "ru": "⭐ 7 дн. — Stars",
+    },
+    "btn_pay_stars_30": {
+        "uz": "⭐ 30 kun — Stars",
+        "ru": "⭐ 30 дн. — Stars",
+    },
+    "btn_pay_ton_7": {
+        "uz": "💎 7 kun — TON",
+        "ru": "💎 7 дн. — TON",
+    },
+    "btn_pay_ton_30": {
+        "uz": "💎 30 kun — TON",
+        "ru": "💎 30 дн. — TON",
+    },
+    "payment_choose_plan": {
+        "uz": (
+            "💳 Premium tariflar:\n\n"
+            "⭐ Stars:\n"
+            "• 7 kun — {stars_7} ⭐\n"
+            "• 30 kun — {stars_30} ⭐\n\n"
+            "💎 TON:\n"
+            "• 7 kun — {ton_7} TON\n"
+            "• 30 kun — {ton_30} TON\n\n"
+            "To'lov usulini tanlang:"
+        ),
+        "ru": (
+            "💳 Тарифы Premium:\n\n"
+            "⭐ Stars:\n"
+            "• 7 дн. — {stars_7} ⭐\n"
+            "• 30 дн. — {stars_30} ⭐\n\n"
+            "💎 TON:\n"
+            "• 7 дн. — {ton_7} TON\n"
+            "• 30 дн. — {ton_30} TON\n\n"
+            "Выберите способ оплаты:"
+        ),
+    },
+    "payment_stars_description": {
+        "uz": "Anonymous UZ Premium — {days} kun. Ustuvor qidiruv, ko'proq like va maxsus effektlar.",
+        "ru": "Anonymous UZ Premium — {days} дн. Приоритетный поиск, больше лайков и спецэффекты.",
+    },
+    "payment_ton_instructions": {
+        "uz": (
+            "💎 TON orqali to'lov\n\n"
+            "📦 Tarif: {days} kun Premium\n"
+            "💰 Summa: <b>{amount} TON</b>\n\n"
+            "👛 Hamyon: <code>{wallet}</code>\n"
+            "💬 Izoh (comment): <code>{comment}</code>\n\n"
+            "⚠️ Izohni aynan shu ko'rinishda yozing!\n"
+            "⏳ Amal qilish: {expires} gacha\n\n"
+            "To'lov tasdiqlangach, Premium avtomatik faollashadi."
+        ),
+        "ru": (
+            "💎 Оплата через TON\n\n"
+            "📦 Тариф: {days} дн. Premium\n"
+            "💰 Сумма: <b>{amount} TON</b>\n\n"
+            "👛 Кошелёк: <code>{wallet}</code>\n"
+            "💬 Комментарий: <code>{comment}</code>\n\n"
+            "⚠️ Укажите комментарий точно в таком виде!\n"
+            "⏳ Действует до: {expires}\n\n"
+            "После подтверждения Premium активируется автоматически."
+        ),
+    },
+    "payment_ton_unavailable": {
+        "uz": "TON to'lovi hozircha mavjud emas. Stars orqali to'lang.",
+        "ru": "Оплата TON пока недоступна. Оплатите через Stars.",
+    },
+    "payment_success": {
+        "uz": "✅ To'lov qabul qilindi! {days} kun Premium faollashtirildi.",
+        "ru": "✅ Оплата принята! Premium на {days} дн. активирован.",
+    },
+    "payment_failed": {
+        "uz": "❌ To'lovni tasdiqlab bo'lmadi. Qayta urinib ko'ring.",
+        "ru": "❌ Не удалось подтвердить оплату. Попробуйте снова.",
+    },
+    "payment_section_title": {
+        "uz": "💳 Premium sotib olish",
+        "ru": "💳 Купить Premium",
+    },
     "gender_updated": {
         "uz": "✅ Jins yangilandi",
         "ru": "✅ Пол обновлён",

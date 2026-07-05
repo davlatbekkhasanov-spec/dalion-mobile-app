@@ -38,8 +38,14 @@ def main_menu_keyboard(lang: str = "uz") -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def premium_keyboard(lang: str = "uz") -> InlineKeyboardMarkup:
+def premium_keyboard(lang: str = "uz", *, show_buy: bool = True, ton_enabled: bool = True) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
+    if show_buy:
+        kb.button(text=t("btn_pay_stars_7", lang), callback_data="pay:stars:7")
+        kb.button(text=t("btn_pay_stars_30", lang), callback_data="pay:stars:30")
+        if ton_enabled:
+            kb.button(text=t("btn_pay_ton_7", lang), callback_data="pay:ton:7")
+            kb.button(text=t("btn_pay_ton_30", lang), callback_data="pay:ton:30")
     kb.button(text=t("btn_back", lang), callback_data="settings:back")
     kb.adjust(1)
     return kb.as_markup()

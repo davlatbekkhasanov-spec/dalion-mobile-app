@@ -4,7 +4,7 @@ from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import Update
 from aiogram.utils.callback_answer import CallbackAnswerMiddleware
 
-from app.bot.handlers import chat, menu, registration, settings, start
+from app.bot.handlers import chat, menu, payments, registration, settings, start
 from app.bot.middlewares.user_context import UserContextMiddleware
 from app.core.config import settings as app_settings
 
@@ -32,6 +32,7 @@ def get_dispatcher() -> Dispatcher:
         _dp.include_router(start.router)
         _dp.include_router(registration.router)
         _dp.include_router(menu.router)
+        _dp.include_router(payments.router)
         _dp.include_router(settings.router)
         _dp.include_router(chat.router)
     return _dp
@@ -58,7 +59,7 @@ async def setup_webhook() -> None:
         url=app_settings.effective_webhook_path,
         secret_token=app_settings.webhook_secret,
         drop_pending_updates=True,
-        allowed_updates=["message", "callback_query", "my_chat_member"],
+        allowed_updates=["message", "callback_query", "my_chat_member", "pre_checkout_query"],
     )
 
 

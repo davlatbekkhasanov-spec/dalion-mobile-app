@@ -66,3 +66,15 @@ class SignalStatusEnum(str, enum.Enum):
     reviewing = "reviewing"
     resolved = "resolved"
     ignored = "ignored"
+
+
+class PaymentMethodEnum(str, enum.Enum):
+    stars = "stars"
+    ton = "ton"
+
+
+class PaymentStatusEnum(str, enum.Enum):
+    pending = "pending"
+    completed = "completed"
+    expired = "expired"
+    failed = "failed"

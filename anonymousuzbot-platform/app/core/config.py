@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     owner_telegram_id: int | None = Field(default=None, alias="OWNER_TELEGRAM_ID")
     run_mode: str = Field(default="all", alias="RUN_MODE")
 
+    ton_wallet_address: str | None = Field(default=None, alias="TON_WALLET_ADDRESS")
+    toncenter_api_key: str | None = Field(default=None, alias="TONCENTER_API_KEY")
+    ton_payment_ttl_minutes: int = Field(default=60, alias="TON_PAYMENT_TTL_MINUTES")
+
     @field_validator("database_url")
     @classmethod
     def normalize_db_url(cls, value: str) -> str:

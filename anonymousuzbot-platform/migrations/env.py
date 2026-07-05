@@ -16,6 +16,7 @@ from app.models import (  # noqa: F401
     chat_session,
     message,
     moderation_signal,
+    premium_payment,
     referral,
     report,
     secret_match,

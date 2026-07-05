@@ -46,3 +46,4 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     referrals_invited = relationship("Referral", foreign_keys="Referral.inviter_id", back_populates="inviter")
     referral_joined = relationship("Referral", foreign_keys="Referral.invited_id", back_populates="invited", uselist=False)
     bans = relationship("Ban", back_populates="user")
+    premium_payments = relationship("PremiumPayment", back_populates="user")

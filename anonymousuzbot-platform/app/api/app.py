@@ -16,7 +16,7 @@ from app.bot.setup import resolve_bot_username, setup_webhook, shutdown_webhook
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.database.session import SessionLocal
-from app.services.moderation_config_service import ModerationConfigService
+from app.services.ton_payment_poller import ton_payment_poller
 
 
 ADMIN_STATIC = Path(__file__).resolve().parent.parent / "admin" / "static"
@@ -47,7 +47,11 @@ async def lifespan(app: FastAPI):
         except Exception:
             logger.exception("Failed to resolve bot username")
 
+    ton_payment_poller.start()
+
     yield
+
+    await ton_payment_poller.stop()
 
     if settings.use_webhook:
         try:
@@ -64,6 +68,10 @@ async def _ensure_platform_settings(session) -> None:
         "premium.likes_per_day_premium": "30",
         "referral.required_invites": "3",
         "referral.reward_days": "7",
+        "payment.stars.price_7": "50",
+        "payment.stars.price_30": "150",
+        "payment.ton.price_7": "500000000",
+        "payment.ton.price_30": "1500000000",
     }
     repo = SettingRepository(session)
     for key, value in defaults.items():
