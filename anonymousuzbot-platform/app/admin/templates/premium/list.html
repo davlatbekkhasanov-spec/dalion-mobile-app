@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="card-title">Give Premium</div>
+  <form class="filters" method="post" action="/admin/premium/give">
+    <div>
+      <label>User UUID</label>
+      <input type="text" name="user_id" required placeholder="Internal UUID">
+    </div>
+    <div>
+      <label>Days</label>
+      <input type="number" name="days" value="30" min="1">
+    </div>
+    <button type="submit" class="btn btn-primary">Give Premium</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title">Remove Premium</div>
+  <form class="filters" method="post" action="/admin/premium/remove">
+    <div>
+      <label>User UUID</label>
+      <input type="text" name="user_id" required placeholder="Internal UUID">
+    </div>
+    <button type="submit" class="btn btn-danger">Remove Premium</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title">Premium Users</div>
+  <table>
+    <thead>
+      <tr><th>UUID</th><th>Gender</th><th>Age</th><th>Premium Until</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td class="uuid">{{ u.id }}</td>
+        <td>{{ u.gender.value }}</td>
+        <td>{{ u.age }}</td>
+        <td>{{ u.premium_until | format_dt }}</td>
+        <td><a href="/admin/users/{{ u.id }}" class="btn btn-sm">View</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="color:var(--text-dim);">No premium users</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

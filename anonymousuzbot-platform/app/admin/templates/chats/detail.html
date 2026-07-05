@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% set chat = detail.chat %}
+{% block content %}
+<div class="card">
+  <div class="card-title">Chat Session</div>
+  <table>
+    <tr><th>Chat ID</th><td class="uuid">{{ chat.id }}</td></tr>
+    <tr><th>Status</th><td><span class="badge badge-new">{{ chat.status.value }}</span></td></tr>
+    <tr><th>Male Participant</th><td class="uuid">{{ chat.male_user_id }}</td></tr>
+    <tr><th>Female Participant</th><td class="uuid">{{ chat.female_user_id }}</td></tr>
+    <tr><th>Started</th><td>{{ chat.started_at | format_dt }}</td></tr>
+    <tr><th>Ended</th><td>{{ chat.ended_at | format_dt }}</td></tr>
+    <tr><th>Created</th><td>{{ chat.created_at | format_dt }}</td></tr>
+  </table>
+  <div class="actions" style="margin-top:1rem;">
+    <a href="/admin/chats/{{ chat.id }}/export" class="btn btn-primary btn-sm">Export JSON</a>
+    <a href="/admin/chats" class="btn btn-sm">← Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Messages ({{ detail.messages | length }})</div>
+  <div class="message-list">
+    {% for msg in detail.messages %}
+    <div class="message-item">
+      <div class="message-meta">{{ msg.created_at | format_dt }} · {{ msg.message_type.value }} · sender: <span class="uuid">{{ msg.sender_id }}</span></div>
+      {% if msg.text %}<div>{{ msg.text }}</div>{% endif %}
+      {% if msg.telegram_file_id %}<div class="message-file">file_id: {{ msg.telegram_file_id }}</div>{% endif %}
+    </div>
+    {% else %}
+    <div style="color:var(--text-dim);padding:1rem;">No messages</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
