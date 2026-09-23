@@ -3173,9 +3173,27 @@ app.get('/health', (req, res) => {
   res.status(200).json({ ok: true, service: 'dalion-mobile-app' });
 });
 
+async function connectWithRetry(maxAttempts = Number(process.env.DB_BOOT_MAX_ATTEMPTS || 40)) {
+  const delayMs = Number(process.env.DB_BOOT_DELAY_MS || 5000);
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await prisma.$connect();
+      await prisma.$queryRaw`SELECT 1`;
+      console.log(`PostgreSQL connected (attempt ${attempt}/${maxAttempts})`);
+      return;
+    } catch (error) {
+      console.error(
+        `[SERVER] database connect failed (attempt ${attempt}/${maxAttempts}):`,
+        error?.message || error
+      );
+      if (attempt >= maxAttempts) throw error;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 async function main() {
-  await prisma.$connect();
-  console.log('PostgreSQL connected');
+  await connectWithRetry();
   await marketplaceRepo.ensureAppState();
   if (r2Service.shouldUseR2()) {
     const diag = r2Service.diagnoseR2PublicUrl();
