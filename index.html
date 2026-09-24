@@ -314,18 +314,18 @@
       position:absolute;inset:0;border-radius:inherit;background-repeat:repeat-x;
       background-position:0% 50%;background-size:200% 100%;will-change:background-position;
     }
-    .cinematic-globe-map{background-image:url('/intro/earth-map.jpg');animation:globeMapSpin 32s linear infinite}
+    .cinematic-globe-map{background-image:url('/intro/earth-map.jpg');animation:globeMapSpin 32s linear infinite;filter:brightness(1.18) contrast(1.08) saturate(1.15)}
     .cinematic-globe-topo{
-      background-image:url('/intro/earth-topo.png');mix-blend-mode:soft-light;opacity:.32;
+      background-image:url('/intro/earth-topo.png');mix-blend-mode:soft-light;opacity:.28;
       animation:globeMapSpin 32s linear infinite;pointer-events:none;
     }
     .cinematic-globe-shade{
       position:absolute;inset:0;border-radius:inherit;pointer-events:none;
       background:
-        radial-gradient(circle at 28% 24%, rgba(255,255,255,.55), rgba(214,238,255,.16) 14%, rgba(255,255,255,0) 32%),
-        radial-gradient(circle at 78% 78%, rgba(2,6,22,.72), rgba(2,6,22,0) 52%),
-        radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 48%, rgba(2,8,28,.78) 100%),
-        linear-gradient(105deg, rgba(4,20,48,.35) 0%, rgba(0,0,0,0) 42%, rgba(0,0,0,.28) 100%);
+        radial-gradient(circle at 28% 24%, rgba(255,255,255,.62), rgba(214,238,255,.18) 14%, rgba(255,255,255,0) 34%),
+        radial-gradient(circle at 78% 78%, rgba(2,6,22,.55), rgba(2,6,22,0) 54%),
+        radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 52%, rgba(2,8,28,.58) 100%),
+        linear-gradient(105deg, rgba(4,20,48,.18) 0%, rgba(0,0,0,0) 45%, rgba(0,0,0,.18) 100%);
     }
     .cinematic-globe-specular{
       position:absolute;inset:8% 18% auto auto;width:34%;height:22%;border-radius:50%;
@@ -364,12 +364,12 @@
       opacity:0;transform:rotate(-28deg);animation:shootingStar 5.5s ease-in-out infinite;
     }
     .cinematic-text{
-      font-family:"Syne","Segoe UI",sans-serif;font-size:clamp(26px,11.5cqi,40px);font-weight:800;
-      letter-spacing:-.03em;line-height:1.05;width:100%;max-width:100%;padding:0 2px;margin:0;box-sizing:border-box;
+      font-family:"Syne","Segoe UI",sans-serif;font-size:clamp(24px,10cqi,36px);font-weight:800;
+      letter-spacing:-.04em;line-height:1.05;width:100%;max-width:100%;padding:0 4px;margin:0;box-sizing:border-box;
       color:#eaf4ff;background:linear-gradient(105deg,#ffffff 8%,#c8e4ff 42%,#7ef0c8 92%);
       -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-      opacity:0;transform:translateY(16px) scale(.94);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-      position:relative;
+      opacity:0;transform:translateY(16px) scale(.94);white-space:nowrap;overflow:hidden;text-overflow:clip;
+      position:relative;text-align:center;
     }
     .cinematic-sub{
       color:#a8c0e4;font-size:clamp(12px,3.6cqi,14px);max-width:100%;width:100%;margin:0;line-height:1.4;
