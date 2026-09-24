@@ -155,9 +155,16 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 }));
 
 app.use('/intro', express.static(path.join(__dirname, 'public', 'intro'), {
-  maxAge: '30d',
-  immutable: true,
-  fallthrough: false
+  maxAge: '1h',
+  fallthrough: false,
+  setHeaders(res, filePath) {
+    // Images can stay longer; JS must not be immutable or CF keeps stale globe code forever
+    if (/\.(?:jpg|jpeg|png|webp)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+    } else if (/\.js$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate');
+    }
+  }
 }));
 
 function nowIso() {
