@@ -1,5 +1,5 @@
 /**
- * GlobusMarket intro — crisp, bright Three.js Earth (no haze).
+ * GlobusMarket intro — crisp Earth with free-hand drag spin.
  */
 (function (global) {
   'use strict';
@@ -13,10 +13,17 @@
   let frameId = 0;
   let hostEl = null;
   let reducedMotion = false;
-  let pointerX = 0;
-  let pointerY = 0;
-  let targetTiltX = 0.1;
   let running = false;
+
+  let dragging = false;
+  let pointerId = null;
+  let lastX = 0;
+  let lastY = 0;
+  let velY = 0;
+  let velX = 0;
+  let baseTiltX = 0.1;
+  let autoSpin = 0.0032;
+  let resumeTimer = 0;
 
   function preferReducedMotion() {
     return !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -33,38 +40,121 @@
     camera.updateProjectionMatrix();
   }
 
-  function onPointer(e) {
-    if (!hostEl || reducedMotion) return;
-    const rect = hostEl.getBoundingClientRect();
-    const cx = 'clientX' in e ? e.clientX : (e.touches && e.touches[0] && e.touches[0].clientX);
-    const cy = 'clientY' in e ? e.clientY : (e.touches && e.touches[0] && e.touches[0].clientY);
-    if (cx == null) return;
-    pointerX = ((cx - rect.left) / rect.width - 0.5) * 2;
-    pointerY = ((cy - rect.top) / rect.height - 0.5) * 2;
+  function setDragging(on) {
+    dragging = on;
+    if (hostEl) hostEl.classList.toggle('is-dragging', on);
+  }
+
+  function clearResume() {
+    if (resumeTimer) {
+      global.clearTimeout(resumeTimer);
+      resumeTimer = 0;
+    }
+  }
+
+  function eventPoint(e) {
+    if (e.touches && e.touches[0]) {
+      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function onPointerDown(e) {
+    if (!hostEl || !earth) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    clearResume();
+    setDragging(true);
+    pointerId = e.pointerId;
+    const p = eventPoint(e);
+    lastX = p.x;
+    lastY = p.y;
+    velY = 0;
+    velX = 0;
+    try {
+      hostEl.setPointerCapture(e.pointerId);
+    } catch (_) {}
+    if (e.cancelable) e.preventDefault();
+  }
+
+  function onPointerMove(e) {
+    if (!dragging || !earth) return;
+    if (pointerId != null && e.pointerId !== pointerId) return;
+    const p = eventPoint(e);
+    const dx = p.x - lastX;
+    const dy = p.y - lastY;
+    lastX = p.x;
+    lastY = p.y;
+    // Horizontal drag spins longitude; vertical tilts latitude
+    const spin = dx * 0.0055;
+    const tilt = dy * 0.0042;
+    earth.rotation.y += spin;
+    earth.rotation.x = Math.max(-0.85, Math.min(0.85, earth.rotation.x + tilt));
+    velY = spin;
+    velX = tilt;
+    if (e.cancelable) e.preventDefault();
+  }
+
+  function onPointerUp(e) {
+    if (!dragging) return;
+    if (pointerId != null && e.pointerId !== pointerId) return;
+    setDragging(false);
+    pointerId = null;
+    try {
+      if (hostEl && e.pointerId != null) hostEl.releasePointerCapture(e.pointerId);
+    } catch (_) {}
+    // After flick settles, ease back toward gentle auto-spin
+    clearResume();
+    resumeTimer = global.setTimeout(function () {
+      resumeTimer = 0;
+      velY *= 0.35;
+    }, 1600);
   }
 
   function animate() {
     if (!running) return;
     frameId = global.requestAnimationFrame(animate);
     if (earth) {
-      if (!reducedMotion) earth.rotation.y += 0.003;
-      targetTiltX = 0.1 + pointerY * 0.08;
-      earth.rotation.x += (targetTiltX - earth.rotation.x) * 0.05;
-      earth.rotation.z += ((pointerX * 0.06) - earth.rotation.z) * 0.04;
+      if (dragging) {
+        // rotation applied live in pointer handlers
+      } else {
+        // Inertia after flick
+        if (Math.abs(velY) > 0.00008 || Math.abs(velX) > 0.00008) {
+          earth.rotation.y += velY;
+          earth.rotation.x = Math.max(-0.85, Math.min(0.85, earth.rotation.x + velX));
+          velY *= 0.94;
+          velX *= 0.9;
+        } else if (!reducedMotion) {
+          // Soft auto-spin when idle
+          earth.rotation.y += autoSpin;
+          earth.rotation.x += (baseTiltX - earth.rotation.x) * 0.02;
+        }
+      }
+      earth.rotation.z *= 0.92;
     }
-    if (atmosphere && earth) atmosphere.rotation.y = earth.rotation.y * 0.12;
+    if (atmosphere && earth) {
+      atmosphere.rotation.y = earth.rotation.y;
+      atmosphere.rotation.x = earth.rotation.x;
+    }
     if (stars && !reducedMotion) stars.rotation.y -= 0.0003;
     renderer.render(scene, camera);
+  }
+
+  function unbindPointer() {
+    if (!hostEl) return;
+    hostEl.removeEventListener('pointerdown', onPointerDown);
+    hostEl.removeEventListener('pointermove', onPointerMove);
+    hostEl.removeEventListener('pointerup', onPointerUp);
+    hostEl.removeEventListener('pointercancel', onPointerUp);
+    hostEl.removeEventListener('lostpointercapture', onPointerUp);
   }
 
   function dispose() {
     running = false;
     if (frameId) global.cancelAnimationFrame(frameId);
     frameId = 0;
-    if (hostEl) {
-      hostEl.removeEventListener('pointermove', onPointer);
-      hostEl.removeEventListener('touchmove', onPointer);
-    }
+    clearResume();
+    setDragging(false);
+    unbindPointer();
     if (renderer) {
       renderer.dispose();
       if (renderer.domElement && renderer.domElement.parentNode) {
@@ -77,6 +167,7 @@
     earth = null;
     atmosphere = null;
     stars = null;
+    hostEl = null;
   }
 
   function makeStarField(THREE) {
@@ -115,6 +206,7 @@
     dispose();
     hostEl = host;
     reducedMotion = preferReducedMotion();
+    autoSpin = reducedMotion ? 0 : 0.0032;
     const opts = options || {};
 
     scene = new THREE.Scene();
@@ -128,14 +220,13 @@
       precision: 'highp'
     });
     renderer.setClearColor(0x000000, 0);
-    // Keep colors crisp — ACES was muting/hazing the Earth
     if (THREE.NoToneMapping != null) renderer.toneMapping = THREE.NoToneMapping;
     if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
     else if (THREE.sRGBEncoding != null) renderer.outputEncoding = THREE.sRGBEncoding;
 
     hostEl.appendChild(renderer.domElement);
     renderer.domElement.style.cssText =
-      'width:100%;height:100%;display:block;touch-action:none;';
+      'width:100%;height:100%;display:block;touch-action:none;cursor:inherit;';
 
     scene.add(new THREE.AmbientLight(0xffffff, 1.55));
     scene.add(new THREE.HemisphereLight(0xffffff, 0x243652, 0.7));
@@ -160,7 +251,6 @@
     const topoUrl = opts.topoUrl || '/intro/earth-topo.png';
 
     const earthGeo = new THREE.SphereGeometry(1, 96, 96);
-    // MeshPhong keeps specular highlight and stays vivid without muddy PBR haze
     const earthMat = new THREE.MeshPhongMaterial({
       color: 0xffffff,
       shininess: 22,
@@ -169,7 +259,7 @@
       emissiveIntensity: 0.28
     });
     earth = new THREE.Mesh(earthGeo, earthMat);
-    earth.rotation.x = 0.1;
+    earth.rotation.x = baseTiltX;
     earth.rotation.y = -0.55;
     scene.add(earth);
 
@@ -190,7 +280,6 @@
       earthMat.needsUpdate = true;
     }, undefined, function () {});
 
-    // Hairline atmosphere rim only — no foggy outer shell
     const atmGeo = new THREE.SphereGeometry(1.018, 64, 64);
     const atmMat = new THREE.MeshBasicMaterial({
       color: 0xa8ddff,
@@ -203,18 +292,30 @@
     scene.add(atmosphere);
 
     size();
-    hostEl.addEventListener('pointermove', onPointer, { passive: true });
-    hostEl.addEventListener('touchmove', onPointer, { passive: true });
+    hostEl.style.touchAction = 'none';
+    hostEl.style.cursor = 'grab';
+    hostEl.setAttribute('aria-hidden', 'false');
+    hostEl.setAttribute('role', 'img');
+    hostEl.setAttribute('aria-label', 'Globus — barmoq bilan aylantiring');
+    hostEl.addEventListener('pointerdown', onPointerDown, { passive: false });
+    hostEl.addEventListener('pointermove', onPointerMove, { passive: false });
+    hostEl.addEventListener('pointerup', onPointerUp, { passive: true });
+    hostEl.addEventListener('pointercancel', onPointerUp, { passive: true });
+    hostEl.addEventListener('lostpointercapture', onPointerUp, { passive: true });
     global.addEventListener('resize', size, { passive: true });
 
     running = true;
     animate();
     hostEl.classList.add('is-3d');
+    if (hostEl.parentElement) hostEl.parentElement.classList.add('is-3d');
     return true;
   }
 
   function stop() {
-    if (hostEl) hostEl.classList.remove('is-3d');
+    if (hostEl) {
+      hostEl.classList.remove('is-3d', 'is-dragging');
+      if (hostEl.parentElement) hostEl.parentElement.classList.remove('is-3d');
+    }
     dispose();
     global.removeEventListener('resize', size);
   }

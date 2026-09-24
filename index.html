@@ -377,11 +377,17 @@
       /* NEVER put CSS filter or soft mask here — both blur WebGL */
       box-shadow:0 14px 28px rgba(0,8,24,.4);
       background:transparent;
+      cursor:grab;
+      touch-action:none;
+      -webkit-user-select:none;user-select:none;
     }
+    .cinematic-globe-canvas-host.is-dragging,
+    .cinematic-globe-canvas-host:active{cursor:grabbing}
     .cinematic-globe-canvas-host canvas{
       width:100%!important;height:100%!important;
       display:block;
       image-rendering:auto;
+      pointer-events:none;
     }
     .cinematic-globe-shadow{
       position:absolute;left:50%;bottom:-4%;width:68%;height:12%;transform:translateX(-50%);
@@ -2784,7 +2790,7 @@ Oq fonli foto</div>
 
   <script src="/mobile-native-bridge.js"></script>
   <script src="/intro/three.min.js"></script>
-  <script src="/intro/globe3d.crisp.js"></script>
+  <script src="/intro/globe3d.drag.js"></script>
   <script>
     let products = [];
     /** id → row; rebuilt when catalog mutates (avoid scanning thousands of rows on checkout/cart). */
