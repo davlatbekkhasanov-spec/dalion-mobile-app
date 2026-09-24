@@ -155,24 +155,57 @@
       animation:auroraDrift 16s ease-in-out infinite alternate;
     }
     .intro-nebula{
-      position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.9;
+      position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.55;
       background-image:
-        radial-gradient(1.6px 1.6px at 8% 14%, rgba(255,255,255,.95), transparent),
-        radial-gradient(1px 1px at 16% 38%, rgba(210,230,255,.75), transparent),
-        radial-gradient(1.8px 1.8px at 28% 22%, rgba(255,255,255,.9), transparent),
-        radial-gradient(1px 1px at 38% 56%, rgba(190,220,255,.7), transparent),
-        radial-gradient(2.2px 2.2px at 48% 18%, rgba(255,255,255,.95), transparent),
-        radial-gradient(1px 1px at 58% 72%, rgba(200,225,255,.65), transparent),
-        radial-gradient(1.5px 1.5px at 68% 28%, rgba(255,255,255,.85), transparent),
-        radial-gradient(1px 1px at 76% 48%, rgba(180,215,255,.7), transparent),
-        radial-gradient(1.8px 1.8px at 84% 16%, rgba(255,255,255,.9), transparent),
-        radial-gradient(1px 1px at 90% 64%, rgba(210,230,255,.6), transparent),
-        radial-gradient(1.4px 1.4px at 12% 74%, rgba(255,255,255,.7), transparent),
-        radial-gradient(1px 1px at 32% 88%, rgba(200,220,255,.55), transparent),
-        radial-gradient(2px 2px at 54% 84%, rgba(255,255,255,.8), transparent),
-        radial-gradient(1px 1px at 72% 90%, rgba(190,220,255,.5), transparent),
-        radial-gradient(1.5px 1.5px at 94% 82%, rgba(255,255,255,.65), transparent);
-      animation:nebulaTwinkle 6s ease-in-out infinite alternate;
+        radial-gradient(1.4px 1.4px at 6% 8%, rgba(255,255,255,.9), transparent),
+        radial-gradient(1px 1px at 18% 12%, rgba(210,230,255,.7), transparent),
+        radial-gradient(1.8px 1.8px at 32% 6%, rgba(255,255,255,.95), transparent),
+        radial-gradient(1px 1px at 48% 10%, rgba(190,220,255,.65), transparent),
+        radial-gradient(2px 2px at 62% 5%, rgba(255,255,255,.9), transparent),
+        radial-gradient(1px 1px at 78% 14%, rgba(200,225,255,.6), transparent),
+        radial-gradient(1.5px 1.5px at 90% 7%, rgba(255,255,255,.85), transparent);
+      animation:nebulaTwinkle 5s ease-in-out infinite alternate;
+    }
+    .intro-sky{
+      position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden;
+    }
+    .intro-sky-stars{position:absolute;inset:0}
+    .intro-sky-star{
+      position:absolute;
+      left:var(--x,50%);top:var(--y,20%);
+      width:var(--size,2px);height:var(--size,2px);
+      margin:0;border-radius:50%;
+      background:radial-gradient(circle, #fff 0%, rgba(210,230,255,.85) 45%, transparent 72%);
+      box-shadow:0 0 var(--glow,3px) rgba(190,220,255,.55);
+      opacity:var(--opacity,.7);
+      animation:skyTwinkle var(--twinkle,3s) ease-in-out infinite;
+      animation-delay:var(--delay,0s);
+      will-change:opacity,transform;
+    }
+    .intro-sky-star.is-drift{
+      animation:
+        skyPulse var(--twinkle,3s) ease-in-out infinite,
+        skyDrift var(--drift,18s) linear infinite;
+      animation-delay:var(--delay,0s), var(--drift-delay,0s);
+    }
+    .intro-sky-star.is-bright{
+      background:radial-gradient(circle, #fff 0%, rgba(255,255,255,.95) 35%, rgba(180,220,255,.4) 60%, transparent 75%);
+      box-shadow:0 0 6px rgba(220,240,255,.8), 0 0 12px rgba(140,200,255,.35);
+    }
+    .intro-shooting{
+      position:absolute;
+      width:var(--len,90px);height:1.5px;border-radius:2px;
+      left:var(--sx,10%);top:var(--sy,8%);
+      background:linear-gradient(90deg,
+        rgba(255,255,255,0),
+        rgba(255,255,255,.95) 45%,
+        rgba(180,220,255,.7) 70%,
+        rgba(255,255,255,0));
+      opacity:0;
+      transform:rotate(var(--ang,-32deg)) translate3d(0,0,0);
+      filter:drop-shadow(0 0 4px rgba(200,230,255,.75));
+      animation:skyShoot var(--dur,3.8s) ease-in var(--delay,0s) infinite;
+      will-change:transform,opacity;
     }
     .intro-dust{
       position:absolute;inset:-12%;pointer-events:none;z-index:0;opacity:.28;
@@ -187,8 +220,30 @@
       from{transform:translate3d(-3%,2%,0) rotate(-1.5deg)}
       to{transform:translate3d(4%,-2%,0) rotate(2deg)}
     }
-    @keyframes nebulaTwinkle{from{opacity:.45}to{opacity:.8}}
+    @keyframes nebulaTwinkle{from{opacity:.35}to{opacity:.7}}
     @keyframes dustDrift{from{transform:translate3d(-2%,1%,0)}to{transform:translate3d(2%,-1%,0)}}
+    @keyframes skyTwinkle{
+      0%,100%{opacity:calc(var(--opacity,.7) * .25);transform:scale(.85)}
+      40%{opacity:calc(var(--opacity,.7) * .55);transform:scale(1)}
+      55%{opacity:var(--opacity,.7);transform:scale(1.15)}
+      70%{opacity:calc(var(--opacity,.7) * .4);transform:scale(.9)}
+    }
+    @keyframes skyPulse{
+      0%,100%{opacity:calc(var(--opacity,.7) * .22)}
+      45%{opacity:calc(var(--opacity,.7) * .6)}
+      58%{opacity:var(--opacity,.7)}
+      72%{opacity:calc(var(--opacity,.7) * .35)}
+    }
+    @keyframes skyDrift{
+      0%{transform:translate3d(0,0,0)}
+      100%{transform:translate3d(var(--dx,12px), var(--dy,-18px), 0)}
+    }
+    @keyframes skyShoot{
+      0%,78%{opacity:0;transform:rotate(var(--ang,-32deg)) translate3d(0,0,0) scaleX(.15)}
+      82%{opacity:1}
+      92%{opacity:.15;transform:rotate(var(--ang,-32deg)) translate3d(var(--tx,220px),var(--ty,140px),0) scaleX(1)}
+      100%{opacity:0;transform:rotate(var(--ang,-32deg)) translate3d(var(--tx,240px),var(--ty,150px),0) scaleX(1.05)}
+    }
 
     .intro-inner {
       position: relative;
@@ -344,13 +399,30 @@
       container-type:inline-size;
       margin:0 auto;
     }
-    .cinematic-starfield{position:absolute;inset:-6%;pointer-events:none;overflow:visible;z-index:0}
+    .cinematic-starfield{position:absolute;inset:-18% -8% -6%;pointer-events:none;overflow:visible;z-index:0}
     .cinematic-star{
       position:absolute;left:50%;top:50%;width:var(--size,2px);height:var(--size,2px);border-radius:50%;
       transform:translate(calc(-50% + var(--sx, 0px)), calc(-50% + var(--sy, 0px)));
       background:radial-gradient(circle, rgba(255,255,255,.98), rgba(200,225,255,.35) 55%, rgba(0,0,0,0) 100%);
       opacity:var(--opacity,.75);box-shadow:0 0 5px rgba(180,210,255,.45);
-      animation:starTwinkle var(--twinkle,3s) ease-in-out infinite alternate;
+      animation:skyTwinkle var(--twinkle,3s) ease-in-out infinite;
+      animation-delay:var(--delay,0s);
+    }
+    .cinematic-shooting{
+      position:absolute;width:84px;height:1.5px;border-radius:2px;pointer-events:none;z-index:1;
+      left:12%;top:10%;
+      background:linear-gradient(90deg, rgba(255,255,255,0), rgba(200,230,255,.95), rgba(255,255,255,0));
+      opacity:0;transform:rotate(-28deg);
+      animation:skyShoot 4.6s ease-in 1.2s infinite;
+      filter:drop-shadow(0 0 3px rgba(200,230,255,.7));
+    }
+    .cinematic-shooting--b{
+      left:58%;top:4%;width:70px;--ang:-40deg;--tx:180px;--ty:120px;
+      animation:skyShoot 5.4s ease-in 3.1s infinite;
+    }
+    .cinematic-shooting--c{
+      left:28%;top:18%;width:60px;--ang:-24deg;--tx:160px;--ty:100px;
+      animation:skyShoot 6.2s ease-in 5.5s infinite;
     }
     .cinematic-globe-wrap{
       position:relative;
@@ -430,11 +502,6 @@
     }
     .cinematic-particles{position:absolute;inset:0;pointer-events:none}
     .cinematic-particle{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#a7c9ff;opacity:0;transform:translate(-50%,-50%)}
-    .cinematic-shooting{
-      position:absolute;width:72px;height:1.5px;border-radius:2px;pointer-events:none;
-      background:linear-gradient(90deg, rgba(255,255,255,0), rgba(200,230,255,.95), rgba(255,255,255,0));
-      opacity:0;transform:rotate(-28deg);animation:shootingStar 5.5s ease-in-out infinite;
-    }
     .cinematic-text{
       order:1;
       font-family:"Syne","Manrope",sans-serif;
@@ -492,12 +559,6 @@
     .cinematic-intro.ready .cinematic-sub{opacity:1;transform:none}
     @keyframes globeMapSpin{from{background-position:0% 50%}to{background-position:-200% 50%}}
     @keyframes specularDrift{from{transform:translate(-4%,2%) scale(1);opacity:.4}to{transform:translate(10%,-6%) scale(1.08);opacity:.7}}
-    @keyframes shootingStar{
-      0%,78%{opacity:0;transform:translate(-40px,-30px) rotate(-28deg) scaleX(.2)}
-      82%{opacity:.95}
-      92%{opacity:0;transform:translate(140px,90px) rotate(-28deg) scaleX(1)}
-      100%{opacity:0}
-    }
     @keyframes ctaShimmer{0%,60%{transform:translateX(-120%)}100%{transform:translateX(140%)}}
     @keyframes globeFloat{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-7px,0)}}
     @keyframes globeRise{from{transform:translate3d(0,18px,0) scale(.92);opacity:.7}to{opacity:1;transform:translate3d(0,0,0)}}
@@ -506,7 +567,6 @@
       40%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 0 48px rgba(100,180,255,.55),0 16px 32px rgba(3,10,26,.5);transform:rotateX(6deg) rotateY(-10deg) scale(1.04)}
       100%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),0 0 28px rgba(80,160,255,.35),0 16px 32px rgba(3,10,26,.5);transform:rotateX(6deg) rotateY(-10deg) scale(1)}
     }
-    @keyframes starTwinkle{0%{opacity:calc(var(--opacity,.7) * .52)}100%{opacity:var(--opacity,.7)}}
     @keyframes starfieldDrift{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(0,-8px,0) scale(1.06)}}
     @keyframes lensFlarePulse{0%{opacity:0;transform:scale(.62)}30%{opacity:.9;transform:scale(1.08)}100%{opacity:0;transform:scale(1.45)}}
     @keyframes particleBurst{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) scale(.2)}}
@@ -519,9 +579,10 @@
       mix-blend-mode:screen;opacity:0;pointer-events:none;
     }
     @media (prefers-reduced-motion: reduce) {
-      .intro::before,.intro-aurora,.intro-nebula,.intro-dust{animation:none}
+      .intro::before,.intro-aurora,.intro-nebula,.intro-dust,.intro-sky-star,.intro-shooting{animation:none}
       .cinematic-globe-map,.cinematic-globe-topo,.cinematic-globe-specular{animation:none}
       .cinematic-globe-wrap,.cinematic-globe-wrap::before,.cinematic-star,.cinematic-shooting{animation:none}
+      .intro-sky-star{opacity:var(--opacity,.7);transform:none}
       .cinematic-intro.phase-2 .cinematic-starfield,
       .cinematic-intro.phase-2 .cinematic-globe-wrap,
       .cinematic-intro.ignite .cinematic-flare,
@@ -2353,6 +2414,14 @@
     <section class="screen intro" id="introScreen">
       <div class="intro-aurora" aria-hidden="true"></div>
       <div class="intro-nebula" aria-hidden="true"></div>
+      <div class="intro-sky" id="introSky" aria-hidden="true">
+        <div class="intro-sky-stars" id="introSkyStars"></div>
+        <span class="intro-shooting" style="--sx:8%;--sy:6%;--ang:-34deg;--len:110px;--tx:260px;--ty:160px;--dur:4.2s;--delay:0.4s"></span>
+        <span class="intro-shooting" style="--sx:62%;--sy:4%;--ang:-42deg;--len:78px;--tx:190px;--ty:130px;--dur:5.1s;--delay:2.2s"></span>
+        <span class="intro-shooting" style="--sx:22%;--sy:14%;--ang:-28deg;--len:96px;--tx:230px;--ty:145px;--dur:6s;--delay:4.8s"></span>
+        <span class="intro-shooting" style="--sx:78%;--sy:11%;--ang:-38deg;--len:70px;--tx:170px;--ty:110px;--dur:4.8s;--delay:7.1s"></span>
+        <span class="intro-shooting" style="--sx:40%;--sy:2%;--ang:-30deg;--len:120px;--tx:280px;--ty:170px;--dur:5.6s;--delay:9.4s"></span>
+      </div>
       <div class="intro-dust" aria-hidden="true"></div>
       <div class="intro-head">
         <div class="intro-lang-switcher" aria-label="Language selector">
@@ -2374,6 +2443,8 @@
               </div>
             </div>
             <div class="cinematic-shooting" aria-hidden="true"></div>
+            <div class="cinematic-shooting cinematic-shooting--b" aria-hidden="true"></div>
+            <div class="cinematic-shooting cinematic-shooting--c" aria-hidden="true"></div>
           </div>
           <div class="cinematic-brand-block">
             <div class="cinematic-text" id="cinematicBrandText">GlobusMarket</div>
@@ -2793,7 +2864,7 @@ Oq fonli foto</div>
 
   <script src="/mobile-native-bridge.js"></script>
   <script src="/intro/three.min.js"></script>
-  <script src="/intro/globe3d.drag.js"></script>
+  <script src="/intro/globe3d.sky.js"></script>
   <script>
     let products = [];
     /** id → row; rebuilt when catalog mutates (avoid scanning thousands of rows on checkout/cart). */
@@ -3246,22 +3317,62 @@ Oq fonli foto</div>
       introTimers = [];
     }
 
+    function buildIntroSkyStars() {
+      const sky = document.getElementById('introSkyStars');
+      if (!sky) return;
+      sky.innerHTML = '';
+      const count = 140;
+      for (let i = 0; i < count; i += 1) {
+        const star = document.createElement('span');
+        star.className = 'intro-sky-star';
+        // Bias toward the upper sky so the top of the phone feels full of stars
+        const band = Math.random();
+        let y;
+        if (band < 0.62) y = Math.random() * 38;          // dense top
+        else if (band < 0.88) y = 38 + Math.random() * 28; // mid
+        else y = 66 + Math.random() * 30;                  // sparse lower
+        const x = Math.random() * 100;
+        const size = 0.9 + Math.random() * (band < 0.12 ? 2.8 : 1.8);
+        const opacity = 0.35 + Math.random() * 0.65;
+        star.style.setProperty('--x', `${x.toFixed(2)}%`);
+        star.style.setProperty('--y', `${y.toFixed(2)}%`);
+        star.style.setProperty('--size', `${size.toFixed(2)}px`);
+        star.style.setProperty('--opacity', `${opacity.toFixed(2)}`);
+        star.style.setProperty('--twinkle', `${(1.6 + Math.random() * 3.8).toFixed(2)}s`);
+        star.style.setProperty('--delay', `${(-Math.random() * 6).toFixed(2)}s`);
+        star.style.setProperty('--glow', `${(2 + Math.random() * 4).toFixed(1)}px`);
+        if (Math.random() < 0.14) star.classList.add('is-bright');
+        if (Math.random() < 0.28) {
+          star.classList.add('is-drift');
+          star.style.setProperty('--drift', `${(14 + Math.random() * 22).toFixed(1)}s`);
+          star.style.setProperty('--drift-delay', `${(-Math.random() * 12).toFixed(1)}s`);
+          star.style.setProperty('--dx', `${((-18 + Math.random() * 36)).toFixed(1)}px`);
+          star.style.setProperty('--dy', `${((-28 + Math.random() * 12)).toFixed(1)}px`);
+        }
+        sky.appendChild(star);
+      }
+    }
+
     function buildIntroStarfield() {
       if (!cinematicStarfield) return;
       cinematicStarfield.innerHTML = '';
-      const count = 90;
+      const count = 70;
       for (let i = 0; i < count; i += 1) {
         const star = document.createElement('span');
         star.className = 'cinematic-star';
         const angle = Math.random() * Math.PI * 2;
-        const radius = 80 + Math.random() * 180;
-        const x = Math.cos(angle) * radius;
-        const y = Math.sin(angle) * radius;
+        // Prefer upper arc around the globe
+        const preferTop = Math.random() < 0.55;
+        const radius = preferTop ? (95 + Math.random() * 160) : (70 + Math.random() * 150);
+        let x = Math.cos(angle) * radius;
+        let y = Math.sin(angle) * radius;
+        if (preferTop) y = -Math.abs(y) - 20 - Math.random() * 70;
         star.style.setProperty('--sx', `${x.toFixed(2)}px`);
         star.style.setProperty('--sy', `${y.toFixed(2)}px`);
-        star.style.setProperty('--size', `${(1.2 + Math.random() * 3.2).toFixed(2)}px`);
-        star.style.setProperty('--opacity', `${(0.45 + Math.random() * 0.55).toFixed(2)}`);
-        star.style.setProperty('--twinkle', `${(1.8 + Math.random() * 2.8).toFixed(2)}s`);
+        star.style.setProperty('--size', `${(1.1 + Math.random() * 2.8).toFixed(2)}px`);
+        star.style.setProperty('--opacity', `${(0.4 + Math.random() * 0.6).toFixed(2)}`);
+        star.style.setProperty('--twinkle', `${(1.5 + Math.random() * 3.2).toFixed(2)}s`);
+        star.style.setProperty('--delay', `${(-Math.random() * 5).toFixed(2)}s`);
         cinematicStarfield.appendChild(star);
       }
     }
@@ -3328,6 +3439,7 @@ Oq fonli foto</div>
     function runCinematicIntro() {
       if (!cinematicIntro) return;
       clearIntroTimers();
+      buildIntroSkyStars();
       buildIntroStarfield();
       buildIntroParticles();
       cinematicIntro.classList.remove('phase-2', 'ignite', 'explode', 'brand-reveal', 'ready');

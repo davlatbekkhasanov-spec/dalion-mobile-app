@@ -135,7 +135,13 @@
       atmosphere.rotation.y = earth.rotation.y;
       atmosphere.rotation.x = earth.rotation.x;
     }
-    if (stars && !reducedMotion) stars.rotation.y -= 0.0003;
+    if (stars && !reducedMotion) {
+      stars.rotation.y -= 0.00035;
+      stars.rotation.x += 0.00008;
+      if (stars.material) {
+        stars.material.opacity = 0.72 + Math.sin(performance.now() * 0.0016) * 0.18;
+      }
+    }
     renderer.render(scene, camera);
   }
 
@@ -171,18 +177,19 @@
   }
 
   function makeStarField(THREE) {
-    const count = 280;
+    const count = 420;
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
     for (let i = 0; i < count; i += 1) {
-      const r = 5 + Math.random() * 8;
+      const r = 4.2 + Math.random() * 9;
       const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
+      // Bias more stars toward the upper hemisphere (visible "sky" above globe)
+      const phi = Math.acos(Math.min(1, Math.max(-1, (Math.random() * 1.55) - 0.35)));
       positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
       positions[i * 3 + 2] = r * Math.cos(phi);
       const warm = Math.random();
-      colors[i * 3] = 0.8 + warm * 0.2;
+      colors[i * 3] = 0.82 + warm * 0.18;
       colors[i * 3 + 1] = 0.88 + warm * 0.12;
       colors[i * 3 + 2] = 1;
     }
@@ -190,10 +197,10 @@
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     const mat = new THREE.PointsMaterial({
-      size: 0.028,
+      size: 0.032,
       vertexColors: true,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.9,
       depthWrite: false,
       sizeAttenuation: true
     });
