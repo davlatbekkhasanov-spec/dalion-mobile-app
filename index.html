@@ -623,6 +623,38 @@
     .cinematic-intro.ready .cinematic-text,
     .cinematic-intro.ready .cinematic-chip,
     .cinematic-intro.ready .cinematic-sub{opacity:1;transform:none}
+    .cinematic-cta-row{
+      order:4;
+      width:100%;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin-top:22px;
+    }
+    .cinematic-cta-row .intro-cta{margin-top:0;order:unset;width:100%}
+    .intro-logout-btn{
+      width:100%;
+      min-height:48px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.28);
+      background:rgba(8,14,28,.45);
+      color:#eaf2ff;
+      font-family:"Manrope","Segoe UI",sans-serif;
+      font-weight:700;
+      font-size:15px;
+      letter-spacing:.01em;
+      cursor:pointer;
+      opacity:0;
+      transform:translateY(12px);
+      pointer-events:none;
+      transition:opacity .5s ease,transform .5s cubic-bezier(.2,.8,.2,1),background .18s ease;
+      touch-action:manipulation;
+    }
+    .intro-logout-btn[hidden]{display:none!important}
+    .intro-logout-btn:active{background:rgba(255,255,255,.12)}
+    .cinematic-intro.ready .intro-logout-btn.is-visible{
+      opacity:1;transform:none;pointer-events:auto;
+    }
     @keyframes globeMapSpin{from{background-position:0% 50%}to{background-position:-200% 50%}}
     @keyframes specularDrift{from{transform:translate(-4%,2%) scale(1);opacity:.4}to{transform:translate(10%,-6%) scale(1.08);opacity:.7}}
     @keyframes ctaShimmer{0%,60%{transform:translateX(-120%)}100%{transform:translateX(140%)}}
@@ -2674,7 +2706,10 @@
             <div class="cinematic-text" id="cinematicBrandText"><span class="cinematic-text__globus">Globus</span><span class="cinematic-text__market">Market</span></div>
             <p class="cinematic-chip" id="introChip">Qulay xarid, tezkor yetkazish</p>
             <p class="cinematic-sub" id="introSubtitle">Har buyurtmada sifat, tezlik va ishonch bir joyda</p>
-            <button class="btn gm-btn gm-btn-primary btn-primary intro-cta" id="openRegisterBtn">Ro‘yxatdan o‘tish</button>
+            <div class="cinematic-cta-row" id="introCtaRow">
+              <button class="btn gm-btn gm-btn-primary btn-primary intro-cta" id="openRegisterBtn">Ro‘yxatdan o‘tish</button>
+              <button type="button" class="intro-logout-btn" id="introLogoutBtn" hidden>Chiqish</button>
+            </div>
           </div>
         </div>
       </div>
@@ -3729,7 +3764,30 @@ Oq fonli foto</div>
       if (!openRegisterBtn) return;
       const authed = isAuthed();
       openRegisterBtn.textContent = authed ? t('introCtaAuthed') : t('introCtaGuest');
-      openRegisterBtn.dataset.mode = authed ? 'start' : 'register';
+      openRegisterBtn.dataset.mode = authed ? 'login' : 'register';
+      const logoutEl = document.getElementById('introLogoutBtn');
+      if (logoutEl) {
+        logoutEl.textContent = t('introLogout');
+        logoutEl.hidden = !authed;
+        logoutEl.classList.toggle('is-visible', authed);
+      }
+    }
+
+    function performLogoutToIntro() {
+      stopProductsBackfill();
+      stopShortsRevisionPolling();
+      localStorage.removeItem('globusUser');
+      persistCustomerSession('');
+      resetSmsAuthState();
+      currentUser = null;
+      activeOrderNumber = '';
+      localStorage.removeItem('activeOrderNumber');
+      phone.classList.remove('show-app');
+      introScreen?.classList.remove('fade-out');
+      authSheetOverlay.classList.remove('show');
+      syncIntroCta();
+      runCinematicIntro();
+      showToast(t('toastSignedOut'));
     }
 
     function openRegistrationFlow() {
@@ -4186,8 +4244,9 @@ Oq fonli foto</div>
         track: "Kuzatish",
         introChip: "Qulay xarid, tezkor yetkazish",
         introSubtitle: "Har buyurtmada sifat, tezlik va ishonch bir joyda",
-        introCtaAuthed: "Xaridni boshlash",
+        introCtaAuthed: "Kirish",
         introCtaGuest: "Ro‘yxatdan o‘tish",
+        introLogout: "Chiqish",
         uiModePhone: "Telefon",
         uiModeDesktop: "Kompyuter",
         uiModeGroup: "Ko‘rinish",
@@ -4449,8 +4508,9 @@ Oq fonli foto</div>
         track: 'Отследить',
         introChip: 'Удобные покупки, быстрая доставка',
         introSubtitle: 'В каждом заказе качество, скорость и надежность',
-        introCtaAuthed: 'Начать покупки',
+        introCtaAuthed: 'Войти',
         introCtaGuest: 'Зарегистрироваться',
+        introLogout: 'Выйти',
         uiModePhone: 'Телефон',
         uiModeDesktop: 'Компьютер',
         uiModeGroup: 'Вид',
@@ -7149,6 +7209,10 @@ Oq fonli foto</div>
       openRegistrationFlow();
     });
 
+    document.getElementById('introLogoutBtn')?.addEventListener('click', () => {
+      performLogoutToIntro();
+    });
+
     closeAuthSheetBtn?.addEventListener('click', () => {
       resetSmsAuthState();
       authSheetOverlay.classList.remove('show');
@@ -7217,20 +7281,8 @@ Oq fonli foto</div>
     });
 
     logoutBtn?.addEventListener('click', () => {
-      stopProductsBackfill();
-      stopShortsRevisionPolling();
-      localStorage.removeItem('globusUser');
-      persistCustomerSession('');
-      resetSmsAuthState();
-      currentUser = null;
-      activeOrderNumber = '';
-      localStorage.removeItem('activeOrderNumber');
-      phone.classList.remove('show-app');
-      introScreen?.classList.remove('fade-out');
-      syncIntroCta();
-      runCinematicIntro();
-      showToast(t('toastSignedOut'));
-      renderProfileOrders();
+      performLogoutToIntro();
+      try { renderProfileOrders(); } catch (_) {}
     });
 
     profileRegisterBtn?.addEventListener('click', () => {
