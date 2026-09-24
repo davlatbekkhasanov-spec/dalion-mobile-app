@@ -199,8 +199,8 @@
       width:var(--len,140px);
       height:2px;
       opacity:0;
-      transform:rotate(var(--ang,-35deg));
-      transform-origin:left center;
+      transform:translate3d(0,0,0) rotate(var(--ang,32deg));
+      transform-origin:right center;
       pointer-events:none;
       animation:meteorStreak var(--dur,7.5s) linear var(--delay,0s) infinite;
       will-change:transform,opacity;
@@ -262,24 +262,24 @@
     @keyframes meteorStreak{
       0%{
         opacity:0;
-        transform:rotate(var(--ang,-35deg)) translateX(0) scaleX(.3);
+        transform:translate3d(0,0,0) rotate(var(--ang,32deg)) scaleX(.35);
       }
       5%{opacity:0}
       6%{
         opacity:1;
-        transform:rotate(var(--ang,-35deg)) translateX(0) scaleX(.75);
+        transform:translate3d(0,0,0) rotate(var(--ang,32deg)) scaleX(.8);
       }
       14%{
         opacity:1;
-        transform:rotate(var(--ang,-35deg)) translateX(var(--dist,260px)) scaleX(1);
+        transform:translate3d(var(--tx,240px),var(--ty,150px),0) rotate(var(--ang,32deg)) scaleX(1);
       }
       16%{
         opacity:0;
-        transform:rotate(var(--ang,-35deg)) translateX(var(--dist,260px)) scaleX(1.05);
+        transform:translate3d(var(--tx,240px),var(--ty,150px),0) rotate(var(--ang,32deg)) scaleX(1.05);
       }
       100%{
         opacity:0;
-        transform:rotate(var(--ang,-35deg)) translateX(var(--dist,260px)) scaleX(1.05);
+        transform:translate3d(var(--tx,240px),var(--ty,150px),0) rotate(var(--ang,32deg)) scaleX(1.05);
       }
     }
 
@@ -2444,10 +2444,10 @@
       <div class="intro-nebula" aria-hidden="true"></div>
       <div class="intro-sky" id="introSky" aria-hidden="true">
         <div class="intro-sky-stars" id="introSkyStars"></div>
-        <span class="intro-meteor" style="--sx:4%;--sy:4%;--ang:28deg;--len:170px;--dist:290px;--dur:8.5s;--delay:0.5s"></span>
-        <span class="intro-meteor" style="--sx:55%;--sy:2%;--ang:38deg;--len:130px;--dist:240px;--dur:9.8s;--delay:3.2s"></span>
-        <span class="intro-meteor" style="--sx:12%;--sy:11%;--ang:24deg;--len:150px;--dist:270px;--dur:11s;--delay:5.8s"></span>
-        <span class="intro-meteor" style="--sx:68%;--sy:8%;--ang:33deg;--len:110px;--dist:210px;--dur:9.2s;--delay:8.4s"></span>
+        <span class="intro-meteor" style="--sx:2%;--sy:3%;--ang:32deg;--len:170px;--tx:260px;--ty:162px;--dur:8.5s;--delay:0.5s"></span>
+        <span class="intro-meteor" style="--sx:48%;--sy:1%;--ang:40deg;--len:130px;--tx:210px;--ty:176px;--dur:9.8s;--delay:3.2s"></span>
+        <span class="intro-meteor" style="--sx:10%;--sy:10%;--ang:26deg;--len:150px;--tx:250px;--ty:122px;--dur:11s;--delay:5.8s"></span>
+        <span class="intro-meteor" style="--sx:62%;--sy:7%;--ang:35deg;--len:110px;--tx:190px;--ty:133px;--dur:9.2s;--delay:8.4s"></span>
       </div>
       <div class="intro-dust" aria-hidden="true"></div>
       <div class="intro-head">
