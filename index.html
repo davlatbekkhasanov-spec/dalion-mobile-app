@@ -6,7 +6,7 @@
   <title>GlobusMarket</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="preload" as="image" href="/intro/earth-map.jpg" />
   <style>
     :root {
@@ -192,20 +192,41 @@
       background:radial-gradient(circle, #fff 0%, rgba(255,255,255,.95) 35%, rgba(180,220,255,.4) 60%, transparent 75%);
       box-shadow:0 0 6px rgba(220,240,255,.8), 0 0 12px rgba(140,200,255,.35);
     }
-    .intro-shooting{
+    .intro-meteor{
       position:absolute;
-      width:var(--len,90px);height:1.5px;border-radius:2px;
-      left:var(--sx,10%);top:var(--sy,8%);
-      background:linear-gradient(90deg,
-        rgba(255,255,255,0),
-        rgba(255,255,255,.95) 45%,
-        rgba(180,220,255,.7) 70%,
-        rgba(255,255,255,0));
+      left:var(--sx,12%);
+      top:var(--sy,8%);
+      width:var(--len,140px);
+      height:2px;
       opacity:0;
-      transform:rotate(var(--ang,-32deg)) translate3d(0,0,0);
-      filter:drop-shadow(0 0 4px rgba(200,230,255,.75));
-      animation:skyShoot var(--dur,3.8s) ease-in var(--delay,0s) infinite;
+      transform:rotate(var(--ang,-35deg));
+      transform-origin:left center;
+      pointer-events:none;
+      animation:meteorStreak var(--dur,7.5s) linear var(--delay,0s) infinite;
       will-change:transform,opacity;
+    }
+    .intro-meteor::before{
+      content:"";
+      position:absolute;inset:0;
+      border-radius:999px;
+      background:linear-gradient(90deg,
+        rgba(255,255,255,0) 0%,
+        rgba(200,230,255,.15) 35%,
+        rgba(255,255,255,.75) 72%,
+        rgba(255,255,255,1) 100%);
+    }
+    .intro-meteor::after{
+      content:"";
+      position:absolute;
+      right:-1px;top:50%;
+      width:5px;height:5px;
+      transform:translate(50%,-50%);
+      border-radius:50%;
+      background:#fff;
+      box-shadow:
+        0 0 4px 1px rgba(255,255,255,.95),
+        0 0 10px 3px rgba(180,220,255,.7),
+        0 0 18px 6px rgba(120,190,255,.35);
     }
     .intro-dust{
       position:absolute;inset:-12%;pointer-events:none;z-index:0;opacity:.28;
@@ -238,11 +259,28 @@
       0%{transform:translate3d(0,0,0)}
       100%{transform:translate3d(var(--dx,12px), var(--dy,-18px), 0)}
     }
-    @keyframes skyShoot{
-      0%,78%{opacity:0;transform:rotate(var(--ang,-32deg)) translate3d(0,0,0) scaleX(.15)}
-      82%{opacity:1}
-      92%{opacity:.15;transform:rotate(var(--ang,-32deg)) translate3d(var(--tx,220px),var(--ty,140px),0) scaleX(1)}
-      100%{opacity:0;transform:rotate(var(--ang,-32deg)) translate3d(var(--tx,240px),var(--ty,150px),0) scaleX(1.05)}
+    @keyframes meteorStreak{
+      0%{
+        opacity:0;
+        transform:rotate(var(--ang,-35deg)) translateX(0) scaleX(.3);
+      }
+      5%{opacity:0}
+      6%{
+        opacity:1;
+        transform:rotate(var(--ang,-35deg)) translateX(0) scaleX(.75);
+      }
+      14%{
+        opacity:1;
+        transform:rotate(var(--ang,-35deg)) translateX(var(--dist,260px)) scaleX(1);
+      }
+      16%{
+        opacity:0;
+        transform:rotate(var(--ang,-35deg)) translateX(var(--dist,260px)) scaleX(1.05);
+      }
+      100%{
+        opacity:0;
+        transform:rotate(var(--ang,-35deg)) translateX(var(--dist,260px)) scaleX(1.05);
+      }
     }
 
     .intro-inner {
@@ -408,22 +446,9 @@
       animation:skyTwinkle var(--twinkle,3s) ease-in-out infinite;
       animation-delay:var(--delay,0s);
     }
-    .cinematic-shooting{
-      position:absolute;width:84px;height:1.5px;border-radius:2px;pointer-events:none;z-index:1;
-      left:12%;top:10%;
-      background:linear-gradient(90deg, rgba(255,255,255,0), rgba(200,230,255,.95), rgba(255,255,255,0));
-      opacity:0;transform:rotate(-28deg);
-      animation:skyShoot 4.6s ease-in 1.2s infinite;
-      filter:drop-shadow(0 0 3px rgba(200,230,255,.7));
-    }
-    .cinematic-shooting--b{
-      left:58%;top:4%;width:70px;--ang:-40deg;--tx:180px;--ty:120px;
-      animation:skyShoot 5.4s ease-in 3.1s infinite;
-    }
-    .cinematic-shooting--c{
-      left:28%;top:18%;width:60px;--ang:-24deg;--tx:160px;--ty:100px;
-      animation:skyShoot 6.2s ease-in 5.5s infinite;
-    }
+    .cinematic-shooting,
+    .cinematic-shooting--b,
+    .cinematic-shooting--c{display:none}
     .cinematic-globe-wrap{
       position:relative;
       width:min(260px,78cqi,74vw);
@@ -504,16 +529,27 @@
     .cinematic-particle{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#a7c9ff;opacity:0;transform:translate(-50%,-50%)}
     .cinematic-text{
       order:1;
-      font-family:"Syne","Manrope",sans-serif;
-      font-size:clamp(28px,10.5cqi,38px);font-weight:800;
-      letter-spacing:-.02em;line-height:1.05;
-      width:100%;max-width:100%;padding:0 6px;margin:0 0 12px;box-sizing:border-box;
-      color:#f4f8ff;
-      background:linear-gradient(110deg,#ffffff 0%,#d7e8ff 48%,#9ef0d0 100%);
-      -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-      opacity:0;transform:translateY(16px) scale(.96);
-      white-space:nowrap;overflow:hidden;text-overflow:clip;
+      font-family:"Space Grotesk","Manrope",sans-serif;
+      font-size:clamp(30px,8.4vw,40px);
+      font-weight:700;
+      letter-spacing:.01em;
+      line-height:1.12;
+      width:auto;max-width:100%;
+      padding:0 4px;margin:0 0 10px;box-sizing:border-box;
+      color:#f7fbff;
+      opacity:0;transform:translateY(14px);
       position:relative;text-align:center;
+      white-space:nowrap;
+    }
+    .cinematic-text__globus{
+      font-weight:700;
+      color:#fff;
+    }
+    .cinematic-text__market{
+      font-weight:500;
+      letter-spacing:.03em;
+      color:#cfe2ff;
+      margin-left:.02em;
     }
     .cinematic-sub{
       order:3;
@@ -549,7 +585,6 @@
     .cinematic-intro.phase-2 .cinematic-globe-wrap{animation:globeFloat 5.6s ease-in-out infinite, globeRise 1s ease both}
     .cinematic-intro.ignite .cinematic-globe{animation:globeIgnite .9s ease}
     .cinematic-intro.brand-reveal .cinematic-text{animation:textReveal .75s cubic-bezier(.2,.8,.2,1) forwards}
-    .cinematic-intro.brand-reveal .cinematic-text::after{animation:logoSweep .95s cubic-bezier(.4,.1,.2,1) .12s both}
     .cinematic-intro.brand-reveal .cinematic-chip{animation:fadeUpSoft .55s ease .18s forwards}
     .cinematic-intro.brand-reveal .cinematic-sub{animation:fadeUpSoft .55s ease .32s forwards}
     .cinematic-intro.ready .intro-cta{opacity:1;transform:translateY(0);pointer-events:auto}
@@ -570,18 +605,12 @@
     @keyframes starfieldDrift{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(0,-8px,0) scale(1.06)}}
     @keyframes lensFlarePulse{0%{opacity:0;transform:scale(.62)}30%{opacity:.9;transform:scale(1.08)}100%{opacity:0;transform:scale(1.45)}}
     @keyframes particleBurst{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) scale(.2)}}
-    @keyframes textReveal{from{opacity:0;transform:translateY(16px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes textReveal{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
     @keyframes fadeUpSoft{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes logoSweep{0%{transform:translateX(-155%) skewX(-15deg);opacity:0}30%{opacity:.8}100%{transform:translateX(165%) skewX(-15deg);opacity:0}}
-    .cinematic-text::after{
-      content:"";position:absolute;inset:-15% -42%;
-      background:linear-gradient(105deg, rgba(255,255,255,0) 24%, rgba(255,255,255,.62) 50%, rgba(255,255,255,0) 76%);
-      mix-blend-mode:screen;opacity:0;pointer-events:none;
-    }
     @media (prefers-reduced-motion: reduce) {
-      .intro::before,.intro-aurora,.intro-nebula,.intro-dust,.intro-sky-star,.intro-shooting{animation:none}
+      .intro::before,.intro-aurora,.intro-nebula,.intro-dust,.intro-sky-star,.intro-meteor{animation:none}
       .cinematic-globe-map,.cinematic-globe-topo,.cinematic-globe-specular{animation:none}
-      .cinematic-globe-wrap,.cinematic-globe-wrap::before,.cinematic-star,.cinematic-shooting{animation:none}
+      .cinematic-globe-wrap,.cinematic-globe-wrap::before,.cinematic-star{animation:none}
       .intro-sky-star{opacity:var(--opacity,.7);transform:none}
       .cinematic-intro.phase-2 .cinematic-starfield,
       .cinematic-intro.phase-2 .cinematic-globe-wrap,
@@ -589,7 +618,6 @@
       .cinematic-intro.ignite .cinematic-particle,
       .cinematic-intro.ignite .cinematic-globe,
       .cinematic-intro.brand-reveal .cinematic-text,
-      .cinematic-intro.brand-reveal .cinematic-text::after,
       .cinematic-intro.brand-reveal .cinematic-chip,
       .cinematic-intro.brand-reveal .cinematic-sub,
       .cinematic-intro.ready .intro-cta::after{animation:none}
@@ -605,7 +633,7 @@
       .cinematic-stage{width:min(280px,88vw);height:min(280px,88vw);min-height:240px}
       .cinematic-globe-wrap{width:min(230px,76vw);height:min(230px,76vw)}
       .cinematic-brand-block{gap:7px}
-      .cinematic-text{font-size:clamp(24px,10.5cqi,34px)}
+      .cinematic-text{font-size:clamp(26px,8vw,32px)}
     }
 
     .headline {
@@ -2416,11 +2444,10 @@
       <div class="intro-nebula" aria-hidden="true"></div>
       <div class="intro-sky" id="introSky" aria-hidden="true">
         <div class="intro-sky-stars" id="introSkyStars"></div>
-        <span class="intro-shooting" style="--sx:8%;--sy:6%;--ang:-34deg;--len:110px;--tx:260px;--ty:160px;--dur:4.2s;--delay:0.4s"></span>
-        <span class="intro-shooting" style="--sx:62%;--sy:4%;--ang:-42deg;--len:78px;--tx:190px;--ty:130px;--dur:5.1s;--delay:2.2s"></span>
-        <span class="intro-shooting" style="--sx:22%;--sy:14%;--ang:-28deg;--len:96px;--tx:230px;--ty:145px;--dur:6s;--delay:4.8s"></span>
-        <span class="intro-shooting" style="--sx:78%;--sy:11%;--ang:-38deg;--len:70px;--tx:170px;--ty:110px;--dur:4.8s;--delay:7.1s"></span>
-        <span class="intro-shooting" style="--sx:40%;--sy:2%;--ang:-30deg;--len:120px;--tx:280px;--ty:170px;--dur:5.6s;--delay:9.4s"></span>
+        <span class="intro-meteor" style="--sx:4%;--sy:4%;--ang:28deg;--len:170px;--dist:290px;--dur:8.5s;--delay:0.5s"></span>
+        <span class="intro-meteor" style="--sx:55%;--sy:2%;--ang:38deg;--len:130px;--dist:240px;--dur:9.8s;--delay:3.2s"></span>
+        <span class="intro-meteor" style="--sx:12%;--sy:11%;--ang:24deg;--len:150px;--dist:270px;--dur:11s;--delay:5.8s"></span>
+        <span class="intro-meteor" style="--sx:68%;--sy:8%;--ang:33deg;--len:110px;--dist:210px;--dur:9.2s;--delay:8.4s"></span>
       </div>
       <div class="intro-dust" aria-hidden="true"></div>
       <div class="intro-head">
@@ -2442,12 +2469,10 @@
                 <div class="cinematic-globe-shade"></div>
               </div>
             </div>
-            <div class="cinematic-shooting" aria-hidden="true"></div>
-            <div class="cinematic-shooting cinematic-shooting--b" aria-hidden="true"></div>
-            <div class="cinematic-shooting cinematic-shooting--c" aria-hidden="true"></div>
+            <div class="cinematic-shooting" aria-hidden="true" hidden></div>
           </div>
           <div class="cinematic-brand-block">
-            <div class="cinematic-text" id="cinematicBrandText">GlobusMarket</div>
+            <div class="cinematic-text" id="cinematicBrandText"><span class="cinematic-text__globus">Globus</span><span class="cinematic-text__market">Market</span></div>
             <p class="cinematic-chip" id="introChip">Qulay xarid, tezkor yetkazish</p>
             <p class="cinematic-sub" id="introSubtitle">Har buyurtmada sifat, tezlik va ishonch bir joyda</p>
             <button class="btn gm-btn gm-btn-primary btn-primary intro-cta" id="openRegisterBtn">Ro‘yxatdan o‘tish</button>
@@ -3394,17 +3419,7 @@ Oq fonli foto</div>
     }
 
     function fitIntroBrandText() {
-      const el = document.getElementById('cinematicBrandText');
-      if (!el) return;
-      el.style.fontSize = '';
-      // Force layout, then shrink until the full brand fits inside the phone frame.
-      let size = parseFloat(window.getComputedStyle(el).fontSize) || 32;
-      let guard = 0;
-      while (el.scrollWidth > el.clientWidth + 1 && size > 18 && guard < 40) {
-        size -= 1;
-        el.style.fontSize = `${size}px`;
-        guard += 1;
-      }
+      /* Natural Space Grotesk proportions — no shrink/squash */
     }
 
     function startIntroGlobe3d() {
