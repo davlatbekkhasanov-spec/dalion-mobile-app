@@ -3201,6 +3201,20 @@ Oq fonli foto</div>
       }
     }
 
+    function fitIntroBrandText() {
+      const el = document.getElementById('cinematicBrandText');
+      if (!el) return;
+      el.style.fontSize = '';
+      // Force layout, then shrink until the full brand fits inside the phone frame.
+      let size = parseFloat(window.getComputedStyle(el).fontSize) || 32;
+      let guard = 0;
+      while (el.scrollWidth > el.clientWidth + 1 && size > 18 && guard < 40) {
+        size -= 1;
+        el.style.fontSize = `${size}px`;
+        guard += 1;
+      }
+    }
+
     function runCinematicIntro() {
       if (!cinematicIntro) return;
       clearIntroTimers();
@@ -3208,17 +3222,30 @@ Oq fonli foto</div>
       buildIntroParticles();
       cinematicIntro.classList.remove('phase-2', 'ignite', 'explode', 'brand-reveal', 'ready');
       introScreen?.classList.remove('fade-out');
+      fitIntroBrandText();
+      requestAnimationFrame(fitIntroBrandText);
       gmAnalytics.track('intro_view');
       if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         cinematicIntro.classList.add('brand-reveal');
         cinematicIntro.classList.add('ready');
+        fitIntroBrandText();
         return;
       }
       introTimers.push(setTimeout(() => cinematicIntro.classList.add('phase-2'), 280));
       introTimers.push(setTimeout(() => cinematicIntro.classList.add('ignite'), 980));
-      introTimers.push(setTimeout(() => cinematicIntro.classList.add('brand-reveal'), 1480));
-      introTimers.push(setTimeout(() => cinematicIntro.classList.add('ready'), 1980));
+      introTimers.push(setTimeout(() => {
+        cinematicIntro.classList.add('brand-reveal');
+        fitIntroBrandText();
+      }, 1480));
+      introTimers.push(setTimeout(() => {
+        cinematicIntro.classList.add('ready');
+        fitIntroBrandText();
+      }, 1980));
     }
+
+    window.addEventListener('resize', () => {
+      fitIntroBrandText();
+    }, { passive: true });
 
     function syncIntroCta() {
       if (!openRegisterBtn) return;
