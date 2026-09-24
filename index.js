@@ -154,6 +154,12 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   immutable: true
 }));
 
+app.use('/intro', express.static(path.join(__dirname, 'public', 'intro'), {
+  maxAge: '30d',
+  immutable: true,
+  fallthrough: false
+}));
+
 function nowIso() {
   return new Date().toISOString();
 }
