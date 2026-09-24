@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f6f7fb" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>GlobusMarket</title>
   <script>
     (function () {
@@ -2077,7 +2081,7 @@
       display: none;
       grid-template-columns: repeat(4, 1fr);
       gap: 8px;
-      padding: 10px 14px 16px;
+      padding: 10px 14px calc(16px + var(--safe-bottom));
       border-top: 1px solid rgba(130, 160, 210, 0.3);
       background: linear-gradient(180deg, rgba(8, 15, 28, 0.96), rgba(4, 10, 20, 0.98));
       backdrop-filter: blur(8px);
@@ -2410,15 +2414,33 @@
     body { display:block; padding:0; height:auto; min-height:var(--app-vh); background:radial-gradient(circle at 30% 20%, #1c2f5f, #090f1f 55%, #050913 100%); }
     .phone { max-width:none; width:100%; height:var(--app-vh); min-height:var(--app-vh); border-radius:0; border:0; box-shadow:none; }
     .phone::before,.phone::after,.app::before { display:none; }
-    .view { padding: 10px 10px 94px; }
+    .view { padding: 10px 10px calc(94px + var(--safe-bottom)); }
     .top { margin-bottom: 12px; }
-    .home-top-sticky { display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; border-radius:16px; padding:10px 12px; }
+    .home-top-sticky {
+      display:grid;
+      grid-template-columns:1fr auto;
+      align-items:center;
+      gap:10px;
+      border-radius:16px;
+      padding: calc(10px + var(--safe-top)) 12px 10px;
+    }
     .logo-row { justify-content:flex-start; }
     .name { font-size:22px; font-weight:800; }
     .location { font-size:13px; color:#667085; margin-top:4px; }
     #homeView.active .home-top-sticky { position: sticky; top: 0; z-index: 8; }
     .home-search-lg { min-height:52px; border-radius:16px; font-size:16px; padding:0 16px; margin-bottom:10px; box-shadow:0 4px 14px rgba(16,24,40,.08); }
-    #searchView .catalog-search-sticky { top: 0; z-index: 9; }
+    #searchView .catalog-search-sticky {
+      top: 0;
+      z-index: 9;
+      padding-top: calc(8px + var(--safe-top));
+    }
+    /* Views without sticky headers still clear the status bar */
+    #cartView,
+    #profileView,
+    #checkoutView,
+    #successView {
+      padding-top: calc(10px + var(--safe-top));
+    }
     .home-scroll .promo { flex: 0 0 100%; border-radius:20px; min-height:140px; padding:14px; background:linear-gradient(135deg,#6b4dff,#8f67ff); box-shadow:0 8px 24px rgba(91,76,255,.26); }
     .promo h3 { font-size:22px; font-weight:800; margin:0 0 6px; }
     .promo p { font-size:14px; margin:0; }

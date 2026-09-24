@@ -88,6 +88,33 @@
     return true;
   }
 
+  /**
+   * Edge-to-edge: transparent status bar over the WebView.
+   * Light app chrome → DARK status icons (time, battery readable on white).
+   */
+  function setupStatusBar() {
+    var StatusBar = getPlugin('StatusBar');
+    if (!StatusBar) return;
+    try {
+      document.documentElement.classList.add('native-edge');
+    } catch (e) {}
+    var tasks = [];
+    if (typeof StatusBar.setOverlaysWebView === 'function') {
+      tasks.push(StatusBar.setOverlaysWebView({ overlay: true }));
+    }
+    if (typeof StatusBar.setStyle === 'function') {
+      tasks.push(StatusBar.setStyle({ style: 'DARK' }));
+    }
+    if (typeof StatusBar.show === 'function') {
+      tasks.push(StatusBar.show());
+    }
+    Promise.all(
+      tasks.map(function (p) {
+        return Promise.resolve(p).catch(function () {});
+      })
+    ).catch(function () {});
+  }
+
   global.GlobusNative = {
     isNative: isNative,
     openPaymentUrl: openPaymentUrl
@@ -95,5 +122,6 @@
 
   if (isNative()) {
     setupAppUrlOpen();
+    setupStatusBar();
   }
 })(typeof window !== 'undefined' ? window : globalThis);
