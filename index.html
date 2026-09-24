@@ -383,6 +383,9 @@
     }
     .cinematic-globe-canvas-host.is-dragging,
     .cinematic-globe-canvas-host:active{cursor:grabbing}
+    .cinematic-globe-wrap:has(.cinematic-globe-canvas-host.is-dragging){
+      animation-play-state:paused;
+    }
     .cinematic-globe-canvas-host canvas{
       width:100%!important;height:100%!important;
       display:block;
