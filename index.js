@@ -9,7 +9,8 @@ const prisma = require('./src/prisma-client');
 const marketplaceRepo = require('./src/marketplace-repository');
 const r2Service = require('./src/services/r2.service');
 const dalionExcelImportService = require('./src/services/dalion-excel-import.service');
-const visualProductSearch = require('./src/services/visual-product-search');
+const photoProductMatch = require('./src/services/photo-product-match');
+const photoSearchAi = require('./src/services/photo-search-ai');
 const { paymeRpc } = require('./src/controllers/payme.controller');
 const { normalizeOrderStatus } = require('./src/order-status');
 const { issueCustomerToken, resolveCustomerAuth } = require('./src/customer-session');
@@ -1281,14 +1282,20 @@ app.get('/api/v1/products', async (req, res) => {
   }
 });
 
-/** Photo / visual product search — multipart `image` or JSON `imageDataUrl`. */
+/** Photo search: AI labels → text match (smart); strict visual fallback. */
 app.post('/api/v1/products/search-by-image', async (req, res) => {
   const run = async () => {
     try {
       let buffer = req.file?.buffer || null;
+      let mimeType = 'image/jpeg';
       if (!buffer) {
         const parsed = parseImageDataUrl(req.body?.imageDataUrl);
-        if (parsed) buffer = parsed.buffer;
+        if (parsed) {
+          buffer = parsed.buffer;
+          mimeType = parsed.mimeType || 'image/jpeg';
+        }
+      } else if (req.file?.mimetype) {
+        mimeType = String(req.file.mimetype).toLowerCase().replace('jpg', 'jpeg');
       }
       if (!buffer || !buffer.length) {
         return res.status(400).json({ ok: false, message: 'Rasm topilmadi' });
@@ -1296,23 +1303,31 @@ app.post('/api/v1/products/search-by-image', async (req, res) => {
       if (buffer.length > MAX_BANNER_IMAGE_BYTES) {
         return res.status(400).json({ ok: false, message: 'Rasm hajmi juda katta (maks 2MB)' });
       }
-      const products = await marketplaceRepo.listProductsForVisualSearch(320);
-      const ranked = await visualProductSearch.rankProductsByImage({
+
+      const [productsForText, productsForVisual] = await Promise.all([
+        marketplaceRepo.listProductsForPhotoTextSearch(800),
+        marketplaceRepo.listProductsForVisualSearch(320)
+      ]);
+
+      const ranked = await photoProductMatch.searchProductsByPhoto({
         queryBuffer: buffer,
-        products,
+        productsForText,
+        productsForVisual,
         resolveLocalPath: localUploadPathFromUrl,
-        limit: 12,
-        maxCompare: 320,
-        maxDistance: 0.22,
-        minScore: 0.55,
-        minLead: 0.04
+        mimeType
       });
+
       return res.json({
         ok: true,
         items: ranked.items,
         compared: ranked.compared,
         total: ranked.items.length,
-        confidence: ranked.confidence || 'none'
+        confidence: ranked.confidence || 'none',
+        mode: ranked.mode,
+        labels: ranked.labels || [],
+        query: ranked.query || '',
+        object: ranked.object || '',
+        aiConfigured: Boolean(ranked.aiConfigured ?? photoSearchAi.isPhotoAiConfigured())
       });
     } catch (e) {
       logStructured('error', 'visual_search_failed', { message: e?.message });
@@ -3269,6 +3284,10 @@ async function main() {
   }
   app.listen(PORT, HOST, () => {
     console.info(`[SERVER] started on ${HOST}:${PORT}`);
+    try {
+      const photoSearchLocal = require('./src/services/photo-search-local');
+      photoSearchLocal.warmupLocalClip();
+    } catch (_) {}
   });
 }
 

@@ -71,6 +71,14 @@ Bu **faqat native rebuild** bilan yo‘qoladi (veb deploy yetarli emas):
 
 Web tomonda header/nav `safe-area` padding bilan tayyor (`index.html` + `mobile-native-bridge.js`).
 
+### Foto qidiruv (aqlli)
+
+Kalit **shart emas**. Server avval local CLIP bilan mahsulot turini aniqlaydi (stakan vs ramka), so‘ng katalog nomidan qidiradi.
+
+Ixtiyoriy (yanada yaxshi): Railway ga `OPENAI_API_KEY=sk-...` — birinchi navbatda OpenAI Vision ishlatiladi.
+
+Redeploy qilingandan keyin birinchi so‘rovda CLIP model yuklanishi 30–90 soniya olishi mumkin.
+
 Lokal server bilan sinov (telefon/emulyator kompyuterga ulanishi kerak):
 
 ```bash
