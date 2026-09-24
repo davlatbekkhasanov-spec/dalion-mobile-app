@@ -1301,15 +1301,18 @@ app.post('/api/v1/products/search-by-image', async (req, res) => {
         queryBuffer: buffer,
         products,
         resolveLocalPath: localUploadPathFromUrl,
-        limit: 24,
+        limit: 12,
         maxCompare: 320,
-        maxDistance: 0.48
+        maxDistance: 0.22,
+        minScore: 0.55,
+        minLead: 0.04
       });
       return res.json({
         ok: true,
         items: ranked.items,
         compared: ranked.compared,
-        total: ranked.items.length
+        total: ranked.items.length,
+        confidence: ranked.confidence || 'none'
       });
     } catch (e) {
       logStructured('error', 'visual_search_failed', { message: e?.message });

@@ -958,6 +958,15 @@
       opacity: 0.55;
       pointer-events: none;
     }
+    .photo-match-chip {
+      background: #eef2ff;
+      color: #4338ca;
+      border: 1px solid #c7d2fe;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 999px;
+    }
     .home-search-wrap {
       position: relative;
       margin-bottom: 10px;
@@ -4256,9 +4265,11 @@ Oq fonli foto</div>
         bellEmpty: "Hozircha bildirishnomalar yo'q",
         searchClear: 'Qidiruvni tozalash',
         photoSearch: 'Foto bo‘yicha qidirish',
-        photoSearchTitle: 'Foto qidiruv natijalari',
+        photoSearchTitle: 'Foto qidiruv (o‘xshash mahsulotlar)',
+        photoMatch: 'mos',
         toastPhotoSearching: 'Rasm bo‘yicha qidirilmoqda…',
-        toastPhotoNoMatch: 'O‘xshash mahsulot topilmadi',
+        toastPhotoNoMatch: 'Aniqlik past — o‘xshash mahsulot topilmadi. Yaqinroq / yorug‘roq rasm oling',
+        toastPhotoLowConf: 'Taxminiy natijalar — aniq moslik past',
         toastPhotoSearchErr: 'Foto qidiruvda xatolik',
         toastPhotoPickErr: 'Rasm tanlab bo‘lmadi',
         homeAll: 'Barchasi',
@@ -4526,9 +4537,11 @@ Oq fonli foto</div>
         bellEmpty: 'Пока нет уведомлений',
         searchClear: 'Очистить поиск',
         photoSearch: 'Поиск по фото',
-        photoSearchTitle: 'Результаты поиска по фото',
+        photoSearchTitle: 'Поиск по фото (похожие товары)',
+        photoMatch: 'сход.',
         toastPhotoSearching: 'Ищем по фото…',
-        toastPhotoNoMatch: 'Похожие товары не найдены',
+        toastPhotoNoMatch: 'Точность низкая — похожий товар не найден. Сделайте ближе и ярче',
+        toastPhotoLowConf: 'Приблизительные результаты — точность низкая',
         toastPhotoSearchErr: 'Ошибка поиска по фото',
         toastPhotoPickErr: 'Не удалось выбрать фото',
         homeAll: 'Все',
@@ -5769,6 +5782,10 @@ Oq fonli foto</div>
       const reviews = Number(p.reviewCount || 120);
       const priceText = price > 0 ? money(price) : t('pricePending');
       const imgLoadAttrs = eagerImage ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"';
+      const matchPct = Number(p.matchPercent || (p.matchScore ? Math.round(Number(p.matchScore) * 100) : 0));
+      const leftChip = hasDiscount
+        ? `<span class="gm-chip discount-chip product-discount">-${discountPercent}%</span>`
+        : (matchPct > 0 ? `<span class="gm-chip photo-match-chip">${matchPct}% ${t('photoMatch')}</span>` : '<span></span>');
       const imageHtml = p.image_url
         ? `<img src="${p.image_url}" alt="${p.name}" ${imgLoadAttrs} decoding="async" onerror="this.remove();this.parentElement.insertAdjacentHTML('beforeend', imageFallbackTemplate('${(p.name || '').replace(/'/g, '&#39;')}'));" />`
         : imageFallbackTemplate(p.name);
@@ -5776,7 +5793,7 @@ Oq fonli foto</div>
         <article class="product" data-open-product="${p.id}">
           <div class="image-box">
             <div class="product-top-row">
-              ${hasDiscount ? `<span class="gm-chip discount-chip product-discount">-${discountPercent}%</span>` : '<span></span>'}
+              ${leftChip}
               <button class="fav-btn" type="button" aria-label="${t('addToCart')}">❤</button>
             </div>
             ${imageHtml}
@@ -5785,7 +5802,7 @@ Oq fonli foto</div>
             <p class="price">${priceText}</p>
             <p class="old-price">${hasDiscount ? money(oldPrice) : ''}</p>
             <h5>${p.name}</h5>
-            <p class="product-rating">⭐ ${ratingValue.toFixed(1)} (${reviews})</p>
+            <p class="product-rating">⭐ ${ratingValue.toFixed(1)} (${reviews})${hasDiscount && matchPct > 0 ? ` · ${matchPct}% ${t('photoMatch')}` : ''}</p>
             ${qtyOf(p.id) > 0
               ? `<div class="qty" data-qty-wrap="${p.id}">${makeQtyControls(p.id)}</div>`
               : `<button class="btn gm-btn gm-btn-primary quick-add-btn" data-add-one="${p.id}" ${stock <= 0 ? 'disabled' : ''}>${t('addToCart')}</button>`}
@@ -7061,6 +7078,7 @@ Oq fonli foto</div>
         setView('searchView', { push: true });
         renderSearch();
         if (!items.length) showToast(t('toastPhotoNoMatch'));
+        else if (data?.confidence === 'low' || data?.confidence === 'medium') showToast(t('toastPhotoLowConf'));
       } catch (error) {
         showToast(error.message || t('toastPhotoSearchErr'));
       } finally {
