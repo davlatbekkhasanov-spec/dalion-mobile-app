@@ -270,6 +270,21 @@ async function listProductsPublic() {
   return products.map(productToPublic);
 }
 
+/** Active products with images for visual (photo) search. */
+async function listProductsForVisualSearch(limit = 320) {
+  const lim = Math.max(1, Math.min(500, Number(limit) || 320));
+  const products = await prisma.product.findMany({
+    where: {
+      active: true,
+      NOT: { imageUrl: '' }
+    },
+    select: PRODUCT_PUBLIC_SELECT,
+    orderBy: { updatedAt: 'desc' },
+    take: lim
+  });
+  return products.map(productToPublic);
+}
+
 function normalizePublicProductSort(sortRaw) {
   const s = String(sortRaw || '')
     .trim()
@@ -1828,6 +1843,7 @@ module.exports = {
   findProductById,
   listProductsPublic,
   listProductsPublicPage,
+  listProductsForVisualSearch,
   listHomeCatalogRails,
   productToPublic,
   listCategoriesForAdmin,

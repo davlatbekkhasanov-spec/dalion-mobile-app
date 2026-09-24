@@ -918,7 +918,7 @@
       min-height: 52px;
       border-radius: 16px;
       border: 1px solid #dbe2ee;
-      padding: 12px 44px 12px 38px;
+      padding: 12px 92px 12px 38px;
       font-size: 16px;
       outline: none;
     }
@@ -935,6 +935,42 @@
       display: none;
     }
     .search-clear-btn.show { display: grid; place-items: center; }
+    .photo-search-btn {
+      position: absolute;
+      right: 46px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      border: 1px solid #e1e6f0;
+      background: #fff;
+      color: #5b4cff;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      padding: 0;
+      z-index: 2;
+    }
+    .photo-search-btn:active { transform: translateY(-50%) scale(0.96); }
+    .photo-search-btn svg { width: 18px; height: 18px; display: block; }
+    .photo-search-btn.is-busy {
+      opacity: 0.55;
+      pointer-events: none;
+    }
+    .home-search-wrap {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .home-search-wrap .home-search-lg {
+      width: 100%;
+      margin-bottom: 0;
+      padding-right: 52px;
+      text-align: left;
+    }
+    .home-search-wrap .photo-search-btn {
+      right: 10px;
+    }
 
     .promo {
       border-radius: 18px;
@@ -1380,7 +1416,7 @@
       margin-bottom: 6px;
       align-items: flex-start;
     }
-    #homeView #shortsFeed.short-strip + .home-search-lg {
+    #homeView #shortsFeed.short-strip + .home-search-wrap {
       margin-top: 4px;
     }
     .short-reel-card {
@@ -2429,6 +2465,8 @@
     .location { font-size:13px; color:#667085; margin-top:4px; }
     #homeView.active .home-top-sticky { position: sticky; top: 0; z-index: 8; }
     .home-search-lg { min-height:52px; border-radius:16px; font-size:16px; padding:0 16px; margin-bottom:10px; box-shadow:0 4px 14px rgba(16,24,40,.08); }
+    .home-search-wrap { margin-bottom:10px; }
+    .home-search-wrap .home-search-lg { margin-bottom:0; box-shadow:0 4px 14px rgba(16,24,40,.08); }
     #searchView .catalog-search-sticky {
       top: 0;
       z-index: 9;
@@ -2848,7 +2886,13 @@
 
         <section class="home-scroll short-strip" id="shortsFeed"></section>
 
-        <button class="search home-search-lg" id="openSearchBtn">Mahsulot qidirish...</button>
+        <div class="home-search-wrap">
+          <button class="search home-search-lg" id="openSearchBtn" type="button">Mahsulot qidirish...</button>
+          <button type="button" class="photo-search-btn" id="homePhotoSearchBtn" aria-label="Foto bo‘yicha qidirish">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h1.2c.4 0 .8-.2 1-.5l.7-1.1A1.5 1.5 0 0 1 10.7 2.5h2.6c.5 0 1 .3 1.3.8l.7 1.1c.2.3.6.5 1 .5h1.2A2.5 2.5 0 0 1 20 7.5v10A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-10Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="13" r="3.4" stroke="currentColor" stroke-width="1.7"/></svg>
+          </button>
+        </div>
+        <input type="file" id="photoSearchInput" accept="image/*" capture="environment" hidden />
 
         <div class="section-head gm-section-header" id="popularSectionHead">
           <h4 id="bannerSectionTitle">Siz uchun</h4>
@@ -2900,6 +2944,9 @@
           <div class="search-wrap">
             <span class="search-icon">🔎</span>
             <input class="search-input-lg" id="searchInput" placeholder="Mahsulot qidirish..." />
+            <button type="button" class="photo-search-btn" id="catalogPhotoSearchBtn" aria-label="Foto bo‘yicha qidirish">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h1.2c.4 0 .8-.2 1-.5l.7-1.1A1.5 1.5 0 0 1 10.7 2.5h2.6c.5 0 1 .3 1.3.8l.7 1.1c.2.3.6.5 1 .5h1.2A2.5 2.5 0 0 1 20 7.5v10A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-10Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="13" r="3.4" stroke="currentColor" stroke-width="1.7"/></svg>
+            </button>
             <button type="button" class="search-clear-btn" id="searchClearBtn" aria-label="Qidiruvni tozalash">✕</button>
           </div>
         </div>
@@ -3226,6 +3273,8 @@ Oq fonli foto</div>
     /** @type {'popular'|'price_asc'|'price_desc'} */
     let catalogSort = 'popular';
     let catalogMode = 'categories';
+    /** @type {Array|null} visual search hits (photo); null = not in photo mode */
+    let photoSearchHits = null;
     /** Server-paginated list for current category + sort (does not replace global `products`). */
     let categoryListingProducts = [];
     let categoryProductsNextPage = 1;
@@ -4206,6 +4255,12 @@ Oq fonli foto</div>
         notFound: 'Mahsulot topilmadi',
         bellEmpty: "Hozircha bildirishnomalar yo'q",
         searchClear: 'Qidiruvni tozalash',
+        photoSearch: 'Foto bo‘yicha qidirish',
+        photoSearchTitle: 'Foto qidiruv natijalari',
+        toastPhotoSearching: 'Rasm bo‘yicha qidirilmoqda…',
+        toastPhotoNoMatch: 'O‘xshash mahsulot topilmadi',
+        toastPhotoSearchErr: 'Foto qidiruvda xatolik',
+        toastPhotoPickErr: 'Rasm tanlab bo‘lmadi',
         homeAll: 'Barchasi',
         homeMore: "Ko'proq",
         categories: 'Kategoriyalar',
@@ -4470,6 +4525,12 @@ Oq fonli foto</div>
         notFound: 'Товар не найден',
         bellEmpty: 'Пока нет уведомлений',
         searchClear: 'Очистить поиск',
+        photoSearch: 'Поиск по фото',
+        photoSearchTitle: 'Результаты поиска по фото',
+        toastPhotoSearching: 'Ищем по фото…',
+        toastPhotoNoMatch: 'Похожие товары не найдены',
+        toastPhotoSearchErr: 'Ошибка поиска по фото',
+        toastPhotoPickErr: 'Не удалось выбрать фото',
         homeAll: 'Все',
         homeMore: 'Еще',
         categories: 'Категории',
@@ -4748,6 +4809,8 @@ Oq fonli foto</div>
       if (reelsSwipeHint) reelsSwipeHint.textContent = t('reelsSwipeHint');
       document.getElementById('searchInput').placeholder = t('search');
       document.getElementById('searchClearBtn').setAttribute('aria-label', t('searchClear'));
+      document.getElementById('homePhotoSearchBtn')?.setAttribute('aria-label', t('photoSearch'));
+      document.getElementById('catalogPhotoSearchBtn')?.setAttribute('aria-label', t('photoSearch'));
       document.getElementById('homeAllCategoriesLink').textContent = t('homeAll');
       document.getElementById('homeMoreProductsLink').textContent = t('homeMore');
       const introChipEl = document.getElementById('introChip');
@@ -5907,7 +5970,20 @@ Oq fonli foto</div>
 
     function renderSearch() {
       const query = searchInput.value.trim().toLowerCase();
-      searchClearBtn.classList.toggle('show', Boolean(query));
+      searchClearBtn.classList.toggle('show', Boolean(query) || Boolean(photoSearchHits));
+      if (photoSearchHits) {
+        categoryResults.style.display = 'none';
+        categoryResults.innerHTML = '';
+        categoryBackBtn.style.display = 'inline-flex';
+        categoryBackBtn.textContent = `← ${t('catalog')}`;
+        catalogProductResultsTitle.style.display = 'block';
+        catalogProductResultsTitle.textContent = t('photoSearchTitle');
+        searchResults.innerHTML = photoSearchHits.map(productCardTemplate).join('');
+        searchEmpty.style.display = photoSearchHits.length ? 'none' : 'block';
+        renderCatalogSortBar();
+        syncCatalogLoadHint();
+        return;
+      }
       if (catalogMode === 'categories') {
         const categories = getCategoryEntries()
           .filter((c) => c.key === 'all' || c.count > 0)
@@ -6909,9 +6985,112 @@ Oq fonli foto</div>
       categoryProductsNextPage = 1;
       categoryProductsHasMore = true;
       catalogMode = 'categories';
+      photoSearchHits = null;
       searchInput.value = '';
       renderSearch();
       searchInput.focus();
+    });
+
+    const photoSearchInput = document.getElementById('photoSearchInput');
+    const homePhotoSearchBtn = document.getElementById('homePhotoSearchBtn');
+    const catalogPhotoSearchBtn = document.getElementById('catalogPhotoSearchBtn');
+
+    function setPhotoSearchBusy(busy) {
+      [homePhotoSearchBtn, catalogPhotoSearchBtn].forEach((btn) => {
+        if (!btn) return;
+        btn.classList.toggle('is-busy', busy);
+        btn.disabled = busy;
+      });
+    }
+
+    function fileToCompressedDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        if (!file || !String(file.type || '').startsWith('image/')) {
+          reject(new Error(t('toastPhotoPickErr')));
+          return;
+        }
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error(t('toastPhotoPickErr')));
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const maxSide = 512;
+              let w = img.naturalWidth || img.width;
+              let h = img.naturalHeight || img.height;
+              if (!w || !h) {
+                reject(new Error(t('toastPhotoPickErr')));
+                return;
+              }
+              const scale = Math.min(1, maxSide / Math.max(w, h));
+              w = Math.max(1, Math.round(w * scale));
+              h = Math.max(1, Math.round(h * scale));
+              const canvas = document.createElement('canvas');
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, w, h);
+              resolve(canvas.toDataURL('image/jpeg', 0.82));
+            } catch (e) {
+              reject(e);
+            }
+          };
+          img.onerror = () => reject(new Error(t('toastPhotoPickErr')));
+          img.src = String(reader.result || '');
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function runPhotoSearchWithFile(file) {
+      setPhotoSearchBusy(true);
+      try {
+        showToast(t('toastPhotoSearching'));
+        const imageDataUrl = await fileToCompressedDataUrl(file);
+        const data = await api('/products/search-by-image', {
+          method: 'POST',
+          body: JSON.stringify({ imageDataUrl })
+        });
+        const items = Array.isArray(data?.items) ? data.items : [];
+        photoSearchHits = items;
+        catalogMode = 'categories';
+        selectedCategory = null;
+        selectedCategoryLabel = '';
+        selectedCategoryId = null;
+        searchInput.value = '';
+        setView('searchView', { push: true });
+        renderSearch();
+        if (!items.length) showToast(t('toastPhotoNoMatch'));
+      } catch (error) {
+        showToast(error.message || t('toastPhotoSearchErr'));
+      } finally {
+        setPhotoSearchBusy(false);
+        if (photoSearchInput) photoSearchInput.value = '';
+      }
+    }
+
+    function openPhotoSearchPicker() {
+      if (!photoSearchInput) {
+        showToast(t('toastPhotoPickErr'));
+        return;
+      }
+      photoSearchInput.click();
+    }
+
+    homePhotoSearchBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openPhotoSearchPicker();
+    });
+    catalogPhotoSearchBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openPhotoSearchPicker();
+    });
+    photoSearchInput?.addEventListener('change', () => {
+      const file = photoSearchInput.files && photoSearchInput.files[0];
+      if (!file) return;
+      runPhotoSearchWithFile(file);
     });
     homeBellBtn?.addEventListener('click', async () => {
       notificationsOverlay.classList.add('show');
@@ -6932,7 +7111,10 @@ Oq fonli foto</div>
     document.getElementById('uiModePhoneBtn')?.addEventListener('click', () => applyUiMode('phone', true));
     document.getElementById('uiModeDesktopBtn')?.addEventListener('click', () => applyUiMode('desktop', true));
 
-    searchInput.addEventListener('input', renderSearch);
+    searchInput.addEventListener('input', () => {
+      if (photoSearchHits) photoSearchHits = null;
+      renderSearch();
+    });
     [searchInput, manualAddress, landmarkInput, promoCodeInput].forEach((field) => {
       field?.addEventListener('focus', () => {
         setTimeout(() => {
@@ -6942,6 +7124,7 @@ Oq fonli foto</div>
     });
     searchClearBtn.addEventListener('click', () => {
       searchInput.value = '';
+      photoSearchHits = null;
       renderSearch();
       searchInput.focus();
     });
@@ -6951,6 +7134,7 @@ Oq fonli foto</div>
       selectedCategoryId = null;
       catalogSort = 'popular';
       catalogMode = 'categories';
+      photoSearchHits = null;
       categoryListingProducts = [];
       categoryProductsNextPage = 1;
       categoryProductsHasMore = true;
@@ -6972,6 +7156,7 @@ Oq fonli foto</div>
         categoryProductsNextPage = 1;
         categoryProductsHasMore = true;
         catalogMode = 'categories';
+        photoSearchHits = null;
         searchInput.value = '';
         renderSearch();
         searchInput.focus();
