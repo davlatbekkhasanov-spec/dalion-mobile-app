@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>GlobusMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
       --text: #ebf4ff;
@@ -107,7 +110,10 @@
     .intro {
       z-index: 20;
       overflow: hidden;
-      background: radial-gradient(circle at 30% 20%, #1c2f5f, #090f1f 55%, #050913 100%);
+      background:
+        radial-gradient(ellipse 120% 80% at 18% -10%, #2746a8 0%, transparent 52%),
+        radial-gradient(ellipse 90% 70% at 92% 108%, #0a3d52 0%, transparent 48%),
+        radial-gradient(circle at 50% 42%, #12204a 0%, #080e1c 48%, #03060f 100%);
       display: flex;
       align-items: stretch;
       justify-content: stretch;
@@ -121,10 +127,37 @@
       position:absolute;
       inset:0;
       background:
-        radial-gradient(circle at 20% 15%, rgba(72,126,255,.35), transparent 35%),
-        radial-gradient(circle at 80% 85%, rgba(39,213,255,.18), transparent 40%);
+        radial-gradient(circle at 22% 18%, rgba(72,126,255,.42), transparent 38%),
+        radial-gradient(circle at 78% 78%, rgba(39,213,255,.22), transparent 42%),
+        radial-gradient(circle at 50% 55%, rgba(37,244,143,.06), transparent 46%);
       pointer-events:none;
+      animation:introWash 9s ease-in-out infinite alternate;
     }
+    .intro-aurora{
+      position:absolute;inset:-20% -10%;
+      pointer-events:none;z-index:0;opacity:.55;
+      background:
+        linear-gradient(115deg, transparent 20%, rgba(39,213,255,.14) 42%, transparent 58%),
+        linear-gradient(250deg, transparent 30%, rgba(37,244,143,.1) 48%, transparent 62%);
+      filter:blur(28px);
+      animation:auroraDrift 11s ease-in-out infinite alternate;
+    }
+    .intro-grid{
+      position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.18;
+      background-image:
+        linear-gradient(rgba(140,180,255,.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(140,180,255,.12) 1px, transparent 1px);
+      background-size:48px 48px;
+      mask-image:radial-gradient(ellipse 70% 55% at 50% 42%, #000 20%, transparent 78%);
+      -webkit-mask-image:radial-gradient(ellipse 70% 55% at 50% 42%, #000 20%, transparent 78%);
+      animation:gridPulse 6s ease-in-out infinite;
+    }
+    @keyframes introWash{from{opacity:.85;transform:scale(1)}to{opacity:1;transform:scale(1.04)}}
+    @keyframes auroraDrift{
+      from{transform:translate3d(-4%,2%,0) rotate(-2deg)}
+      to{transform:translate3d(5%,-3%,0) rotate(3deg)}
+    }
+    @keyframes gridPulse{0%,100%{opacity:.12}50%{opacity:.22}}
 
     .intro-inner {
       position: relative;
@@ -140,7 +173,7 @@
       gap: 12px;
     }
     .brand { font-size: 34px; font-weight: 800; letter-spacing: 0.2px; color:#eaf2ff; }
-    .cinematic-intro{display:flex;flex-direction:column;align-items:center;text-align:center;gap:0;position:relative}
+    .cinematic-intro{display:flex;flex-direction:column;align-items:center;text-align:center;gap:0;position:relative;flex:1;min-height:0}
     .intro-head{
       position:absolute;
       top:calc(var(--safe-top) + 10px);
@@ -216,7 +249,7 @@
       touch-action:manipulation;-webkit-user-select:none;user-select:none;
     }
     .intro-music-mini button:active{transform:scale(.92)}
-    .cinematic-main{flex:1;display:flex;flex-direction:column;align-items:center;width:100%;padding-top:clamp(22px,5vh,40px);padding-bottom:clamp(18px,7vh,64px)}
+    .cinematic-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding-top:clamp(8px,2vh,20px);padding-bottom:clamp(12px,4vh,36px);gap:clamp(10px,2.5vh,18px)}
     .intro-lang-switcher{
       display:flex;
       gap:6px;
@@ -247,25 +280,28 @@
     .intro-lang-switcher,
     .lang-switch-btn { touch-action: manipulation; }
     .cinematic-chip{
-      color:#a8bee3;
+      color:#9ec0ef;
       font-size:12px;
-      letter-spacing:.08em;
+      font-weight:700;
+      letter-spacing:.14em;
       text-transform:uppercase;
-      margin:clamp(52px, 16vh, 114px) auto 0;
-      width:min(100%, 260px);
-      line-height:1.28;
+      margin:0;
+      width:min(100%, 280px);
+      line-height:1.35;
       text-align:center;
+      opacity:0;
+      transform:translateY(8px);
     }
     .cinematic-brand-block{
-      margin-top:auto;
       width:100%;
       display:flex;
       flex-direction:column;
       align-items:center;
-      gap:12px;
+      gap:10px;
+      margin-top:clamp(4px,1.5vh,12px);
     }
-    .cinematic-stage{position:relative;width:240px;height:240px;display:grid;place-items:center;perspective:700px;margin-top:clamp(24px,8vh,72px)}
-    .cinematic-starfield{position:absolute;inset:-12px;pointer-events:none}
+    .cinematic-stage{position:relative;width:min(280px,72vw);height:min(280px,72vw);display:grid;place-items:center;perspective:900px;flex-shrink:0}
+    .cinematic-starfield{position:absolute;inset:-28px;pointer-events:none}
     .cinematic-star{
       position:absolute;left:50%;top:50%;
       width:var(--size,2px);height:var(--size,2px);border-radius:50%;
@@ -275,19 +311,20 @@
       box-shadow:0 0 8px rgba(137,192,255,.45);
       animation:starTwinkle var(--twinkle,3s) ease-in-out infinite alternate;
     }
-    .cinematic-globe-wrap{position:relative;width:176px;height:176px;transform-style:preserve-3d;filter:drop-shadow(0 26px 36px rgba(3,10,26,.58))}
+    .cinematic-globe-wrap{position:relative;width:min(200px,52vw);height:min(200px,52vw);transform-style:preserve-3d;filter:drop-shadow(0 28px 40px rgba(3,10,26,.62));animation:globeFloat 5.6s ease-in-out infinite}
     .cinematic-globe-shadow{
-      position:absolute;left:50%;bottom:8px;width:144px;height:30px;transform:translateX(-50%);
-      background:radial-gradient(circle at 50% 50%, rgba(4,8,20,.46), rgba(4,8,20,0) 72%);
-      filter:blur(1px);
+      position:absolute;left:50%;bottom:4px;width:78%;height:18%;transform:translateX(-50%);
+      background:radial-gradient(circle at 50% 50%, rgba(4,8,20,.55), rgba(4,8,20,0) 72%);
+      filter:blur(2px);
     }
     .cinematic-globe{
       position:absolute;inset:0;border-radius:50%;
-      background:radial-gradient(circle at 32% 30%, #6db5ff 0%, #2d63dc 26%, #143787 58%, #07154a 100%);
+      background:radial-gradient(circle at 32% 28%, #8ec8ff 0%, #3a74ef 24%, #1740a0 56%, #07154a 100%);
       box-shadow:
-        inset 0 0 0 1px rgba(255,255,255,.16),
-        0 0 62px rgba(63,123,255,.42),
-        0 22px 32px rgba(3,10,26,.6);
+        inset 0 0 0 1px rgba(255,255,255,.2),
+        0 0 48px rgba(70,140,255,.55),
+        0 0 90px rgba(39,213,255,.22),
+        0 22px 32px rgba(3,10,26,.55);
       transform-style:preserve-3d;
       overflow:hidden;
     }
@@ -320,108 +357,151 @@
         radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 56%, rgba(2,8,28,.82) 100%);
     }
     .cinematic-atmosphere{
-      position:absolute;inset:-9px;border-radius:50%;pointer-events:none;
-      background:radial-gradient(circle at 50% 50%, rgba(120,200,255,0) 54%, rgba(120,200,255,.32) 72%, rgba(120,200,255,0) 88%);
-      box-shadow:0 0 42px rgba(104,179,255,.45), inset 0 0 18px rgba(180,225,255,.22);
+      position:absolute;inset:-12px;border-radius:50%;pointer-events:none;
+      background:radial-gradient(circle at 50% 50%, rgba(120,200,255,0) 52%, rgba(120,200,255,.38) 70%, rgba(39,213,255,.08) 86%, rgba(120,200,255,0) 94%);
+      box-shadow:0 0 52px rgba(104,179,255,.5), inset 0 0 22px rgba(180,225,255,.25);
       animation:atmosphereShift 4.2s ease-in-out infinite;
     }
-    .cinematic-ring{position:absolute;inset:8%;border:1.5px solid rgba(37,244,143,.58);border-radius:50%;transform:rotateX(72deg) rotateY(12deg);box-shadow:0 0 16px rgba(37,244,143,.45)}
-    .cinematic-ring.r2{inset:16%;border-color:rgba(39,213,255,.5);transform:rotateX(75deg) rotateY(80deg)}
-    .cinematic-ring.r3{inset:2%;border-color:rgba(156,174,255,.45);transform:rotateY(90deg) rotateX(20deg)}
+    .cinematic-ring{
+      position:absolute;inset:4%;border:1.5px solid rgba(37,244,143,.62);border-radius:50%;
+      transform:rotateX(72deg) rotateY(12deg);
+      box-shadow:0 0 18px rgba(37,244,143,.42);
+      animation:ringOrbit 14s linear infinite;
+      transform-style:preserve-3d;
+    }
+    .cinematic-ring.r2{
+      inset:14%;border-color:rgba(39,213,255,.55);
+      animation:ringOrbitReverse 19s linear infinite;
+    }
+    .cinematic-ring.r3{
+      inset:-2%;border-color:rgba(156,174,255,.42);border-style:dashed;border-width:1px;
+      animation:ringOrbit 26s linear infinite;
+    }
+    .cinematic-ring::before{
+      content:"";position:absolute;top:50%;left:-3px;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;
+      background:#25f48f;box-shadow:0 0 10px rgba(37,244,143,.9);
+    }
+    .cinematic-ring.r2::before{background:#27d5ff;box-shadow:0 0 10px rgba(39,213,255,.9);left:auto;right:-3px}
+    .cinematic-ring.r3::before{display:none}
     .cinematic-flare{
       position:absolute;inset:0;pointer-events:none;
       background:
-        radial-gradient(circle at 50% 50%, rgba(199,238,255,.25), rgba(133,183,255,.12) 22%, rgba(0,0,0,0) 48%),
-        linear-gradient(90deg, rgba(0,0,0,0), rgba(199,244,255,.38), rgba(0,0,0,0));
+        radial-gradient(circle at 50% 50%, rgba(199,238,255,.28), rgba(133,183,255,.12) 22%, rgba(0,0,0,0) 48%),
+        linear-gradient(90deg, rgba(0,0,0,0), rgba(199,244,255,.4), rgba(0,0,0,0));
       mix-blend-mode:screen;
       opacity:0;
     }
     .cinematic-particles{position:absolute;inset:0;pointer-events:none}
     .cinematic-particle{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#a7c9ff;opacity:0;transform:translate(-50%,-50%)}
     .cinematic-text{
-      font-size:38px;font-weight:900;letter-spacing:.4px;line-height:1;
-      background:linear-gradient(90deg,#ffffff,#b9d8ff 35%,#8bf4d0 100%);
+      font-family:"Syne","Segoe UI",sans-serif;
+      font-size:clamp(36px, 10.5vw, 50px);font-weight:800;letter-spacing:-.02em;line-height:1.02;
+      background:linear-gradient(105deg,#ffffff 8%,#c8e4ff 42%,#7ef0c8 92%);
       -webkit-background-clip:text;background-clip:text;color:transparent;
-      opacity:0;transform:translateY(14px) scale(.96);text-shadow:0 10px 26px rgba(34,114,255,.25)
+      opacity:0;transform:translateY(16px) scale(.94);
+      filter:drop-shadow(0 12px 28px rgba(40,120,255,.35));
     }
-    .cinematic-sub{color:#b5caea;font-size:14px;max-width:280px;margin:0}
-    .intro-cta{opacity:0;transform:translateY(10px);pointer-events:none;transition:all .45s ease;width:min(100%,280px);margin-top:4px}
-    .cinematic-intro.phase-2 .cinematic-starfield{animation:starfieldDrift 1.1s ease both}
-    .cinematic-intro.explode .cinematic-stage{animation:burstShake .35s linear 2}
-    .cinematic-intro.explode .cinematic-flare{animation:lensFlarePulse .9s ease-out}
+    .cinematic-sub{
+      color:#a8c0e4;font-size:14px;max-width:290px;margin:0;line-height:1.45;
+      opacity:0;transform:translateY(8px);
+    }
+    .intro-cta{
+      opacity:0;transform:translateY(12px);pointer-events:none;
+      transition:opacity .5s ease,transform .5s cubic-bezier(.2,.8,.2,1);
+      width:min(100%,280px);margin-top:6px;
+      box-shadow:0 14px 32px rgba(37,100,255,.35);
+    }
+    .cinematic-intro.phase-2 .cinematic-starfield{animation:starfieldDrift 1.2s ease both}
+    .cinematic-intro.phase-2 .cinematic-globe-wrap{animation:globeFloat 5.6s ease-in-out infinite, globeRise 1s ease both}
+    .cinematic-intro.ignite .cinematic-flare{animation:lensFlarePulse .95s ease-out}
+    .cinematic-intro.ignite .cinematic-atmosphere{animation:atmosphereBloom 1s ease-out}
+    .cinematic-intro.ignite .cinematic-particle{animation:particleBurst .95s ease forwards}
+    .cinematic-intro.ignite .cinematic-globe{
+      animation:globeIgnite .9s ease;
+    }
+    .cinematic-intro.brand-reveal .cinematic-text{animation:textReveal .75s cubic-bezier(.2,.8,.2,1) forwards}
+    .cinematic-intro.brand-reveal .cinematic-text::after{animation:logoSweep .95s cubic-bezier(.4,.1,.2,1) .12s both}
+    .cinematic-intro.brand-reveal .cinematic-chip{animation:fadeUpSoft .55s ease .18s forwards}
+    .cinematic-intro.brand-reveal .cinematic-sub{animation:fadeUpSoft .55s ease .32s forwards}
     .cinematic-intro.ready .intro-cta{opacity:1;transform:translateY(0);pointer-events:auto}
-    .cinematic-intro.brand-reveal .cinematic-text{animation:textReveal .72s ease forwards}
-    .cinematic-intro.brand-reveal .cinematic-text::after{animation:logoSweep .9s cubic-bezier(.4,.1,.2,1) .15s both}
-    .cinematic-intro.explode .cinematic-globe-wrap{animation:globeBurst .9s ease forwards}
-    .cinematic-intro.explode .cinematic-ring{animation:ringBurst .9s ease forwards}
-    .cinematic-intro.explode .cinematic-particle{animation:particleBurst .9s ease forwards}
-    .cinematic-intro.explode .cinematic-star{animation:starScatter .9s ease-out forwards}
     @keyframes globeSpin{from{background-position:0% 0%}to{background-position:-200% 0%}}
-    @keyframes starTwinkle{0%{opacity:calc(var(--opacity,.7) * .52)}100%{opacity:var(--opacity,.7)}}
-    @keyframes starfieldDrift{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(0,-6px,0) scale(1.03)}}
-    @keyframes atmosphereShift{0%,100%{opacity:.95;transform:scale(1)}50%{opacity:.76;transform:scale(1.03)}}
-    @keyframes burstShake{
-      0%,100%{transform:translate3d(0,0,0)}
-      20%{transform:translate3d(-1.4px,0,0)}
-      40%{transform:translate3d(1.6px,-.8px,0)}
-      60%{transform:translate3d(-.9px,.9px,0)}
-      80%{transform:translate3d(.8px,-.5px,0)}
+    @keyframes globeFloat{
+      0%,100%{transform:translateY(0)}
+      50%{transform:translateY(-7px)}
     }
+    @keyframes globeRise{from{transform:translateY(18px) scale(.92);opacity:.7}to{opacity:1}}
+    @keyframes globeIgnite{
+      0%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.2),0 0 48px rgba(70,140,255,.55),0 0 90px rgba(39,213,255,.22),0 22px 32px rgba(3,10,26,.55)}
+      40%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 0 70px rgba(90,170,255,.85),0 0 120px rgba(39,213,255,.4),0 22px 32px rgba(3,10,26,.55);transform:scale(1.04)}
+      100%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.2),0 0 48px rgba(70,140,255,.55),0 0 90px rgba(39,213,255,.22),0 22px 32px rgba(3,10,26,.55);transform:scale(1)}
+    }
+    @keyframes ringOrbit{
+      from{transform:rotateX(72deg) rotateY(12deg) rotateZ(0deg)}
+      to{transform:rotateX(72deg) rotateY(12deg) rotateZ(360deg)}
+    }
+    @keyframes ringOrbitReverse{
+      from{transform:rotateX(75deg) rotateY(80deg) rotateZ(0deg)}
+      to{transform:rotateX(75deg) rotateY(80deg) rotateZ(-360deg)}
+    }
+    @keyframes atmosphereBloom{
+      0%{opacity:.9;transform:scale(1);filter:brightness(1)}
+      35%{opacity:1;transform:scale(1.12);filter:brightness(1.35)}
+      100%{opacity:.95;transform:scale(1);filter:brightness(1)}
+    }
+    @keyframes starTwinkle{0%{opacity:calc(var(--opacity,.7) * .52)}100%{opacity:var(--opacity,.7)}}
+    @keyframes starfieldDrift{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(0,-8px,0) scale(1.06)}}
+    @keyframes atmosphereShift{0%,100%{opacity:.95;transform:scale(1)}50%{opacity:.76;transform:scale(1.04)}}
     @keyframes lensFlarePulse{
       0%{opacity:0;transform:scale(.62)}
-      30%{opacity:.88;transform:scale(1.06)}
-      100%{opacity:0;transform:scale(1.4)}
+      30%{opacity:.9;transform:scale(1.08)}
+      100%{opacity:0;transform:scale(1.45)}
     }
-    @keyframes globeBurst{0%{transform:scale(1)}100%{transform:scale(.12);opacity:0;filter:blur(4px)}}
-    @keyframes ringBurst{0%{opacity:1}100%{transform:scale(1.7) rotateX(70deg) rotateY(40deg);opacity:0}}
     @keyframes particleBurst{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) scale(.2)}}
-    @keyframes starScatter{
-      0%{
-        opacity:var(--opacity,.7);
-        transform:translate(calc(-50% + var(--sx, 0px)), calc(-50% + var(--sy, 0px))) scale(1);
-      }
-      100%{
-        opacity:0;
-        transform:translate(calc(-50% + var(--sx, 0px) * 1.5), calc(-50% + var(--sy, 0px) * 1.5)) scale(.4);
-      }
-    }
-    @keyframes textReveal{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes textReveal{from{opacity:0;transform:translateY(16px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes fadeUpSoft{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
     @keyframes logoSweep{
       0%{transform:translateX(-155%) skewX(-15deg);opacity:0}
-      30%{opacity:.75}
+      30%{opacity:.8}
       100%{transform:translateX(165%) skewX(-15deg);opacity:0}
     }
     .cinematic-text{position:relative;overflow:hidden}
     .cinematic-text::after{
       content:"";
       position:absolute;inset:-15% -42%;
-      background:linear-gradient(105deg, rgba(255,255,255,0) 24%, rgba(255,255,255,.58) 50%, rgba(255,255,255,0) 76%);
+      background:linear-gradient(105deg, rgba(255,255,255,0) 24%, rgba(255,255,255,.62) 50%, rgba(255,255,255,0) 76%);
       mix-blend-mode:screen;
       opacity:0;
       pointer-events:none;
     }
     @media (prefers-reduced-motion: reduce) {
+      .intro::before, .intro-aurora, .intro-grid { animation: none; }
       .cinematic-globe, .cinematic-globe::before { animation: none; }
+      .cinematic-globe-wrap { animation: none; }
       .cinematic-atmosphere { animation: none; }
-      .cinematic-star { animation: none; }
+      .cinematic-star, .cinematic-ring { animation: none; }
       .cinematic-intro.phase-2 .cinematic-starfield,
-      .cinematic-intro.explode .cinematic-stage,
-      .cinematic-intro.explode .cinematic-flare,
-      .cinematic-intro.explode .cinematic-star,
+      .cinematic-intro.phase-2 .cinematic-globe-wrap,
+      .cinematic-intro.ignite .cinematic-flare,
+      .cinematic-intro.ignite .cinematic-atmosphere,
+      .cinematic-intro.ignite .cinematic-particle,
+      .cinematic-intro.ignite .cinematic-globe,
       .cinematic-intro.brand-reveal .cinematic-text,
-      .cinematic-intro.brand-reveal .cinematic-text::after { animation: none; }
-      .cinematic-intro.explode .cinematic-globe-wrap,
-      .cinematic-intro.explode .cinematic-ring,
-      .cinematic-intro.explode .cinematic-particle { animation: none; }
+      .cinematic-intro.brand-reveal .cinematic-text::after,
+      .cinematic-intro.brand-reveal .cinematic-chip,
+      .cinematic-intro.brand-reveal .cinematic-sub { animation: none; }
       .cinematic-intro .intro-cta,
-      .cinematic-intro .cinematic-text { transition: none; animation: none; }
+      .cinematic-intro .cinematic-text,
+      .cinematic-intro .cinematic-chip,
+      .cinematic-intro .cinematic-sub { transition: none; opacity:1; transform:none; }
     }
     @media (max-width: 360px) {
-      .cinematic-chip { font-size: 10px; letter-spacing: .06em; margin-top: clamp(46px, 13vh, 92px); width: min(100%, 228px); }
+      .cinematic-chip { font-size: 10px; letter-spacing: .1em; width: min(100%, 240px); }
       .intro-lang-switcher { gap: 4px; padding: 3px; }
       .lang-switch-btn { min-width: 34px; min-height: 28px; padding: 0 8px; }
-      .cinematic-stage { width: 216px; height: 216px; margin-top: clamp(22px, 7vh, 54px); }
-      .cinematic-brand-block { gap: 10px; }
+      .cinematic-stage { width: min(240px, 78vw); height: min(240px, 78vw); }
+      .cinematic-globe-wrap { width: min(172px, 56vw); height: min(172px, 56vw); }
+      .cinematic-brand-block { gap: 8px; }
+      .cinematic-text { font-size: clamp(32px, 9.5vw, 42px); }
     }
 
     .headline {
@@ -2226,6 +2306,8 @@
   <main class="phone" id="phone">
     
     <section class="screen intro" id="introScreen">
+      <div class="intro-aurora" aria-hidden="true"></div>
+      <div class="intro-grid" aria-hidden="true"></div>
       <div class="intro-head">
         <div class="intro-lang-switcher" aria-label="Language selector">
           <button class="lang-switch-btn" id="introLangUzBtn" type="button">UZ</button>
@@ -2233,7 +2315,6 @@
         </div>
       </div>
       <div class="intro-inner cinematic-intro" id="cinematicIntro">
-        <p class="cinematic-chip" id="introChip">Qulay xarid, tezkor yetkazish</p>
         <div class="cinematic-main">
           <div class="cinematic-stage">
             <div class="cinematic-starfield" id="cinematicStarfield"></div>
@@ -2250,7 +2331,8 @@
           </div>
           <div class="cinematic-brand-block">
             <div class="cinematic-text" id="cinematicBrandText">GlobusMarket</div>
-            <p class="cinematic-sub" id="introSubtitle">Samarqand bo‘ylab qulay yetkazib berish • Keng assortiment • Ishonchli servis</p>
+            <p class="cinematic-chip" id="introChip">Qulay xarid, tezkor yetkazish</p>
+            <p class="cinematic-sub" id="introSubtitle">Har buyurtmada sifat, tezlik va ishonch bir joyda</p>
             <button class="btn gm-btn gm-btn-primary btn-primary intro-cta" id="openRegisterBtn">Ro‘yxatdan o‘tish</button>
           </div>
         </div>
@@ -3119,19 +3201,19 @@ Oq fonli foto</div>
     function buildIntroStarfield() {
       if (!cinematicStarfield) return;
       cinematicStarfield.innerHTML = '';
-      const count = 18;
+      const count = 42;
       for (let i = 0; i < count; i += 1) {
         const star = document.createElement('span');
         star.className = 'cinematic-star';
         const angle = Math.random() * Math.PI * 2;
-        const radius = 54 + Math.random() * 86;
+        const radius = 48 + Math.random() * 118;
         const x = Math.cos(angle) * radius;
         const y = Math.sin(angle) * radius;
         star.style.setProperty('--sx', `${x.toFixed(2)}px`);
         star.style.setProperty('--sy', `${y.toFixed(2)}px`);
-        star.style.setProperty('--size', `${(1 + Math.random() * 2.2).toFixed(2)}px`);
-        star.style.setProperty('--opacity', `${(0.45 + Math.random() * 0.5).toFixed(2)}`);
-        star.style.setProperty('--twinkle', `${(2.3 + Math.random() * 2).toFixed(2)}s`);
+        star.style.setProperty('--size', `${(1 + Math.random() * 2.6).toFixed(2)}px`);
+        star.style.setProperty('--opacity', `${(0.4 + Math.random() * 0.55).toFixed(2)}`);
+        star.style.setProperty('--twinkle', `${(2.1 + Math.random() * 2.4).toFixed(2)}s`);
         cinematicStarfield.appendChild(star);
       }
     }
@@ -3139,12 +3221,12 @@ Oq fonli foto</div>
     function buildIntroParticles() {
       if (!cinematicParticles) return;
       cinematicParticles.innerHTML = '';
-      const count = 22;
+      const count = 28;
       for (let i = 0; i < count; i += 1) {
         const particle = document.createElement('span');
         particle.className = 'cinematic-particle';
         const angle = (Math.PI * 2 * i) / count;
-        const radius = 70 + Math.random() * 58;
+        const radius = 78 + Math.random() * 72;
         particle.style.setProperty('--tx', `${Math.cos(angle) * radius}px`);
         particle.style.setProperty('--ty', `${Math.sin(angle) * radius}px`);
         particle.style.background = i % 3 === 0 ? '#25f48f' : (i % 2 ? '#8edcff' : '#c4d8ff');
@@ -3157,7 +3239,7 @@ Oq fonli foto</div>
       clearIntroTimers();
       buildIntroStarfield();
       buildIntroParticles();
-      cinematicIntro.classList.remove('phase-2', 'explode', 'brand-reveal', 'ready');
+      cinematicIntro.classList.remove('phase-2', 'ignite', 'explode', 'brand-reveal', 'ready');
       introScreen?.classList.remove('fade-out');
       gmAnalytics.track('intro_view');
       if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -3165,10 +3247,10 @@ Oq fonli foto</div>
         cinematicIntro.classList.add('ready');
         return;
       }
-      introTimers.push(setTimeout(() => cinematicIntro.classList.add('phase-2'), 420));
-      introTimers.push(setTimeout(() => cinematicIntro.classList.add('explode'), 1500));
-      introTimers.push(setTimeout(() => cinematicIntro.classList.add('brand-reveal'), 2080));
-      introTimers.push(setTimeout(() => cinematicIntro.classList.add('ready'), 2540));
+      introTimers.push(setTimeout(() => cinematicIntro.classList.add('phase-2'), 280));
+      introTimers.push(setTimeout(() => cinematicIntro.classList.add('ignite'), 980));
+      introTimers.push(setTimeout(() => cinematicIntro.classList.add('brand-reveal'), 1480));
+      introTimers.push(setTimeout(() => cinematicIntro.classList.add('ready'), 1980));
     }
 
     function syncIntroCta() {
