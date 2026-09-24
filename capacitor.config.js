@@ -17,8 +17,16 @@ const config = {
     allowMixedContent: false
   },
   ios: {
-    contentInset: 'automatic',
+    // Never: let WebView draw edge-to-edge; CSS safe-area pads header/nav.
+    contentInset: 'never',
     scrollEnabled: true
+  },
+  plugins: {
+    StatusBar: {
+      overlaysWebView: true,
+      style: 'DARK',
+      backgroundColor: '#f6f7fb'
+    }
   }
 };
 

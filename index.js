@@ -9,6 +9,7 @@ const prisma = require('./src/prisma-client');
 const marketplaceRepo = require('./src/marketplace-repository');
 const r2Service = require('./src/services/r2.service');
 const dalionExcelImportService = require('./src/services/dalion-excel-import.service');
+const visualProductSearch = require('./src/services/visual-product-search');
 const { paymeRpc } = require('./src/controllers/payme.controller');
 const { normalizeOrderStatus } = require('./src/order-status');
 const { issueCustomerToken, resolveCustomerAuth } = require('./src/customer-session');
@@ -575,6 +576,18 @@ const categoryImageUpload = multer({
     const m = String(file.mimetype || '').toLowerCase();
     if (ALLOWED_ADMIN_V2_IMAGE_MIME.has(m)) return cb(null, true);
     cb(new Error('UNSUPPORTED_CATEGORY_IMAGE'));
+  }
+});
+
+const visualSearchImageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_BANNER_IMAGE_BYTES },
+  fileFilter: (req, file, cb) => {
+    const m = String(file.mimetype || '').toLowerCase();
+    if (m === 'image/png' || m === 'image/jpeg' || m === 'image/jpg' || m === 'image/webp') {
+      return cb(null, true);
+    }
+    cb(new Error('UNSUPPORTED_VISUAL_SEARCH_IMAGE'));
   }
 });
 
@@ -1266,6 +1279,61 @@ app.get('/api/v1/products', async (req, res) => {
     logStructured('error', 'products_page_failed', { message: e?.message });
     return res.status(500).json({ ok: false, message: 'Server xatolik' });
   }
+});
+
+/** Photo / visual product search — multipart `image` or JSON `imageDataUrl`. */
+app.post('/api/v1/products/search-by-image', async (req, res) => {
+  const run = async () => {
+    try {
+      let buffer = req.file?.buffer || null;
+      if (!buffer) {
+        const parsed = parseImageDataUrl(req.body?.imageDataUrl);
+        if (parsed) buffer = parsed.buffer;
+      }
+      if (!buffer || !buffer.length) {
+        return res.status(400).json({ ok: false, message: 'Rasm topilmadi' });
+      }
+      if (buffer.length > MAX_BANNER_IMAGE_BYTES) {
+        return res.status(400).json({ ok: false, message: 'Rasm hajmi juda katta (maks 2MB)' });
+      }
+      const products = await marketplaceRepo.listProductsForVisualSearch(320);
+      const ranked = await visualProductSearch.rankProductsByImage({
+        queryBuffer: buffer,
+        products,
+        resolveLocalPath: localUploadPathFromUrl,
+        limit: 24,
+        maxCompare: 320,
+        maxDistance: 0.48
+      });
+      return res.json({
+        ok: true,
+        items: ranked.items,
+        compared: ranked.compared,
+        total: ranked.items.length
+      });
+    } catch (e) {
+      logStructured('error', 'visual_search_failed', { message: e?.message });
+      return res.status(500).json({ ok: false, message: 'Foto qidiruvda xatolik' });
+    }
+  };
+
+  const ct = String(req.headers['content-type'] || '');
+  if (ct.includes('multipart/form-data')) {
+    return visualSearchImageUpload.single('image')(req, res, async (err) => {
+      if (err) {
+        const code = String(err.message || '');
+        if (code === 'UNSUPPORTED_VISUAL_SEARCH_IMAGE') {
+          return res.status(400).json({ ok: false, message: 'Faqat PNG/JPEG/WebP rasm yuboring' });
+        }
+        if (code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ ok: false, message: 'Rasm hajmi juda katta (maks 2MB)' });
+        }
+        return res.status(400).json({ ok: false, message: 'Rasm yuklashda xatolik' });
+      }
+      return run();
+    });
+  }
+  return run();
 });
 
 app.get('/api/v1/products/:id', async (req, res) => {

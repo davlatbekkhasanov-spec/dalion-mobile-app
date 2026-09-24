@@ -11,6 +11,7 @@
     "db:push": "prisma db push",
     "db:seed": "node prisma/seed.js",
     "cap:sync": "cap sync",
+    "cap:sync:prod": "CAPACITOR_SERVER_URL=https://globusmarket.org cap sync",
     "cap:copy": "cap copy",
     "cap:open:android": "cap open android",
     "cap:open:ios": "cap open ios",
@@ -30,6 +31,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1045.0",
+    "@capacitor/status-bar": "^7.0.6",
     "@prisma/client": "^6.19.0",
     "compression": "^1.8.1",
     "express": "^5.2.1",

@@ -30,6 +30,8 @@
   }
 
   var paymeBrowserHooked = false;
+  var statusBarReady = false;
+  var statusBarRetries = 0;
 
   function hookPaymeBrowserFinished(Browser) {
     if (paymeBrowserHooked || !Browser || typeof Browser.addListener !== 'function') return;
@@ -88,12 +90,89 @@
     return true;
   }
 
+  function appIsVisible() {
+    try {
+      var phone = document.getElementById('phone');
+      return !!(phone && phone.classList.contains('show-app'));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * Edge-to-edge status bar.
+   * Intro (dark) → LIGHT icons; shop (light header) → DARK icons.
+   * Requires native rebuild: contentInset never + @capacitor/status-bar synced.
+   */
+  function syncStatusBar() {
+    if (!isNative()) return false;
+    var StatusBar = getPlugin('StatusBar');
+    if (!StatusBar) return false;
+    try {
+      document.documentElement.classList.add('native-edge');
+    } catch (e) {}
+    var style = appIsVisible() ? 'DARK' : 'LIGHT';
+    var tasks = [];
+    if (typeof StatusBar.setOverlaysWebView === 'function') {
+      tasks.push(StatusBar.setOverlaysWebView({ overlay: true }));
+    }
+    if (typeof StatusBar.setStyle === 'function') {
+      tasks.push(StatusBar.setStyle({ style: style }));
+    }
+    if (typeof StatusBar.show === 'function') {
+      tasks.push(StatusBar.show());
+    }
+    Promise.all(
+      tasks.map(function (p) {
+        return Promise.resolve(p).catch(function () {});
+      })
+    ).catch(function () {});
+    statusBarReady = true;
+    return true;
+  }
+
+  function setupStatusBar() {
+    if (syncStatusBar()) {
+      watchAppChrome();
+      return;
+    }
+    // Capacitor bridge may load after this script on remote server URL.
+    if (statusBarRetries >= 40) return;
+    statusBarRetries += 1;
+    setTimeout(setupStatusBar, 250);
+  }
+
+  function watchAppChrome() {
+    var phone = document.getElementById('phone');
+    if (!phone || typeof MutationObserver !== 'function') return;
+    var obs = new MutationObserver(function () {
+      syncStatusBar();
+    });
+    obs.observe(phone, { attributes: true, attributeFilter: ['class'] });
+  }
+
   global.GlobusNative = {
     isNative: isNative,
-    openPaymentUrl: openPaymentUrl
+    openPaymentUrl: openPaymentUrl,
+    syncStatusBar: syncStatusBar
   };
 
-  if (isNative()) {
+  function bootNative() {
+    if (!isNative()) return;
     setupAppUrlOpen();
+    setupStatusBar();
+  }
+
+  if (isNative()) {
+    bootNative();
+  } else {
+    // Remote WebView: Capacitor injects after first paint sometimes.
+    document.addEventListener('DOMContentLoaded', function () {
+      if (isNative()) bootNative();
+    });
+    global.addEventListener('capacitorReady', bootNative);
+    setTimeout(function () {
+      if (isNative() && !statusBarReady) bootNative();
+    }, 800);
   }
 })(typeof window !== 'undefined' ? window : globalThis);
