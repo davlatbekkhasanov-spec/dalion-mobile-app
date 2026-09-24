@@ -1,5 +1,5 @@
 /**
- * GlobusMarket intro — bright, crisp Three.js Earth.
+ * GlobusMarket intro — crisp, bright Three.js Earth (no haze).
  */
 (function (global) {
   'use strict';
@@ -47,13 +47,13 @@
     if (!running) return;
     frameId = global.requestAnimationFrame(animate);
     if (earth) {
-      if (!reducedMotion) earth.rotation.y += 0.0032;
-      targetTiltX = 0.12 + pointerY * 0.1;
+      if (!reducedMotion) earth.rotation.y += 0.003;
+      targetTiltX = 0.1 + pointerY * 0.08;
       earth.rotation.x += (targetTiltX - earth.rotation.x) * 0.05;
-      earth.rotation.z += ((pointerX * 0.08) - earth.rotation.z) * 0.04;
+      earth.rotation.z += ((pointerX * 0.06) - earth.rotation.z) * 0.04;
     }
-    if (atmosphere && earth) atmosphere.rotation.y = earth.rotation.y * 0.15;
-    if (stars && !reducedMotion) stars.rotation.y -= 0.00035;
+    if (atmosphere && earth) atmosphere.rotation.y = earth.rotation.y * 0.12;
+    if (stars && !reducedMotion) stars.rotation.y -= 0.0003;
     renderer.render(scene, camera);
   }
 
@@ -80,29 +80,29 @@
   }
 
   function makeStarField(THREE) {
-    const count = 420;
+    const count = 280;
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
     for (let i = 0; i < count; i += 1) {
-      const r = 4.5 + Math.random() * 7;
+      const r = 5 + Math.random() * 8;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
       positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
       positions[i * 3 + 2] = r * Math.cos(phi);
       const warm = Math.random();
-      colors[i * 3] = 0.75 + warm * 0.25;
-      colors[i * 3 + 1] = 0.82 + warm * 0.18;
+      colors[i * 3] = 0.8 + warm * 0.2;
+      colors[i * 3 + 1] = 0.88 + warm * 0.12;
       colors[i * 3 + 2] = 1;
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     const mat = new THREE.PointsMaterial({
-      size: 0.035,
+      size: 0.028,
       vertexColors: true,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.85,
       depthWrite: false,
       sizeAttenuation: true
     });
@@ -118,8 +118,8 @@
     const opts = options || {};
 
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
-    camera.position.set(0, 0.02, 2.85);
+    camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+    camera.position.set(0, 0.02, 2.72);
 
     renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -128,29 +128,28 @@
       precision: 'highp'
     });
     renderer.setClearColor(0x000000, 0);
+    // Keep colors crisp — ACES was muting/hazing the Earth
+    if (THREE.NoToneMapping != null) renderer.toneMapping = THREE.NoToneMapping;
     if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
     else if (THREE.sRGBEncoding != null) renderer.outputEncoding = THREE.sRGBEncoding;
-    if (THREE.ACESFilmicToneMapping != null) {
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.65;
-    }
+
     hostEl.appendChild(renderer.domElement);
-    renderer.domElement.style.cssText = 'width:100%;height:100%;display:block;touch-action:none;border-radius:50%;';
+    renderer.domElement.style.cssText =
+      'width:100%;height:100%;display:block;touch-action:none;';
 
-    // Bright studio-like lighting so continents pop
-    scene.add(new THREE.AmbientLight(0xffffff, 1.05));
-    scene.add(new THREE.HemisphereLight(0xb8d8ff, 0x0a1830, 0.85));
+    scene.add(new THREE.AmbientLight(0xffffff, 1.55));
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x243652, 0.7));
 
-    const key = new THREE.DirectionalLight(0xffffff, 2.4);
-    key.position.set(3.8, 2.6, 4.2);
+    const key = new THREE.DirectionalLight(0xffffff, 3.2);
+    key.position.set(4.2, 2.8, 3.6);
     scene.add(key);
 
-    const fill = new THREE.DirectionalLight(0x8fd9ff, 1.1);
-    fill.position.set(-3.5, 0.4, 2.8);
+    const fill = new THREE.DirectionalLight(0xc4ecff, 1.15);
+    fill.position.set(-3.2, 0.2, 2.4);
     scene.add(fill);
 
-    const rim = new THREE.DirectionalLight(0x66ccff, 1.35);
-    rim.position.set(-1.2, 1.5, -3.5);
+    const rim = new THREE.DirectionalLight(0x9ad8ff, 1.25);
+    rim.position.set(-0.8, 1.2, -3.2);
     scene.add(rim);
 
     stars = makeStarField(THREE);
@@ -161,15 +160,16 @@
     const topoUrl = opts.topoUrl || '/intro/earth-topo.png';
 
     const earthGeo = new THREE.SphereGeometry(1, 96, 96);
-    const earthMat = new THREE.MeshStandardMaterial({
+    // MeshPhong keeps specular highlight and stays vivid without muddy PBR haze
+    const earthMat = new THREE.MeshPhongMaterial({
       color: 0xffffff,
-      roughness: 0.48,
-      metalness: 0.04,
-      emissive: 0x143050,
-      emissiveIntensity: 0.42
+      shininess: 22,
+      specular: 0x446688,
+      emissive: 0x102038,
+      emissiveIntensity: 0.28
     });
     earth = new THREE.Mesh(earthGeo, earthMat);
-    earth.rotation.x = 0.12;
+    earth.rotation.x = 0.1;
     earth.rotation.y = -0.55;
     scene.add(earth);
 
@@ -181,38 +181,26 @@
       tex.minFilter = THREE.LinearMipmapLinearFilter;
       tex.magFilter = THREE.LinearFilter;
       earthMat.map = tex;
-      earthMat.emissiveMap = tex;
       earthMat.needsUpdate = true;
     });
 
     loader.load(topoUrl, function (tex) {
       earthMat.bumpMap = tex;
-      earthMat.bumpScale = 0.045;
+      earthMat.bumpScale = 0.028;
       earthMat.needsUpdate = true;
     }, undefined, function () {});
 
-    // Crisp cyan atmosphere rim (thin, bright — not a foggy bubble)
-    const atmGeo = new THREE.SphereGeometry(1.045, 64, 64);
+    // Hairline atmosphere rim only — no foggy outer shell
+    const atmGeo = new THREE.SphereGeometry(1.018, 64, 64);
     const atmMat = new THREE.MeshBasicMaterial({
-      color: 0x7ed0ff,
+      color: 0xa8ddff,
       transparent: true,
-      opacity: 0.32,
+      opacity: 0.14,
       side: THREE.BackSide,
       depthWrite: false
     });
     atmosphere = new THREE.Mesh(atmGeo, atmMat);
     scene.add(atmosphere);
-
-    // Outer soft halo
-    const haloGeo = new THREE.SphereGeometry(1.12, 48, 48);
-    const haloMat = new THREE.MeshBasicMaterial({
-      color: 0x4aa8ff,
-      transparent: true,
-      opacity: 0.12,
-      side: THREE.BackSide,
-      depthWrite: false
-    });
-    scene.add(new THREE.Mesh(haloGeo, haloMat));
 
     size();
     hostEl.addEventListener('pointermove', onPointer, { passive: true });
