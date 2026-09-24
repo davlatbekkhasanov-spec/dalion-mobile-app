@@ -73,12 +73,11 @@ Web tomonda header/nav `safe-area` padding bilan tayyor (`index.html` + `mobile-
 
 ### Foto qidiruv (aqlli)
 
-1. Railway (yoki server) environment ga qo‘ying: `OPENAI_API_KEY=sk-...`
-2. Ixtiyoriy: `PHOTO_SEARCH_OPENAI_MODEL=gpt-4o-mini`
-3. Redeploy
+Kalit **shart emas**. Server avval local CLIP bilan mahsulot turini aniqlaydi (stakan vs ramka), so‘ng katalog nomidan qidiradi.
 
-Rasm → AI mahsulotni aniqlaydi (masalan *stakan*) → katalogdan nom bo‘yicha qidiradi.  
-Kalit bo‘lmasa — faqat qattiq vizual fallback (noto‘g‘ri hit kam, lekin “aqlli” emas).
+Ixtiyoriy (yanada yaxshi): Railway ga `OPENAI_API_KEY=sk-...` — birinchi navbatda OpenAI Vision ishlatiladi.
+
+Redeploy qilingandan keyin birinchi so‘rovda CLIP model yuklanishi 30–90 soniya olishi mumkin.
 
 Lokal server bilan sinov (telefon/emulyator kompyuterga ulanishi kerak):
 

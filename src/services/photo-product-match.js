@@ -2,6 +2,7 @@
 
 const visualProductSearch = require('./visual-product-search');
 const photoSearchAi = require('./photo-search-ai');
+const photoSearchLocal = require('./photo-search-local');
 
 function normalizeText(s) {
   return String(s || '')
@@ -77,8 +78,28 @@ function rankProductsByLabels(products, labels, query, { limit = 24, minScore = 
   };
 }
 
+async function resolveLabels(queryBuffer, productsForText, mimeType) {
+  if (photoSearchAi.isPhotoAiConfigured()) {
+    try {
+      const ai = await photoSearchAi.labelProductPhoto(queryBuffer, mimeType);
+      if (ai) return { ...ai, provider: 'openai' };
+    } catch (_) {
+      /* fall through to local */
+    }
+  }
+
+  try {
+    const local = await photoSearchLocal.labelProductPhotoLocal(queryBuffer, productsForText);
+    if (local) return { ...local, provider: 'local-clip' };
+  } catch (_) {
+    /* fall through */
+  }
+
+  return null;
+}
+
 /**
- * AI-first photo search; strict visual only as weak fallback.
+ * Smart labels first (OpenAI or local CLIP); strict visual only as weak fallback.
  */
 async function searchProductsByPhoto({
   queryBuffer,
@@ -87,44 +108,42 @@ async function searchProductsByPhoto({
   resolveLocalPath,
   mimeType = 'image/jpeg'
 }) {
-  const aiConfigured = photoSearchAi.isPhotoAiConfigured();
+  const openaiConfigured = photoSearchAi.isPhotoAiConfigured();
   let ai = null;
-  let aiError = null;
 
-  if (aiConfigured) {
-    try {
-      ai = await photoSearchAi.labelProductPhoto(queryBuffer, mimeType);
-    } catch (e) {
-      aiError = e?.message || 'ai_failed';
-    }
+  try {
+    ai = await resolveLabels(queryBuffer, productsForText, mimeType);
+  } catch (_) {
+    ai = null;
   }
 
-  if (ai && ai.confidence >= 0.4 && ai.labels?.length) {
-    const ranked = rankProductsByLabels(productsForText, ai.labels, ai.query, {
+  if (ai && ai.confidence >= 0.35 && ai.labels?.length) {
+    const labels = photoSearchAi.expandLabels(ai.labels.concat(ai.object || '', ai.query || ''));
+    const ranked = rankProductsByLabels(productsForText, labels, ai.query || ai.object, {
       limit: 24,
-      minScore: 4
+      minScore: 3
     });
     if (ranked.items.length) {
       const confidence =
         ai.confidence >= 0.75 && ranked.bestScore >= 6
           ? 'high'
-          : ai.confidence >= 0.55
+          : ai.confidence >= 0.5
             ? 'medium'
             : 'low';
       return {
-        mode: 'ai',
+        mode: ai.provider === 'openai' ? 'ai' : 'local-clip',
         confidence,
-        labels: ai.labels,
-        query: ai.query,
-        object: ai.object,
+        labels,
+        query: ai.query || ai.object || '',
+        object: ai.object || '',
         items: ranked.items,
         compared: (productsForText || []).length,
-        aiConfigured: true
+        aiConfigured: true,
+        provider: ai.provider
       };
     }
   }
 
-  // Visual fallback — strict, prefer empty over wrong (glass→frame)
   const visual = await visualProductSearch.rankProductsByImage({
     queryBuffer,
     products: productsForVisual,
@@ -137,15 +156,16 @@ async function searchProductsByPhoto({
   });
 
   return {
-    mode: aiConfigured ? (ai ? 'ai-empty-visual' : 'ai-error-visual') : 'visual',
+    mode: ai ? 'label-empty-visual' : 'visual',
     confidence: visual.items.length ? visual.confidence : 'none',
     labels: ai?.labels || [],
     query: ai?.query || '',
     object: ai?.object || '',
     items: visual.items,
     compared: visual.compared,
-    aiConfigured,
-    aiError: aiError || undefined
+    aiConfigured: true,
+    openaiConfigured,
+    provider: ai?.provider || 'visual'
   };
 }
 

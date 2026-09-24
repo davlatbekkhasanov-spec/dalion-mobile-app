@@ -3284,6 +3284,10 @@ async function main() {
   }
   app.listen(PORT, HOST, () => {
     console.info(`[SERVER] started on ${HOST}:${PORT}`);
+    try {
+      const photoSearchLocal = require('./src/services/photo-search-local');
+      photoSearchLocal.warmupLocalClip();
+    } catch (_) {}
   });
 }
 

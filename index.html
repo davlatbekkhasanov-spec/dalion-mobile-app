@@ -7080,10 +7080,9 @@ Oq fonli foto</div>
         setView('searchView', { push: true });
         renderSearch();
         if (!items.length) {
-          if (data?.aiConfigured === false) showToast(t('toastPhotoAiOff'));
-          else showToast(t('toastPhotoNoMatch'));
-        } else if (data?.mode === 'ai') {
-          /* smart hit — quiet success */
+          showToast(t('toastPhotoNoMatch'));
+        } else if (data?.mode === 'ai' || data?.mode === 'local-clip') {
+          /* smart hit */
         } else if (data?.confidence === 'low' || data?.confidence === 'medium') {
           showToast(t('toastPhotoLowConf'));
         }
