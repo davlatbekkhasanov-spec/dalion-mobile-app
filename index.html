@@ -4,6 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>GlobusMarket</title>
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('gm_ui_mode');
+        var mode = (saved === 'phone' || saved === 'desktop')
+          ? saved
+          : (window.matchMedia('(min-width: 900px)').matches ? 'desktop' : 'phone');
+        document.documentElement.setAttribute('data-ui-mode', mode);
+      } catch (e) {
+        document.documentElement.setAttribute('data-ui-mode', 'phone');
+      }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -306,13 +319,31 @@
       position:absolute;
       top:calc(var(--safe-top) + 10px);
       right:calc(var(--safe-right) + 8px);
+      left:calc(var(--safe-left) + 8px);
       z-index:30;
       display:flex;
       align-items:center;
-      justify-content:flex-end;
+      justify-content:space-between;
+      gap:10px;
       pointer-events:none;
     }
     .intro-head > * { pointer-events:auto; }
+    .intro-device-switcher{
+      display:flex;gap:4px;flex-shrink:0;padding:4px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.2);background:rgba(8,14,28,.44);
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+      box-shadow:0 8px 20px rgba(0,0,0,.24);
+    }
+    .device-switch-btn{
+      border:1px solid transparent;background:transparent;color:#eaf2ff;
+      min-width:74px;min-height:30px;border-radius:999px;padding:0 10px;
+      font-family:"Manrope","Segoe UI",sans-serif;
+      font-weight:700;font-size:11px;letter-spacing:.02em;cursor:pointer;
+      transition:background .18s ease,color .18s ease,border-color .18s ease;
+      touch-action:manipulation;
+    }
+    .device-switch-btn.active{background:#fff;color:#1d2440;border-color:#fff}
+    .intro-head-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
     .intro-music-toggle{
       width:36px;height:36px;border-radius:999px;flex-shrink:0;
       border:1px solid rgba(255,255,255,.22);
@@ -2427,10 +2458,172 @@
     .phone:not(.show-app) .intro-head {
       top: calc(var(--safe-top) + 10px);
       right: calc(var(--safe-right) + 8px);
+      left: calc(var(--safe-left) + 8px);
       z-index: 40;
     }
-    .phone:not(.show-app) .intro-lang-switcher {
+    .phone:not(.show-app) .intro-lang-switcher,
+    .phone:not(.show-app) .intro-device-switcher {
       pointer-events: auto;
+    }
+
+    /* ——— Device modes: phone (current) vs desktop ——— */
+    html[data-ui-mode="desktop"] body {
+      background:
+        radial-gradient(ellipse 90% 70% at 50% 0%, #1a3368 0%, transparent 55%),
+        radial-gradient(circle at 80% 80%, #0a2a36 0%, transparent 45%),
+        #03060d;
+    }
+    html[data-ui-mode="desktop"] .phone {
+      width: min(1180px, 100%);
+      max-width: 1180px;
+      margin: 0 auto;
+      height: var(--app-vh);
+      min-height: var(--app-vh);
+      border-radius: 0;
+      border: 0;
+      box-shadow: none;
+      background: transparent;
+    }
+    html[data-ui-mode="desktop"] .phone:not(.show-app) .intro {
+      background:
+        radial-gradient(ellipse 110% 75% at 50% 12%, #2f4d9a 0%, transparent 55%),
+        radial-gradient(ellipse 85% 60% at 0% 78%, #0e4a5c 0%, transparent 52%),
+        radial-gradient(ellipse 75% 55% at 100% 20%, #241a58 0%, transparent 50%),
+        radial-gradient(circle at 50% 72%, #070e1c 0%, #03060d 55%, #000208 100%);
+    }
+    html[data-ui-mode="desktop"] .phone:not(.show-app) .cinematic-main {
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(28px, 5vw, 72px);
+      padding: clamp(24px, 5vh, 56px) clamp(24px, 4vw, 48px);
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+    html[data-ui-mode="desktop"] .cinematic-stage {
+      order: 1;
+      flex: 0 0 auto;
+      width: min(440px, 40vw);
+      height: min(440px, 40vw);
+      min-height: 340px;
+      max-height: none;
+    }
+    html[data-ui-mode="desktop"] .cinematic-globe-wrap {
+      width: min(400px, 36vw);
+      height: min(400px, 36vw);
+    }
+    html[data-ui-mode="desktop"] .cinematic-brand-block {
+      order: 2;
+      align-items: flex-start;
+      text-align: left;
+      max-width: 460px;
+      margin-top: 0;
+      padding: 0;
+      gap: 4px;
+    }
+    html[data-ui-mode="desktop"] .cinematic-text {
+      font-size: clamp(40px, 4.2vw, 56px);
+      text-align: left;
+      margin-bottom: 14px;
+    }
+    html[data-ui-mode="desktop"] .cinematic-chip,
+    html[data-ui-mode="desktop"] .cinematic-sub {
+      text-align: left;
+      margin-left: 0;
+      margin-right: 0;
+      padding-left: 0;
+      max-width: 34ch;
+    }
+    html[data-ui-mode="desktop"] .intro-cta {
+      width: auto;
+      min-width: 240px;
+      align-self: flex-start;
+      margin-top: 28px;
+    }
+    html[data-ui-mode="desktop"] .phone.show-app {
+      background: #f6f7fb;
+    }
+    html[data-ui-mode="desktop"] .phone.show-app .view {
+      max-width: 1080px;
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+    html[data-ui-mode="desktop"] .phone.show-app .products-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+    html[data-ui-mode="desktop"] .phone.show-app .bottom {
+      max-width: 1080px;
+      left: max(12px, calc((100% - 1080px) / 2));
+      right: max(12px, calc((100% - 1080px) / 2));
+      width: auto;
+      border-radius: 18px 18px 0 0;
+    }
+    html[data-ui-mode="desktop"] .device-switch-fab {
+      display: none;
+    }
+
+    /* On wide screens, forced phone mode = classic phone frame */
+    @media (min-width: 768px) {
+      html[data-ui-mode="phone"] body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        min-height: var(--app-vh);
+        background:
+          radial-gradient(ellipse 80% 60% at 50% 0%, #243a6a 0%, transparent 50%),
+          #050913;
+      }
+      html[data-ui-mode="phone"] .phone {
+        width: 100%;
+        max-width: 412px;
+        height: min(860px, calc(var(--app-vh) - 36px));
+        min-height: 640px;
+        border-radius: 36px;
+        border: 1px solid rgba(132, 162, 220, 0.28);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(158, 185, 255, 0.2);
+        overflow: hidden;
+        background: radial-gradient(circle at 30% 20%, #1c2f5f, #090f1f 55%, #050913 100%);
+      }
+      html[data-ui-mode="phone"] .phone .screen {
+        height: 100%;
+        min-height: 100%;
+      }
+      html[data-ui-mode="phone"] .phone:not(.show-app) .intro {
+        height: 100%;
+        min-height: 100%;
+      }
+      html[data-ui-mode="phone"] .device-switch-btn {
+        min-width: 70px;
+      }
+    }
+
+    @media (max-width: 767px) {
+      /* Real phones stay full-bleed; hide desktop toggle to avoid confusion */
+      .intro-device-switcher { display: none; }
+      html[data-ui-mode="desktop"] .phone,
+      html[data-ui-mode="desktop"] .phone:not(.show-app) .cinematic-main {
+        /* fall back gracefully if somehow desktop on tiny screen */
+        width: 100%;
+        max-width: none;
+        flex-direction: column;
+      }
+      html[data-ui-mode="desktop"] .cinematic-brand-block {
+        align-items: center;
+        text-align: center;
+      }
+      html[data-ui-mode="desktop"] .cinematic-text,
+      html[data-ui-mode="desktop"] .cinematic-chip,
+      html[data-ui-mode="desktop"] .cinematic-sub {
+        text-align: center;
+      }
+      html[data-ui-mode="desktop"] .intro-cta {
+        align-self: stretch;
+        width: 100%;
+      }
     }
 
   </style>
@@ -2451,9 +2644,15 @@
       </div>
       <div class="intro-dust" aria-hidden="true"></div>
       <div class="intro-head">
-        <div class="intro-lang-switcher" aria-label="Language selector">
-          <button class="lang-switch-btn" id="introLangUzBtn" type="button">UZ</button>
-          <button class="lang-switch-btn" id="introLangRuBtn" type="button">RU</button>
+        <div class="intro-device-switcher" role="group" aria-label="Ko‘rinish" id="introDeviceSwitcher">
+          <button class="device-switch-btn" id="uiModePhoneBtn" type="button" data-ui-mode="phone">Telefon</button>
+          <button class="device-switch-btn" id="uiModeDesktopBtn" type="button" data-ui-mode="desktop">Kompyuter</button>
+        </div>
+        <div class="intro-head-actions">
+          <div class="intro-lang-switcher" aria-label="Language selector">
+            <button class="lang-switch-btn" id="introLangUzBtn" type="button">UZ</button>
+            <button class="lang-switch-btn" id="introLangRuBtn" type="button">RU</button>
+          </div>
         </div>
       </div>
       <div class="intro-inner cinematic-intro" id="cinematicIntro">
@@ -2918,6 +3117,46 @@ Oq fonli foto</div>
     const MAX_REASONABLE_DISTANCE_KM = 120;
     const MAX_DELIVERY_FEE = 300000;
     let currentLang = localStorage.getItem('gm_lang') || 'uz';
+    const UI_MODE_KEY = 'gm_ui_mode';
+
+    function detectDefaultUiMode() {
+      try {
+        return window.matchMedia('(min-width: 900px)').matches ? 'desktop' : 'phone';
+      } catch (_) {
+        return 'phone';
+      }
+    }
+
+    function getUiMode() {
+      const attr = document.documentElement.getAttribute('data-ui-mode');
+      if (attr === 'desktop' || attr === 'phone') return attr;
+      const saved = localStorage.getItem(UI_MODE_KEY);
+      if (saved === 'desktop' || saved === 'phone') return saved;
+      return detectDefaultUiMode();
+    }
+
+    function syncUiModeButtons() {
+      const mode = getUiMode();
+      document.getElementById('uiModePhoneBtn')?.classList.toggle('active', mode === 'phone');
+      document.getElementById('uiModeDesktopBtn')?.classList.toggle('active', mode === 'desktop');
+    }
+
+    function applyUiMode(mode, persist) {
+      const next = mode === 'desktop' ? 'desktop' : 'phone';
+      document.documentElement.setAttribute('data-ui-mode', next);
+      if (persist) {
+        try { localStorage.setItem(UI_MODE_KEY, next); } catch (_) {}
+      }
+      syncUiModeButtons();
+      requestAnimationFrame(() => {
+        try { window.GMIntroGlobe && window.GMIntroGlobe.resize(); } catch (_) {}
+        try { fitIntroBrandText(); } catch (_) {}
+        try { buildIntroSkyStars(); } catch (_) {}
+      });
+    }
+
+    applyUiMode(getUiMode(), false);
+
     let currentUser = null;
     let customerLocation = { lat: null, lng: null, accuracy: null, addressText: '', landmarkText: '', permissionDenied: false };
     let activeModalProductId = null;
@@ -3949,6 +4188,9 @@ Oq fonli foto</div>
         introSubtitle: "Har buyurtmada sifat, tezlik va ishonch bir joyda",
         introCtaAuthed: "Xaridni boshlash",
         introCtaGuest: "Ro‘yxatdan o‘tish",
+        uiModePhone: "Telefon",
+        uiModeDesktop: "Kompyuter",
+        uiModeGroup: "Ko‘rinish",
         authSheetTitle: "Ro'yxatdan o'tish",
         authFirstNameLabel: "Ism",
         authFirstNamePlaceholder: "Ism",
@@ -4209,6 +4451,9 @@ Oq fonli foto</div>
         introSubtitle: 'В каждом заказе качество, скорость и надежность',
         introCtaAuthed: 'Начать покупки',
         introCtaGuest: 'Зарегистрироваться',
+        uiModePhone: 'Телефон',
+        uiModeDesktop: 'Компьютер',
+        uiModeGroup: 'Вид',
         authSheetTitle: 'Регистрация',
         authFirstNameLabel: 'Имя',
         authFirstNamePlaceholder: 'Имя',
@@ -4424,6 +4669,13 @@ Oq fonli foto</div>
       const introSubtitleEl = document.getElementById('introSubtitle');
       if (introChipEl) introChipEl.textContent = t('introChip');
       if (introSubtitleEl) introSubtitleEl.textContent = t('introSubtitle');
+      const uiModePhoneBtn = document.getElementById('uiModePhoneBtn');
+      const uiModeDesktopBtn = document.getElementById('uiModeDesktopBtn');
+      const introDeviceSwitcher = document.getElementById('introDeviceSwitcher');
+      if (uiModePhoneBtn) uiModePhoneBtn.textContent = t('uiModePhone');
+      if (uiModeDesktopBtn) uiModeDesktopBtn.textContent = t('uiModeDesktop');
+      if (introDeviceSwitcher) introDeviceSwitcher.setAttribute('aria-label', t('uiModeGroup'));
+      syncUiModeButtons();
       syncIntroCta();
       const authSheetTitle = document.getElementById('authSheetTitle');
       if (authSheetTitle) authSheetTitle.textContent = t('authSheetTitle');
@@ -7062,6 +7314,8 @@ Oq fonli foto</div>
     langRuBtn?.addEventListener('click', () => { currentLang = 'ru'; localStorage.setItem('gm_lang', 'ru'); applyLang(); renderAll(); });
     introLangUzBtn?.addEventListener('click', () => { currentLang = 'uz'; localStorage.setItem('gm_lang', 'uz'); applyLang(); renderAll(); });
     introLangRuBtn?.addEventListener('click', () => { currentLang = 'ru'; localStorage.setItem('gm_lang', 'ru'); applyLang(); renderAll(); });
+    document.getElementById('uiModePhoneBtn')?.addEventListener('click', () => applyUiMode('phone', true));
+    document.getElementById('uiModeDesktopBtn')?.addEventListener('click', () => applyUiMode('desktop', true));
 
     searchInput.addEventListener('input', renderSearch);
     [searchInput, manualAddress, landmarkInput, promoCodeInput].forEach((field) => {
