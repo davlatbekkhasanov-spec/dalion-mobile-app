@@ -51,7 +51,7 @@
 ```bash
 npm install
 # Production (tavsiya — dizayn serverdagi index.html dan keladi):
-set CAPACITOR_SERVER_URL=https://YOUR-RAILWAY-DOMAIN.up.railway.app
+set CAPACITOR_SERVER_URL=https://globusmarket.org
 npm run cap:sync
 
 # Android (Windows/Mac):
@@ -60,6 +60,16 @@ npm run cap:open:android
 # iOS (faqat macOS + Xcode):
 npm run cap:open:ios
 ```
+
+### Qora status bar (soat / LTE) — butun ekran
+
+Bu **faqat native rebuild** bilan yo‘qoladi (veb deploy yetarli emas):
+
+1. `capacitor.config.js` da `ios.contentInset: 'never'` + StatusBar `overlaysWebView: true`
+2. Mac da: `CAPACITOR_SERVER_URL=https://globusmarket.org npm run cap:sync`
+3. Xcode: Clean Build → Run / TestFlight
+
+Web tomonda header/nav `safe-area` padding bilan tayyor (`index.html` + `mobile-native-bridge.js`).
 
 Lokal server bilan sinov (telefon/emulyator kompyuterga ulanishi kerak):
 
