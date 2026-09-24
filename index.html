@@ -305,16 +305,16 @@
     .intro-lang-switcher,.lang-switch-btn{touch-action:manipulation}
     .cinematic-chip{
       order:2;
-      color:rgba(186,214,255,.88);
+      color:rgba(186,214,255,.82);
       font-family:"Manrope","Segoe UI",sans-serif;
-      font-size:clamp(10px,2.7cqi,12px);
+      font-size:clamp(10px,2.6cqi,11px);
       font-weight:600;
-      letter-spacing:.16em;
+      letter-spacing:.14em;
       text-transform:uppercase;
       margin:0;
       width:100%;max-width:100%;
-      padding:0 8px;
-      line-height:1.4;
+      padding:0 10px;
+      line-height:1.45;
       text-align:center;
       opacity:0;transform:translateY(8px);
       box-sizing:border-box;
@@ -324,9 +324,9 @@
       width:100%;max-width:100%;min-width:0;
       display:flex;flex-direction:column;align-items:center;
       gap:0;
-      margin-top:clamp(6px,1.8vh,14px);
+      margin-top:clamp(4px,1.2vh,12px);
       position:relative;z-index:3;
-      padding:0 10px 2px;
+      padding:0 14px max(6px, env(safe-area-inset-bottom));
       box-sizing:border-box;
       container-type:inline-size;container-name:intro-brand;
       overflow-x:clip;
@@ -411,11 +411,11 @@
     .cinematic-text{
       order:1;
       font-family:"Syne","Manrope",sans-serif;
-      font-size:clamp(28px,11.2cqi,40px);font-weight:800;
-      letter-spacing:-.035em;line-height:1.02;
-      width:100%;max-width:100%;padding:0 4px;margin:0 0 10px;box-sizing:border-box;
+      font-size:clamp(28px,10.5cqi,38px);font-weight:800;
+      letter-spacing:-.02em;line-height:1.05;
+      width:100%;max-width:100%;padding:0 6px;margin:0 0 12px;box-sizing:border-box;
       color:#f4f8ff;
-      background:linear-gradient(110deg,#ffffff 0%,#d7e8ff 45%,#9ef0d0 100%);
+      background:linear-gradient(110deg,#ffffff 0%,#d7e8ff 48%,#9ef0d0 100%);
       -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
       opacity:0;transform:translateY(16px) scale(.96);
       white-space:nowrap;overflow:hidden;text-overflow:clip;
@@ -424,12 +424,12 @@
     .cinematic-sub{
       order:3;
       font-family:"Manrope","Segoe UI",sans-serif;
-      color:rgba(176,198,230,.9);
-      font-size:clamp(13px,3.5cqi,15px);
+      color:rgba(176,198,230,.88);
+      font-size:clamp(13px,3.4cqi,15px);
       font-weight:500;
-      max-width:28ch;width:100%;
-      margin:10px auto 0;line-height:1.45;
-      padding:0 8px;box-sizing:border-box;
+      max-width:26ch;width:100%;
+      margin:12px auto 0;line-height:1.5;
+      padding:0 10px;box-sizing:border-box;
       opacity:0;transform:translateY(8px);
       text-wrap:balance;
     }
@@ -438,7 +438,7 @@
       opacity:0;transform:translateY(12px);pointer-events:none;
       transition:opacity .5s ease,transform .5s cubic-bezier(.2,.8,.2,1);
       width:100%;max-width:100%;
-      margin-top:18px;
+      margin-top:22px;
       border-radius:16px!important;
       box-shadow:0 12px 28px rgba(37,100,255,.32);
       position:relative;overflow:hidden;
