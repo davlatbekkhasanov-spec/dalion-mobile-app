@@ -4265,11 +4265,12 @@ Oq fonli foto</div>
         bellEmpty: "Hozircha bildirishnomalar yo'q",
         searchClear: 'Qidiruvni tozalash',
         photoSearch: 'Foto bo‘yicha qidirish',
-        photoSearchTitle: 'Foto qidiruv (o‘xshash mahsulotlar)',
+        photoSearchTitle: 'Foto qidiruv',
         photoMatch: 'mos',
-        toastPhotoSearching: 'Rasm bo‘yicha qidirilmoqda…',
+        toastPhotoSearching: 'Rasm tahlil qilinmoqda…',
         toastPhotoNoMatch: 'Aniqlik past — o‘xshash mahsulot topilmadi. Yaqinroq / yorug‘roq rasm oling',
         toastPhotoLowConf: 'Taxminiy natijalar — aniq moslik past',
+        toastPhotoAiOff: 'Aqlli foto qidiruv uchun serverda OPENAI_API_KEY kerak',
         toastPhotoSearchErr: 'Foto qidiruvda xatolik',
         toastPhotoPickErr: 'Rasm tanlab bo‘lmadi',
         homeAll: 'Barchasi',
@@ -4537,11 +4538,12 @@ Oq fonli foto</div>
         bellEmpty: 'Пока нет уведомлений',
         searchClear: 'Очистить поиск',
         photoSearch: 'Поиск по фото',
-        photoSearchTitle: 'Поиск по фото (похожие товары)',
+        photoSearchTitle: 'Поиск по фото',
         photoMatch: 'сход.',
-        toastPhotoSearching: 'Ищем по фото…',
+        toastPhotoSearching: 'Анализируем фото…',
         toastPhotoNoMatch: 'Точность низкая — похожий товар не найден. Сделайте ближе и ярче',
         toastPhotoLowConf: 'Приблизительные результаты — точность низкая',
+        toastPhotoAiOff: 'Для умного поиска по фото нужен OPENAI_API_KEY на сервере',
         toastPhotoSearchErr: 'Ошибка поиска по фото',
         toastPhotoPickErr: 'Не удалось выбрать фото',
         homeAll: 'Все',
@@ -7077,8 +7079,14 @@ Oq fonli foto</div>
         searchInput.value = '';
         setView('searchView', { push: true });
         renderSearch();
-        if (!items.length) showToast(t('toastPhotoNoMatch'));
-        else if (data?.confidence === 'low' || data?.confidence === 'medium') showToast(t('toastPhotoLowConf'));
+        if (!items.length) {
+          if (data?.aiConfigured === false) showToast(t('toastPhotoAiOff'));
+          else showToast(t('toastPhotoNoMatch'));
+        } else if (data?.mode === 'ai') {
+          /* smart hit — quiet success */
+        } else if (data?.confidence === 'low' || data?.confidence === 'medium') {
+          showToast(t('toastPhotoLowConf'));
+        }
       } catch (error) {
         showToast(error.message || t('toastPhotoSearchErr'));
       } finally {

@@ -71,6 +71,15 @@ Bu **faqat native rebuild** bilan yo‘qoladi (veb deploy yetarli emas):
 
 Web tomonda header/nav `safe-area` padding bilan tayyor (`index.html` + `mobile-native-bridge.js`).
 
+### Foto qidiruv (aqlli)
+
+1. Railway (yoki server) environment ga qo‘ying: `OPENAI_API_KEY=sk-...`
+2. Ixtiyoriy: `PHOTO_SEARCH_OPENAI_MODEL=gpt-4o-mini`
+3. Redeploy
+
+Rasm → AI mahsulotni aniqlaydi (masalan *stakan*) → katalogdan nom bo‘yicha qidiradi.  
+Kalit bo‘lmasa — faqat qattiq vizual fallback (noto‘g‘ri hit kam, lekin “aqlli” emas).
+
 Lokal server bilan sinov (telefon/emulyator kompyuterga ulanishi kerak):
 
 ```bash

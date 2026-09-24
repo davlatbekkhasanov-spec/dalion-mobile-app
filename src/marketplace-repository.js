@@ -285,6 +285,18 @@ async function listProductsForVisualSearch(limit = 320) {
   return products.map(productToPublic);
 }
 
+/** Active products (with names) for AI label → text photo search. */
+async function listProductsForPhotoTextSearch(limit = 800) {
+  const lim = Math.max(1, Math.min(1200, Number(limit) || 800));
+  const products = await prisma.product.findMany({
+    where: { active: true },
+    select: PRODUCT_PUBLIC_SELECT,
+    orderBy: { updatedAt: 'desc' },
+    take: lim
+  });
+  return products.map(productToPublic);
+}
+
 function normalizePublicProductSort(sortRaw) {
   const s = String(sortRaw || '')
     .trim()
@@ -1844,6 +1856,7 @@ module.exports = {
   listProductsPublic,
   listProductsPublicPage,
   listProductsForVisualSearch,
+  listProductsForPhotoTextSearch,
   listHomeCatalogRails,
   productToPublic,
   listCategoriesForAdmin,
