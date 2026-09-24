@@ -299,6 +299,8 @@
       align-items:center;
       gap:10px;
       margin-top:clamp(4px,1.5vh,12px);
+      position:relative;
+      z-index:3;
     }
     .cinematic-stage{position:relative;width:min(280px,72vw);height:min(280px,72vw);display:grid;place-items:center;perspective:900px;flex-shrink:0}
     .cinematic-starfield{position:absolute;inset:-28px;pointer-events:none}
@@ -396,8 +398,10 @@
     .cinematic-text{
       font-family:"Syne","Segoe UI",sans-serif;
       font-size:clamp(36px, 10.5vw, 50px);font-weight:800;letter-spacing:-.02em;line-height:1.02;
+      color:#eaf4ff;
       background:linear-gradient(105deg,#ffffff 8%,#c8e4ff 42%,#7ef0c8 92%);
-      -webkit-background-clip:text;background-clip:text;color:transparent;
+      -webkit-background-clip:text;background-clip:text;
+      -webkit-text-fill-color:transparent;
       opacity:0;transform:translateY(16px) scale(.94);
       filter:drop-shadow(0 12px 28px rgba(40,120,255,.35));
     }
@@ -424,6 +428,11 @@
     .cinematic-intro.brand-reveal .cinematic-chip{animation:fadeUpSoft .55s ease .18s forwards}
     .cinematic-intro.brand-reveal .cinematic-sub{animation:fadeUpSoft .55s ease .32s forwards}
     .cinematic-intro.ready .intro-cta{opacity:1;transform:translateY(0);pointer-events:auto}
+    .cinematic-intro.ready .cinematic-text,
+    .cinematic-intro.ready .cinematic-chip,
+    .cinematic-intro.ready .cinematic-sub{
+      opacity:1;transform:none;
+    }
     @keyframes globeSpin{from{background-position:0% 0%}to{background-position:-200% 0%}}
     @keyframes globeFloat{
       0%,100%{transform:translateY(0)}
