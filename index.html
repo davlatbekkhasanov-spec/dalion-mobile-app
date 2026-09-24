@@ -3165,19 +3165,19 @@ Oq fonli foto</div>
     function buildIntroStarfield() {
       if (!cinematicStarfield) return;
       cinematicStarfield.innerHTML = '';
-      const count = 42;
+      const count = 64;
       for (let i = 0; i < count; i += 1) {
         const star = document.createElement('span');
         star.className = 'cinematic-star';
         const angle = Math.random() * Math.PI * 2;
-        const radius = 48 + Math.random() * 118;
+        const radius = 70 + Math.random() * 160;
         const x = Math.cos(angle) * radius;
         const y = Math.sin(angle) * radius;
         star.style.setProperty('--sx', `${x.toFixed(2)}px`);
         star.style.setProperty('--sy', `${y.toFixed(2)}px`);
-        star.style.setProperty('--size', `${(1 + Math.random() * 2.6).toFixed(2)}px`);
-        star.style.setProperty('--opacity', `${(0.4 + Math.random() * 0.55).toFixed(2)}`);
-        star.style.setProperty('--twinkle', `${(2.1 + Math.random() * 2.4).toFixed(2)}s`);
+        star.style.setProperty('--size', `${(1 + Math.random() * 2.8).toFixed(2)}px`);
+        star.style.setProperty('--opacity', `${(0.35 + Math.random() * 0.6).toFixed(2)}`);
+        star.style.setProperty('--twinkle', `${(2 + Math.random() * 2.8).toFixed(2)}s`);
         cinematicStarfield.appendChild(star);
       }
     }
