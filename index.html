@@ -112,9 +112,10 @@
       z-index: 20;
       overflow: hidden;
       background:
-        radial-gradient(ellipse 120% 80% at 18% -10%, #2746a8 0%, transparent 52%),
-        radial-gradient(ellipse 90% 70% at 92% 108%, #0a3d52 0%, transparent 48%),
-        radial-gradient(circle at 50% 42%, #12204a 0%, #080e1c 48%, #03060f 100%);
+        radial-gradient(ellipse 90% 70% at 50% 28%, #1a2f6e 0%, transparent 55%),
+        radial-gradient(ellipse 70% 55% at 12% 78%, #0d3a4f 0%, transparent 50%),
+        radial-gradient(ellipse 60% 50% at 88% 18%, #2a1a55 0%, transparent 48%),
+        radial-gradient(circle at 50% 60%, #0a1228 0%, #050914 55%, #02040a 100%);
       display: flex;
       align-items: stretch;
       justify-content: stretch;
@@ -128,37 +129,54 @@
       position:absolute;
       inset:0;
       background:
-        radial-gradient(circle at 22% 18%, rgba(72,126,255,.42), transparent 38%),
-        radial-gradient(circle at 78% 78%, rgba(39,213,255,.22), transparent 42%),
-        radial-gradient(circle at 50% 55%, rgba(37,244,143,.06), transparent 46%);
+        radial-gradient(circle at 30% 22%, rgba(110,160,255,.28), transparent 42%),
+        radial-gradient(circle at 72% 70%, rgba(80,210,255,.16), transparent 44%),
+        radial-gradient(circle at 55% 48%, rgba(180,120,255,.08), transparent 40%);
       pointer-events:none;
-      animation:introWash 9s ease-in-out infinite alternate;
+      animation:introWash 10s ease-in-out infinite alternate;
     }
     .intro-aurora{
-      position:absolute;inset:-20% -10%;
-      pointer-events:none;z-index:0;opacity:.55;
+      position:absolute;inset:-30% -15%;
+      pointer-events:none;z-index:0;opacity:.7;
       background:
-        linear-gradient(115deg, transparent 20%, rgba(39,213,255,.14) 42%, transparent 58%),
-        linear-gradient(250deg, transparent 30%, rgba(37,244,143,.1) 48%, transparent 62%);
-      filter:blur(28px);
-      animation:auroraDrift 11s ease-in-out infinite alternate;
+        radial-gradient(ellipse 45% 35% at 20% 30%, rgba(70,140,255,.22), transparent 70%),
+        radial-gradient(ellipse 40% 32% at 80% 65%, rgba(40,200,220,.16), transparent 70%),
+        radial-gradient(ellipse 50% 28% at 55% 85%, rgba(140,90,255,.12), transparent 72%),
+        linear-gradient(125deg, transparent 25%, rgba(90,170,255,.1) 48%, transparent 62%);
+      filter:blur(36px);
+      animation:auroraDrift 14s ease-in-out infinite alternate;
     }
-    .intro-grid{
-      position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.18;
-      background-image:
-        linear-gradient(rgba(140,180,255,.12) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(140,180,255,.12) 1px, transparent 1px);
-      background-size:48px 48px;
-      mask-image:radial-gradient(ellipse 70% 55% at 50% 42%, #000 20%, transparent 78%);
-      -webkit-mask-image:radial-gradient(ellipse 70% 55% at 50% 42%, #000 20%, transparent 78%);
-      animation:gridPulse 6s ease-in-out infinite;
+    .intro-nebula{
+      position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.55;
+      background:
+        radial-gradient(1.5px 1.5px at 12% 18%, rgba(255,255,255,.85), transparent),
+        radial-gradient(1px 1px at 28% 42%, rgba(210,230,255,.7), transparent),
+        radial-gradient(1.5px 1.5px at 64% 22%, rgba(255,255,255,.8), transparent),
+        radial-gradient(1px 1px at 78% 58%, rgba(190,220,255,.65), transparent),
+        radial-gradient(2px 2px at 42% 72%, rgba(255,255,255,.75), transparent),
+        radial-gradient(1px 1px at 88% 34%, rgba(220,235,255,.7), transparent),
+        radial-gradient(1.5px 1.5px at 18% 68%, rgba(255,255,255,.6), transparent),
+        radial-gradient(1px 1px at 52% 12%, rgba(200,225,255,.55), transparent),
+        radial-gradient(1px 1px at 36% 88%, rgba(255,255,255,.5), transparent),
+        radial-gradient(1.5px 1.5px at 92% 78%, rgba(210,230,255,.55), transparent);
+      background-size:100% 100%;
+      animation:nebulaTwinkle 5s ease-in-out infinite alternate;
     }
-    @keyframes introWash{from{opacity:.85;transform:scale(1)}to{opacity:1;transform:scale(1.04)}}
+    .intro-dust{
+      position:absolute;inset:-10%;pointer-events:none;z-index:0;opacity:.35;
+      background:
+        radial-gradient(ellipse 60% 40% at 40% 35%, rgba(255,255,255,.06), transparent 60%),
+        radial-gradient(ellipse 50% 35% at 70% 60%, rgba(160,200,255,.05), transparent 65%);
+      filter:blur(2px);
+      animation:dustDrift 18s linear infinite alternate;
+    }
+    @keyframes introWash{from{opacity:.8;transform:scale(1)}to{opacity:1;transform:scale(1.05)}}
     @keyframes auroraDrift{
-      from{transform:translate3d(-4%,2%,0) rotate(-2deg)}
-      to{transform:translate3d(5%,-3%,0) rotate(3deg)}
+      from{transform:translate3d(-3%,2%,0) rotate(-1.5deg)}
+      to{transform:translate3d(4%,-2%,0) rotate(2deg)}
     }
-    @keyframes gridPulse{0%,100%{opacity:.12}50%{opacity:.22}}
+    @keyframes nebulaTwinkle{from{opacity:.4}to{opacity:.65}}
+    @keyframes dustDrift{from{transform:translate3d(-2%,1%,0)}to{transform:translate3d(2%,-1%,0)}}
 
     .intro-inner {
       position: relative;
@@ -285,72 +303,60 @@
       box-sizing:border-box;container-type:inline-size;container-name:intro-brand;overflow-x:clip;
     }
     .cinematic-stage{
-      position:relative;width:min(240px,68cqi,62vw);height:min(240px,68cqi,62vw);
-      display:grid;place-items:center;perspective:1100px;flex-shrink:0;container-type:inline-size;
+      position:relative;width:min(300px,82cqi,78vw);height:min(300px,82cqi,78vw);
+      display:grid;place-items:center;perspective:1200px;flex-shrink:0;container-type:inline-size;
     }
-    .cinematic-starfield{position:absolute;inset:-18px;pointer-events:none;overflow:hidden;border-radius:50%}
+    .cinematic-starfield{position:absolute;inset:-8%;pointer-events:none;overflow:visible}
     .cinematic-star{
       position:absolute;left:50%;top:50%;width:var(--size,2px);height:var(--size,2px);border-radius:50%;
       transform:translate(calc(-50% + var(--sx, 0px)), calc(-50% + var(--sy, 0px)));
-      background:radial-gradient(circle, rgba(255,255,255,.95), rgba(186,214,255,.45) 60%, rgba(0,0,0,0) 100%);
-      opacity:var(--opacity,.7);box-shadow:0 0 8px rgba(137,192,255,.45);
+      background:radial-gradient(circle, rgba(255,255,255,.98), rgba(200,225,255,.4) 55%, rgba(0,0,0,0) 100%);
+      opacity:var(--opacity,.75);box-shadow:0 0 6px rgba(180,210,255,.55);
       animation:starTwinkle var(--twinkle,3s) ease-in-out infinite alternate;
     }
     .cinematic-globe-wrap{
-      position:relative;width:min(188px,52cqi,48vw);height:min(188px,52cqi,48vw);
-      transform-style:preserve-3d;filter:drop-shadow(0 28px 40px rgba(3,10,26,.62));
+      position:relative;width:min(248px,72cqi,68vw);height:min(248px,72cqi,68vw);
+      transform-style:preserve-3d;filter:drop-shadow(0 22px 36px rgba(3,10,26,.55));
       animation:globeFloat 5.6s ease-in-out infinite;
     }
     .cinematic-globe-shadow{
-      position:absolute;left:50%;bottom:2px;width:78%;height:18%;transform:translateX(-50%);
-      background:radial-gradient(circle at 50% 50%, rgba(4,8,20,.55), rgba(4,8,20,0) 72%);filter:blur(2px);
+      position:absolute;left:50%;bottom:-2px;width:72%;height:14%;transform:translateX(-50%);
+      background:radial-gradient(circle at 50% 50%, rgba(4,8,20,.5), rgba(4,8,20,0) 72%);filter:blur(3px);
     }
     .cinematic-globe{
-      position:absolute;inset:0;border-radius:50%;background:#041428;
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 0 42px rgba(70,140,255,.5),0 0 88px rgba(39,213,255,.2),0 18px 28px rgba(3,10,26,.55);
-      transform-style:preserve-3d;overflow:hidden;transform:rotateX(8deg) rotateY(-12deg);
+      position:absolute;inset:0;border-radius:50%;background:#062038;
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.18),
+        0 0 28px rgba(80,160,255,.35),
+        0 16px 32px rgba(3,10,26,.5);
+      transform-style:preserve-3d;overflow:hidden;transform:rotateX(6deg) rotateY(-10deg);
     }
     .cinematic-globe-map,.cinematic-globe-topo{
       position:absolute;inset:0;border-radius:inherit;background-repeat:repeat-x;
       background-position:0% 50%;background-size:200% 100%;will-change:background-position;
     }
-    .cinematic-globe-map{background-image:url('/intro/earth-map.jpg');animation:globeMapSpin 32s linear infinite;filter:brightness(1.18) contrast(1.08) saturate(1.15)}
+    .cinematic-globe-map{
+      background-image:url('/intro/earth-map.jpg');
+      animation:globeMapSpin 36s linear infinite;
+      filter:brightness(1.42) contrast(1.12) saturate(1.35);
+    }
     .cinematic-globe-topo{
-      background-image:url('/intro/earth-topo.png');mix-blend-mode:soft-light;opacity:.28;
-      animation:globeMapSpin 32s linear infinite;pointer-events:none;
+      background-image:url('/intro/earth-topo.png');mix-blend-mode:soft-light;opacity:.22;
+      animation:globeMapSpin 36s linear infinite;pointer-events:none;
     }
     .cinematic-globe-shade{
       position:absolute;inset:0;border-radius:inherit;pointer-events:none;
       background:
-        radial-gradient(circle at 28% 24%, rgba(255,255,255,.62), rgba(214,238,255,.18) 14%, rgba(255,255,255,0) 34%),
-        radial-gradient(circle at 78% 78%, rgba(2,6,22,.55), rgba(2,6,22,0) 54%),
-        radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 52%, rgba(2,8,28,.58) 100%),
-        linear-gradient(105deg, rgba(4,20,48,.18) 0%, rgba(0,0,0,0) 45%, rgba(0,0,0,.18) 100%);
+        radial-gradient(circle at 30% 22%, rgba(255,255,255,.7), rgba(220,240,255,.2) 12%, rgba(255,255,255,0) 30%),
+        radial-gradient(circle at 78% 80%, rgba(2,6,22,.42), rgba(2,6,22,0) 50%),
+        radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 58%, rgba(2,8,28,.38) 100%),
+        linear-gradient(110deg, rgba(4,30,60,.12) 0%, rgba(0,0,0,0) 48%, rgba(0,0,0,.12) 100%);
     }
     .cinematic-globe-specular{
-      position:absolute;inset:8% 18% auto auto;width:34%;height:22%;border-radius:50%;
-      background:radial-gradient(ellipse at 50% 50%, rgba(255,255,255,.55), rgba(255,255,255,0) 70%);
-      filter:blur(1px);opacity:.55;pointer-events:none;animation:specularDrift 7s ease-in-out infinite alternate;
+      position:absolute;inset:6% 16% auto auto;width:38%;height:24%;border-radius:50%;
+      background:radial-gradient(ellipse at 50% 50%, rgba(255,255,255,.7), rgba(255,255,255,0) 72%);
+      filter:blur(1.5px);opacity:.65;pointer-events:none;animation:specularDrift 7s ease-in-out infinite alternate;
     }
-    .cinematic-atmosphere{
-      position:absolute;inset:-14px;border-radius:50%;pointer-events:none;
-      background:radial-gradient(circle at 50% 50%, rgba(120,200,255,0) 50%, rgba(90,180,255,.42) 68%, rgba(39,213,255,.12) 82%, rgba(120,200,255,0) 94%);
-      box-shadow:0 0 56px rgba(104,179,255,.55), inset 0 0 22px rgba(180,225,255,.28);
-      animation:atmosphereShift 4.2s ease-in-out infinite;
-    }
-    .cinematic-ring{
-      position:absolute;inset:6%;border:1.5px solid rgba(37,244,143,.58);border-radius:50%;
-      transform:rotateX(72deg) rotateY(12deg);box-shadow:0 0 18px rgba(37,244,143,.38);
-      animation:ringOrbit 14s linear infinite;transform-style:preserve-3d;pointer-events:none;
-    }
-    .cinematic-ring.r2{inset:16%;border-color:rgba(39,213,255,.5);animation:ringOrbitReverse 19s linear infinite}
-    .cinematic-ring.r3{inset:0%;border-color:rgba(156,174,255,.36);border-style:dashed;border-width:1px;animation:ringOrbit 26s linear infinite}
-    .cinematic-ring::before{
-      content:"";position:absolute;top:50%;left:-3px;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;
-      background:#25f48f;box-shadow:0 0 10px rgba(37,244,143,.9);
-    }
-    .cinematic-ring.r2::before{background:#27d5ff;box-shadow:0 0 10px rgba(39,213,255,.9);left:auto;right:-3px}
-    .cinematic-ring.r3::before{display:none}
     .cinematic-flare{
       position:absolute;inset:0;pointer-events:none;
       background:radial-gradient(circle at 50% 50%, rgba(199,238,255,.28), rgba(133,183,255,.12) 22%, rgba(0,0,0,0) 48%),linear-gradient(90deg, rgba(0,0,0,0), rgba(199,244,255,.4), rgba(0,0,0,0));
@@ -389,7 +395,6 @@
     .cinematic-intro.phase-2 .cinematic-starfield{animation:starfieldDrift 1.2s ease both}
     .cinematic-intro.phase-2 .cinematic-globe-wrap{animation:globeFloat 5.6s ease-in-out infinite, globeRise 1s ease both}
     .cinematic-intro.ignite .cinematic-flare{animation:lensFlarePulse .95s ease-out}
-    .cinematic-intro.ignite .cinematic-atmosphere{animation:atmosphereBloom 1s ease-out}
     .cinematic-intro.ignite .cinematic-particle{animation:particleBurst .95s ease forwards}
     .cinematic-intro.ignite .cinematic-globe{animation:globeIgnite .9s ease}
     .cinematic-intro.brand-reveal .cinematic-text{animation:textReveal .75s cubic-bezier(.2,.8,.2,1) forwards}
@@ -413,16 +418,12 @@
     @keyframes globeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
     @keyframes globeRise{from{transform:translateY(18px) scale(.92);opacity:.7}to{opacity:1}}
     @keyframes globeIgnite{
-      0%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 0 42px rgba(70,140,255,.5),0 0 88px rgba(39,213,255,.2),0 18px 28px rgba(3,10,26,.55)}
-      40%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.4),0 0 70px rgba(90,170,255,.85),0 0 120px rgba(39,213,255,.42),0 18px 28px rgba(3,10,26,.55);transform:rotateX(8deg) rotateY(-12deg) scale(1.05)}
-      100%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 0 42px rgba(70,140,255,.5),0 0 88px rgba(39,213,255,.2),0 18px 28px rgba(3,10,26,.55);transform:rotateX(8deg) rotateY(-12deg) scale(1)}
+      0%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),0 0 28px rgba(80,160,255,.35),0 16px 32px rgba(3,10,26,.5)}
+      40%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 0 48px rgba(100,180,255,.55),0 16px 32px rgba(3,10,26,.5);transform:rotateX(6deg) rotateY(-10deg) scale(1.04)}
+      100%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),0 0 28px rgba(80,160,255,.35),0 16px 32px rgba(3,10,26,.5);transform:rotateX(6deg) rotateY(-10deg) scale(1)}
     }
-    @keyframes ringOrbit{from{transform:rotateX(72deg) rotateY(12deg) rotateZ(0deg)}to{transform:rotateX(72deg) rotateY(12deg) rotateZ(360deg)}}
-    @keyframes ringOrbitReverse{from{transform:rotateX(75deg) rotateY(80deg) rotateZ(0deg)}to{transform:rotateX(75deg) rotateY(80deg) rotateZ(-360deg)}}
-    @keyframes atmosphereBloom{0%{opacity:.9;transform:scale(1);filter:brightness(1)}35%{opacity:1;transform:scale(1.12);filter:brightness(1.35)}100%{opacity:.95;transform:scale(1);filter:brightness(1)}}
     @keyframes starTwinkle{0%{opacity:calc(var(--opacity,.7) * .52)}100%{opacity:var(--opacity,.7)}}
     @keyframes starfieldDrift{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(0,-8px,0) scale(1.06)}}
-    @keyframes atmosphereShift{0%,100%{opacity:.95;transform:scale(1)}50%{opacity:.76;transform:scale(1.04)}}
     @keyframes lensFlarePulse{0%{opacity:0;transform:scale(.62)}30%{opacity:.9;transform:scale(1.08)}100%{opacity:0;transform:scale(1.45)}}
     @keyframes particleBurst{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) scale(.2)}}
     @keyframes textReveal{from{opacity:0;transform:translateY(16px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -434,13 +435,12 @@
       mix-blend-mode:screen;opacity:0;pointer-events:none;
     }
     @media (prefers-reduced-motion: reduce) {
-      .intro::before,.intro-aurora,.intro-grid{animation:none}
+      .intro::before,.intro-aurora,.intro-nebula,.intro-dust{animation:none}
       .cinematic-globe-map,.cinematic-globe-topo,.cinematic-globe-specular{animation:none}
-      .cinematic-globe-wrap,.cinematic-atmosphere,.cinematic-star,.cinematic-ring,.cinematic-shooting{animation:none}
+      .cinematic-globe-wrap,.cinematic-star,.cinematic-shooting{animation:none}
       .cinematic-intro.phase-2 .cinematic-starfield,
       .cinematic-intro.phase-2 .cinematic-globe-wrap,
       .cinematic-intro.ignite .cinematic-flare,
-      .cinematic-intro.ignite .cinematic-atmosphere,
       .cinematic-intro.ignite .cinematic-particle,
       .cinematic-intro.ignite .cinematic-globe,
       .cinematic-intro.brand-reveal .cinematic-text,
@@ -457,8 +457,8 @@
       .cinematic-chip{font-size:10px;letter-spacing:.06em}
       .intro-lang-switcher{gap:4px;padding:3px}
       .lang-switch-btn{min-width:34px;min-height:28px;padding:0 8px}
-      .cinematic-stage{width:min(210px,70vw);height:min(210px,70vw)}
-      .cinematic-globe-wrap{width:min(158px,48vw);height:min(158px,48vw)}
+      .cinematic-stage{width:min(250px,82vw);height:min(250px,82vw)}
+      .cinematic-globe-wrap{width:min(210px,70vw);height:min(210px,70vw)}
       .cinematic-brand-block{gap:7px}
       .cinematic-text{font-size:clamp(24px,10.5cqi,34px)}
     }
@@ -2268,7 +2268,8 @@
     
     <section class="screen intro" id="introScreen">
       <div class="intro-aurora" aria-hidden="true"></div>
-      <div class="intro-grid" aria-hidden="true"></div>
+      <div class="intro-nebula" aria-hidden="true"></div>
+      <div class="intro-dust" aria-hidden="true"></div>
       <div class="intro-head">
         <div class="intro-lang-switcher" aria-label="Language selector">
           <button class="lang-switch-btn" id="introLangUzBtn" type="button">UZ</button>
@@ -2287,10 +2288,6 @@
                 <div class="cinematic-globe-shade" aria-hidden="true"></div>
                 <div class="cinematic-globe-specular" aria-hidden="true"></div>
               </div>
-              <div class="cinematic-atmosphere"></div>
-              <div class="cinematic-ring"></div>
-              <div class="cinematic-ring r2"></div>
-              <div class="cinematic-ring r3"></div>
             </div>
             <div class="cinematic-flare"></div>
             <div class="cinematic-shooting" aria-hidden="true"></div>
