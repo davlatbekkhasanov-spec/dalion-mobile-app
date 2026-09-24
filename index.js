@@ -1282,7 +1282,7 @@ app.get('/api/v1/products', async (req, res) => {
   }
 });
 
-/** Photo search: AI labels → text match (smart); strict visual fallback. */
+/** Photo search: OpenAI Vision → catalog text match (required). */
 app.post('/api/v1/products/search-by-image', async (req, res) => {
   const run = async () => {
     try {
@@ -1304,16 +1304,10 @@ app.post('/api/v1/products/search-by-image', async (req, res) => {
         return res.status(400).json({ ok: false, message: 'Rasm hajmi juda katta (maks 2MB)' });
       }
 
-      const [productsForText, productsForVisual] = await Promise.all([
-        marketplaceRepo.listProductsForPhotoTextSearch(800),
-        marketplaceRepo.listProductsForVisualSearch(320)
-      ]);
-
+      const productsForText = await marketplaceRepo.listProductsForPhotoTextSearch(800);
       const ranked = await photoProductMatch.searchProductsByPhoto({
         queryBuffer: buffer,
         productsForText,
-        productsForVisual,
-        resolveLocalPath: localUploadPathFromUrl,
         mimeType
       });
 
@@ -1327,7 +1321,9 @@ app.post('/api/v1/products/search-by-image', async (req, res) => {
         labels: ranked.labels || [],
         query: ranked.query || '',
         object: ranked.object || '',
-        aiConfigured: Boolean(ranked.aiConfigured ?? photoSearchAi.isPhotoAiConfigured())
+        provider: ranked.provider || 'none',
+        aiConfigured: Boolean(ranked.aiConfigured),
+        message: ranked.message || undefined
       });
     } catch (e) {
       logStructured('error', 'visual_search_failed', { message: e?.message });
@@ -1352,6 +1348,14 @@ app.post('/api/v1/products/search-by-image', async (req, res) => {
     });
   }
   return run();
+});
+
+app.get('/api/v1/products/search-by-image/status', (req, res) => {
+  res.json({
+    ok: true,
+    openaiConfigured: photoSearchAi.isPhotoAiConfigured(),
+    model: String(process.env.PHOTO_SEARCH_OPENAI_MODEL || 'gpt-4o-mini')
+  });
 });
 
 app.get('/api/v1/products/:id', async (req, res) => {
@@ -3284,10 +3288,9 @@ async function main() {
   }
   app.listen(PORT, HOST, () => {
     console.info(`[SERVER] started on ${HOST}:${PORT}`);
-    try {
-      const photoSearchLocal = require('./src/services/photo-search-local');
-      photoSearchLocal.warmupLocalClip();
-    } catch (_) {}
+    console.info(
+      `[PHOTO-SEARCH] OpenAI Vision: ${photoSearchAi.isPhotoAiConfigured() ? 'ON' : 'OFF (set OPENAI_API_KEY)'}`
+    );
   });
 }
 
