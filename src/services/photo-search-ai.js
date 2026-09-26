@@ -87,7 +87,10 @@ async function labelProductPhoto(buffer, mimeType = 'image/jpeg') {
           {
             role: 'system',
             content:
-              'You identify the main retail product in a photo for GlobusMarket (Uzbekistan marketplace). Reply with JSON only. Ignore background furniture unless it is the product.'
+              'You are a precise retail product identifier for GlobusMarket (Uzbekistan). ' +
+              'Name ONLY the main foreground product a shopper would buy. ' +
+              'Never confuse a drinking glass/cup with a picture frame, and never name background furniture. ' +
+              'Reply with JSON only.'
           },
           {
             role: 'user',
@@ -95,16 +98,19 @@ async function labelProductPhoto(buffer, mimeType = 'image/jpeg') {
               {
                 type: 'text',
                 text:
-                  'Identify the main sellable product (not the table/wall behind it).\n' +
+                  'What is the ONE main product in this photo?\n' +
+                  'Rules:\n' +
+                  '- If it is a glass/cup/mug for drinking → object="drinking glass", labels must include stakan, bakal, стакан, кружка\n' +
+                  '- If it is a picture/photo frame → object="picture frame", labels must include ramka, рамка\n' +
+                  '- Ignore table, wall, hand, background\n' +
                   'Return JSON:\n' +
                   '{\n' +
-                  '  "object": "short English name e.g. drinking glass",\n' +
-                  '  "labels": ["uz","ru","en synonyms — 6 to 12 words/phrases"],\n' +
-                  '  "query": "best catalog search phrase (Uzbek or Russian)",\n' +
+                  '  "object": "short English product type",\n' +
+                  '  "labels": ["uz","ru","en synonyms — 8 to 14"],\n' +
+                  '  "query": "best Uzbek or Russian catalog search phrase",\n' +
                   '  "confidence": 0.0\n' +
                   '}\n' +
-                  'Examples: glass→labels include stakan, bakal, стакан, кружка; picture frame→ramka, рамка.\n' +
-                  'If unsure, confidence < 0.45 and labels=[].'
+                  'If unclear, confidence < 0.4 and labels=[].'
               },
               {
                 type: 'image_url',

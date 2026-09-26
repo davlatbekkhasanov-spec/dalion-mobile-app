@@ -71,13 +71,18 @@ Bu **faqat native rebuild** bilan yo‘qoladi (veb deploy yetarli emas):
 
 Web tomonda header/nav `safe-area` padding bilan tayyor (`index.html` + `mobile-native-bridge.js`).
 
-### Foto qidiruv (aqlli)
+### Foto qidiruv (OpenAI Vision — majburiy)
 
-Kalit **shart emas**. Server avval local CLIP bilan mahsulot turini aniqlaydi (stakan vs ramka), so‘ng katalog nomidan qidiradi.
+Local CLIP olib tashlandi (stakan→ramka xatolari). Endi faqat **OpenAI Vision**.
 
-Ixtiyoriy (yanada yaxshi): Railway ga `OPENAI_API_KEY=sk-...` — birinchi navbatda OpenAI Vision ishlatiladi.
+Railway → Variables:
+```
+OPENAI_API_KEY=sk-...
+PHOTO_SEARCH_OPENAI_MODEL=gpt-4o-mini
+```
+Save → Redeploy.
 
-Redeploy qilingandan keyin birinchi so‘rovda CLIP model yuklanishi 30–90 soniya olishi mumkin.
+Tekshiruv: `GET /api/v1/products/search-by-image/status` → `"openaiConfigured": true`
 
 Lokal server bilan sinov (telefon/emulyator kompyuterga ulanishi kerak):
 

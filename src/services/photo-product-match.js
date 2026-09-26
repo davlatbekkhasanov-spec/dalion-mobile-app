@@ -1,8 +1,6 @@
 'use strict';
 
-const visualProductSearch = require('./visual-product-search');
 const photoSearchAi = require('./photo-search-ai');
-const photoSearchLocal = require('./photo-search-local');
 
 function normalizeText(s) {
   return String(s || '')
@@ -22,10 +20,6 @@ function tokenSet(s) {
   );
 }
 
-/**
- * Score a catalog product against AI labels / query.
- * Higher = better name/category match.
- */
 function scoreProductByLabels(product, labels, query) {
   const name = normalizeText(product?.name);
   const cat = normalizeText(product?.categoryDisplayName || product?.category || '');
@@ -56,7 +50,7 @@ function scoreProductByLabels(product, labels, query) {
   return score;
 }
 
-function rankProductsByLabels(products, labels, query, { limit = 24, minScore = 4 } = {}) {
+function rankProductsByLabels(products, labels, query, { limit = 24, minScore = 3 } = {}) {
   const scored = (Array.isArray(products) ? products : [])
     .map((p) => {
       const textScore = scoreProductByLabels(p, labels, query);
@@ -72,100 +66,97 @@ function rankProductsByLabels(products, labels, query, { limit = 24, minScore = 
       ...s.product,
       matchScore: Math.round(Math.min(1, s.textScore / Math.max(8, best)) * 1000) / 1000,
       matchPercent: Math.round(Math.min(100, (s.textScore / Math.max(8, best)) * 100)),
-      matchReason: 'ai-text'
+      matchReason: 'openai-text'
     })),
     bestScore: best
   };
 }
 
-async function resolveLabels(queryBuffer, productsForText, mimeType) {
-  if (photoSearchAi.isPhotoAiConfigured()) {
-    try {
-      const ai = await photoSearchAi.labelProductPhoto(queryBuffer, mimeType);
-      if (ai) return { ...ai, provider: 'openai' };
-    } catch (_) {
-      /* fall through to local */
-    }
-  }
-
-  try {
-    const local = await photoSearchLocal.labelProductPhotoLocal(queryBuffer, productsForText);
-    if (local) return { ...local, provider: 'local-clip' };
-  } catch (_) {
-    /* fall through */
-  }
-
-  return null;
-}
-
 /**
- * Smart labels first (OpenAI or local CLIP); strict visual only as weak fallback.
+ * OpenAI Vision only — local CLIP / color matching caused false hits (glass→frame).
+ * Without OPENAI_API_KEY returns empty + mode ai-required.
  */
 async function searchProductsByPhoto({
   queryBuffer,
   productsForText,
-  productsForVisual,
-  resolveLocalPath,
   mimeType = 'image/jpeg'
 }) {
   const openaiConfigured = photoSearchAi.isPhotoAiConfigured();
+  if (!openaiConfigured) {
+    return {
+      mode: 'ai-required',
+      confidence: 'none',
+      labels: [],
+      query: '',
+      object: '',
+      items: [],
+      compared: 0,
+      aiConfigured: false,
+      provider: 'none',
+      message: 'OPENAI_API_KEY required'
+    };
+  }
+
   let ai = null;
-
+  let aiError = null;
   try {
-    ai = await resolveLabels(queryBuffer, productsForText, mimeType);
-  } catch (_) {
-    ai = null;
+    ai = await photoSearchAi.labelProductPhoto(queryBuffer, mimeType);
+  } catch (e) {
+    aiError = e?.message || 'openai_failed';
   }
 
-  if (ai && ai.confidence >= 0.35 && ai.labels?.length) {
-    const labels = photoSearchAi.expandLabels(ai.labels.concat(ai.object || '', ai.query || ''));
-    const ranked = rankProductsByLabels(productsForText, labels, ai.query || ai.object, {
-      limit: 24,
-      minScore: 3
-    });
-    if (ranked.items.length) {
-      const confidence =
-        ai.confidence >= 0.75 && ranked.bestScore >= 6
-          ? 'high'
-          : ai.confidence >= 0.5
-            ? 'medium'
-            : 'low';
-      return {
-        mode: ai.provider === 'openai' ? 'ai' : 'local-clip',
-        confidence,
-        labels,
-        query: ai.query || ai.object || '',
-        object: ai.object || '',
-        items: ranked.items,
-        compared: (productsForText || []).length,
-        aiConfigured: true,
-        provider: ai.provider
-      };
-    }
+  if (!ai || ai.confidence < 0.4 || !ai.labels?.length) {
+    return {
+      mode: 'ai-empty',
+      confidence: 'none',
+      labels: ai?.labels || [],
+      query: ai?.query || '',
+      object: ai?.object || '',
+      items: [],
+      compared: (productsForText || []).length,
+      aiConfigured: true,
+      provider: 'openai',
+      aiError: aiError || undefined
+    };
   }
 
-  const visual = await visualProductSearch.rankProductsByImage({
-    queryBuffer,
-    products: productsForVisual,
-    resolveLocalPath,
-    limit: 8,
-    maxCompare: 320,
-    maxDistance: 0.16,
-    minScore: 0.72,
-    minLead: 0.05
+  const labels = photoSearchAi.expandLabels(ai.labels.concat(ai.object || '', ai.query || ''));
+  const ranked = rankProductsByLabels(productsForText, labels, ai.query || ai.object, {
+    limit: 24,
+    minScore: 3
   });
 
+  if (!ranked.items.length) {
+    return {
+      mode: 'ai-no-catalog-hit',
+      confidence: 'none',
+      labels,
+      query: ai.query || ai.object || '',
+      object: ai.object || '',
+      items: [],
+      compared: (productsForText || []).length,
+      aiConfigured: true,
+      provider: 'openai'
+    };
+  }
+
+  const confidence =
+    ai.confidence >= 0.75 && ranked.bestScore >= 6
+      ? 'high'
+      : ai.confidence >= 0.55
+        ? 'medium'
+        : 'low';
+
   return {
-    mode: ai ? 'label-empty-visual' : 'visual',
-    confidence: visual.items.length ? visual.confidence : 'none',
-    labels: ai?.labels || [],
-    query: ai?.query || '',
-    object: ai?.object || '',
-    items: visual.items,
-    compared: visual.compared,
+    mode: 'ai',
+    confidence,
+    labels,
+    query: ai.query || ai.object || '',
+    object: ai.object || '',
+    items: ranked.items,
+    compared: (productsForText || []).length,
     aiConfigured: true,
-    openaiConfigured,
-    provider: ai?.provider || 'visual'
+    provider: 'openai'
   };
 }
 
