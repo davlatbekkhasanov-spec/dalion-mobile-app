@@ -1323,7 +1323,9 @@ app.post('/api/v1/products/search-by-image', async (req, res) => {
         object: ranked.object || '',
         provider: ranked.provider || 'none',
         aiConfigured: Boolean(ranked.aiConfigured),
-        message: ranked.message || undefined
+        message: ranked.message || undefined,
+        aiError: ranked.aiError || undefined,
+        aiDetail: ranked.aiDetail || undefined
       });
     } catch (e) {
       logStructured('error', 'visual_search_failed', { message: e?.message });
@@ -1350,12 +1352,39 @@ app.post('/api/v1/products/search-by-image', async (req, res) => {
   return run();
 });
 
-app.get('/api/v1/products/search-by-image/status', (req, res) => {
-  res.json({
+app.get('/api/v1/products/search-by-image/status', async (req, res) => {
+  const configured = photoSearchAi.isPhotoAiConfigured();
+  const out = {
     ok: true,
-    openaiConfigured: photoSearchAi.isPhotoAiConfigured(),
+    openaiConfigured: configured,
     model: String(process.env.PHOTO_SEARCH_OPENAI_MODEL || 'gpt-4o-mini')
-  });
+  };
+  // Lightweight auth check (no image / almost free)
+  if (configured && String(req.query.ping || '') === '1') {
+    try {
+      const key = String(process.env.PHOTO_SEARCH_OPENAI_KEY || process.env.OPENAI_API_KEY || '')
+        .trim()
+        .replace(/^['"]|['"]$/g, '')
+        .replace(/\s+/g, '');
+      const r = await fetch('https://api.openai.com/v1/models/gpt-4o-mini', {
+        headers: { Authorization: `Bearer ${key}` }
+      });
+      out.pingOk = r.ok;
+      out.pingStatus = r.status;
+      if (!r.ok) {
+        const t = await r.text().catch(() => '');
+        try {
+          out.pingError = String(JSON.parse(t)?.error?.message || t).slice(0, 200);
+        } catch {
+          out.pingError = t.slice(0, 200);
+        }
+      }
+    } catch (e) {
+      out.pingOk = false;
+      out.pingError = e?.message || 'ping_failed';
+    }
+  }
+  res.json(out);
 });
 
 app.get('/api/v1/products/:id', async (req, res) => {

@@ -6,9 +6,18 @@
  */
 
 function getOpenAiKey() {
-  return String(
+  let key = String(
     process.env.PHOTO_SEARCH_OPENAI_KEY || process.env.OPENAI_API_KEY || ''
   ).trim();
+  // Railway/UI paste sometimes wraps in quotes or adds newlines
+  if (
+    (key.startsWith('"') && key.endsWith('"')) ||
+    (key.startsWith("'") && key.endsWith("'"))
+  ) {
+    key = key.slice(1, -1).trim();
+  }
+  key = key.replace(/\s+/g, '');
+  return key;
 }
 
 function isPhotoAiConfigured() {
@@ -124,19 +133,31 @@ async function labelProductPhoto(buffer, mimeType = 'image/jpeg') {
 
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
+      let detail = errText.slice(0, 280);
+      try {
+        const j = JSON.parse(errText);
+        detail = String(j?.error?.message || j?.message || detail).slice(0, 280);
+      } catch (_) {}
       const err = new Error(`openai_http_${res.status}`);
-      err.detail = errText.slice(0, 240);
+      err.detail = detail;
+      err.status = res.status;
       throw err;
     }
 
     const data = await res.json();
     const content = String(data?.choices?.[0]?.message?.content || '').trim();
-    if (!content) return null;
+    if (!content) {
+      const err = new Error('openai_empty_content');
+      err.detail = 'OpenAI bo‘sh javob qaytardi';
+      throw err;
+    }
     let parsed;
     try {
       parsed = JSON.parse(content);
     } catch {
-      return null;
+      const err = new Error('openai_bad_json');
+      err.detail = content.slice(0, 180);
+      throw err;
     }
 
     const labels = expandLabels([
@@ -145,6 +166,17 @@ async function labelProductPhoto(buffer, mimeType = 'image/jpeg') {
       parsed.query
     ]);
     const confidence = Math.max(0, Math.min(1, Number(parsed.confidence) || 0));
+
+    if (!labels.length || confidence < 0.4) {
+      return {
+        object: String(parsed.object || '').trim(),
+        labels,
+        query: String(parsed.query || parsed.object || '').trim(),
+        confidence,
+        raw: parsed,
+        emptyReason: !labels.length ? 'no_labels' : 'low_confidence'
+      };
+    }
 
     return {
       object: String(parsed.object || '').trim(),
