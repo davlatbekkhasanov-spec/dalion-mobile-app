@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="card-title">AI Moderator Settings</div>
+  <p style="color:var(--text-dim);margin-bottom:1rem;font-size:0.8rem;">
+    Configure detection via keys prefixed with <code>ai_moderator.</code> — enabled, spam thresholds, keyword lists, mass report limits.
+  </p>
+</div>
+
+<div class="card">
+  <div class="card-title">Add / Update Setting</div>
+  <form class="filters" method="post">
+    <div>
+      <label>Key</label>
+      <input type="text" name="key" required placeholder="setting_key">
+    </div>
+    <div>
+      <label>Value</label>
+      <input type="text" name="value" required placeholder="value">
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title">Current Settings</div>
+  <table>
+    <thead><tr><th>Key</th><th>Value</th></tr></thead>
+    <tbody>
+      {% for s in settings %}
+      <tr><td>{{ s.key }}</td><td>{{ s.value }}</td></tr>
+      {% else %}
+      <tr><td colspan="2" style="color:var(--text-dim);">No settings configured</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

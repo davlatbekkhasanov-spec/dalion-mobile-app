@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% set report = detail.report %}
+{% block content %}
+<div class="card">
+  <div class="card-title">Report Details</div>
+  <table>
+    <tr><th>Report ID</th><td class="uuid">{{ report.id }}</td></tr>
+    <tr><th>Status</th><td><span class="badge badge-new">{{ report.status.value }}</span></td></tr>
+    <tr><th>Chat ID</th><td class="uuid">{{ report.chat_id }}</td></tr>
+    <tr><th>Reporter UUID</th><td class="uuid">{{ report.reporter_id }}</td></tr>
+    <tr><th>Reported UUID</th><td class="uuid">{{ report.reported_user_id }}</td></tr>
+    <tr><th>Reason</th><td>{{ report.reason }}</td></tr>
+    <tr><th>Created</th><td>{{ report.created_at | format_dt }}</td></tr>
+    <tr><th>Resolved</th><td>{{ report.resolved_at | format_dt }}</td></tr>
+  </table>
+</div>
+
+{% if can_manage %}
+<div class="card">
+  <div class="card-title">Actions</div>
+  <div class="actions">
+    <form method="post" action="/admin/reports/{{ report.id }}/approve" style="display:inline;">
+      <button type="submit" class="btn btn-primary btn-sm">Approve</button>
+    </form>
+    <form method="post" action="/admin/reports/{{ report.id }}/reject" style="display:inline;">
+      <button type="submit" class="btn btn-sm">Reject</button>
+    </form>
+    <form method="post" action="/admin/reports/{{ report.id }}/warn" style="display:inline;">
+      <button type="submit" class="btn btn-warn btn-sm">Warn User</button>
+    </form>
+    <form method="post" action="/admin/reports/{{ report.id }}/ban" style="display:inline;">
+      <input type="hidden" name="reason" value="Report violation">
+      <input type="hidden" name="permanent" value="false">
+      <button type="submit" class="btn btn-danger btn-sm">Temp Ban</button>
+    </form>
+    <form method="post" action="/admin/reports/{{ report.id }}/ban" style="display:inline;">
+      <input type="hidden" name="reason" value="Report violation">
+      <input type="hidden" name="permanent" value="true">
+      <button type="submit" class="btn btn-danger btn-sm">Permanent Ban</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if detail.chat_detail %}
+{% set chat = detail.chat_detail.chat %}
+<div class="card">
+  <div class="card-title">Chat History</div>
+  <p style="margin-bottom:0.75rem;color:var(--text-dim);">
+    Participants: <span class="uuid">{{ chat.male_user_id }}</span> ↔ <span class="uuid">{{ chat.female_user_id }}</span>
+  </p>
+  <div class="message-list">
+    {% for msg in detail.chat_detail.messages %}
+    <div class="message-item">
+      <div class="message-meta">{{ msg.created_at | format_dt }} · {{ msg.message_type.value }} · <span class="uuid">{{ msg.sender_id }}</span></div>
+      {% if msg.text %}<div>{{ msg.text }}</div>{% endif %}
+      {% if msg.telegram_file_id %}<div class="message-file">file_id: {{ msg.telegram_file_id }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<a href="/admin/reports" class="btn">← Back to Reports</a>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="card-title">Create Admin Account</div>
+  <form class="filters" method="post" action="/admin/admins/create">
+    <div>
+      <label>Username</label>
+      <input type="text" name="username" required>
+    </div>
+    <div>
+      <label>Password</label>
+      <input type="password" name="password" required>
+    </div>
+    <div>
+      <label>Role</label>
+      <select name="role">
+        {% for r in AdminRoleEnum %}
+        <option value="{{ r.value }}">{{ r.value }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Create</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title">Admin Accounts</div>
+  <table>
+    <thead>
+      <tr><th>UUID</th><th>Username</th><th>Role</th><th>Active</th><th>Created</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for a in admins %}
+      <tr>
+        <td class="uuid">{{ a.id }}</td>
+        <td>{{ a.username }}</td>
+        <td><span class="badge badge-new">{{ a.role.value }}</span></td>
+        <td>{% if a.is_active %}<span class="badge badge-active">Active</span>{% else %}<span class="badge badge-banned">Disabled</span>{% endif %}</td>
+        <td>{{ a.created_at | format_dt }}</td>
+        <td>
+          {% if a.id != admin.id %}
+          <form method="post" action="/admin/admins/{{ a.id }}/toggle" style="display:inline;">
+            <button type="submit" class="btn btn-sm">{% if a.is_active %}Disable{% else %}Enable{% endif %}</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
