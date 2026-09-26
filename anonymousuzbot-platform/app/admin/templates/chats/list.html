@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<form class="filters" method="get">
+  <div>
+    <label>Chat ID</label>
+    <input type="text" name="chat_id" value="{{ chat_id }}" placeholder="UUID">
+  </div>
+  <div>
+    <label>Status</label>
+    <select name="status">
+      <option value="">All</option>
+      {% for s in ChatStatusEnum %}
+      <option value="{{ s.value }}" {% if status == s.value %}selected{% endif %}>{{ s.value }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>Date From</label>
+    <input type="date" name="date_from" value="{{ date_from }}">
+  </div>
+  <div>
+    <label>Date To</label>
+    <input type="date" name="date_to" value="{{ date_to }}">
+  </div>
+  <button type="submit" class="btn btn-primary">Filter</button>
+</form>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Chat ID</th>
+        <th>Status</th>
+        <th>Male UUID</th>
+        <th>Female UUID</th>
+        <th>Started</th>
+        <th>Ended</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for chat in chats %}
+      <tr>
+        <td class="uuid">{{ chat.id }}</td>
+        <td><span class="badge badge-new">{{ chat.status.value }}</span></td>
+        <td class="uuid">{{ chat.male_user_id }}</td>
+        <td class="uuid">{{ chat.female_user_id }}</td>
+        <td>{{ chat.started_at | format_dt }}</td>
+        <td>{{ chat.ended_at | format_dt }}</td>
+        <td class="actions">
+          <a href="/admin/chats/{{ chat.id }}" class="btn btn-sm">View</a>
+          <a href="/admin/chats/{{ chat.id }}/export" class="btn btn-sm">Export</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="color:var(--text-dim);">No chats found</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

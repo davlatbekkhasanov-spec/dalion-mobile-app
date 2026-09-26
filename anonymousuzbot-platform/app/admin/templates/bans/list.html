@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="tabs">
+  <a href="/admin/bans?tab=active" class="tab{% if tab == 'active' %} active{% endif %}">Active Bans</a>
+  <a href="/admin/bans?tab=expired" class="tab{% if tab == 'expired' %} active{% endif %}">Expired Bans</a>
+</div>
+
+{% if tab != 'expired' %}
+<div class="card">
+  <div class="card-title">Active Bans</div>
+  <table>
+    <thead>
+      <tr><th>User UUID</th><th>Type</th><th>Reason</th><th>Until</th><th>Created</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for ban in active_bans %}
+      <tr>
+        <td class="uuid">{{ ban.user_id }}</td>
+        <td><span class="badge badge-banned">{{ ban.type.value }}</span></td>
+        <td>{{ ban.reason }}</td>
+        <td>{{ ban.until | format_dt }}</td>
+        <td>{{ ban.created_at | format_dt }}</td>
+        <td>
+          <form method="post" action="/admin/bans/unban/{{ ban.user_id }}" style="display:inline;">
+            <button type="submit" class="btn btn-sm btn-primary">Unban</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="color:var(--text-dim);">No active bans</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card">
+  <div class="card-title">Expired Bans</div>
+  <table>
+    <thead>
+      <tr><th>User UUID</th><th>Reason</th><th>Expired</th><th>Created</th></tr>
+    </thead>
+    <tbody>
+      {% for ban in expired_bans %}
+      <tr>
+        <td class="uuid">{{ ban.user_id }}</td>
+        <td>{{ ban.reason }}</td>
+        <td>{{ ban.until | format_dt }}</td>
+        <td>{{ ban.created_at | format_dt }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" style="color:var(--text-dim);">No expired bans</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
