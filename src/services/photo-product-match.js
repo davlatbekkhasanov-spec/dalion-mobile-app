@@ -99,15 +99,17 @@ async function searchProductsByPhoto({
 
   let ai = null;
   let aiError = null;
+  let aiDetail = null;
   try {
     ai = await photoSearchAi.labelProductPhoto(queryBuffer, mimeType);
   } catch (e) {
     aiError = e?.message || 'openai_failed';
+    aiDetail = e?.detail || null;
   }
 
   if (!ai || ai.confidence < 0.4 || !ai.labels?.length) {
     return {
-      mode: 'ai-empty',
+      mode: aiError ? 'ai-error' : 'ai-empty',
       confidence: 'none',
       labels: ai?.labels || [],
       query: ai?.query || '',
@@ -116,7 +118,11 @@ async function searchProductsByPhoto({
       compared: (productsForText || []).length,
       aiConfigured: true,
       provider: 'openai',
-      aiError: aiError || undefined
+      aiError: aiError || ai?.emptyReason || undefined,
+      aiDetail: aiDetail || undefined,
+      message: aiError
+        ? 'OpenAI xatolik qaytardi (kalit/billing/limit)'
+        : 'AI mahsulotni aniqlay olmadi'
     };
   }
 
