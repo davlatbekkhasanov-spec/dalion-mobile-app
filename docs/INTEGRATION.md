@@ -7,7 +7,7 @@ Bu hujjat buyurtma oqimi uchun **integratsiyaga tayyor** qatlamni tavsiflaydi. T
 ```mermaid
 sequenceDiagram
   participant App as GlobusMarket
-  participant Ops as orders-display
+  participant Ops as admin
   participant TSD as Data Mobile TSD
   participant C1 as 1C Dalion Trend
 
@@ -102,4 +102,4 @@ Header: `x-integration-secret: <ONEC_WEBHOOK_SECRET>`
 1. **Data Mobile**: haqiqiy `sendOrderToTsd` HTTP, webhook URL va `TSD_WEBHOOK_SECRET` almashish.
 2. **1C Dalion Trend**: buyurtma eksport va `order-picked` webhook kontraktini tasdiqlash.
 3. Production: `TSD_ENABLED=true`, `ONEC_ORDERS_ENABLED=true`, secretlarni `.env` da saqlash.
-4. `orders-display` da TSD tugmasi — `TSD_ENABLED` yoqilganda server 503 bermasligi uchun.
+4. Admin buyurtmalarida TSD tugmasi — `TSD_ENABLED` yoqilganda server 503 bermasligi uchun.

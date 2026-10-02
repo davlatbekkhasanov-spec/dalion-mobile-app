@@ -69,7 +69,6 @@
   <div class="wrap">
     <h1 id="pageTitle">Admin Panel</h1>
     <div class="row" style="margin-bottom:10px;">
-      <a href="/orders-display" class="tab" style="text-decoration:none;display:inline-flex;align-items:center;">Orders Display</a>
       <button id="langUz" class="tab">UZ</button>
       <button id="langRu" class="tab">RU</button>
     </div>
@@ -206,7 +205,7 @@
 
     <section class="panel card" id="reports-panel">
       <h3 id="reportsTitle">Hisobotlar</h3>
-      <p class="muted" id="reportsHelp">Marketplace — barcha buyurtmalar. Tablo — ops ekranidagi filtr (to'langan Payme va boshqalar).</p>
+      <p class="muted" id="reportsHelp">Marketplace — barcha buyurtmalar (to'langan Payme va boshqalar).</p>
       <div class="reports-range">
         <label><span id="reportsFromLabel">Dan</span><input type="date" id="reportsFrom" /></label>
         <label><span id="reportsToLabel">Gacha</span><input type="date" id="reportsTo" /></label>
@@ -220,12 +219,6 @@
           <div class="reports-metrics" id="reportsMpMetrics"></div>
           <table class="reports-table"><thead><tr><th id="reportsMpDayCol">Kun</th><th id="reportsMpCountCol">Soni</th><th id="reportsMpSumCol">Summa</th></tr></thead><tbody id="reportsMpDaily"></tbody></table>
           <div class="reports-sub"><h5 id="reportsMpStatusTitle">Status</h5><div id="reportsMpStatus"></div></div>
-        </div>
-        <div class="reports-block" id="reportsTablo">
-          <h4 id="reportsTabloTitle">Tablo</h4>
-          <div class="reports-metrics" id="reportsTabloMetrics"></div>
-          <table class="reports-table"><thead><tr><th id="reportsTabloDayCol">Kun</th><th id="reportsTabloCountCol">Soni</th><th id="reportsTabloSumCol">Summa</th></tr></thead><tbody id="reportsTabloDaily"></tbody></table>
-          <div class="reports-sub"><h5 id="reportsTabloStatusTitle">Status</h5><div id="reportsTabloStatus"></div></div>
         </div>
       </div>
     </section>
@@ -326,13 +319,12 @@
         ,dalionSyncReply: 'DALION xizmati javobi olindi'
         ,dalionNotReady: 'DALION integratsiyasi hali sozlanmagan'
         ,reports: 'Hisobotlar'
-        ,reportsHelp: "Marketplace — barcha buyurtmalar. Tablo — ops ekranidagi filtr (to'langan Payme va boshqalar)."
+        ,reportsHelp: "Marketplace — barcha buyurtmalar (to'langan Payme va boshqalar)."
         ,reportsFrom: 'Dan'
         ,reportsTo: 'Gacha'
         ,reportsLoad: 'Yuklash'
         ,reportsCsv: 'CSV'
         ,reportsMp: 'Marketplace'
-        ,reportsTablo: 'Tablo (ops)'
         ,reportsDay: 'Kun'
         ,reportsCount: 'Soni'
         ,reportsSum: 'Summa (soʻm)'
@@ -411,13 +403,12 @@
         dalionSyncReply: 'Получен ответ сервиса DALION',
         dalionNotReady: 'Интеграция DALION пока не настроена',
         reports: 'Отчёты',
-        reportsHelp: 'Marketplace — все заказы. Tablo — фильтр ops-экрана (оплаченный Payme и т.д.).',
+        reportsHelp: 'Marketplace — все заказы (оплаченный Payme и т.д.).',
         reportsFrom: 'С',
         reportsTo: 'По',
         reportsLoad: 'Загрузить',
         reportsCsv: 'CSV',
         reportsMp: 'Marketplace',
-        reportsTablo: 'Tablo (ops)',
         reportsDay: 'День',
         reportsCount: 'Кол-во',
         reportsSum: 'Сумма (сум)',
@@ -494,13 +485,10 @@
       document.getElementById('reportsLoadBtn').textContent = t.reportsLoad;
       document.getElementById('reportsCsvBtn').textContent = t.reportsCsv;
       document.getElementById('reportsMpTitle').textContent = t.reportsMp;
-      document.getElementById('reportsTabloTitle').textContent = t.reportsTablo;
-      ['Mp','Tablo'].forEach((pfx) => {
-        document.getElementById('reports'+pfx+'DayCol').textContent = t.reportsDay;
-        document.getElementById('reports'+pfx+'CountCol').textContent = t.reportsCount;
-        document.getElementById('reports'+pfx+'SumCol').textContent = t.reportsSum;
-        document.getElementById('reports'+pfx+'StatusTitle').textContent = t.reportsStatus;
-      });
+      document.getElementById('reportsMpDayCol').textContent = t.reportsDay;
+      document.getElementById('reportsMpCountCol').textContent = t.reportsCount;
+      document.getElementById('reportsMpSumCol').textContent = t.reportsSum;
+      document.getElementById('reportsMpStatusTitle').textContent = t.reportsStatus;
       document.querySelector('#orders-panel h3').textContent = t.ordersPanel;
       document.querySelector('#biometric-panel h3').textContent = t.biometricPanel;
       document.getElementById('ambientTitle').textContent = t.ambientPanel;
@@ -1133,11 +1121,8 @@
           .replace('{from}', data.from || from)
           .replace('{to}', data.to || to);
         renderReportsMetrics('reportsMpMetrics', data.marketplace?.summary);
-        renderReportsMetrics('reportsTabloMetrics', data.tablo?.summary);
         renderReportsDaily('reportsMpDaily', data.marketplace?.daily);
-        renderReportsDaily('reportsTabloDaily', data.tablo?.daily);
         renderReportsStatus('reportsMpStatus', data.marketplace?.summary?.byStatus);
-        renderReportsStatus('reportsTabloStatus', data.tablo?.summary?.byStatus);
       } finally {
         content.classList.remove('reports-loading');
       }
@@ -1149,10 +1134,8 @@
         return;
       }
       const lines = ['channel,date,count,total_sum'];
-      ['marketplace', 'tablo'].forEach((ch) => {
-        (lastReportsData[ch]?.daily || []).forEach((r) => {
-          lines.push(`${ch},${r.date},${r.count},${r.totalSum}`);
-        });
+      (lastReportsData.marketplace?.daily || []).forEach((r) => {
+        lines.push(`marketplace,${r.date},${r.count},${r.totalSum}`);
       });
       const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
       const a = document.createElement('a');
@@ -1188,14 +1171,9 @@
                 <div class="muted">${o.customerName || 'Mehmon'} | ${o.customerPhone || '-'} | ${o.customerAddress || o.location || '-'}</div>
                 <div class="muted">To‘lov: ${o.paymentMethod || '-'} / ${o.paymentStatusLabel || o.paymentStatus || '-'} · Yetkazish: ${o.statusLabel || adminStatusLabel(o.status)}</div>
                 <div class="muted">${(o.items || []).length} item · ${Number(o.total || 0).toLocaleString('ru-RU')} so'm</div>
-                <div class="muted">Kurier: ${o.courierName || 'Kurier biriktirilmoqda'} ${o.courierPhone ? `(${o.courierPhone})` : ''}</div>
-                <div class="muted">Marshrut: ${o.courierRunId ? `${String(o.courierRunId).slice(0, 8)}…` : '—'} · stop ${o.courierStopSeq != null ? o.courierStopSeq : '—'}</div>
                 <div class="muted" style="margin-top:6px;">Tezkor amallar:</div>
                 <div class="action-group">
                   ${orderNext[o.status] ? `<button class="action-primary" data-id="${o.id}" data-next="${orderNext[o.status][1]}">${orderNext[o.status][0]}</button>` : ''}
-                  ${o.status === 'ready_for_courier' ? `<button class="action-secondary" data-id="${o.id}" data-assign="1">Kurier ma'lumotini kiritish</button>` : ''}
-                  ${o.courierRunId && ['courier_assigned', 'out_for_delivery'].includes(o.status) ? `<button type="button" class="action-secondary" data-id="${o.id}" data-reorder-run="${encodeURIComponent(o.courierRunId)}">Marshrut (greedy)</button>` : ''}
-                  ${o.courierToken && ['preparing','ready_for_courier','courier_assigned','out_for_delivery'].includes(o.status) ? `<a class="action-secondary" href="/courier/${encodeURIComponent(o.courierToken)}" target="_blank" rel="noopener" style="text-decoration:none;text-align:center;">Kuryer sahifasi</a>` : ''}
                   ${o.status !== 'cancelled' && o.status !== 'delivered' ? `<button class="action-danger" data-id="${o.id}" data-cancel="1">Buyurtmani bekor qilish</button>` : ''}
                 </div>
               </div>
@@ -1210,14 +1188,6 @@
       if(!btn) return;
       try{
         if (btn.dataset.cancel) await api('/admin/orders/'+btn.dataset.id+'/cancel',{method:'POST'});
-        if (btn.dataset.assign) {
-          const courierName = prompt('Kurier ismi');
-          const courierPhone = prompt('Kurier telefoni');
-          if (courierName && courierPhone) await api('/admin/orders/'+btn.dataset.id+'/assign-courier',{method:'POST',body:JSON.stringify({courierName,courierPhone})});
-        }
-        if (btn.dataset.reorderRun) {
-          await api('/admin/courier-runs/' + btn.dataset.reorderRun + '/reorder-greedy', { method: 'POST', body: '{}' });
-        }
         if (btn.dataset.next) await api('/admin/orders/'+btn.dataset.id+'/status',{method:'PUT',body:JSON.stringify({status:btn.dataset.next})});
         showToast(t('saveOk'));
         await loadOrdersAdmin();

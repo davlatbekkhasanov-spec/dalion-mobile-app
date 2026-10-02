@@ -25,7 +25,7 @@ test('resolveReportRange: defaults last 30 days ending today', () => {
   assert.strictEqual(r.from, '2026-04-18');
 });
 
-test('buildOrderChannelReports: marketplace vs tablo filter', () => {
+test('buildOrderChannelReports: marketplace aggregates all orders', () => {
   const orders = [
     order({ total: 50000, created_at: '2026-05-17T08:00:00.000Z' }),
     order({
@@ -53,8 +53,7 @@ test('buildOrderChannelReports: marketplace vs tablo filter', () => {
   });
   assert.strictEqual(report.marketplace.summary.period.count, 4);
   assert.strictEqual(report.marketplace.summary.period.totalSum, 140000);
-  assert.strictEqual(report.tablo.summary.period.count, 2);
-  assert.strictEqual(report.tablo.summary.period.totalSum, 90000);
+  assert.strictEqual(report.tablo, undefined);
 });
 
 test('buildOrderChannelReports: daily breakdown by Tashkent date', () => {

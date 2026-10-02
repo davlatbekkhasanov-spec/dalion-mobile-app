@@ -8,10 +8,10 @@
 |-------------|------------------|
 | `index.html`, `styles.css` | **Yo‘q** (1–2-bosqichda) |
 | `index.js` (mijoz API) | Faqat **yangi** endpoint, eskisi qoladi |
-| `admin.html`, `orders.html`, `courier.html` | **Yo‘q** |
+| `admin.html` | **Yo‘q** (ops UI) |
 | `mobile-www/`, `capacitor.config.js` | **Ha** (faqat qobiq) |
 | `android/`, `ios/` (Capacitor) | **Ha** (alohida papka) |
-| `android-courier/` | Alohida loyiha, keyinroq |
+| Kuryer / tablo | Bu repoda yo‘q — alohida dasturlar |
 
 ## Bosqichlar
 

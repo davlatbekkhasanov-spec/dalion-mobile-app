@@ -11,8 +11,6 @@ Har bosqichdan keyin belgilang. Keyingi bosqichga o‘tish — faqat **veb OK** 
 - [ ] Buyurtma berish (naqd yoki Payme)
 - [ ] `/track/:orderNumber` tracking
 - [ ] Admin `/admin` — token, buyurtmalar
-- [ ] Tablo `/orders-display` yangilanadi
-- [ ] Kuryer `/courier/:token` accept / location
 
 ## Bosqich 1 — Capacitor qobiq
 

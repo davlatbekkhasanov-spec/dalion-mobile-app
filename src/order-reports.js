@@ -1,7 +1,6 @@
 'use strict';
 
 const { normalizeOrderStatus } = require('./order-status');
-const { shouldShowOnOpsBoards } = require('./order-board-filter');
 
 const REPORT_TZ = 'Asia/Tashkent';
 const TERMINAL_STATUSES = new Set(['delivered', 'cancelled']);
@@ -135,11 +134,7 @@ function buildOrderChannelReports(orders, rangeInput = {}) {
   const ctx = { from: range.from, to: range.to, today: range.today };
   return {
     ...base,
-    marketplace: aggregateOrdersInRange(orders, ctx),
-    tablo: aggregateOrdersInRange(orders, {
-      ...ctx,
-      includeOrder: shouldShowOnOpsBoards
-    })
+    marketplace: aggregateOrdersInRange(orders, ctx)
   };
 }
 
@@ -148,6 +143,5 @@ module.exports = {
   dateKeyInTz,
   resolveReportRange,
   buildOrderChannelReports,
-  aggregateOrdersInRange,
-  shouldShowOnOpsBoards
+  aggregateOrdersInRange
 };

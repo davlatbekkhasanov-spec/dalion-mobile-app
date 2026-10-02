@@ -12,8 +12,6 @@ const dalionExcelImportService = require('./src/services/dalion-excel-import.ser
 const { paymeRpc } = require('./src/controllers/payme.controller');
 const { normalizeOrderStatus } = require('./src/order-status');
 const { issueCustomerToken, resolveCustomerAuth } = require('./src/customer-session');
-const courierAuth = require('./src/courier-auth');
-const { shouldShowOnOpsBoards } = require('./src/order-board-filter');
 const { buildOrderChannelReports } = require('./src/order-reports');
 const { integrationConfig } = require('./src/integrations/integration.config');
 const tsdService = require('./src/integrations/tsd.service');
@@ -725,12 +723,6 @@ function requireAdmin(req, res, next) {
   return next();
 }
 
-function getCourierPortalToken(req) {
-  const auth = String(req.headers.authorization || '');
-  const bearer = auth.replace(/^Bearer\s+/i, '').trim();
-  return String(req.query.token || req.headers['x-courier-portal-token'] || bearer || '').trim();
-}
-
 function adminV2B64urlJson(obj) {
   return Buffer.from(JSON.stringify(obj), 'utf8')
     .toString('base64')
@@ -869,12 +861,6 @@ function orderPublic(order) {
   };
 }
 
-function ensureCourierToken(order) {
-  if (!order) return '';
-  if (!order.courierToken) order.courierToken = randomId('crt');
-  return order.courierToken;
-}
-
 const TERMINAL_ORDER_STATUSES = new Set(['delivered', 'cancelled']);
 const ALLOWED_ORDER_TRANSITIONS = {
   created: new Set(['payment_pending', 'payment_confirmed', 'preparing', 'cancelled']),
@@ -996,39 +982,8 @@ app.get('/admin-v2.css', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin-v2.css'));
 });
 
-app.get('/order-board-sound.js', (req, res) => {
-  const filePath = path.join(__dirname, 'order-board-sound.js');
-  if (fs.existsSync(filePath)) {
-    res.type('application/javascript');
-    return res.sendFile(filePath);
-  }
-  return res.status(404).send('// missing');
-});
-
-app.get('/orders-display', (req, res) => {
-  const filePath = path.join(__dirname, 'orders.html');
-  if (fs.existsSync(filePath)) return res.sendFile(filePath);
-  return res.redirect('/admin');
-});
-
 app.get('/orders', (req, res) => {
   res.redirect('/admin');
-});
-
-app.get('/courier/:token', (req, res) => {
-  const filePath = path.join(__dirname, 'courier.html');
-  if (fs.existsSync(filePath)) return res.sendFile(filePath);
-  return res.redirect('/track/' + encodeURIComponent(req.params.token));
-});
-
-app.get('/courier-portal', (req, res) => {
-  const filePath = path.join(__dirname, 'courier-portal.html');
-  if (fs.existsSync(filePath)) return res.sendFile(filePath);
-  return res.status(404).send('Courier portal');
-});
-
-app.get(['/courier-app', '/courier-login', '/kuryer'], (req, res) => {
-  res.redirect(302, '/courier-portal');
 });
 
 app.get('/track/:orderNumber', (req, res) => {
@@ -1607,479 +1562,6 @@ app.get('/api/v1/customer/orders', async (req, res) => {
   const all = await marketplaceRepo.listOrdersLegacySorted();
   const orders = all.filter((o) => String(o.customerPhone) === phone).map(orderPublic);
   return res.json({ ok: true, orders });
-});
-
-function courierApplicationPublic(row) {
-  if (!row) return null;
-  return {
-    id: row.id,
-    fullName: row.fullName,
-    phone: row.phone,
-    vehiclePlate: String(row.vehiclePlate || ''),
-    status: String(row.status || 'pending').toLowerCase(),
-    note: String(row.note || ''),
-    passwordSet: courierAuth.courierHasPassword(row),
-    createdAt: row.createdAt ? row.createdAt.toISOString() : null,
-    updatedAt: row.updatedAt ? row.updatedAt.toISOString() : null
-  };
-}
-
-function courierAuthSessionPayload(row) {
-  const app = courierApplicationPublic(row);
-  return {
-    ok: true,
-    accessToken: row.accessToken,
-    token: row.accessToken,
-    needsPassword: !courierAuth.courierHasPassword(row),
-    application: app
-  };
-}
-
-async function handleCourierSmsOtpSend(req, res) {
-  const phone = normalizeSmsPhone(req.body.phone);
-  if (!phone) {
-    return res.status(400).json({ ok: false, message: 'Telefon +998 formatida kiriting' });
-  }
-  const row = await marketplaceRepo.getCourierApplicationByPhone(phone);
-  if (!row) {
-    return res.status(404).json({ ok: false, message: 'Avval ro‘yxatdan o‘ting' });
-  }
-  const challengePhone = courierAuth.courierSmsChallengePhone(phone);
-  const ip = clientIp(req);
-  const tp = smsThrottleTouch(smsThrottlePhone, challengePhone, 45000);
-  if (!tp.ok) {
-    return res.status(429).json({
-      ok: false,
-      message: 'Kodni qayta yuborishdan oldin kuting',
-      retryAfterMs: tp.retryAfterMs
-    });
-  }
-  const ti = smsThrottleTouch(smsThrottleIp, ip || 'unknown', 12000);
-  if (!ti.ok) {
-    return res.status(429).json({
-      ok: false,
-      message: 'So‘rovlar juda tez',
-      retryAfterMs: ti.retryAfterMs
-    });
-  }
-  const code = generateSmsOtpCode();
-  const codeHash = hashSmsOtp(challengePhone, code);
-  const expiresAt = Date.now() + SMS_OTP_TTL_MS;
-  await marketplaceRepo.writeSmsChallenge(challengePhone, {
-    codeHash,
-    expiresAt,
-    attempts: 0,
-    createdAt: nowIso()
-  });
-  const sendResult = await smsService.sendSmsOtp(phone, code);
-  if (!sendResult.ok) {
-    await marketplaceRepo.deleteSmsChallenge(challengePhone);
-    return res.status(502).json({ ok: false, message: sendResult.message || 'SMS yuborilmadi' });
-  }
-  return res.json({ ok: true, ...smsOtpDevHint(code) });
-}
-
-async function verifyCourierSmsCode(phone, code) {
-  const challengePhone = courierAuth.courierSmsChallengePhone(phone);
-  const ch = await marketplaceRepo.readSmsChallenge(challengePhone);
-  if (!ch || Date.now() > ch.expiresAt.getTime()) {
-    return { ok: false, status: 400, message: 'Kod eskirgan yoki yuborilmagan' };
-  }
-  const nextAttempts = Math.min(99, Number(ch.attempts || 0) + 1);
-  await marketplaceRepo.touchSmsAttempt(challengePhone, nextAttempts);
-  if (nextAttempts > 10) {
-    await marketplaceRepo.deleteSmsChallenge(challengePhone);
-    return { ok: false, status: 429, message: 'Urinishlar limiti' };
-  }
-  if (hashSmsOtp(challengePhone, code) !== ch.codeHash) {
-    return { ok: false, status: 400, message: 'Kod noto‘g‘ri' };
-  }
-  await marketplaceRepo.deleteSmsChallenge(challengePhone);
-  return { ok: true };
-}
-
-async function requireCourierPortalRow(req, res) {
-  const tok = getCourierPortalToken(req);
-  if (!tok) {
-    res.status(401).json({ ok: false, message: 'Kirish kerak' });
-    return null;
-  }
-  const row = await marketplaceRepo.getCourierApplicationByAccessToken(tok);
-  if (!row) {
-    res.status(401).json({ ok: false, message: 'Sessiya yaroqsiz' });
-    return null;
-  }
-  return row;
-}
-
-app.post('/api/v1/courier-auth/register', async (req, res) => {
-  const phone = normalizeSmsPhone(req.body.phone);
-  const fullName = String(req.body.fullName || '').trim();
-  const vehiclePlate = courierAuth.normalizeVehiclePlate(req.body.vehiclePlate);
-  if (!phone) {
-    return res.status(400).json({ ok: false, message: 'Telefon +998 formatida kiriting' });
-  }
-  try {
-    const row = await marketplaceRepo.registerCourierPartner({ phone, fullName, vehiclePlate });
-    return res.json({
-      ok: true,
-      application: courierApplicationPublic(row),
-      message: 'SMS kod yuborildi. Tasdiqlash ekraniga o‘ting'
-    });
-  } catch (err) {
-    const map = {
-      fullName_required: 'Ism-sharif kiriting',
-      vehicle_plate_required: 'Avtomobil davlat raqamini kiriting',
-      phone_registered: 'Bu raqam ro‘yxatdan o‘tgan. Parol bilan kiring yoki parolni tiklang',
-      phone_use_login: 'Bu raqam ro‘yxatdan o‘tgan. Kirish yoki parolni tiklash bo‘limidan foydalaning'
-    };
-    const msg = map[err?.message] || err?.message || 'Ro‘yxatdan o‘tishda xato';
-    const code = String(err?.message || '');
-    const status = code === 'phone_registered' || code === 'phone_use_login' ? 409 : 400;
-    return res.status(status).json({ ok: false, code, message: msg });
-  }
-});
-
-app.post('/api/v1/courier-auth/sms/send', (req, res) => {
-  handleCourierSmsOtpSend(req, res).catch((err) => {
-    logStructured('error', 'courier_sms_send', { err: String(err?.message || err) });
-    res.status(500).json({ ok: false, message: 'Server xatosi' });
-  });
-});
-
-app.post('/api/v1/courier-auth/sms/verify', async (req, res) => {
-  const phone = normalizeSmsPhone(req.body.phone);
-  const code = String(req.body.code || '').replace(/\D/g, '').trim();
-  if (!phone || !code) {
-    return res.status(400).json({ ok: false, message: 'Telefon va kod kiriting' });
-  }
-  const ip = clientIp(req);
-  const tv = smsThrottleTouch(smsVerifyThrottleIp, `c|${ip}|${phone}`, 600);
-  if (!tv.ok) {
-    return res.status(429).json({ ok: false, message: 'Urinishlar juda tez', retryAfterMs: tv.retryAfterMs });
-  }
-  const row = await marketplaceRepo.getCourierApplicationByPhone(phone);
-  if (!row) {
-    return res.status(404).json({ ok: false, message: 'Avval ro‘yxatdan o‘ting' });
-  }
-  const verified = await verifyCourierSmsCode(phone, code);
-  if (!verified.ok) {
-    return res.status(verified.status || 400).json({ ok: false, message: verified.message });
-  }
-  return res.json(courierAuthSessionPayload(row));
-});
-
-app.post('/api/v1/courier-auth/login', async (req, res) => {
-  const phone = normalizeSmsPhone(req.body.phone);
-  const password = String(req.body.password || '');
-  if (!phone || !password) {
-    return res.status(400).json({ ok: false, message: 'Telefon va parol kiriting' });
-  }
-  const row = await marketplaceRepo.getCourierApplicationByPhone(phone);
-  if (!row || !courierAuth.courierHasPassword(row)) {
-    return res.status(401).json({
-      ok: false,
-      message: 'Parol o‘rnatilmagan. SMS orqali kiring',
-      needsSmsLogin: true
-    });
-  }
-  if (!courierAuth.verifyCourierPassword(password, row.passwordHash)) {
-    return res.status(401).json({ ok: false, message: 'Telefon yoki parol noto‘g‘ri' });
-  }
-  return res.json(courierAuthSessionPayload(row));
-});
-
-app.post('/api/v1/courier-auth/password/set', async (req, res) => {
-  const row = await requireCourierPortalRow(req, res);
-  if (!row) return;
-  const password = String(req.body.password || '');
-  const confirm = String(req.body.confirm || req.body.passwordConfirm || password);
-  const v = courierAuth.validateCourierPassword(password);
-  if (!v.ok) return res.status(400).json({ ok: false, message: v.message });
-  if (password !== confirm) {
-    return res.status(400).json({ ok: false, message: 'Parollar mos emas' });
-  }
-  try {
-    const updated = await marketplaceRepo.setCourierPartnerPassword({
-      phone: row.phone,
-      passwordHash: courierAuth.hashCourierPassword(password)
-    });
-    return res.json(courierAuthSessionPayload(updated));
-  } catch (err) {
-    return res.status(400).json({ ok: false, message: err?.message || 'Parol saqlanmadi' });
-  }
-});
-
-app.post('/api/v1/courier-auth/password/forgot/send', (req, res) => {
-  handleCourierSmsOtpSend(req, res).catch(() => {
-    res.status(500).json({ ok: false, message: 'Server xatosi' });
-  });
-});
-
-app.post('/api/v1/courier-auth/password/forgot/reset', async (req, res) => {
-  const phone = normalizeSmsPhone(req.body.phone);
-  const code = String(req.body.code || '').replace(/\D/g, '').trim();
-  const password = String(req.body.password || '');
-  const confirm = String(req.body.confirm || req.body.passwordConfirm || password);
-  if (!phone || !code) {
-    return res.status(400).json({ ok: false, message: 'Telefon va kod kiriting' });
-  }
-  const v = courierAuth.validateCourierPassword(password);
-  if (!v.ok) return res.status(400).json({ ok: false, message: v.message });
-  if (password !== confirm) {
-    return res.status(400).json({ ok: false, message: 'Parollar mos emas' });
-  }
-  const row = await marketplaceRepo.getCourierApplicationByPhone(phone);
-  if (!row) {
-    return res.status(404).json({ ok: false, message: 'Kuryer topilmadi' });
-  }
-  const verified = await verifyCourierSmsCode(phone, code);
-  if (!verified.ok) {
-    return res.status(verified.status || 400).json({ ok: false, message: verified.message });
-  }
-  try {
-    const updated = await marketplaceRepo.setCourierPartnerPassword({
-      phone,
-      passwordHash: courierAuth.hashCourierPassword(password)
-    });
-    return res.json(courierAuthSessionPayload(updated));
-  } catch (err) {
-    return res.status(400).json({ ok: false, message: err?.message || 'Parol yangilanmadi' });
-  }
-});
-
-app.get('/api/v1/courier-applications/me', async (req, res) => {
-  const phone = requireCustomerPhone(req, res);
-  if (!phone) return;
-  const row = await marketplaceRepo.getCourierApplicationByPhone(phone);
-  if (!row) return res.json({ ok: true, application: null });
-  return res.json({ ok: true, application: courierApplicationPublic(row) });
-});
-
-app.post('/api/v1/courier-applications', async (req, res) => {
-  const phone = requireCustomerPhone(req, res);
-  if (!phone) return;
-  const fullName = String(req.body?.fullName || '').trim();
-  const note = String(req.body?.note || '').trim();
-  if (!fullName) return res.status(400).json({ ok: false, message: 'Ism-sharif kiriting' });
-  try {
-    const row = await marketplaceRepo.submitCourierApplication({ phone, fullName, note });
-    return res.json({ ok: true, application: courierApplicationPublic(row) });
-  } catch (err) {
-    const msg = err && err.message === 'fullName_required' ? 'Ism-sharif kiriting' : err?.message || 'Ariza saqlanmadi';
-    return res.status(400).json({ ok: false, message: msg });
-  }
-});
-
-app.get('/api/v1/courier-portal/session', async (req, res) => {
-  const tok = getCourierPortalToken(req);
-  if (!tok) return res.status(400).json({ ok: false, message: 'token kerak' });
-  const row = await marketplaceRepo.getCourierApplicationByAccessToken(tok);
-  if (!row) return res.status(404).json({ ok: false, message: 'Havola yaroqsiz' });
-  return res.json(courierAuthSessionPayload(row));
-});
-
-app.get('/api/v1/courier-portal/feed', async (req, res) => {
-  const row = await requireCourierPortalRow(req, res);
-  if (!row) return;
-  if (!courierAuth.courierHasPassword(row)) {
-    return res.status(403).json({ ok: false, message: 'Avval parol o‘rnating', needsPassword: true });
-  }
-  if (String(row.status || '') !== 'approved') {
-    return res.json({ ok: true, orders: [], pendingApproval: true });
-  }
-  const orders = await marketplaceRepo.listCourierPortalOrders();
-  const courierPhone = normalizePhone(row.phone);
-  const enriched = [];
-  for (const o of orders) {
-    const portalMine = phonesEqual(o.courierPhone, courierPhone);
-    let courierToken = o.courierToken;
-    if (
-      portalMine &&
-      !courierToken &&
-      ['courier_assigned', 'out_for_delivery'].includes(normalizeOrderStatus(o.status))
-    ) {
-      courierToken = await marketplaceRepo.ensureOrderCourierToken(o.id);
-      if (courierToken) o.courierToken = courierToken;
-    }
-    enriched.push({ ...orderPublic(o), portalMine });
-  }
-  return res.json({ ok: true, orders: enriched });
-});
-
-app.get('/api/v1/courier-portal/my-route', async (req, res) => {
-  const row = await requireCourierPortalRow(req, res);
-  if (!row) return;
-  if (!courierAuth.courierHasPassword(row)) {
-    return res.status(403).json({ ok: false, message: 'Avval parol o‘rnating', needsPassword: true });
-  }
-  if (String(row.status || '') !== 'approved') {
-    return res.json({ ok: true, orders: [], routeEtaHintMinutes: 0, pendingApproval: true });
-  }
-  const tok = getCourierPortalToken(req);
-  const route = await marketplaceRepo.listCourierRouteOrders({ accessToken: tok });
-  if (route === null) return res.status(401).json({ ok: false, message: 'Havola yaroqsiz' });
-  const n = route.length;
-  const routeEtaHintMinutes = n > 0 ? Math.max(5, n * 12) : 0;
-  return res.json({
-    ok: true,
-    orders: route.map(orderPublic),
-    routeEtaHintMinutes
-  });
-});
-
-app.get('/api/v1/courier-portal/dashboard', async (req, res) => {
-  const row = await requireCourierPortalRow(req, res);
-  if (!row) return;
-  if (!courierAuth.courierHasPassword(row)) {
-    return res.status(403).json({ ok: false, message: 'Avval parol o‘rnating', needsPassword: true });
-  }
-  try {
-    const dash = await marketplaceRepo.getCourierPortalDashboard(row.phone);
-    return res.json({ ok: true, dashboard: dash });
-  } catch (err) {
-    return res.status(500).json({ ok: false, message: err?.message || 'Statistika yuklanmadi' });
-  }
-});
-
-app.post('/api/v1/courier-portal/orders/:id/claim', async (req, res) => {
-  const row = await requireCourierPortalRow(req, res);
-  if (!row) return;
-  const tok = getCourierPortalToken(req);
-  if (!courierAuth.courierHasPassword(row)) {
-    return res.status(403).json({ ok: false, message: 'Avval parol o‘rnating', needsPassword: true });
-  }
-  if (String(row.status || '') !== 'approved') {
-    return res.status(403).json({ ok: false, message: 'Ariza tasdiqlanmagan' });
-  }
-  const result = await marketplaceRepo.claimOrderByCourierPortalToken({
-    orderId: req.params.id,
-    accessToken: tok
-  });
-  if (!result.ok) {
-    const code = result.code || 'BUSY';
-    const status =
-      code === 'TOKEN' ? 401 : code === 'NOT_FOUND' ? 404 : 409;
-    return res.status(status).json({ ok: false, message: result.message || 'Xato', code });
-  }
-  void notifyTelegramMessage(
-    `GlobusMarket · Kuryer: ${row.fullName} (${row.phone}) buyurtmani oldi — #${result.order?.orderNumber || req.params.id}`
-  );
-  return res.json({ ok: true, order: orderPublic(result.order) });
-});
-
-app.get('/api/v1/admin/metrics/courier-ops', requireAdmin, async (req, res) => {
-  const metrics = await marketplaceRepo.getCourierOpsMetricsSummary();
-  return res.json({ ok: true, metrics });
-});
-
-app.post('/api/v1/admin/courier-runs/:runId/reorder-greedy', requireAdmin, async (req, res) => {
-  const runId = String(req.params.runId || '').trim();
-  const r = await marketplaceRepo.greedyReorderCourierRunFromStore(runId, STORE_LAT_DEFAULT, STORE_LNG_DEFAULT);
-  if (!r.ok) return res.status(400).json({ ok: false, message: r.message || 'Xato' });
-  return res.json({ ok: true, updated: r.updated });
-});
-
-app.get('/api/v1/admin/courier-applications', requireAdmin, async (req, res) => {
-  const rows = await marketplaceRepo.listCourierApplicationsAdmin();
-  return res.json({
-    ok: true,
-    applications: rows.map((r) => courierApplicationPublic(r))
-  });
-});
-
-app.patch('/api/v1/admin/courier-applications/:id', requireAdmin, async (req, res) => {
-  const status = String(req.body?.status || '').trim().toLowerCase();
-  if (!['approved', 'rejected', 'pending'].includes(status)) {
-    return res.status(400).json({ ok: false, message: 'status: approved | rejected | pending' });
-  }
-  try {
-    const row = await marketplaceRepo.updateCourierApplicationStatusAdmin({
-      id: req.params.id,
-      status
-    });
-    return res.json({ ok: true, application: courierApplicationPublic(row) });
-  } catch (err) {
-    if (err && err.code === 'P2025') {
-      return res.status(404).json({ ok: false, message: 'Ariza topilmadi' });
-    }
-    return res.status(400).json({ ok: false, message: err?.message || 'Saqlanmadi' });
-  }
-});
-
-async function buildOrdersDisplayFeedPayload() {
-  const activeStatuses = new Set([
-    'created',
-    'payment_pending',
-    'payment_confirmed',
-    'preparing',
-    'ready_for_courier',
-    'courier_assigned',
-    'out_for_delivery',
-    'delivered',
-    'cancelled'
-  ]);
-  const allOrders = await marketplaceRepo.listOrdersForFeed();
-  const feedOrders = allOrders
-    .map((order) => ({
-      ...order,
-      status: normalizeOrderStatus(order.status),
-      statusLabel: orderStatusLabel(order.status),
-      paymentStatusLabel: paymentStatusLabel(order.paymentStatus || 'pending'),
-      delivery_status: normalizeOrderStatus(order.delivery_status || order.status),
-      deliveryStatusLabel: orderStatusLabel(order.delivery_status || order.status)
-    }))
-    .filter((order) => shouldShowOnOpsBoards(order))
-    .filter((order) => activeStatuses.has(String(order.status || '').trim()))
-    .sort((a, b) => {
-      const bt = new Date(b.updated_at || b.created_at || 0).getTime();
-      const at = new Date(a.updated_at || a.created_at || 0).getTime();
-      return bt - at;
-    })
-    .slice(0, 300)
-    .map(orderPublic);
-  return {
-    ok: true,
-    total: feedOrders.length,
-    updatedAt: nowIso(),
-    orders: feedOrders
-  };
-}
-
-app.get('/api/v1/orders-display/feed', async (req, res) => {
-  try {
-    return res.json(await buildOrdersDisplayFeedPayload());
-  } catch (err) {
-    return res.status(500).json({ ok: false, message: err.message || 'Feed error' });
-  }
-});
-
-app.get('/api/v1/orders-display/stream', async (req, res) => {
-  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-cache, no-transform');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no');
-  if (typeof res.flushHeaders === 'function') res.flushHeaders();
-
-  let closed = false;
-  const push = async () => {
-    if (closed) return;
-    try {
-      const payload = await buildOrdersDisplayFeedPayload();
-      res.write(`event: feed\ndata: ${JSON.stringify(payload)}\n\n`);
-    } catch (err) {
-      res.write(
-        `event: error\ndata: ${JSON.stringify({ ok: false, message: String(err.message || 'stream error') })}\n\n`
-      );
-    }
-  };
-
-  await push();
-  const timer = setInterval(push, 2500);
-  req.on('close', () => {
-    closed = true;
-    clearInterval(timer);
-  });
 });
 
 // Admin v2 API (GlobusMarket visual CMS — Bearer JWT from POST .../login)
@@ -2897,7 +2379,6 @@ app.get('/api/v1/admin/orders', requireAdmin, async (req, res) => {
       delivery_status: normalizeOrderStatus(order.delivery_status || order.status),
       deliveryStatusLabel: orderStatusLabel(order.delivery_status || order.status)
     }))
-    .filter((order) => shouldShowOnOpsBoards(order))
     .sort((a, b) => {
       const bt = new Date(b.updated_at || b.created_at || 0).getTime();
       const at = new Date(a.updated_at || a.created_at || 0).getTime();
@@ -2921,7 +2402,6 @@ app.post('/api/v1/admin/orders/:id/cancel', requireAdmin, async (req, res) => {
   if (TERMINAL_ORDER_STATUSES.has(currentStatus)) {
     return res.status(409).json({ ok: false, message: `Buyurtma allaqachon yakunlangan (${currentStatus})`, code: 'ORDER_TERMINAL' });
   }
-  await marketplaceRepo.detachOrderFromCourierRun(o.id);
   applyOrderUpdateTimestamp(o);
   const next = await marketplaceRepo.patchOrderScalars(o.id, {
     status: 'cancelled',
@@ -2929,32 +2409,6 @@ app.post('/api/v1/admin/orders/:id/cancel', requireAdmin, async (req, res) => {
     trackingUpdatedAt: new Date(o.trackingUpdatedAt || o.updated_at),
     updatedAt: new Date(o.updated_at)
   });
-  return res.json({ ok: true, order: orderPublic(next) });
-});
-app.post('/api/v1/admin/orders/:id/assign-courier', requireAdmin, async (req, res) => {
-  const o = await marketplaceRepo.loadOrderLegacyById(req.params.id);
-  if (!o) return res.status(404).json({ ok: false, message: 'Order topilmadi' });
-  const currentStatus = normalizeOrderStatus(o.status);
-  if (!canTransitionOrderStatus(currentStatus, 'courier_assigned')) {
-    return res.status(409).json({
-      ok: false,
-      message: `Status o'zgarishi mumkin emas: ${currentStatus} -> courier_assigned`,
-      code: 'INVALID_ORDER_TRANSITION'
-    });
-  }
-  await marketplaceRepo.detachOrderFromCourierRun(o.id);
-  applyOrderUpdateTimestamp(o);
-  const next = await marketplaceRepo.patchOrderScalars(o.id, {
-    courierName: String(req.body.courierName || '').trim(),
-    courierPhone: String(req.body.courierPhone || '').trim(),
-    status: 'courier_assigned',
-    deliveryStatus: 'courier_assigned',
-    trackingUpdatedAt: new Date(o.trackingUpdatedAt || o.updated_at),
-    updatedAt: new Date(o.updated_at)
-  });
-  void notifyTelegramMessage(
-    `GlobusMarket · Admin: #${next.orderNumber || o.id} kuryerga biriktirildi — ${next.courierName} (${next.courierPhone})`
-  );
   return res.json({ ok: true, order: orderPublic(next) });
 });
 app.put('/api/v1/admin/orders/:id/status', requireAdmin, async (req, res) => {
@@ -2974,16 +2428,11 @@ app.put('/api/v1/admin/orders/:id/status', requireAdmin, async (req, res) => {
   o.delivery_status = o.status;
   let paymentStatus = o.paymentStatus;
   if (o.status === 'delivered' && ['pending', 'unpaid'].includes(String(paymentStatus || ''))) paymentStatus = 'paid';
-  let courierTokenUsed = o.courierTokenUsed;
-  if (o.status === 'delivered' || o.status === 'cancelled') courierTokenUsed = true;
-  ensureCourierToken(o);
   applyOrderUpdateTimestamp(o);
   const next = await marketplaceRepo.patchOrderScalars(o.id, {
     status: requestedStatus,
     deliveryStatus: requestedStatus,
     paymentStatus,
-    courierTokenUsed,
-    courierToken: o.courierToken,
     trackingUpdatedAt: new Date(o.trackingUpdatedAt || o.updated_at),
     updatedAt: new Date(o.updated_at)
   });
@@ -2992,124 +2441,6 @@ app.put('/api/v1/admin/orders/:id/status', requireAdmin, async (req, res) => {
 });
 
 app.post('/api/v1/admin/orders/:id/send-to-tsd', requireAdmin, integrationOrders.sendOrderToTsdAdmin);
-
-app.get('/api/v1/admin/orders/:id/qr', requireAdmin, async (req, res) => {
-  const order = await marketplaceRepo.loadOrderLegacyById(req.params.id);
-  if (!order) return res.status(404).json({ ok: false, message: 'Order topilmadi' });
-  ensureCourierToken(order);
-  await marketplaceRepo.patchOrderScalars(order.id, { courierToken: order.courierToken });
-  const courierUrl = `${req.protocol}://${req.get('host')}/courier/${encodeURIComponent(order.courierToken)}`;
-  try {
-    const qrDataUrl = await require('qrcode').toDataURL(courierUrl, { width: 280, margin: 1 });
-    return res.json({ ok: true, courierUrl, qrDataUrl });
-  } catch {
-    return res.status(500).json({ ok: false, message: 'QR yaratilmadi' });
-  }
-});
-
-app.get('/api/v1/courier/:token', async (req, res) => {
-  const token = String(req.params.token || '').trim();
-  const order = await marketplaceRepo.loadOrderLegacy({ courierToken: token });
-  if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
-  const courierNs = normalizeOrderStatus(order.status);
-  // ready_for_courier: kuryer havolasini ochish bloklanmasin (eski courierTokenUsed noto‘g‘ri bo‘lsa ham)
-  if (
-    order.courierTokenUsed &&
-    !['out_for_delivery', 'courier_assigned', 'ready_for_courier'].includes(courierNs)
-  ) {
-    return res.status(410).json({ ok: false, message: 'Bu QR kod yaroqsiz yoki ishlatilgan' });
-  }
-  const routeOrders = await marketplaceRepo.listCourierRouteSliceByCourierToken(token);
-  return res.json({ ok: true, order: orderPublic(order), routeOrders });
-});
-
-app.post('/api/v1/courier/:token/accept', async (req, res) => {
-  const token = String(req.params.token || '').trim();
-  const order = await marketplaceRepo.loadOrderLegacy({ courierToken: token });
-  if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
-  const currentStatus = normalizeOrderStatus(order.status);
-  if (!canTransitionOrderStatus(currentStatus, 'out_for_delivery')) {
-    return res.status(409).json({ ok: false, message: `Bu statusda qabul qilib bo'lmaydi: ${currentStatus}` });
-  }
-  applyOrderUpdateTimestamp(order);
-  const next = await marketplaceRepo.patchOrderScalars(order.id, {
-    courierName: String(req.body.courierName || order.courierName || '').trim(),
-    courierPhone: String(req.body.courierPhone || order.courierPhone || '').trim(),
-    status: 'out_for_delivery',
-    deliveryStatus: 'out_for_delivery',
-    courierTokenUsed: false,
-    trackingUpdatedAt: new Date(order.trackingUpdatedAt || order.updated_at),
-    updatedAt: new Date(order.updated_at)
-  });
-  return res.json({ ok: true, order: orderPublic(next) });
-});
-
-app.post('/api/v1/courier/:token/location', async (req, res) => {
-  const token = String(req.params.token || '').trim();
-  const order = await marketplaceRepo.loadOrderLegacy({ courierToken: token });
-  if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
-  if (normalizeOrderStatus(order.status) !== 'out_for_delivery') {
-    return res.status(409).json({ ok: false, message: 'Lokatsiya faqat yo‘lda statusida qabul qilinadi' });
-  }
-  const lat = toFiniteNumber(req.body.lat);
-  const lng = toFiniteNumber(req.body.lng);
-  if (!isValidLatLng(lat, lng)) return res.status(400).json({ ok: false, message: 'Lokatsiya noto‘g‘ri' });
-  const at = nowIso();
-  order.courierLocationLat = lat;
-  order.courierLocationLng = lng;
-  order.courierLocationAccuracy = toFiniteNumber(req.body.accuracy);
-  order.courierLocationUpdatedAt = at;
-  applyOrderUpdateTimestamp(order);
-  const next = await marketplaceRepo.patchOrderScalars(order.id, {
-    courierLocationLat: lat,
-    courierLocationLng: lng,
-    courierLocationAccuracy: toFiniteNumber(req.body.accuracy),
-    courierLocationUpdatedAt: new Date(at),
-    trackingUpdatedAt: new Date(order.trackingUpdatedAt || order.updated_at),
-    updatedAt: new Date(order.updated_at)
-  });
-  return res.json({ ok: true, order: orderPublic(next) });
-});
-
-app.post('/api/v1/courier/:token/deliver', async (req, res) => {
-  const token = String(req.params.token || '').trim();
-  const order = await marketplaceRepo.loadOrderLegacy({ courierToken: token });
-  if (!order) return res.status(404).json({ ok: false, message: 'Kuryer token topilmadi' });
-  const currentStatus = normalizeOrderStatus(order.status);
-  if (currentStatus === 'delivered') {
-    const fresh = await marketplaceRepo.loadOrderLegacy({ courierToken: token });
-    const nextTok = await marketplaceRepo.findNextActiveCourierTokenForPhone(String(fresh?.courierPhone || '').trim());
-    return res.json({
-      ok: true,
-      order: orderPublic(fresh),
-      nextCourierToken: nextTok,
-      alreadyDelivered: true
-    });
-  }
-  if (!canTransitionOrderStatus(currentStatus, 'delivered')) {
-    return res.status(409).json({ ok: false, message: `Buyurtma bu holatda yopilmaydi: ${currentStatus}` });
-  }
-  let paymentStatus = order.paymentStatus;
-  if (['pending', 'unpaid'].includes(String(paymentStatus || ''))) paymentStatus = 'paid';
-  applyOrderUpdateTimestamp(order);
-  const next = await marketplaceRepo.patchOrderScalars(order.id, {
-    status: 'delivered',
-    deliveryStatus: 'delivered',
-    paymentStatus,
-    courierTokenUsed: true,
-    trackingUpdatedAt: new Date(order.trackingUpdatedAt || order.updated_at),
-    updatedAt: new Date(order.updated_at)
-  });
-  await marketplaceRepo.repackCourierRunStopsAfterDelivery(order.id);
-  const phone = String(next.courierPhone || order.courierPhone || '').trim();
-  const nextTok = await marketplaceRepo.findNextActiveCourierTokenForPhone(phone);
-  void notifyTelegramMessage(`GlobusMarket: #${next.orderNumber || '-'} yetkazildi (${phone}).`);
-  return res.json({
-    ok: true,
-    order: orderPublic(next),
-    nextCourierToken: nextTok
-  });
-});
 
 app.post('/api/v1/admin/store/reload', requireAdmin, async (req, res) => {
   await prisma.$disconnect();
@@ -3160,7 +2491,7 @@ app.get('/api/v1/integrations/status', requireAdmin, (req, res) => {
         webhookConfigured: Boolean(integrationConfig.onecWebhookSecret)
       },
       dalionTrend1C: { enabled: integrationConfig.onecOrdersEnabled, mode: 'webhook-stub' },
-      telegramCourierNotify: { enabled: tg }
+      telegramNotify: { enabled: tg }
     },
     stats: { storageMode: 'postgresql' }
   });
