@@ -10,7 +10,7 @@ The customer experience is currently implemented as a **single-page, single-file
 - Product/card/category/cart/checkout HTML is generated via template functions in script.
 
 Tracking is currently a separate page in `track.html`.
-Admin is separate in `admin.html`. Courier native app is separate in `android-courier`.
+Admin is separate in `admin.html`.
 
 This means a safe redesign should **modularize without changing API contracts** and should avoid full rewrite in one PR.
 

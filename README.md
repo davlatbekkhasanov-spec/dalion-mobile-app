@@ -131,21 +131,14 @@ Rich product editing, promotions tab parity with legacy admin, optional customer
 - `POST /api/v1/admin/orders/:id/cancel`
 - `GET /api/v1/admin/orders/:id/picklist`
 - `POST /api/v1/admin/orders/:id/send-to-tsd`
-- `GET /api/v1/admin/orders/:id/qr`
 - `GET /api/v1/orders/:orderNumber/status`
 - `GET /api/v1/orders/:orderNumber/track`
 - `POST /api/v1/orders/:orderNumber/feedback`
-- `GET /api/v1/orders/display` (public read-only display feed)
 - `POST /api/v1/integrations/datamobile/orders/:id/send`
 - `POST /api/v1/integrations/dalion/orders/:id/picked`
-- `GET /api/v1/courier/:token`
-- `POST /api/v1/courier/:token/accept`
-- `POST /api/v1/courier/:token/deliver`
 - `GET /track/:orderNumber`
 
-Order dashboard display page:
-
-- `/orders-display` (sensor/TV operator panel, token stored in localStorage, large touch buttons)
+Courier app and ops tablo (`/orders-display`) are out of this repo — planned as separate programs.
 
 ### Home Settings CMS fields
 
@@ -237,25 +230,6 @@ See **Railway variables for SMS (DevSMS)** above; also `SMS_OTP_PEPPER`, `SMS_OT
 
 **Legal / store:** `SUPPORT_EMAIL` (default `support@globusmarket.org`). Pages: `/privacy`, `/terms`. Account deletion: `DELETE /api/v1/profile/account` (Bearer JWT).
 
-## Android Courier App (Native Kotlin)
-
-A professional native Android courier app project is included in `android-courier/`.
-
-### What it includes
-- Token login (manual input + QR scan)
-- Secure token storage (`EncryptedSharedPreferences`)
-- Active order screen (order number, address, orientir, total, item count, status)
-- Accept delivery API call (`POST /api/v1/courier/:token/accept`)
-- Foreground GPS tracking service with 5-second updates (`POST /api/v1/courier/:token/location`)
-- Foreground notification: `Globus Market courier tracking active`
-- Google Maps navigation opening
-- Complete delivery API call (`POST /api/v1/courier/:token/deliver`) and tracking stop
-- Clear permission/error messaging for denied location and invalid token
-
-### Base URLs
-- Current backend: `https://dalion-mobile-app-production.up.railway.app`
-- Future domain (for easy switch): `https://globusmarket.org`
-
 ### Customer app — Capacitor (iOS / Android, dizayn buzilmaydi)
 
 Mijoz ilovasi vebdagi `index.html` dan yuklanadi (nusxa emas). Reja: `docs/MOBILE-SAFE-PLAN.md`, tekshiruv: `docs/MOBILE-TEST-CHECKLIST.md`.
@@ -271,19 +245,3 @@ npm run cap:open:android
 `index.html` / `styles.css` o‘zgartirilmaydi. iOS: macOS + `npm run cap:add:ios`.
 
 **Bosqich 2 (Payme):** native ilovada Payme in-app browser orqali ochiladi; brauzerda avvalgidek `window.location`. Pluginlar: `npm install` → `CAPACITOR_SERVER_URL` o‘rnating → `npm run cap:sync`.
-
-### Build APK locally (courier native)
-1. Install Android Studio (latest stable).
-2. Open folder: `android-courier/`.
-3. Let Gradle sync complete.
-4. Build debug APK:
-   - Android Studio: **Build > Build Bundle(s) / APK(s) > Build APK(s)**
-   - or terminal:
-     ```bash
-     cd android-courier
-     ./gradlew assembleDebug
-     ```
-5. APK output:
-   `android-courier/app/build/outputs/apk/debug/app-debug.apk`
-
-> Note: In this environment, Android SDK/Gradle wrapper may not be available to produce APK directly.

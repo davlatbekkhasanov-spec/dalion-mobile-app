@@ -126,25 +126,26 @@ test('final hardening critical flow smoke', { skip: !DATABASE_URL }, async () =>
     assert.ok(orderId);
 
     for (const nextStatus of STATUS_FLOW) {
-      if (nextStatus === 'courier_assigned') {
-        const assigned = await api(baseUrl, 'POST', `/api/v1/admin/orders/${orderId}/assign-courier`, {
-          courierName: 'Smoke Courier',
-          courierPhone: '+998900000001'
-        }, { 'x-admin-token': ADMIN_TOKEN });
-        assert.equal(assigned.payload.ok, true);
-      } else {
-        const moved = await api(baseUrl, 'PUT', `/api/v1/admin/orders/${orderId}/status`, { status: nextStatus }, { 'x-admin-token': ADMIN_TOKEN });
-        assert.equal(moved.payload.ok, true);
-      }
+      const moved = await api(
+        baseUrl,
+        'PUT',
+        `/api/v1/admin/orders/${orderId}/status`,
+        { status: nextStatus },
+        { 'x-admin-token': ADMIN_TOKEN }
+      );
+      assert.equal(moved.payload.ok, true);
     }
 
     const afterDelivered = await api(baseUrl, 'PUT', `/api/v1/admin/orders/${orderId}/status`, { status: 'preparing' }, { 'x-admin-token': ADMIN_TOKEN });
     assert.equal(afterDelivered.res.status, 409);
 
-    const feed = await api(baseUrl, 'GET', '/api/v1/orders-display/feed');
-    assert.equal(feed.payload.ok, true);
-    assert.equal(typeof feed.payload.orders[0].statusLabel, 'string');
-    assert.equal(typeof feed.payload.orders[0].deliveryStatusLabel, 'string');
+    const adminAfter = await api(baseUrl, 'GET', '/api/v1/admin/orders', null, { 'x-admin-token': ADMIN_TOKEN });
+    assert.equal(adminAfter.payload.ok, true);
+    const delivered = (adminAfter.payload.orders || []).find((o) => o.id === orderId);
+    assert.ok(delivered);
+    assert.equal(delivered.status, 'delivered');
+    assert.equal(typeof delivered.statusLabel, 'string');
+    assert.equal(typeof delivered.deliveryStatusLabel, 'string');
   } finally {
     if (child && !child.killed) child.kill('SIGTERM');
   }
