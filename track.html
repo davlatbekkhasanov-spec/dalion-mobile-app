@@ -80,7 +80,7 @@
       <button class="icon-btn" id="refreshBtn">Yangilash</button>
     </div>
     <div id="mapNote" class="map-note" style="display:none;"></div>
-    <div id="mapFallback" class="map-fallback">Kurier lokatsiyasi aniqlanmoqda</div>
+    <div id="mapFallback" class="map-fallback">Xarita yuklanmoqda…</div>
     <div id="courierMap"></div>
   </section>
 
@@ -104,8 +104,8 @@
     <div class="timeline" id="timeline"></div>
 
     <div class="card">
-      <div class="row"><h3 style="margin:0;" id="labelCourierDetails">Kuryer ma'lumotlari</h3><span class="muted" id="courierStatus"></span></div>
-      <div id="courierCard" class="muted" style="margin-top:8px;">Kurier biriktirilmoqda</div>
+      <div class="row"><h3 style="margin:0;" id="labelDeliveryStatus">Yetkazish holati</h3><span class="muted" id="courierStatus"></span></div>
+      <div id="courierCard" class="muted" style="margin-top:8px;">Holat yangilanmoqda…</div>
     </div>
 
     <div class="card">
@@ -119,7 +119,7 @@
       <h3 style="margin:0 0 6px;" id="labelService">Ishonchli xizmat</h3>
       <div class="muted" id="serviceSupport">📞 Qo‘llab-quvvatlash: +998 55 701 00 70 (buyurtma raqamini ayting)</div>
       <div class="muted" id="servicePayment" style="margin-top:6px;">💳 To‘lov: to‘lov holati tizimda yangilanadi, ortiqcha yechimlar qo‘llanmaydi</div>
-      <div class="muted" id="serviceFlow" style="margin-top:6px;">🚚 Jarayon: yig‘ish → kurier biriktirish → manzilga topshirish</div>
+      <div class="muted" id="serviceFlow" style="margin-top:6px;">🚚 Jarayon: yig‘ish → yo‘lda → manzilga topshirish</div>
       <div class="muted" id="serviceEta" style="margin-top:6px;">🕒 ETA: Samarqand bo‘ylab odatda 1–4 soat, tirbandlikda kechikishi mumkin</div>
     </div>
 
@@ -216,12 +216,13 @@
       labelEta: "ETA",
       labelPayment: "To'lov holati",
       labelTotal: "Jami",
-      labelCourierDetails: "Kuryer ma'lumotlari",
+      labelDeliveryStatus: "Yetkazish holati",
+      mapLoading: "Xarita yuklanmoqda…",
       labelDelivery: "Yetkazib berish",
       labelService: "Ishonchli xizmat",
       serviceSupport: "📞 Qo'llab-quvvatlash: +998 55 701 00 70 (buyurtma raqamini ayting)",
       servicePayment: "💳 To'lov: to'lov holati tizimda yangilanadi, ortiqcha yechimlar qo'llanmaydi",
-      serviceFlow: "🚚 Jarayon: yig'ish → kuryer biriktirish → manzilga topshirish",
+      serviceFlow: "🚚 Jarayon: yig'ish → yo'lda → manzilga topshirish",
       serviceEta: "🕒 ETA: Samarqand bo'ylab odatda 1-4 soat, tirbandlikda kechikishi mumkin",
       labelFeedback: "Buyurtmani baholang",
       feedbackWhy: "Sizning bahoyingiz mahsulotlar, yetkazish va mijozlarga xizmat sifatini yaxshilashda to‘g‘ridan-to‘g‘ri yordam beradi. Qisqa izoh yozsangiz, jamoamiz muammoni tezroq aniqlaydi.",
@@ -295,12 +296,13 @@
       labelEta: "ETA",
       labelPayment: "Статус оплаты",
       labelTotal: "Итого",
-      labelCourierDetails: "Данные курьера",
+      labelDeliveryStatus: "Статус доставки",
+      mapLoading: "Загрузка карты…",
       labelDelivery: "Доставка",
       labelService: "Надежный сервис",
       serviceSupport: "📞 Поддержка: +998 55 701 00 70 (назовите номер заказа)",
       servicePayment: "💳 Оплата: статус оплаты обновляется в системе автоматически",
-      serviceFlow: "🚚 Процесс: сборка → назначение курьера → доставка по адресу",
+      serviceFlow: "🚚 Процесс: сборка → в пути → доставка по адресу",
       serviceEta: "🕒 ETA: по Самарканду обычно 1-4 часа, возможны задержки в пробках",
       labelFeedback: "Оцените заказ",
       feedbackWhy: "Ваша оценка напрямую помогает улучшать товары, доставку и сервис. Короткий комментарий помогает команде быстрее найти причину, если что-то пошло не так.",
@@ -414,7 +416,10 @@
     if ($('labelEta')) $('labelEta').textContent = t('labelEta');
     if ($('labelPayment')) $('labelPayment').textContent = t('labelPayment');
     if ($('labelTotal')) $('labelTotal').textContent = t('labelTotal');
-    if ($('labelCourierDetails')) $('labelCourierDetails').textContent = t('labelCourierDetails');
+    if ($('labelDeliveryStatus')) $('labelDeliveryStatus').textContent = t('labelDeliveryStatus');
+    if (mapFallbackEl && mapFallbackEl.style.display !== 'none' && !mapFallbackEl.querySelector('a')) {
+      mapFallbackEl.textContent = t('mapLoading');
+    }
     if ($('labelDelivery')) $('labelDelivery').textContent = t('labelDelivery');
     if ($('labelService')) $('labelService').textContent = t('labelService');
     if ($('serviceSupport')) $('serviceSupport').textContent = t('serviceSupport');
@@ -1033,28 +1038,20 @@
       return escapeHtml(i.name) + ' × ' + escapeHtml(i.quantity) + ' = ' + money(i.subtotal);
     }).join('<br>')) || t('noItems');
 
-    var hasCourier = Boolean(order.courierName);
-    courierStatusEl.textContent = hasCourier ? t('courierActive') : t('courierPending');
-    var ratingText = Number(order.courierRating) > 0 ? ('<div class="muted">'+ t('rating') +': '+ Number(order.courierRating).toFixed(1) +'</div>') : '';
-    var vehicleText = (order.courierVehicle || order.courierVehicleNumber)
-      ? ('<div class="muted">'+ escapeHtml(order.courierVehicle || '') +' '+ escapeHtml(order.courierVehicleNumber || '') +'</div>')
-      : '';
-    courierCardEl.innerHTML = hasCourier
-      ? ('<div><strong>'+ escapeHtml(order.courierName) +'</strong>'+ vehicleText + ratingText +'</div>')
-      : t('courierAssigning');
-    callBtnEl.href = order.courierPhone ? ('tel:' + order.courierPhone) : '#';
-    callBtnEl.textContent = order.courierPhone ? t('callNow') : t('noNumber');
+    courierStatusEl.textContent = ui.badge;
+    courierCardEl.textContent = ui.note;
+    if (callBtnEl) {
+      callBtnEl.href = 'tel:+998557010070';
+      callBtnEl.textContent = t('support');
+    }
 
     liveInfoEl.textContent = t('lastUpdate') + ': '+ new Date(order.trackingUpdatedAt || order.updated_at || Date.now()).toLocaleTimeString(formatLocale()) +' · '+ t('interval') +' '+ Math.round(pollDelay/1000) +'s';
 
     if (order.status === 'cancelled'){
       etaTextEl.textContent = t('cancelled');
-      callBtnEl.textContent = t('support');
-      callBtnEl.href = 'tel:+998557010070';
     }
     if (order.status === 'delivered'){
       etaTextEl.textContent = t('deliveredText');
-      callBtnEl.textContent = t('support');
     }
 
     try { renderMap(); } catch (mapErr){
