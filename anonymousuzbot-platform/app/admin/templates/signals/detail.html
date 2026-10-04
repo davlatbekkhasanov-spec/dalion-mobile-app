@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% set signal = detail.signal %}
+{% block content %}
+<div class="card">
+  <div class="card-title">Moderation Signal</div>
+  <table>
+    <tr><th>Signal ID</th><td class="uuid">{{ signal.id }}</td></tr>
+    <tr><th>Severity</th><td><span class="badge badge-sev-{{ signal.severity.value }}">{{ signal.severity.value }}</span></td></tr>
+    <tr><th>Type</th><td>{{ signal.signal_type.value }}</td></tr>
+    <tr><th>Status</th><td><span class="badge badge-new">{{ signal.status.value }}</span></td></tr>
+    <tr><th>User UUID</th><td class="uuid">{{ signal.user_id }}</td></tr>
+    <tr><th>Chat UUID</th><td class="uuid">{{ signal.chat_id or '—' }}</td></tr>
+    <tr><th>Message UUID</th><td class="uuid">{{ signal.message_id or '—' }}</td></tr>
+    <tr><th>Reason</th><td>{{ signal.reason }}</td></tr>
+    <tr><th>Created</th><td>{{ signal.created_at | format_dt }}</td></tr>
+  </table>
+</div>
+
+{% if detail.trigger_message %}
+<div class="card">
+  <div class="card-title">Trigger Message</div>
+  <div class="message-item">
+    <div class="message-meta">{{ detail.trigger_message.created_at | format_dt }} · {{ detail.trigger_message.message_type.value }}</div>
+    {% if detail.trigger_message.text %}<div>{{ detail.trigger_message.text }}</div>{% endif %}
+    {% if detail.trigger_message.telegram_file_id %}
+    <div class="message-file">file_id: {{ detail.trigger_message.telegram_file_id }}</div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if can_manage %}
+<div class="card">
+  <div class="card-title">Actions</div>
+  <div class="actions">
+    <form method="post" action="/admin/signals/{{ signal.id }}/warn" style="display:inline;">
+      <button type="submit" class="btn btn-warn btn-sm">Warn User</button>
+    </form>
+    <form method="post" action="/admin/signals/{{ signal.id }}/temp-ban" style="display:inline;">
+      <input type="hidden" name="reason" value="AI moderation violation">
+      <input type="hidden" name="days" value="7">
+      <button type="submit" class="btn btn-danger btn-sm">Temp Ban (7d)</button>
+    </form>
+    <form method="post" action="/admin/signals/{{ signal.id }}/perm-ban" style="display:inline;">
+      <input type="hidden" name="reason" value="AI moderation violation">
+      <button type="submit" class="btn btn-danger btn-sm">Permanent Ban</button>
+    </form>
+    <form method="post" action="/admin/signals/{{ signal.id }}/resolve" style="display:inline;">
+      <button type="submit" class="btn btn-primary btn-sm">Resolve</button>
+    </form>
+    <form method="post" action="/admin/signals/{{ signal.id }}/ignore" style="display:inline;">
+      <button type="submit" class="btn btn-sm">Ignore</button>
+    </form>
+    {% if signal.chat_id %}
+    <a href="/admin/chats/{{ signal.chat_id }}" class="btn btn-sm">Open Chat</a>
+    {% endif %}
+    <a href="/admin/users/{{ signal.user_id }}" class="btn btn-sm">Open User</a>
+  </div>
+</div>
+{% endif %}
+
+{% if detail.chat_detail %}
+{% set chat = detail.chat_detail.chat %}
+<div class="card">
+  <div class="card-title">Chat Context</div>
+  <p style="margin-bottom:0.75rem;color:var(--text-dim);">
+    <span class="uuid">{{ chat.male_user_id }}</span> ↔ <span class="uuid">{{ chat.female_user_id }}</span>
+    · status: {{ chat.status.value }}
+  </p>
+  <div class="message-list">
+    {% for msg in detail.chat_detail.messages %}
+    <div class="message-item{% if signal.message_id and msg.id == signal.message_id %} message-highlight{% endif %}">
+      <div class="message-meta">{{ msg.created_at | format_dt }} · {{ msg.message_type.value }} · <span class="uuid">{{ msg.sender_id }}</span></div>
+      {% if msg.text %}<div>{{ msg.text }}</div>{% endif %}
+      {% if msg.telegram_file_id %}<div class="message-file">file_id: {{ msg.telegram_file_id }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<a href="/admin/signals" class="btn">← Back to AI Moderator</a>
+{% endblock %}

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ title | default("Admin") }}{% endblock %} · Mega Admin</title>
+  <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        MEGA ADMIN
+        <span>Anonymous Chat Control</span>
+      </div>
+      <nav>
+        {% if admin %}
+          {% for label, path in visible_menu(admin.role) %}
+            <a href="{{ path }}" class="nav-link{% if request.url.path.startswith(path) and path != '/admin/' or request.url.path == path %} active{% endif %}">{{ label }}</a>
+          {% endfor %}
+          {% if can(admin.role, Permission.ADMINS_MANAGE) %}
+            <a href="/admin/admins" class="nav-link{% if request.url.path.startswith('/admin/admins') %} active{% endif %}">Admin Accounts</a>
+          {% endif %}
+        {% endif %}
+      </nav>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <h1>{{ title | default("Dashboard") }}</h1>
+        <div class="topbar-meta">
+          {% if admin %}
+            <span>{{ admin.username }}</span> · <span>{{ admin.role.value }}</span>
+            <form method="post" action="/admin/logout" style="display:inline;margin-left:1rem;">
+              <button type="submit" class="btn btn-sm">Logout</button>
+            </form>
+          {% endif %}
+        </div>
+      </header>
+      <main class="content">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+</body>
+</html>
