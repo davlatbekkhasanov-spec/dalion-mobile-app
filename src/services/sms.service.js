@@ -58,16 +58,11 @@ function sanitizeSmsClientDetail(text, maxLen = 96) {
 
 function isDevsmsSuccess(data, httpOk) {
   if (!httpOk) return false;
-  if (data?.charged === false || data?.data?.charged === false) return false;
-  const status = String(data?.data?.status || data?.status || '')
-    .trim()
-    .toLowerCase();
-  if (['failed', 'rejected', 'error', 'blocked', 'forbidden'].includes(status)) return false;
   const s = data?.success;
   if (s === true || s === 'true' || s === 1 || s === '1') return true;
   if (s === false || s === 'false' || s === 0 || s === '0') return false;
   if (data?.error != null && String(data.error).trim() !== '') return false;
-  if (status === 'sent' || status === 'queued') return true;
+  if (data?.data?.status === 'sent') return true;
   return false;
 }
 
@@ -75,9 +70,6 @@ function devsmsFailureMessage(data, httpStatus, nonJson) {
   if (nonJson) return `DevSMS javobi JSON emas (HTTP ${httpStatus})`;
   const msg = data?.message ?? data?.error ?? data?.msg;
   if (typeof msg === 'string' && msg.trim()) return msg.trim().slice(0, 280);
-  if (data?.charged === false || data?.data?.charged === false) {
-    return 'SMS yuborilmadi (provayder to‘lov yechmadi / shablon rad etildi)';
-  }
   return `DevSMS xato: HTTP ${httpStatus}`;
 }
 
@@ -185,8 +177,6 @@ async function sendViaDevsms(phone, code) {
   const message = String(
     process.env.DEVSMS_OTP_MESSAGE_TEMPLATE || process.env.SMS_MESSAGE_TEMPLATE || DEFAULT_SMS_OTP_MESSAGE_TEMPLATE
   ).replace(/\{\{code\}\}/g, code);
-  // Default: free-form message + from (previous production behavior).
-  // Opt-in: DEVSMS_SMS_TYPE=universal_otp for Eskiz approved OTP templates.
   const smsType = String(process.env.DEVSMS_SMS_TYPE || '').trim();
 
   let payload;
