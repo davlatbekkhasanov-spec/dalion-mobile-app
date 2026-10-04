@@ -41,10 +41,9 @@ test('sendViaDevsms: string success + api_key in body when DEVSMS_AUTH_MODE=body
     assert.equal(body.api_key, 'test-key-123');
     assert.equal(captured.headers.Authorization, undefined);
     assert.equal(body.phone, '998901234567');
-    assert.equal(body.type, 'universal_otp');
-    assert.equal(body.template_type, 3);
-    assert.equal(body.otp_code, '123456');
-    assert.equal(body.service_name, 'GlobusMarket');
+    assert.equal(body.message.includes('123456'), true);
+    assert.equal(body.from, '4546');
+    assert.equal(body.type, undefined);
   } finally {
     for (const [k, v] of Object.entries(prev)) {
       if (v === undefined) delete process.env[k];
