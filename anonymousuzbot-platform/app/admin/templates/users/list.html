@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<form class="filters" method="get">
+  <div>
+    <label>UUID</label>
+    <input type="text" name="uuid" value="{{ uuid }}" placeholder="Internal UUID">
+  </div>
+  {% if can_telegram_search %}
+  <div>
+    <label>Telegram ID</label>
+    <input type="text" name="telegram_id" value="{{ telegram_id }}" placeholder="Owner/Mega Admin only">
+  </div>
+  {% endif %}
+  <button type="submit" class="btn btn-primary">Search</button>
+</form>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>UUID</th>
+        <th>Gender</th>
+        <th>Age</th>
+        <th>Premium</th>
+        <th>Banned</th>
+        <th>Muted</th>
+        <th>Last Seen</th>
+        <th>Reports</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in users %}
+      {% set u = row.user %}
+      <tr>
+        <td class="uuid">{{ u.id }}</td>
+        <td>{{ u.gender.value }}</td>
+        <td>{{ u.age }}</td>
+        <td>{% if row.is_premium %}<span class="badge badge-premium">Premium</span>{% else %}—{% endif %}</td>
+        <td>{% if u.is_banned %}<span class="badge badge-banned">Banned</span>{% else %}—{% endif %}</td>
+        <td>{% if u.is_muted %}<span class="badge badge-muted">Muted</span>{% else %}—{% endif %}</td>
+        <td>{{ u.last_seen_at | format_dt }}</td>
+        <td>{{ row.reports_count }}</td>
+        <td class="actions">
+          <a href="/admin/users/{{ u.id }}" class="btn btn-sm">View</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" style="color:var(--text-dim);">No users found</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

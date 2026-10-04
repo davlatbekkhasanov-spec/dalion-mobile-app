@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<form class="filters" method="get">
+  <div>
+    <label>Status</label>
+    <select name="status">
+      <option value="">All</option>
+      {% for s in ReportStatusEnum %}
+      <option value="{{ s.value }}" {% if status == s.value %}selected{% endif %}>{{ s.value }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn btn-primary">Filter</button>
+</form>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Status</th>
+        <th>Chat ID</th>
+        <th>Reporter UUID</th>
+        <th>Reported UUID</th>
+        <th>Reason</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for report in reports %}
+      <tr>
+        <td class="uuid">{{ report.id }}</td>
+        <td><span class="badge badge-new">{{ report.status.value }}</span></td>
+        <td class="uuid">{{ report.chat_id }}</td>
+        <td class="uuid">{{ report.reporter_id }}</td>
+        <td class="uuid">{{ report.reported_user_id }}</td>
+        <td>{{ report.reason[:80] }}{% if report.reason|length > 80 %}…{% endif %}</td>
+        <td>{{ report.created_at | format_dt }}</td>
+        <td><a href="/admin/reports/{{ report.id }}" class="btn btn-sm">View</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" style="color:var(--text-dim);">No reports</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

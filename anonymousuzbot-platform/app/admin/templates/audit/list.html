@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Admin UUID</th>
+        <th>Action</th>
+        <th>Target Type</th>
+        <th>Target ID</th>
+        <th>IP</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>{{ log.created_at | format_dt }}</td>
+        <td class="uuid">{{ log.admin_id or '—' }}</td>
+        <td>{{ log.action }}</td>
+        <td>{{ log.target_type }}</td>
+        <td class="uuid">{{ log.target_id or '—' }}</td>
+        <td>{{ log.ip_address or '—' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="color:var(--text-dim);">No audit logs</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="actions" style="margin-top:1rem;">
+    {% if page > 1 %}
+    <a href="/admin/audit?page={{ page - 1 }}" class="btn btn-sm">← Prev</a>
+    {% endif %}
+    <a href="/admin/audit?page={{ page + 1 }}" class="btn btn-sm">Next →</a>
+  </div>
+</div>
+{% endblock %}

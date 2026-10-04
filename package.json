@@ -4,7 +4,7 @@
   "description": "DALION mobile commerce app (GlobusMarket preview + Node.js backend)",
   "main": "index.js",
   "scripts": {
-    "start": "prisma migrate deploy && node index.js",
+    "start": "node scripts/start-with-db-retry.js",
     "test": "node --test",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate deploy",
