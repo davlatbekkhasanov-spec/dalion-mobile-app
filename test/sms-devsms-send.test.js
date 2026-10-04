@@ -41,6 +41,10 @@ test('sendViaDevsms: string success + api_key in body when DEVSMS_AUTH_MODE=body
     assert.equal(body.api_key, 'test-key-123');
     assert.equal(captured.headers.Authorization, undefined);
     assert.equal(body.phone, '998901234567');
+    assert.equal(body.type, 'universal_otp');
+    assert.equal(body.template_type, 3);
+    assert.equal(body.otp_code, '123456');
+    assert.equal(body.service_name, 'GlobusMarket');
   } finally {
     for (const [k, v] of Object.entries(prev)) {
       if (v === undefined) delete process.env[k];
@@ -78,6 +82,40 @@ test('sendViaDevsms: success:false yields clientDetail + logContext', async () =
     assert.equal(result.provider, 'devsms');
     assert.ok(result.clientDetail);
     assert.ok(result.logContext && typeof result.logContext.httpStatus === 'number');
+  } finally {
+    for (const [k, v] of Object.entries(prev)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+    delete global.fetch;
+    delete require.cache[require.resolve('../src/services/sms.service.js')];
+  }
+});
+
+test('sendViaDevsms: charged:false is treated as failure', async () => {
+  const prev = {
+    SMS_GATEWAY_MODE: process.env.SMS_GATEWAY_MODE,
+    DEVSMS_API_KEY: process.env.DEVSMS_API_KEY
+  };
+  process.env.SMS_GATEWAY_MODE = 'devsms';
+  process.env.DEVSMS_API_KEY = 'test-key-123';
+
+  global.fetch = async () => ({
+    ok: true,
+    status: 200,
+    text: async () =>
+      JSON.stringify({
+        success: true,
+        charged: false,
+        message: 'Korxona nomi rad etildi'
+      })
+  });
+
+  try {
+    const sms = loadSmsFresh();
+    const result = await sms.sendSmsOtp('+998901234567', '123456');
+    assert.equal(result.ok, false);
+    assert.ok(String(result.message || '').length > 0);
   } finally {
     for (const [k, v] of Object.entries(prev)) {
       if (v === undefined) delete process.env[k];
