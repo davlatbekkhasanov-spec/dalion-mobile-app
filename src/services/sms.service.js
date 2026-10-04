@@ -185,24 +185,14 @@ async function sendViaDevsms(phone, code) {
   const message = String(
     process.env.DEVSMS_OTP_MESSAGE_TEMPLATE || process.env.SMS_MESSAGE_TEMPLATE || DEFAULT_SMS_OTP_MESSAGE_TEMPLATE
   ).replace(/\{\{code\}\}/g, code);
-  // Default: Eskiz universal OTP templates (operators often drop free-form OTP text).
-  // Override with DEVSMS_SMS_TYPE=eskiz|simple|message|custom for free-form body.
-  const smsTypeRaw = String(process.env.DEVSMS_SMS_TYPE || 'universal_otp').trim().toLowerCase();
-  const useUniversalOtp =
-    !smsTypeRaw || smsTypeRaw === 'universal_otp' || smsTypeRaw === 'otp' || smsTypeRaw === 'universal';
-  const useCustomMessage = ['eskiz', 'simple', 'message', 'custom', 'text'].includes(smsTypeRaw);
+  // Default: free-form message + from (previous production behavior).
+  // Opt-in: DEVSMS_SMS_TYPE=universal_otp for Eskiz approved OTP templates.
+  const smsType = String(process.env.DEVSMS_SMS_TYPE || '').trim();
 
   let payload;
-  if (useUniversalOtp && !useCustomMessage) {
-    // 3 = registration template per DevSMS docs
-    const templateType = Math.min(
-      4,
-      Math.max(1, Number(process.env.DEVSMS_OTP_TEMPLATE_TYPE || 3) || 3)
-    );
-    const serviceName = String(process.env.DEVSMS_SERVICE_NAME || 'GlobusMarket')
-      .trim()
-      .replace(/[^\p{L}\p{N}\s.\-]/gu, '')
-      .slice(0, 50);
+  if (smsType === 'universal_otp') {
+    const templateType = Math.min(4, Math.max(1, Number(process.env.DEVSMS_OTP_TEMPLATE_TYPE || 4) || 4));
+    const serviceName = String(process.env.DEVSMS_SERVICE_NAME || 'GlobusMarket').trim().slice(0, 50);
     payload = {
       phone: phoneDigits,
       type: 'universal_otp',
@@ -216,9 +206,7 @@ async function sendViaDevsms(phone, code) {
       message,
       from: from || '4546'
     };
-    if (smsTypeRaw && !['message', 'custom', 'text'].includes(smsTypeRaw)) {
-      payload.type = smsTypeRaw;
-    }
+    if (smsType) payload.type = smsType;
   }
 
   if (callbackUrl) payload.callback_url = callbackUrl;
