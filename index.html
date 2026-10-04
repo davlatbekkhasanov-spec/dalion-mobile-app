@@ -3536,10 +3536,6 @@ Oq fonli foto</div>
       if (!phoneOk) { authPhone?.focus(); return false; }
       setFieldError(null, smsSendError, '');
       const phoneValue = normalizedAuthPhone();
-      if (authSmsCard) {
-        authSmsCard.hidden = false;
-        authSmsCard.removeAttribute('hidden');
-      }
       setBtnLoading(sendSmsBtn, true);
       try {
         await api('/auth/sms/send', {
@@ -3568,6 +3564,11 @@ Oq fonli foto</div>
         showToast(t('smsSentToast'));
         return true;
       } catch (err) {
+        if (authSmsCard) authSmsCard.hidden = true;
+        if (sendSmsBtn) {
+          sendSmsBtn.dataset.sent = '';
+          sendSmsBtn.textContent = t('smsSendBtn');
+        }
         setFieldError(null, smsSendError, err.message || t('smsSendFail'));
         return false;
       } finally {
