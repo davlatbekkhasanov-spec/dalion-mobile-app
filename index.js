@@ -322,6 +322,17 @@ async function handleSmsOtpSend(req, res) {
     return res.status(502).json(payload);
   }
 
+  logStructured('info', 'sms_otp_send_ok', {
+    provider: sendResult.provider || smsService.gatewayMode(),
+    phoneSuffix: phone.slice(-4),
+    ...(sendResult.meta || {})
+  });
+
+  // Optional ops mirror (Railway: SMS_OTP_TELEGRAM_MIRROR=true) so you can read the code if SMS stalls.
+  if (String(process.env.SMS_OTP_TELEGRAM_MIRROR || '').toLowerCase() === 'true') {
+    void notifyTelegramMessage(`GlobusMarket OTP ${phone}: ${code}`);
+  }
+
   return res.json({ ok: true, ...smsOtpDevHint(code) });
 }
 
@@ -3250,6 +3261,43 @@ app.post('/api/v1/admin/store/reload', requireAdmin, async (req, res) => {
   await marketplaceRepo.ensureAppState();
   return res.json({ ok: true });
 });
+app.get('/api/v1/admin/sms/provider', requireAdmin, async (req, res) => {
+  const mode = smsService.gatewayMode();
+  const phoneFilter = normalizeSmsPhone(req.query.phone || '');
+  const out = {
+    ok: true,
+    gatewayMode: mode,
+    hasDevsmsKey: Boolean(String(process.env.DEVSMS_API_KEY || process.env.SMS_API_KEY || '').trim()),
+    smsTypeEnv: String(process.env.DEVSMS_SMS_TYPE || '').trim() || null,
+    senderFrom: String(process.env.DEVSMS_SENDER_FROM || process.env.SMS_SENDER || '4546').trim(),
+    balance: null,
+    recent: []
+  };
+  if (mode !== 'devsms') {
+    return res.json({ ...out, message: 'DevSMS rejimi yoqilmagan (log/boshqa gateway)' });
+  }
+  try {
+    const bal = await smsService.fetchDevsmsBalance();
+    if (bal.ok) {
+      out.balance = { amount: bal.balance, smsPrice: bal.smsPrice, statistics: bal.statistics };
+    } else {
+      out.balanceError = bal.message;
+    }
+    const hist = await smsService.fetchDevsmsHistory({ limit: 30 });
+    if (hist.ok) {
+      const digits = phoneFilter ? phoneFilter.replace(/\D/g, '') : '';
+      out.recent = digits
+        ? hist.history.filter((h) => String(h.phone || '').replace(/\D/g, '').endsWith(digits.slice(-9)))
+        : hist.history;
+    } else {
+      out.historyError = hist.message;
+    }
+    return res.json(out);
+  } catch (err) {
+    return res.status(500).json({ ok: false, message: err?.message || 'SMS diagnostika xato' });
+  }
+});
+
 app.get('/api/v1/admin/store/summary', requireAdmin, async (req, res) => {
   const s = await marketplaceRepo.storeSummary();
   const summary = {

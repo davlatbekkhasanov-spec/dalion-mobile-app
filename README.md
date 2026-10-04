@@ -29,7 +29,8 @@ Customer checkout link is generated server-side:
 - `DEVSMS_AUTH_MODE` (default `bearer`): `bearer` — `Authorization: Bearer …` only; `body` — include `api_key` in the JSON body only; `both` — header and body (for providers that expect both).
 - `DEVSMS_SENDER_FROM`: sender ID (optional; default `4546` per provider docs).
 - `DEVSMS_CALLBACK_URL`: optional delivery-status webhook URL (only if you consume callbacks).
-- Optional: `DEVSMS_API_URL` (default `https://devsms.uz/api/send_sms.php`), `DEVSMS_OTP_MESSAGE_TEMPLATE` / `SMS_MESSAGE_TEMPLATE` with `{{code}}` (if unset, defaults to GlobusMarket Uzbek registration OTP body), `DEVSMS_SMS_TYPE` (optional; set `universal_otp` only if you want Eskiz universal templates), `DEVSMS_SERVICE_NAME`, `DEVSMS_OTP_TEMPLATE_TYPE` (1–4, for universal OTP), `SMS_LOG_OTP_CODE=true` to log plaintext OTP (avoid in production).
+- Optional: `DEVSMS_API_URL` (default `https://devsms.uz/api/send_sms.php`). OTP default is **`universal_otp`** (Eskiz approved templates; falls back to short free-form text if rejected). Force free-form: `DEVSMS_SMS_TYPE=eskiz`. Also: `DEVSMS_SERVICE_NAME`, `DEVSMS_OTP_TEMPLATE_TYPE` (default `3` = registration), `DEVSMS_STATUS_VERIFY_MS` (default ~2800, set `0` to skip post-send status check), `SMS_OTP_TELEGRAM_MIRROR=true` (copy OTP to Telegram notify chat), `ALLOW_OTP_DEV_UI=true` (show `devHint` code in API for emergency login), `SMS_LOG_OTP_CODE=true`.
+- Admin diagnostics: `GET /api/v1/admin/sms/provider?phone=+998...` (header `x-admin-token`) → gateway mode, balance, recent SMS statuses.
 
 If Payme keys are missing, `POST /api/payme` answers with a JSON-RPC configuration error until variables are set.
 

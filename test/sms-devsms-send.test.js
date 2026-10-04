@@ -9,22 +9,30 @@ function loadSmsFresh() {
   return require('../src/services/sms.service.js');
 }
 
-test('sendViaDevsms: string success + api_key in body when DEVSMS_AUTH_MODE=body', async () => {
+test('sendViaDevsms: universal_otp by default + api_key in body when DEVSMS_AUTH_MODE=body', async () => {
   const prev = {
     SMS_GATEWAY_MODE: process.env.SMS_GATEWAY_MODE,
     DEVSMS_API_KEY: process.env.DEVSMS_API_KEY,
     DEVSMS_AUTH_MODE: process.env.DEVSMS_AUTH_MODE,
+    DEVSMS_SMS_TYPE: process.env.DEVSMS_SMS_TYPE,
+    DEVSMS_STATUS_VERIFY_MS: process.env.DEVSMS_STATUS_VERIFY_MS,
     SMS_API_URL: process.env.SMS_API_URL
   };
   process.env.SMS_GATEWAY_MODE = 'devsms';
   process.env.DEVSMS_API_KEY = 'test-key-123';
   process.env.DEVSMS_AUTH_MODE = 'body';
+  delete process.env.DEVSMS_SMS_TYPE;
+  process.env.DEVSMS_STATUS_VERIFY_MS = '0';
   delete process.env.SMS_API_URL;
 
   let captured;
   global.fetch = async (_url, opts) => {
     captured = opts;
-    const bodyStr = JSON.stringify({ success: 'true', message: 'ok' });
+    const bodyStr = JSON.stringify({
+      success: 'true',
+      message: 'ok',
+      data: { sms_id: 9, status: 'sent', balance: 100 }
+    });
     return {
       ok: true,
       status: 200,
@@ -41,9 +49,48 @@ test('sendViaDevsms: string success + api_key in body when DEVSMS_AUTH_MODE=body
     assert.equal(body.api_key, 'test-key-123');
     assert.equal(captured.headers.Authorization, undefined);
     assert.equal(body.phone, '998901234567');
-    assert.equal(body.message.includes('123456'), true);
+    assert.equal(body.type, 'universal_otp');
+    assert.equal(body.otp_code, '123456');
+  } finally {
+    for (const [k, v] of Object.entries(prev)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+    delete global.fetch;
+    delete require.cache[require.resolve('../src/services/sms.service.js')];
+  }
+});
+
+test('sendViaDevsms: DEVSMS_SMS_TYPE=eskiz uses free-form message', async () => {
+  const prev = {
+    SMS_GATEWAY_MODE: process.env.SMS_GATEWAY_MODE,
+    DEVSMS_API_KEY: process.env.DEVSMS_API_KEY,
+    DEVSMS_SMS_TYPE: process.env.DEVSMS_SMS_TYPE,
+    DEVSMS_STATUS_VERIFY_MS: process.env.DEVSMS_STATUS_VERIFY_MS
+  };
+  process.env.SMS_GATEWAY_MODE = 'devsms';
+  process.env.DEVSMS_API_KEY = 'test-key-123';
+  process.env.DEVSMS_SMS_TYPE = 'eskiz';
+  process.env.DEVSMS_STATUS_VERIFY_MS = '0';
+
+  let captured;
+  global.fetch = async (_url, opts) => {
+    captured = opts;
+    return {
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ success: true, data: { status: 'sent', sms_id: 1 } })
+    };
+  };
+
+  try {
+    const sms = loadSmsFresh();
+    const result = await sms.sendSmsOtp('+998901234567', '654321');
+    assert.equal(result.ok, true);
+    const body = JSON.parse(captured.body);
+    assert.equal(body.type, 'eskiz');
+    assert.equal(String(body.message || '').includes('654321'), true);
     assert.equal(body.from, '4546');
-    assert.equal(body.type, undefined);
   } finally {
     for (const [k, v] of Object.entries(prev)) {
       if (v === undefined) delete process.env[k];
@@ -58,11 +105,13 @@ test('sendViaDevsms: success:false yields clientDetail + logContext', async () =
   const prev = {
     SMS_GATEWAY_MODE: process.env.SMS_GATEWAY_MODE,
     DEVSMS_API_KEY: process.env.DEVSMS_API_KEY,
-    DEVSMS_AUTH_MODE: process.env.DEVSMS_AUTH_MODE
+    DEVSMS_AUTH_MODE: process.env.DEVSMS_AUTH_MODE,
+    DEVSMS_STATUS_VERIFY_MS: process.env.DEVSMS_STATUS_VERIFY_MS
   };
   process.env.SMS_GATEWAY_MODE = 'devsms';
   process.env.DEVSMS_API_KEY = 'test-key-123';
   process.env.DEVSMS_AUTH_MODE = 'bearer';
+  process.env.DEVSMS_STATUS_VERIFY_MS = '0';
 
   global.fetch = async () => ({
     ok: true,
@@ -94,10 +143,12 @@ test('sendViaDevsms: success:false yields clientDetail + logContext', async () =
 test('sendViaDevsms: charged:false is treated as failure', async () => {
   const prev = {
     SMS_GATEWAY_MODE: process.env.SMS_GATEWAY_MODE,
-    DEVSMS_API_KEY: process.env.DEVSMS_API_KEY
+    DEVSMS_API_KEY: process.env.DEVSMS_API_KEY,
+    DEVSMS_STATUS_VERIFY_MS: process.env.DEVSMS_STATUS_VERIFY_MS
   };
   process.env.SMS_GATEWAY_MODE = 'devsms';
   process.env.DEVSMS_API_KEY = 'test-key-123';
+  process.env.DEVSMS_STATUS_VERIFY_MS = '0';
 
   global.fetch = async () => ({
     ok: true,
