@@ -3,40 +3,79 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#050b18" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>GlobusMarket</title>
   <style>
+    :root { color-scheme: dark; }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100dvh;
-      padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
-      font-family: Inter, system-ui, sans-serif;
-      background: #050b18;
+      padding: max(28px, env(safe-area-inset-top)) 24px max(28px, env(safe-area-inset-bottom));
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: radial-gradient(120% 80% at 50% 0%, #132742 0%, #050b18 55%);
       color: #e8f2ff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: grid;
+      place-items: center;
       text-align: center;
     }
     .card {
-      max-width: 420px;
+      width: min(420px, 100%);
       border: 1px solid #2e436a;
-      border-radius: 14px;
-      padding: 20px;
-      background: #0f1d34;
+      border-radius: 18px;
+      padding: 28px 22px;
+      background: rgba(15, 29, 52, 0.92);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
     }
-    h1 { margin: 0 0 12px; font-size: 22px; }
+    .mark {
+      width: 72px; height: 72px; margin: 0 auto 16px;
+      border-radius: 18px;
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 28px; letter-spacing: -0.04em;
+      background: linear-gradient(145deg, #5af5b4, #3b82f6);
+      color: #041018;
+    }
+    h1 { margin: 0 0 8px; font-size: 24px; }
     p { margin: 8px 0; color: #9ab3d6; font-size: 14px; line-height: 1.5; }
-    code { background: #0a1730; padding: 2px 6px; border-radius: 6px; font-size: 13px; }
+    .spinner {
+      width: 28px; height: 28px; margin: 18px auto 0;
+      border: 3px solid #2e436a; border-top-color: #5af5b4;
+      border-radius: 50%; animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .links { margin-top: 18px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    a { color: #5af5b4; font-size: 13px; }
   </style>
 </head>
 <body>
   <div class="card">
+    <div class="mark" aria-hidden="true">G</div>
     <h1>GlobusMarket</h1>
-    <p>Mobil ilova qobig‘i tayyor. Asosiy interfeys serverdan yuklanadi.</p>
-    <p>Build uchun o‘rnating: <code>CAPACITOR_SERVER_URL</code> (HTTPS Railway manzilingiz), so‘ng <code>npm run cap:sync</code>.</p>
-    <p>Veb versiya brauzerda o‘zgarmagan holda ishlaydi.</p>
+    <p id="msg">Ilova yuklanmoqda…</p>
+    <div class="spinner" id="spin" aria-hidden="true"></div>
+    <div class="links">
+      <a href="https://globusmarket.org/privacy">Maxfiylik</a>
+      <a href="https://globusmarket.org/terms">Shartlar</a>
+      <a href="mailto:support@globusmarket.org">Yordam</a>
+    </div>
   </div>
+  <script>
+    (function () {
+      var PROD = 'https://globusmarket.org';
+      var msg = document.getElementById('msg');
+      // When Capacitor server.url is configured, native WebView loads the remote app.
+      // This local page is only a branded fallback / first paint.
+      setTimeout(function () {
+        if (msg) msg.textContent = 'Agar sahifa ochilmasa, internetni tekshiring yoki ilovani qayta oching.';
+        var spin = document.getElementById('spin');
+        if (spin) spin.style.display = 'none';
+      }, 4000);
+      // Soft hint for local browser preview of mobile-www
+      if (!window.Capacitor) {
+        if (msg) msg.innerHTML = 'Native qobiq. Production: <a href="' + PROD + '">' + PROD + '</a>';
+      }
+    })();
+  </script>
 </body>
 </html>

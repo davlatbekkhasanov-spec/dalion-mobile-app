@@ -6,96 +6,46 @@
 
 | Fayl / qism | Tezish mumkinmi? |
 |-------------|------------------|
-| `index.html`, `styles.css` | **Yo‘q** (1–2-bosqichda) |
+| `index.html`, `styles.css` | Ehtiyot bilan (veb + native bir UI) |
 | `index.js` (mijoz API) | Faqat **yangi** endpoint, eskisi qoladi |
-| `admin.html`, `orders.html`, `courier.html` | **Yo‘q** |
-| `mobile-www/`, `capacitor.config.js` | **Ha** (faqat qobiq) |
-| `android/`, `ios/` (Capacitor) | **Ha** (alohida papka) |
-| `android-courier/` | Alohida loyiha, keyinroq |
+| `admin.html` | Ops UI — native mijozga kirmaydi |
+| `mobile-www/`, `capacitor.config.js` | **Ha** (qobiq) |
+| `android/`, `ios/` | **Ha** (Capacitor native) |
+| Kuryer / tablo | Alohida dasturlar (ixtiyoriy) |
 
 ## Bosqichlar
 
-### Bosqich 0 — hujjat (hozir)
+### Bosqich 1 — Capacitor qobiq ✅
 
-- Ushbu reja + `MOBILE-TEST-CHECKLIST.md`
-- **Kodga tegilmaydi**
-
-### Bosqich 1 — Capacitor qobiq (hozir)
-
-- `capacitor.config.js` + `mobile-www/` (faqat yo‘riqnoma sahifa)
-- `CAPACITOR_SERVER_URL` o‘rnatilganda ilova **production veb**ni yuklaydi — `index.html` nusxalanmaydi
-- Veb `/` brauzerda **o‘zgarmaydi**
+- `capacitor.config.js` + `mobile-www/`
+- Default production: `https://globusmarket.org`
+- `android/` va `ios/` loyihalar repoda
 
 ### Bosqich 2 — Payme ✅
 
-- `@capacitor/browser` + `@capacitor/app` (native loyihada `cap sync`)
-- `public/mobile-native-bridge.js` — faqat `Capacitor.isNativePlatform()` da ishlaydi
-- `index.html`: Payme uchun `GlobusNative.openPaymentUrl`, aks holda `window.location.assign` (veb o‘sha)
-- To‘lovdan keyin: `browserFinished` → `/track/:orderNumber`
+- `@capacitor/browser` + `@capacitor/app`
+- `public/mobile-native-bridge.js`
 
 ### Bosqich 3 — JWT sessiya ✅
 
-- `src/customer-session.js` — OTP dan keyin `accessToken` (JWT)
-- `Authorization: Bearer` — asosiy; `x-user-phone` — eski mijozlar uchun
-- Noto‘g‘ri JWT + boshqa telefon header — qabul qilinmaydi
-- Production: `CUSTOMER_SESSION_SECRET` o‘rnating (Railway)
+- `src/customer-session.js`
+- Production: `CUSTOMER_SESSION_SECRET`
 
-### Bosqich 4 — Store (hujjatlar) ✅
+### Bosqich 4 — Store hujjatlar ✅
 
-- `/privacy`, `/terms` sahifalar
-- `DELETE /api/v1/profile/account` — hisob o‘chirish
-- Profilda havolalar + `SUPPORT_EMAIL` (Railway)
+- `/privacy`, `/terms`
+- Hisob o‘chirish
+- `docs/STORE-PUBLISH.md`
 
-## Capacitor: ishga tushirish
+## Buyruqlar
 
 ```bash
 npm install
-# Production (tavsiya — dizayn serverdagi index.html dan keladi):
-set CAPACITOR_SERVER_URL=https://globusmarket.org
-npm run cap:sync
-
-# Android (Windows/Mac):
+npm run cap:sync:prod
 npm run cap:open:android
-
-# iOS (faqat macOS + Xcode):
-npm run cap:open:ios
+npm run cap:open:ios   # macOS
 ```
-
-### Qora status bar (soat / LTE) — butun ekran
-
-Bu **faqat native rebuild** bilan yo‘qoladi (veb deploy yetarli emas):
-
-1. `capacitor.config.js` da `ios.contentInset: 'never'` + StatusBar `overlaysWebView: true`
-2. Mac da: `CAPACITOR_SERVER_URL=https://globusmarket.org npm run cap:sync`
-3. Xcode: Clean Build → Run / TestFlight
-
-Web tomonda header/nav `safe-area` padding bilan tayyor (`index.html` + `mobile-native-bridge.js`).
-
-### Foto qidiruv (OpenAI Vision — majburiy)
-
-Local CLIP olib tashlandi (stakan→ramka xatolari). Endi faqat **OpenAI Vision**.
-
-Railway → Variables:
-```
-OPENAI_API_KEY=sk-...
-PHOTO_SEARCH_OPENAI_MODEL=gpt-4o-mini
-```
-Save → Redeploy.
-
-Tekshiruv: `GET /api/v1/products/search-by-image/status` → `"openaiConfigured": true`
-
-Lokal server bilan sinov (telefon/emulyator kompyuterga ulanishi kerak):
-
-```bash
-set CAPACITOR_SERVER_URL=http://10.0.2.2:3000
-npm run cap:sync
-```
-
-## Orqaga qaytish
-
-- Capacitor olib tashlash: `android/`, `ios/`, `mobile-www/`, `capacitor.config.js` ni o‘chirish — veb ta’sir qilmaydi
-- `CAPACITOR_SERVER_URL` bo‘lmasa — native ilova faqat sozlash ekranini ko‘rsatadi, server buzilmaydi
 
 ## Tekshiruv
 
-Har bosqichdan keyin: `docs/MOBILE-TEST-CHECKLIST.md`
+`docs/MOBILE-TEST-CHECKLIST.md` · `docs/STORE-PUBLISH.md`
