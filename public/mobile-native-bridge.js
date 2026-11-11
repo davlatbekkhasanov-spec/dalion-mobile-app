@@ -30,8 +30,6 @@
   }
 
   var paymeBrowserHooked = false;
-  var statusBarReady = false;
-  var statusBarRetries = 0;
 
   function hookPaymeBrowserFinished(Browser) {
     if (paymeBrowserHooked || !Browser || typeof Browser.addListener !== 'function') return;
@@ -54,18 +52,44 @@
     if (!App || typeof App.addListener !== 'function') return;
     App.addListener('appUrlOpen', function (ev) {
       var raw = String((ev && ev.url) || '');
-      if (!raw || raw.indexOf('/track/') === -1) return;
+      if (!raw) return;
       var Browser = getPlugin('Browser');
       if (Browser && typeof Browser.close === 'function') {
         Browser.close().catch(function () {});
       }
       try {
         var u = new URL(raw);
+        if (u.protocol === 'globusmarket:') {
+          global.location.href = u.pathname + u.search + u.hash || '/';
+          return;
+        }
         global.location.href = u.pathname + u.search + u.hash;
       } catch {
         global.location.href = raw;
       }
     });
+  }
+
+  function setupStatusBar() {
+    var StatusBar = getPlugin('StatusBar');
+    if (!StatusBar) return;
+    try {
+      if (typeof StatusBar.setOverlaysWebView === 'function') {
+        StatusBar.setOverlaysWebView({ overlay: true }).catch(function () {});
+      }
+      if (typeof StatusBar.setStyle === 'function') {
+        StatusBar.setStyle({ style: 'DARK' }).catch(function () {});
+      }
+      if (typeof StatusBar.setBackgroundColor === 'function') {
+        StatusBar.setBackgroundColor({ color: '#050b18' }).catch(function () {});
+      }
+    } catch (e) {}
+  }
+
+  function hideSplash() {
+    var SplashScreen = getPlugin('SplashScreen');
+    if (!SplashScreen || typeof SplashScreen.hide !== 'function') return;
+    SplashScreen.hide().catch(function () {});
   }
 
   /**
@@ -90,89 +114,18 @@
     return true;
   }
 
-  function appIsVisible() {
-    try {
-      var phone = document.getElementById('phone');
-      return !!(phone && phone.classList.contains('show-app'));
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /**
-   * Edge-to-edge status bar.
-   * Intro (dark) → LIGHT icons; shop (light header) → DARK icons.
-   * Requires native rebuild: contentInset never + @capacitor/status-bar synced.
-   */
-  function syncStatusBar() {
-    if (!isNative()) return false;
-    var StatusBar = getPlugin('StatusBar');
-    if (!StatusBar) return false;
-    try {
-      document.documentElement.classList.add('native-edge');
-    } catch (e) {}
-    var style = appIsVisible() ? 'DARK' : 'LIGHT';
-    var tasks = [];
-    if (typeof StatusBar.setOverlaysWebView === 'function') {
-      tasks.push(StatusBar.setOverlaysWebView({ overlay: true }));
-    }
-    if (typeof StatusBar.setStyle === 'function') {
-      tasks.push(StatusBar.setStyle({ style: style }));
-    }
-    if (typeof StatusBar.show === 'function') {
-      tasks.push(StatusBar.show());
-    }
-    Promise.all(
-      tasks.map(function (p) {
-        return Promise.resolve(p).catch(function () {});
-      })
-    ).catch(function () {});
-    statusBarReady = true;
-    return true;
-  }
-
-  function setupStatusBar() {
-    if (syncStatusBar()) {
-      watchAppChrome();
-      return;
-    }
-    // Capacitor bridge may load after this script on remote server URL.
-    if (statusBarRetries >= 40) return;
-    statusBarRetries += 1;
-    setTimeout(setupStatusBar, 250);
-  }
-
-  function watchAppChrome() {
-    var phone = document.getElementById('phone');
-    if (!phone || typeof MutationObserver !== 'function') return;
-    var obs = new MutationObserver(function () {
-      syncStatusBar();
-    });
-    obs.observe(phone, { attributes: true, attributeFilter: ['class'] });
-  }
-
   global.GlobusNative = {
     isNative: isNative,
-    openPaymentUrl: openPaymentUrl,
-    syncStatusBar: syncStatusBar
+    openPaymentUrl: openPaymentUrl
   };
 
-  function bootNative() {
-    if (!isNative()) return;
+  if (isNative()) {
     setupAppUrlOpen();
     setupStatusBar();
-  }
-
-  if (isNative()) {
-    bootNative();
-  } else {
-    // Remote WebView: Capacitor injects after first paint sometimes.
-    document.addEventListener('DOMContentLoaded', function () {
-      if (isNative()) bootNative();
-    });
-    global.addEventListener('capacitorReady', bootNative);
-    setTimeout(function () {
-      if (isNative() && !statusBarReady) bootNative();
-    }, 800);
+    if (global.document && global.document.readyState === 'complete') {
+      hideSplash();
+    } else if (global.addEventListener) {
+      global.addEventListener('load', hideSplash);
+    }
   }
 })(typeof window !== 'undefined' ? window : globalThis);

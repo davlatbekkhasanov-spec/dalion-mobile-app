@@ -1,10 +1,12 @@
 'use strict';
 
 /**
- * Capacitor shell — does not replace index.html.
- * When CAPACITOR_SERVER_URL is set, the WebView loads your live web app (same design as browser).
+ * Capacitor shell for GlobusMarket (iOS / Android).
+ * Production builds load the live HTTPS app so web and native share one UI.
  */
-const serverUrl = String(process.env.CAPACITOR_SERVER_URL || '')
+const serverUrl = String(
+  process.env.CAPACITOR_SERVER_URL || 'https://globusmarket.org'
+)
   .trim()
   .replace(/\/$/, '');
 
@@ -14,28 +16,43 @@ const config = {
   appName: 'GlobusMarket',
   webDir: 'mobile-www',
   android: {
-    allowMixedContent: false
+    allowMixedContent: false,
+    backgroundColor: '#050b18'
   },
   ios: {
-    // Never: let WebView draw edge-to-edge; CSS safe-area pads header/nav.
     contentInset: 'never',
-    scrollEnabled: true
+    scrollEnabled: true,
+    backgroundColor: '#050b18',
+    preferredContentMode: 'mobile'
   },
   plugins: {
+    SplashScreen: {
+      launchShowDuration: 1200,
+      launchAutoHide: true,
+      backgroundColor: '#050b18',
+      showSpinner: false,
+      androidSplashResourceName: 'splash'
+    },
     StatusBar: {
       overlaysWebView: true,
       style: 'DARK',
-      backgroundColor: '#f6f7fb'
+      backgroundColor: '#050b18'
     }
-  }
-};
-
-if (serverUrl) {
-  config.server = {
+  },
+  server: {
     url: serverUrl,
     cleartext: serverUrl.startsWith('http://'),
-    androidScheme: serverUrl.startsWith('https://') ? 'https' : 'http'
-  };
-}
+    androidScheme: 'https',
+    allowNavigation: [
+      'globusmarket.org',
+      '*.globusmarket.org',
+      'dalion-mobile-app-production.up.railway.app',
+      '*.up.railway.app',
+      'checkout.paycom.uz',
+      '*.paycom.uz',
+      '*.payme.uz'
+    ]
+  }
+};
 
 module.exports = config;

@@ -256,34 +256,15 @@ A professional native Android courier app project is included in `android-courie
 - Current backend: `https://dalion-mobile-app-production.up.railway.app`
 - Future domain (for easy switch): `https://globusmarket.org`
 
-### Customer app — Capacitor (iOS / Android, dizayn buzilmaydi)
+### Customer app — Capacitor (iOS / Android)
 
-Mijoz ilovasi vebdagi `index.html` dan yuklanadi (nusxa emas). Reja: `docs/MOBILE-SAFE-PLAN.md`, tekshiruv: `docs/MOBILE-TEST-CHECKLIST.md`.
+Native loyihalar: `android/`, `ios/` (`org.globusmarket.app`). UI production vebdan yuklanadi (`https://globusmarket.org`).
 
 ```bash
 npm install
-set CAPACITOR_SERVER_URL=https://dalion-mobile-app-production.up.railway.app
-npm run cap:add:android
-npm run cap:sync
-npm run cap:open:android
+npm run cap:sync:prod
+npm run cap:open:android   # Android Studio → signed AAB
+npm run cap:open:ios       # macOS + Xcode Archive
 ```
 
-`index.html` / `styles.css` o‘zgartirilmaydi. iOS: macOS + `npm run cap:add:ios`.
-
-**Bosqich 2 (Payme):** native ilovada Payme in-app browser orqali ochiladi; brauzerda avvalgidek `window.location`. Pluginlar: `npm install` → `CAPACITOR_SERVER_URL` o‘rnating → `npm run cap:sync`.
-
-### Build APK locally (courier native)
-1. Install Android Studio (latest stable).
-2. Open folder: `android-courier/`.
-3. Let Gradle sync complete.
-4. Build debug APK:
-   - Android Studio: **Build > Build Bundle(s) / APK(s) > Build APK(s)**
-   - or terminal:
-     ```bash
-     cd android-courier
-     ./gradlew assembleDebug
-     ```
-5. APK output:
-   `android-courier/app/build/outputs/apk/debug/app-debug.apk`
-
-> Note: In this environment, Android SDK/Gradle wrapper may not be available to produce APK directly.
+Store chiqarish: `docs/STORE-PUBLISH.md` · checklist: `docs/MOBILE-TEST-CHECKLIST.md`.

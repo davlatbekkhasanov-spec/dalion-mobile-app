@@ -1,10 +1,30 @@
 node_modules/
 .env
 .env.mobile
-# Capacitor native projects (generated via npm run cap:add:*)
-/android/
-/ios/
 /.capacitor/
 data/store.json
 uploads/products/
 uploads/categories/
+uploads/biometric/
+uploads/banners/
+
+# Native build artifacts (projects themselves ARE committed)
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/.idea/
+android/captures/
+android/*.iml
+android/app/*.iml
+
+ios/App/Pods/
+ios/App/build/
+ios/DerivedData/
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcuserstate
+
+resources/.tmp/
+.DS_Store

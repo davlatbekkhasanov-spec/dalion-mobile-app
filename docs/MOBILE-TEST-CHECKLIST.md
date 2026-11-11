@@ -1,41 +1,38 @@
-# Mobil bosqich — tekshiruv ro‘yxati
+# Mobil / store tekshiruv ro‘yxati
 
-Har bosqichdan keyin belgilang. Keyingi bosqichga o‘tish — faqat **veb OK** + (mobil bo‘lsa) **mobil OK**.
+Har bosqichdan keyin belgilang. Store ga chiqishdan oldin **barchasi** ✓ bo‘lishi kerak.
 
-## Veb (har doim — `/` brauzerda)
+## Veb (brauzer)
 
-- [ ] Bosh sahifa ochiladi, katalog yuklanadi
-- [ ] Qidiruv / kategoriya ishlaydi
-- [ ] Savatga qo‘shish / o‘zgartirish
+- [ ] Bosh sahifa / katalog
+- [ ] Qidiruv / kategoriya
+- [ ] Savat
 - [ ] SMS OTP login
-- [ ] Buyurtma berish (naqd yoki Payme)
-- [ ] `/track/:orderNumber` tracking
-- [ ] Admin `/admin` — token, buyurtmalar
-- [ ] Tablo `/orders-display` yangilanadi
-- [ ] Kuryer `/courier/:token` accept / location
+- [ ] Buyurtma (naqd / Payme)
+- [ ] `/track/:orderNumber`
+- [ ] Profil → Maxfiylik / Shartlar
+- [ ] Profil → Hisobni o‘chirish
 
-## Bosqich 1 — Capacitor qobiq
+## Capacitor qobiq
 
-- [ ] `npm test` — barcha testlar o‘tadi
-- [ ] `CAPACITOR_SERVER_URL` bilan `npm run cap:sync` xatosiz
-- [ ] Android/iOS: ilova ochiladi, **xuddi vebdagi** dizayn
-- [ ] Scroll, safe area (notch), pastki panel
-- [ ] `CAPACITOR_SERVER_URL` o‘chirilgan build — sozlash ekrani (server buzilmagan)
+- [ ] `npm run cap:sync:prod` xatosiz
+- [ ] Android Studio da loyiha ochiladi
+- [ ] iOS: macOS da `pod install` + Xcode ochiladi
+- [ ] Splash / ikonka ko‘rinadi
+- [ ] Internet yo‘q bo‘lsa branded fallback (`mobile-www`)
 
-## Bosqich 2 — Payme
+## Native funksiyalar
 
-- [ ] `npm install` + `npm run cap:sync:prod` (yoki `CAPACITOR_SERVER_URL` + `cap sync`)
-- [ ] Native: Payme in-app browser ochiladi (sahifa almashmaydi)
-- [ ] Browser yopilganda `/track/...` ga o‘tadi
-- [ ] Desktop/mobil Safari: `window.location` (veb yo‘l) ishlaydi
+- [ ] Payme in-app browser ochiladi va yopilganda track ga qaytadi
+- [ ] Deep link `https://globusmarket.org/track/...` ilovani ochadi
+- [ ] Status bar overlay to‘g‘ri
+- [ ] Kamera ruxsati matni (selfie so‘ralsa)
 
-## Bosqich 3 — JWT
+## Store
 
-- [ ] OTP → `accessToken` qaytadi
-- [ ] Savat/buyurtma Bearer bilan ishlaydi
-- [ ] Chiqish → token o‘chadi
-- [ ] Eski brauzer (faqat x-user-phone) hali ishlaydi
+- [ ] Play: AAB imzolangan
+- [ ] App Store: Archive tayyor
+- [ ] Privacy policy URL ishlaydi
+- [ ] Listing screenshotlari tayyor
 
----
-
-**Izoh:** Bosqich 1 da `index.html` o‘zgartirilmaydi — mobil production URL dan yuklanadi.
+Batafsil: `docs/STORE-PUBLISH.md`
